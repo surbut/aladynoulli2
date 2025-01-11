@@ -10,6 +10,7 @@ In this repo, you'll find the main script for running (solvinglogit.R) and the s
 \boldsymbol{\phi}_{kd} &\sim \mathcal{N}(\boldsymbol{\mu}_d + \psi_{kd}\mathbf{1}_T, K_\phi) \\
 \boldsymbol{\lambda}_{ik} &\sim \mathcal{N}(\gamma_k g_i\mathbf{1}_T, K_\lambda)
 \end{align*}
+<img width="632" alt="image" src="https://github.com/user-attachments/assets/3792a90b-9432-4aa7-add4-fccd9b8566a9" />
 
 Additional scripts related to useful functions ('utils'), model specific functions, initialization and sampling methods (for example, elliptical) are all in the utils directory.
 
