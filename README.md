@@ -3,7 +3,7 @@ Code for Solving Aladynoulli!
 
 In this repo, you'll find a guide to understanding, simulating, and solving aladynoulli.
 
-More description of this work can be found [https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1].
+More description of this work can be found [here](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1).
 
 ### The Model
 
