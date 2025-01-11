@@ -1,0 +1,2157 @@
+---
+title: "plottingAladynoulli"
+format: html
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+```{r}
+
+library(tidyverse)
+library(reticulate)
+
+# 2. Activate the environment
+use_condaenv("r-tensornoulli")
+
+# 3. Install required packages
+#conda_install("r-tensornoulli", packages = c("numpy", "pandas", "scipy"))
+
+# 4. Verify installation
+py_config()  # Should show your new environment
+
+conda_install("r-tensornoulli", packages = c("torch", "torchvision"))
+# Use your conda environment
+use_condaenv("r-tensornoulli")
+library(reticulate)
+
+# First, make sure we're using the right environment
+use_condaenv("r-tensornoulli")
+
+# Install PyTorch using pip
+py_install("torch", pip = TRUE)
+
+
+# Load the PyTorch model
+model_path <- "~/Dropbox (Personal)/mgbbtopic/model.pt"
+model_data <- torch$load(model_path)
+
+
+
+
+
+# Load the saved model data
+model_data <- py_load_object("~/Dropbox (Personal)//aladyn_model_full.pkl")
+lambda=model_data$lambda
+model_data$metadata$smoke=ifelse(model_data$metadata$smoke==1,1,0)
+phi=model_data$phi
+Y=model_data$Y
+event_times=model_data$event_times
+disease_names=model_data$disease_names
+groups=model_data$groups
+```
+
+```{r}
+library(reshape2)
+theta=aperm(apply(lambda,c(1,3),function(x){exp(x)/sum(exp(x))}),c(2,1,3))
+G=readRDS("~/tensornoulli_ehr_new/data/prs.rds")
+l=melt(theta)
+colnames(l)=c("Individual","Signature","Time","value")
+p=ggplot(l[l$Individual%in%sample(1:9661,5),],aes(Time,value,fill=as.factor(Signature)))+geom_area()+facet_wrap(~Individual,scales = "free")+scale_fill_futurama()+labs(x="Time (years from 30)",y="Probability",title="Signature probabilities over time",fill="Signature")
+
+
+ggsave(p, filename = "signature_probabilities_indvidiaul.pdf", width = 6, height = 4)
+
+```
+
+You can add options to executable code like this 
+
+```{r}
+
+disease_names=readRDS("~/Dropbox (Personal)/disease_names.rds")
+phi_logit=aperm(plogis(phi),c(2,1,3))
+phi_logit=aperm(phi,c(2,1,3))
+rownames(phi_logit)=disease_names
+l=melt(phi_logit)
+colnames(l)=c("Disease","Signature","Time","value")
+p2=ggplot(l[l$Disease%in%c("Coronary atherosclerosis","Myocardial infarction","Angina pectors","Atrial fibrillation and flutter","Congestive heart failure (CHF) NOS"),],aes(Time,value,fill=as.factor(Signature)))+
+  geom_area()+facet_wrap(~Disease)+scale_fill_futurama()+labs(x="Time (years from 30)",y="Probability",title="Signature probabilities over time",fill="Signature")
+ggsave(p2, filename = "signature_probabilities_disease.pdf", width = 6, height = 4)
+
+```
+
+```{r}
+library(ggplot2)
+library(viridis)  # for better color gradients
+
+
+# First get your data as before
+phi = model_data$phi
+phi_logit = aperm(phi,c(2,1,3))
+rownames(phi_logit) = disease_names
+l = melt(plogis(phi_logit))
+colnames(l) = c("Disease","Signature","Time","value")
+
+# Calculate mean values for each disease within each signature
+disease_means <- l %>%
+  group_by(Signature, Disease) %>%
+  summarize(mean_value = mean(value), .groups = "drop") %>%
+  group_by(Signature) %>%
+  arrange(Signature, desc(mean_value)) %>%
+  slice_head(n = 20)
+
+# Create the filtered dataset
+l_top <- l %>%
+  inner_join(disease_means, by = c("Signature", "Disease")) %>%
+  merge(groups, by.x = "Disease", by.y = "phenotype", all.x = TRUE)
+
+# Create factor levels separately for each signature
+l_top <- l_top %>%
+  group_split(Signature) %>%
+  map_dfr(~{
+    sig_means <- disease_means %>% 
+      filter(Signature == first(.x$Signature)) %>%
+      arrange(desc(mean_value))
+    
+    .x %>% 
+      mutate(Disease = factor(Disease, levels = sig_means$Disease))
+  })
+
+# Plot
+p2 <- ggplot(l_top, aes(Time, Disease, fill = value)) +
+  geom_tile() +
+  facet_wrap(~ Signature, scales = "free_y", drop = TRUE) +
+  labs(x = "Time (years from 30)", y = NULL,
+       title = "Top diseases per signature over time", 
+       fill = "Weight") +
+  scale_fill_viridis_c(option = "B", direction = -1) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    strip.text = element_text(size = 14),
+    axis.title.x = element_text(size = 14),
+    axis.ticks.y = element_blank(),
+    panel.spacing = unit(1, "lines")
+  )
+
+print(p2)
+
+ggsave(p2, filename = "signature_probabilities_disease_to2p20.pdf", width = 20, height = 6)
+```
+
+
+
+```{r}
+
+# Function to calculate remaining lifetime risk from annual transitions
+calc_remaining_risk <- function(pi_pred, from_age) {
+  # Convert from 3D array to more manageable form
+  N <- dim(pi_pred)[1]
+  D <- dim(pi_pred)[2]
+  T <- dim(pi_pred)[3]
+  
+  # For each person and disease, calculate probability of developing disease 
+  # between from_age and end of follow-up
+  remaining_risk <- array(0, dim=c(N, D))
+  
+  for(n in 1:N) {
+    for(d in 1:D) {
+      # Get annual transition probabilities from from_age onwards
+      yearly_pi <- pi_pred[n, d, from_age:T]
+      # Probability of developing = 1 - prob of never developing
+      remaining_risk[n,d] <- 1 - prod(1 - yearly_pi)
+    }
+  }
+  
+  return(remaining_risk)
+}
+
+# Calculate remaining risk at different ages
+ages <- seq(30, 75, by=5)
+aladyn_risks <- list()
+
+
+# Calculate remaining risk at different ages
+
+for(age in ages) {
+  time_idx <- age - 29  # Convert age to time index
+  aladyn_risks[[as.character(age)]] <- calc_remaining_risk(pi_pred, time_idx)
+}
+
+
+fr=readRDS("~/Dropbox (Personal)/fr30.rds")
+fr=fr[fr$eid%in%rownames(Y2),]
+
+```
+
+```{r}
+# Function to fit Cox model and get predicted risks
+# Function to fit Cox model and get predicted risks
+fit_cox_risk <- function(event_times, event, sex, smoke, from_age) {
+  N <- length(event_times)
+  all_risks <- rep(NA, N)  # Initialize risks for everyone
+  
+  # Create survival data
+  df <- data.frame(
+    id = 1:N,
+    time = as.numeric(event_times),
+    event = event,
+    sex = sex,
+    smoke = smoke
+  )
+  
+  # Get indices of people still at risk
+  at_risk_idx <- which(df$time > from_age)
+  
+  if(length(at_risk_idx) > 0) {
+    # Create filtered dataset
+    df_risk <- df[at_risk_idx,]
+    df_risk$time <- df_risk$time - from_age
+    
+    # Fit Cox and get risks for at-risk people at a given time (i.e., time varying covariate predictions conditional on risk free age)
+    cox_fit <- coxph(Surv(time, event) ~ sex + smoke, data=df_risk)
+    at_risk_risks <- 1 - exp(-predict(cox_fit, type="expected"))
+    
+    # Assign risks back to full population
+    all_risks[at_risk_idx] <- at_risk_risks
+  }
+  
+  return(all_risks)
+}
+
+# Calculate risks at each age
+cox_risks <- list()
+for(age in ages) {
+  time_idx <- age - 29
+  cox_risks[[as.character(age)]] <- matrix(NA, nrow=N, ncol=D)
+  
+  for(d in 1:D) {
+    cox_risks[[as.character(age)]][,d] <- fit_cox_risk(
+      event_times = model_data$event_times[,d]+1,
+      event = rowSums(Y[,d,time_idx:T]),  # Sum future events
+      sex = model_data$metadata$sex,
+      smoke = model_data$metadata$smoke,
+      from_age = time_idx
+    )
+  }
+}
+```
+
+
+```{r}
+library(pROC)
+
+
+library(pROC)
+# Print summary
+disease_name_list <- disease_names
+# Compare for each age and disease
+results <- data.frame()
+for(age in ages) {
+  for(d in 1:D) {
+    # Get predictions
+    aladyn_pred <- aladyn_risks[[as.character(age)]][,d]
+    cox_pred <- cox_risks[[as.character(age)]][,d]
+    
+    # Get actual outcomes (future events)
+    time_idx <- age - 29
+    true_outcome <- rowSums(Y[,d,time_idx:T]) > 0
+    
+    # Calculate AUCs for non-NA predictions and where we have both outcomes
+    valid_idx <- !is.na(cox_pred)
+    if(sum(valid_idx) > 0) {
+      # Check if we have both positive and negative cases
+      if(sum(true_outcome[valid_idx]) > 0 && 
+         sum(!true_outcome[valid_idx]) > 0) {
+        
+        auc_aladyn <- auc(true_outcome[valid_idx], aladyn_pred[valid_idx])
+        auc_cox <- auc(true_outcome[valid_idx], cox_pred[valid_idx])
+        
+        results <- rbind(results, data.frame(
+          age = age,
+          disease = d,
+          disease_name = disease_name_list[d],
+          auc_aladyn = auc_aladyn,
+          auc_cox = auc_cox,
+          n_at_risk = sum(valid_idx),
+          n_events = sum(true_outcome[valid_idx])
+        ))
+      }
+    }
+  }
+}
+
+r=melt(results[,c("age","disease_name","auc_aladyn","auc_cox")],id=c("age","disease_name"))
+groups=readRDS("~/Dropbox (Personal)/disease_groups.rds")
+r=merge(r,groups,by.x="disease_name",by.y="phenotype",all.x=TRUE)
+ggplot(r,aes(x=age,y=value,fill=variable))+geom_boxplot()+
+  scale_fill_futurama()+labs(y="AUC",x="Age",fill="Model")+theme_classic()+theme(axis.text.x = element_text(angle = 90))
+
+print(head(results[order(results$auc_aladyn,decreasing = T),]))
+
+mean(results$auc_cox>results$auc_aladyn)
+
+#saveRDS(results,"~/Dropbox (Personal)/results_without_cox_correction.rds")
+
+
+
+```
+
+### Now do it where we use the aladyn risks computed above as time varying predictors
+
+
+```{r}
+library(survival)
+
+e2=event_times[rownames(event_times)%in%fr$eid,]
+yf=Y2[rownames(Y2)%in%fr$eid,,]
+all.equal(as.character(fr$eid),as.character(rownames(e2)))
+ 
+ 
+disease_name_list=model_data$disease_names
+# Function to fit Cox models and get predicted risks
+fit_cox_models <- function(event_times,
+                          event,
+                          sex,
+                          smoke,
+                          aladyn_pred,
+                          from_age) {
+  N <- length(event_times)
+  all_risks <- data.frame(
+    cox_basic = rep(NA, N),
+    cox_aladyn = rep(NA, N),
+    cox_combined = rep(NA, N)
+  )
+  
+  all_cs <- data.frame(
+    cox_basic = NA,    # Changed: Single value per model
+    cox_aladyn = NA,
+    cox_combined = NA
+  )
+  
+  # Create survival data
+  df <- data.frame(
+    id = 1:N,
+    time = as.numeric(event_times),
+    event = event,
+    sex = sex,
+    smoke = smoke,
+    aladyn_pred = aladyn_pred
+  )
+  
+  # Get indices of people still at risk
+  at_risk_idx <- which(df$time > from_age)
+  
+  if (length(at_risk_idx) > 0) {
+    df_risk <- df[at_risk_idx, ]
+    df_risk$time <- df_risk$time - from_age
+    
+    # Fit models and get predictions only if we have enough data
+    if(sum(df_risk$event) > 0) {  # Added check for events
+      # Fit three models
+      cox_basic <- coxph(Surv(time, event) ~ sex + smoke, data = df_risk)
+      cox_aladyn <- coxph(Surv(time, event) ~ aladyn_pred, data = df_risk)
+      cox_combined <- coxph(Surv(time, event) ~ sex + smoke + aladyn_pred, data = df_risk)
+      
+      # Get risks
+      all_risks$cox_basic[at_risk_idx] <- 1 - exp(-predict(cox_basic, type = "expected"))
+      all_risks$cox_aladyn[at_risk_idx] <- 1 - exp(-predict(cox_aladyn, type = "expected"))
+      all_risks$cox_combined[at_risk_idx] <- 1 - exp(-predict(cox_combined, type = "expected"))
+      
+      # Store concordance
+      all_cs$cox_basic <- cox_basic$concordance["concordance"]
+      all_cs$cox_aladyn <- cox_aladyn$concordance["concordance"]
+      all_cs$cox_combined <- cox_combined$concordance["concordance"]
+    }
+  }
+  
+  return(list("all_risks" = all_risks, "all_cs" = all_cs))
+}
+
+T=max(event_times) 
+D=348
+N=9661
+# Calculate risks for all models at each age
+all_risks <- list()
+all_risk_cs <- list()
+for(age in ages) {
+  time_idx <- age - 29
+  N=dim(Y)[1]
+  D=dim(Y)[2]
+  T=dim(Y)[3]
+  all_risks[[as.character(age)]] <- array(NA, dim=c(N, D, 3))  # 3 models
+  all_risk_cs[[as.character(age)]] <- array(NA, dim=c(D, 3))   # Changed: One value per disease/model
+  
+  for(d in 1:D) {
+    risks <- fit_cox_models(
+      event_times = event_times[,d]+1,
+      event = rowSums(Y[,d,time_idx:T]),
+      sex = metadata$sex,
+      smoke = metadata$smoke,
+      aladyn_pred = aladyn_risks[[as.character(age)]][,d],
+      from_age = time_idx
+    )
+    
+    all_risks[[as.character(age)]][,d,] <- as.matrix(risks$all_risks)
+    all_risk_cs[[as.character(age)]][d,] <- as.numeric(risks$all_cs)  # Changed: Store concordance correctly
+  }
+}
+
+
+
+# Compare performance
+results <- data.frame()
+for(age in ages) {
+  for(d in 1:D) {
+    # Get predictions from all models
+    basic_pred <- all_risks[[as.character(age)]][,d,1]
+    aladyn_pred <- all_risks[[as.character(age)]][,d,2]
+    combined_pred <- all_risks[[as.character(age)]][,d,3]
+    
+    # Get actual outcomes
+    time_idx <- age - 29
+    true_outcome <- rowSums(Y[,d,time_idx:T]) > 0
+    
+    # Calculate AUCs
+    valid_idx <- !is.na(basic_pred)
+    if(sum(valid_idx) > 0 && 
+       sum(true_outcome[valid_idx]) > 0 && 
+       sum(!true_outcome[valid_idx]) > 0) {
+      
+      auc_basic <- auc(true_outcome[valid_idx], basic_pred[valid_idx])
+      auc_aladyn <- auc(true_outcome[valid_idx], aladyn_pred[valid_idx])
+      auc_combined <- auc(true_outcome[valid_idx], combined_pred[valid_idx])
+      
+      results <- rbind(results, data.frame(
+        age = age,
+        disease = d,
+        disease_name = disease_name_list[d],
+        auc_basic = auc_basic,
+        auc_aladyn = auc_aladyn,
+        auc_combined = auc_combined,
+        n_at_risk = sum(valid_idx),
+        n_events = sum(true_outcome[valid_idx])
+      ))
+    }
+  }
+}
+
+
+
+
+# Calculate means and SDs
+library(reshape2)
+
+r=melt(results[,c("age","disease_name","auc_basic","auc_aladyn","auc_combined")],id=c("age","disease_name"))
+
+ggplot(r,aes(x=variable,y=value,fill=variable))+geom_boxplot()+
+  scale_fill_futurama()+labs(y="AUC Across all Diseases of remaining risk",x="Model",fill="Model")+theme_classic()+theme(axis.text.x = element_text(angle = 90))
+
+# Create nicer plot
+barplot(means, 
+        ylim=c(0,1.1),
+        col=c("lightgray","skyblue","lightgreen"),
+        names.arg=c("Basic\n(sex+smoke)", "Aladynoulli", "Combined"),
+      
+        ylab="AUC Across all Diseases of remaining risk")
+
+# Add error bars
+arrows(seq(0.7,2.7,1), means-sds, seq(0.7,2.7,1), means+sds, 
+       code=3, angle=90, length=0.05)
+
+# Add numeric values
+text(seq(0.7,2.7,1), means+0.05, 
+     sprintf("%.3f", means))
+
+
+
+results2 <- data.frame()
+for(age in ages) {
+    # Check if we have data for this age
+    if(!is.null(all_risk_cs[[as.character(age)]]) && 
+       !all(is.na(all_risk_cs[[as.character(age)]]))) {
+        
+        # Create temporary data frame for this age
+        temp_df <- data.frame(
+            age = rep(age, D),
+            disease = 1:D,
+            disease_name = disease_name_list
+        )
+        
+        # Add concordance scores
+        temp_df$c_basic <- all_risk_cs[[as.character(age)]][,1]
+        temp_df$c_aladyn <- all_risk_cs[[as.character(age)]][,2]
+        temp_df$c_combined <- all_risk_cs[[as.character(age)]][,3]
+        
+        # Append to results
+        results2 <- rbind(results2, temp_df)
+    }
+}
+
+
+# Calculate means and SDs
+sum <- results[,c("auc_basic","auc_aladyn","auc_combined")]
+means <- apply(sum,2,function(x){mean(na.omit(x))})
+sds <- apply(sum,2,function(x){sd(na.omit(x))})
+
+# Create nicer plot
+barplot(means, 
+        ylim=c(0,1.1),
+        col=c("lightgray","skyblue","lightgreen"),
+        names.arg=c("Basic\n(sex+smoke)", "Aladynoulli", "Combined"),
+      
+        ylab="Concordance Across all Diseases of remaining risk")
+
+# Add error bars
+arrows(seq(0.7,2.7,1), means-sds, seq(0.7,2.7,1), means+sds, 
+       code=3, angle=90, length=0.05)
+
+# Add numeric values
+text(seq(0.7,2.7,1), means+0.05, 
+     sprintf("%.3f", means))
+
+```
+
+
+```{r}
+groups=readRDS("~/Dropbox (Personal)/disease_groups.rds")
+results$auc_improvement <- results$auc_aladyn - results$auc_basic
+results$rel_improvement <- (results$auc_aladyn - results$auc_basic)/results$auc_basic
+
+# Look at where Aladyn helps most
+top_improvements <- results[order(-results$auc_improvement),]
+head(top_improvements[,c("disease_name", "age", "auc_basic", "auc_combined", 
+                        "auc_improvement", "n_events")])
+
+# 2. Disease-group specific analysis
+results_by_group <- merge(results, groups[,c("phenotype","exclude_name")], 
+                         by.x="disease_name", by.y="phenotype")
+
+ggsave(ggplot(results_by_group,aes(x=exclude_name,y=auc_improvement,fill=exclude_name))+geom_boxplot()+theme_classic()+labs(y="AUC Improvement",x="Group",fill="Group")+theme(axis.text.x = element_text(angle = 90)),filename = "auc_improvement_by_group.pdf",width = 6, height = 4)
+
+
+
+ggsave(
+  ggplot(results_by_group,aes(x=age,y=auc_improvement,fill=as.factor(age),group=as.factor(age)))+geom_boxplot()+theme_classic()+labs(y="AUC Improvement",x="Age",fill="Age")+theme(axis.text.x = element_text(angle = 90))
+                                                                                                                                       ,filename="auc_improvement_by_age.pdf",width = 6, height = 4)
+```
+
+
+```{r}
+pi_pred=model_data$pi_pred
+analyze_conditionals <- function(d1, d2, age) {
+  time_idx <- age - 29
+  
+  # Get people at risk for d2
+  at_risk <- event_times[,d2] > time_idx
+  
+  # Calculate probabilities
+  marginal <- mean(pi_pred[at_risk, d2, time_idx])
+  
+  # Conditional on having d1
+  has_d1 <- rowSums(Y[, d1, 1:time_idx]) > 0
+  cond_yes <- mean(pi_pred[at_risk & has_d1, d2, time_idx])
+  cond_no <- mean(pi_pred[at_risk & !has_d1, d2, time_idx])
+  
+  # Risk ratios
+  rr <- cond_yes/cond_no
+  
+  return(data.frame(
+    disease1 = disease_name_list[d1],
+    disease2 = disease_name_list[d2],
+    age = age,
+    marginal = marginal,
+    cond_yes = cond_yes,
+    cond_no = cond_no,
+    risk_ratio = rr
+  ))
+}
+
+ages=seq(31,80,by=5)
+disease_name_list <- disease_names
+D=length(disease_name_list)
+# Calculate for all pairs of diseases
+# Look at all disease pairs at different ages
+pairs_analysis <- data.frame()
+for(age in ages) {
+  for(d1 in 1:D) {
+    for(d2 in 1:D) {
+      if(d1 != d2) {
+        res <- analyze_conditionals(d1, d2, age)
+        pairs_analysis <- rbind(pairs_analysis, res)
+      }
+    }
+  }
+}
+
+# Find strongest associations
+top_pairs <- pairs_analysis[order(-pairs_analysis$risk_ratio),]
+
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+
+# Function 1: Topic-specific weight importance over other groups
+plot_group_deviations_within_topic <- function(l, groups, target_groups = c("circulatory system", "neoplasms", "neurological")) {
+  
+  # Calculate mean and std for each signature and time
+  topic_stats <- l %>%
+    group_by(Signature, Time) %>%
+    summarize(mean_weight = mean(value),
+             std_weight = sd(value),
+             .groups = 'drop')
+  
+  # Calculate deviations for each group
+  group_deviations <- map_df(target_groups, function(group) {
+    # Get diseases in this group
+    group_diseases <- groups %>%
+      filter(exclude_name == group) %>%
+      pull(phenotype)
+    
+    # Calculate group deviation
+    l %>%
+      filter(Disease %in% group_diseases) %>%
+      left_join(topic_stats, by = c("Signature", "Time")) %>%
+      group_by(Signature, Time) %>%
+      summarize(
+        deviation = mean((value - mean_weight) / std_weight),
+        group = group,
+        .groups = 'drop'
+      )
+  })
+  
+  # Plot
+  ggplot(group_deviations, aes(x = Time, y = deviation, color = factor(Signature))) +
+    geom_line(alpha = 0.7) +
+    facet_wrap(~group, ncol = 1, scales = "free_y") +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black", alpha = 0.3) +
+     scale_color_npg() +
+    labs(x = "Time", y = "Deviation (σ)", color = "Signature",
+         title = "Group Deviation Within Topics") +
+    theme_minimal() +
+    theme(legend.position = "right")
+}
+
+# Function 2: Topic-specific group importance vs other topics
+plot_group_deviations_across_topics <- function(l, groups, target_groups = c("circulatory system", "neoplasms", "neurological")) {
+  
+  # Calculate deviations for each group
+  group_deviations <- map_df(target_groups, function(group) {
+    # Get diseases in this group
+    group_diseases <- groups %>%
+      filter(exclude_name == group) %>%
+      pull(phenotype)
+    
+    # Calculate mean weight across signatures for these diseases
+    signature_means <- l %>%
+      filter(Disease %in% group_diseases) %>%
+      group_by(Time, Disease) %>%
+      summarize(
+        mean_across_sigs = mean(value),
+        std_across_sigs = sd(value),
+        .groups = 'drop'
+      )
+    
+    # Calculate deviation from other signatures
+    l %>%
+      filter(Disease %in% group_diseases) %>%
+      left_join(signature_means, by = c("Time", "Disease")) %>%
+      group_by(Signature, Time) %>%
+      summarize(
+        deviation = mean((value - mean_across_sigs) / std_across_sigs),
+        group = group,
+        .groups = 'drop'
+      )
+  })
+  
+  # Plot
+  ggplot(group_deviations, aes(x = Time, y = deviation, color = factor(Signature))) +
+    geom_line(alpha = 0.7) +
+    facet_wrap(~group, ncol = 1, scales = "free_y") +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black", alpha = 0.3) +
+    scale_color_npg() +
+    labs(x = "Time", y = "Deviation from mean across signatures (σ)", 
+         color = "Signature",
+         title = "Group Deviation Across Topics") +
+    theme_minimal() +
+    theme(legend.position = "right")
+}
+
+# Usage:
+p1 <- plot_group_deviations_within_topic(l, groups)
+p2 <- plot_group_deviations_across_topics(l, groups)
+
+# Display plots
+print(p1)
+print(p2)
+
+# Optional: Combine plots using patchwork
+library(patchwork)
+combined_plot <- p1 / p2
+print(combined_plot)
+
+ggsave(p1, filename = "group_deviationsz_within.pdf", width = 8, height = 6,dpi=300)
+ggsave(p2, filename = "group_deviationsz_between.pdf", width = 8, height = 6,dpi=300)
+```
+
+
+```{r}
+library(tidyverse)
+library(patchwork)
+theta_pred=theta
+prs=readRDS("~/tensornoulli_ehr_new/data/prs.rds")
+prs_names=names(prs)
+
+library(tidyverse)
+library(patchwork)
+
+plot_individual_analysis <- function(theta_pred, Y, G, disease_names, prs_names, 
+                                   individual_id=4426, start_age=30,B=model_data$gamma) {
+  
+  
+    # Debug prints
+  cat("Dimensions and types:\n")
+  cat("G dimensions:", dim(G), "\n")
+  cat("B dimensions:", dim(B), "\n")
+  cat("G class:", class(G), "\n")
+  cat("B class:", class(B), "\n")
+  
+  # Ensure numeric matrices
+  G <- as.matrix(G)
+  B <- as.matrix(B)
+  
+  # Calculate number of time points and topics
+  n_times <- dim(theta_pred)[3]
+  n_topics <- dim(theta_pred)[2]
+  age_range <- seq(start_age, start_age + n_times - 1)
+  
+  # Get individual's genetics and ensure numeric
+  g_vec <- as.numeric(G[individual_id,])
+  
+  # Calculate number of time points
+  n_times <- dim(theta_pred)[3]  # assuming theta_pred is [individuals, topics, time]
+  age_range <- seq(start_age, start_age + n_times - 1)
+  
+  # 1. Topic trajectories
+  topics_df <- as.data.frame(t(theta_pred[individual_id,,])) %>%
+    setNames(paste0("Topic", 1:ncol(.))) %>%
+    mutate(Age = age_range) %>%
+    pivot_longer(-Age, 
+                names_to = "Topic", 
+                values_to = "Weight")
+  
+  p1 <- ggplot(topics_df, aes(x = Age, y = Weight, color = Topic)) +
+    geom_line() +
+    labs(title = paste("Topic Trajectories for Individual", individual_id),
+         y = "Topic Weight") +
+    theme_minimal() +
+    theme(legend.position = "right")
+  
+  # 2. Disease events
+  cv_diseases <- c('Coronary atherosclerosis', 'Myocardial infarction', 
+                  'Angina pectoris', 'Cerebrovascular disease', 
+                  'Cerebral ischemia', 'Occlusion of cerebral arteries')
+  
+  disease_indices <- match(cv_diseases, disease_names)
+  
+
+  
+  diseases_df <- as.data.frame(t(Y[individual_id, disease_indices, ])) %>%
+    setNames(cv_diseases) %>%
+    mutate(Age = age_range) %>%
+    pivot_longer(-Age, 
+                names_to = "Disease", 
+                values_to = "Status")
+  
+  
+  disease_indices <- which(rowSums(Y[individual_id,,])>0)
+  
+  person_disease=disease_names[disease_indices]
+                           
+  diseases_df <- as.data.frame(t(Y[individual_id, disease_indices, ])) %>%
+    setNames(person_disease) %>%
+    mutate(Age = age_range) %>%
+    pivot_longer(-Age, 
+                names_to = "Disease", 
+                values_to = "Status")
+  
+  
+  p2 <- ggplot(diseases_df, aes(x = Age, y = Disease, fill = as.factor(Status)))+
+    geom_tile() +
+    labs(title = "Disease Events",
+         y = "Disease Status") +
+    theme_minimal() +
+    theme(legend.position = "right")+scale_fill_d3()
+  
+  # 3. Genetic risk scores
+genetic_df <- G[individual_id,] %>%
+    as.data.frame() %>%
+    gather(key = "PRS", value = "Value") %>%
+    mutate(PRS = str_remove(PRS, "Value."))  # Remove "Value." prefix
+  
+  p3 <- ggplot(genetic_df, aes(x = reorder(PRS, Value), y = Value)) +  # reorder by value
+    geom_col(aes(fill = Value > 0)) +  # Color by positive/negative
+    scale_fill_manual(values = c("darkred", "steelblue")) +
+    geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+    labs(title = "Genetic Risk Scores",
+         y = "PRS Value (SD units)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") +
+    coord_flip()  # Flip coordinates for better label readability
+  
+  # Combine plots
+  combined_plot <- p1 / p2 / p3 +
+    plot_layout(heights = c(2, 1, 1.5))  # Adjusted height for genetic plot
+  
+  # Print top genetic values
+  cat("\nTop 5 highest absolute PRS values for Individual", individual_id, ":\n")
+  genetic_df %>%
+    arrange(desc(abs(Value))) %>%
+    head(5) %>%
+    with(cat(paste(PRS, ": ", sprintf("%.3f", Value), "\n", sep="")))
+  return(combined_plot)
+
+}
+
+# Usage:
+p=plot_individual_analysis(theta_pred = theta_pred, Y = Y, G = prs, disease_names, prs_names =prs_names )
+ggsave(p, filename = "individual_analysis.pdf", width = 20, height = 12,dpi=300)
+```
+
+
+
+```{r}
+
+
+analyze_individual_trajectory <- function(individual_id, Y, G, theta, disease_names_list, prs_names_list, age_range=30:80) {
+  # Get first occurrence of each disease for ordering
+  disease_timeline <- data.frame(
+    disease = disease_names_list,
+    first_occurrence = apply(Y[individual_id,,], 1, function(x) min(which(x == 1)))
+  ) %>%
+    mutate(
+      first_occurrence = ifelse(is.infinite(first_occurrence), Inf, first_occurrence + 30),
+      ever_occurs = first_occurrence < Inf
+    )
+  
+  # Get diseases that occur for this person
+  person_disease <- disease_timeline %>%
+    filter(ever_occurs) %>%
+    arrange(first_occurrence) %>%
+    pull(disease)
+  
+  disease_indices <- match(person_disease, disease_names_list)
+  
+  # 1. Topic trajectories
+  topics_df <- melt(theta_pred[individual_id,,], varnames = c("Signature", "Age"), value.name = "Weight") 
+  
+  p1 <- ggplot(topics_df, aes(x = Age, y = Weight, color = as.factor(Signature)))+
+    geom_line(size = 1) +
+    labs(title = "Signature Trajectories",
+         y = "Topic Weight") +
+    theme_minimal() +
+    theme(legend.position = "right") +
+    scale_color_d3()
+  
+  # 2. Disease events - now ordered by first occurrence
+  diseases_df <- as.data.frame(t(Y[individual_id, disease_indices, ])) %>%
+    setNames(person_disease) %>%
+    mutate(Age = age_range) %>%
+    pivot_longer(-Age, 
+                names_to = "Disease", 
+                values_to = "Status") %>%
+    mutate(Disease = factor(Disease, levels = rev(person_disease)))  # Reverse order for bottom-up timeline
+  
+  p2 <- ggplot(diseases_df, aes(x = Age, y = Disease, fill = as.factor(Status))) +
+    geom_tile() +
+    labs(title = "Disease Events",
+         y = "Disease Status",fill="Status") +
+    theme_minimal() +scale_fill_manual(values = c("0" = "white", "1" = "red"))+
+    theme(legend.position = "right") 
+  
+
+  # 3. Improved genetic risk scores plot
+  genetic_df <- data.frame(t(
+    G[individual_id,]
+  ));
+  genetic_df$PRS=rownames(genetic_df)
+  colnames(genetic_df)=c("Value","PRS")
+  genetic_df=genetic_df%>%mutate(
+      Category = case_when(
+        abs(Value) >= 2 ~ "Very High",
+        abs(Value) >= 1 ~ "High",
+        abs(Value) >= 0.5 ~ "Moderate",
+        TRUE ~ "Low"
+      ),
+      Direction = ifelse(Value >= 0, "Positive", "Negative"))
+    
+  
+  p3 <- ggplot(genetic_df, aes(x = reorder(PRS, abs(Value)), y = Value)) +
+    geom_col(aes(fill = Direction)) +
+    geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+    geom_hline(yintercept = c(-2, -1, 1, 2), linetype = "dotted", alpha = 0.3) +
+    scale_fill_manual(values = c("Negative" = "darkred", "Positive" = "steelblue")) +
+    labs(title = "Genetic Risk Scores",
+         subtitle = "Dotted lines at ±1 and ±2 SD",
+         y = "PRS Value (SD units)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "right") +
+    coord_flip()
+  
+grid.arrange(p1, p2, p3, ncol = 3,widths=c(2,4,2))
+  # Combine plots with adjusted heights
+    #combined_plot <- p1 / p2 / p3 +
+    #plot_layout(heights = c(2, 2, 2)) 
+  
+  return(cp)
+}
+
+prs_names=names(G)
+individual_id=846
+a=analyze_individual_trajectory(individual_id = individual_id,Y,G,theta,disease_names,prs_names,age_range = 30:80)
+ggsave(a, filename = "individual_trajectory_earlyCAD.pdf", width = 8, height = 20,dpi=600)
+```
+
+
+```{r}
+library(tidyverse)
+library(patchwork)
+
+plot_individual_analysis <- function(theta_pred, Y, G, B, disease_names, prs_names, 
+                                   individual_id=501, start_age=30) {
+  
+  # Ensure numeric matrices and proper dimensions
+  G <- as.matrix(G)
+  B <- as.matrix(B)
+  g_vec <- as.numeric(G[individual_id,])
+  
+  # Calculate number of time points and topics
+  n_times <- dim(theta_pred)[3]
+  n_topics <- dim(theta_pred)[2]
+  age_range <- seq(start_age, start_age + n_times - 1)
+  
+  # 1. Topic trajectories
+  topics_df <- as.data.frame(t(theta_pred[individual_id,,])) %>%
+    setNames(paste0("Topic", 1:ncol(.))) %>%
+    mutate(Age = age_range) %>%
+    pivot_longer(-Age, 
+                names_to = "Topic", 
+                values_to = "Weight")
+  
+  p1 <- ggplot(topics_df, aes(x = Age, y = Weight, color = Topic)) +
+    geom_line(linewidth = 1) +
+    labs(title = paste("Topic Trajectories for Individual", individual_id),
+         y = "Topic Weight") +
+    theme_minimal() +
+    theme(legend.position = "right")
+  
+  # 2. Disease events
+  cv_diseases <- c('Coronary atherosclerosis', 'Myocardial infarction', 
+                  'Angina pectoris', 'Cerebrovascular disease', 
+                  'Cerebral ischemia', 'Occlusion of cerebral arteries')
+  
+  disease_indices <- match(cv_diseases, disease_names)
+  
+  diseases_df <- as.data.frame(t(Y[individual_id, disease_indices, ])) %>%
+    setNames(cv_diseases) %>%
+    mutate(Age = age_range) %>%
+    pivot_longer(-Age, 
+                names_to = "Disease", 
+                values_to = "Status")
+  
+  # Find first occurrence of each disease
+  disease_onsets <- diseases_df %>%
+    group_by(Disease) %>%
+    filter(Status == 1) %>%
+    summarize(Onset = first(Age)) %>%
+    filter(!is.na(Onset))
+  
+  p2 <- ggplot(diseases_df, aes(x = Age, y = Status, color = Disease)) +
+    geom_line(linewidth = 1) +
+    geom_vline(data = disease_onsets, 
+               aes(xintercept = Onset, color = Disease),
+               linetype = "dashed", alpha = 0.5) +
+    labs(title = "Disease Events",
+         y = "Disease Status") +
+    theme_minimal() +
+    theme(legend.position = "right")
+  
+  # 3. Genetic risk scores
+  genetic_df <- data.frame(
+    PRS = prs_names,
+    Value = g_vec
+  )
+  
+  p3 <- ggplot(genetic_df, aes(x = reorder(PRS, Value), y = Value)) +
+    geom_col(aes(fill = Value > 0)) +
+    scale_fill_manual(values = c("darkred", "steelblue")) +
+    geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+    labs(title = "Genetic Risk Scores",
+         y = "PRS Value (SD units)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") +
+    coord_flip()
+  
+  # 4. Calculate genetic contributions to topics
+  contrib_list <- list()
+  for(k in 1:n_topics) {
+    b_vec <- as.numeric(B[,k])
+    contrib <- g_vec * b_vec
+    contrib_list[[k]] <- data.frame(
+      PRS = prs_names,
+      Topic = paste0("Topic", k),
+      Contribution = contrib
+    )
+  }
+  
+  contrib_df <- do.call(rbind, contrib_list)
+  
+  # Calculate total contribution for each topic
+  topic_totals <- contrib_df %>%
+    group_by(Topic) %>%
+    summarize(Total = sum(Contribution))
+  
+  p4 <- ggplot(contrib_df, aes(x = reorder(Topic, -Contribution), y = Contribution, fill = as.factor(PRS))) +
+    geom_col(position = "stack") +
+    geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+    #geom_text(data = topic_totals, 
+              #aes(x = Topic, y = Total, label = sprintf("%.2f", Total)),
+              #position = position_dodge(width = 0.9),
+              #vjust = -0.5) +
+    labs(title = "Genetic Contributions to Topics",
+         y = "Combined Genetic Effect") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Combine plots
+  combined_plot <- (p1 / p2 / p3 / p4) +
+    plot_layout(heights = c(2, 1, 1.5, 1.5))
+  
+  # Print summary statistics
+  cat("\nDisease Onsets:\n")
+  print(disease_onsets)
+  
+  cat("\nTop 5 highest absolute PRS values:\n")
+  genetic_df %>%
+    arrange(desc(abs(Value))) %>%
+    head(5) %>%
+    with(cat(paste(PRS, ": ", sprintf("%.3f", Value), "\n", sep="")))
+  
+  cat("\nStrongest genetic contributions by topic:\n")
+  contrib_df %>%
+    group_by(Topic) %>%
+    arrange(desc(abs(Contribution))) %>%
+    slice(1) %>%
+    ungroup() %>%
+    arrange(Topic) %>%
+    with(cat(paste(Topic, ": ", PRS, " (", sprintf("%.3f", Contribution), ")\n", sep="")))
+  
+  return(combined_plot)
+}
+
+# Usage:
+p2=plot_individual_analysis(theta_pred, Y, G=prs, B=model_data$gamma, 
+                        disease_names, prs_names)
+
+ggsave(p2, filename = "individual_analysis_2.pdf", width = 8, height = 12,dpi=300)
+```
+
+```{r}
+library(tidyverse)
+library(pheatmap)
+library(viridis)
+library(RColorBrewer)
+library(grid)
+library(gridExtra)
+
+plot_topic_group_enrichment <- function(phi, disease_names, groups, time_points=50) {
+  phi=plogis(phi)
+  # Define groups to exclude
+  exclude_groups <- c("infectious diseases", "injuries & poisonings", "", "symptoms")
+  
+  # Filter groups
+  groups_filtered <- groups %>%
+    filter(!exclude_name %in% exclude_groups)
+  
+  # Create different color palettes for each topic
+  color_palettes <- list(
+    viridis(100),              # viridis
+    magma(100),               # magma
+    plasma(100),              # plasma
+    inferno(100),             # inferno
+    colorRampPalette(brewer.pal(9, "YlOrRd"))(100),   # Yellow-Orange-Red
+    colorRampPalette(brewer.pal(9, "YlGnBu"))(100),   # Yellow-Green-Blue
+    colorRampPalette(brewer.pal(9, "RdPu"))(100),     # Red-Purple
+    colorRampPalette(brewer.pal(9, "PuBuGn"))(100),   # Purple-Blue-Green
+    colorRampPalette(brewer.pal(9, "PuRd"))(100),     # Purple-Red
+    colorRampPalette(brewer.pal(9, "GnBu"))(100)      # Green-Blue
+  )
+  
+  # Convert phi to array if it's a tensor
+  phi_array <- as.array(phi)
+  n_topics <- dim(phi_array)[1]
+  
+  # Calculate mean logOR for each topic, group, and time
+  enrichment_by_topic <- map(1:n_topics, function(k) {
+    # Get weights for this topic
+    topic_weights <- phi_array[k,,]
+    
+    # Calculate group means at each time point
+    remaining_groups <- unique(groups_filtered$exclude_name)
+    group_means <- matrix(nrow=length(remaining_groups), 
+                         ncol=time_points)
+    rownames(group_means) <- remaining_groups
+    colnames(group_means) <- paste0("T", 1:time_points)
+    
+    for(t in 1:time_points) {
+      weights_t <- topic_weights[,t]
+      # Calculate mean weight for each group
+      group_means[,t] <- sapply(remaining_groups, function(g) {
+        group_diseases <- which(disease_names %in% 
+                              groups_filtered$phenotype[groups_filtered$exclude_name == g])
+        if(length(group_diseases) > 0) {
+          mean(weights_t[group_diseases])
+        } else {
+          NA
+        }
+      })
+    }
+    
+    return(group_means)
+  })
+  
+  # Plot heatmap for each topic and convert to grob
+  plot_grobs <- map(1:n_topics, function(k) {
+    data <- enrichment_by_topic[[k]]
+    
+    # Create nicer row names
+    rownames(data) <- stringr::str_to_title(rownames(data))
+    
+    # Get color palette for this topic
+    palette_idx <- ((k-1) %% length(color_palettes)) + 1
+    
+    # Create pheatmap and convert to grob
+    ph <- pheatmap(data,
+                  main = paste("Topic", k, "Mean Probability by Group"),
+                  color = color_palettes[[palette_idx]],
+                  cluster_rows = FALSE,
+                  cluster_cols = FALSE,
+                  show_colnames = FALSE,
+                  fontsize = 8,
+                  angle_col = 45,
+                  silent = TRUE)  # Important: return the pheatmap object
+    
+    # Convert to grob
+    grid.grabExpr(grid.draw(ph$gtable))
+  })
+  
+  # Return both the plots and the data
+  return(list(
+    plots = plot_grobs,
+    data = enrichment_by_topic
+  ))
+}
+
+# Usage:
+result <- plot_topic_group_enrichment(phi, disease_names, groups)
+
+# Arrange plots in a grid
+do.call(grid.arrange, c(result$plots, ncol=2))
+
+# Optionally, save the plot
+# ggsave("topic_enrichment.pdf", marrangeGrob(grobs=result$plots, ncol=2, nrow=5), width=15, height=30)
+```
+
+```{r}
+
+
+library(tidyverse)
+library(pheatmap)
+library(RColorBrewer)
+
+plot_genetic_effects <- function(gamma, prs_names, n_topics) {
+  # Convert gamma to matrix if needed
+  gamma_matrix <- t(as.matrix(gamma))  # transpose to match Python version
+  rownames(gamma_matrix) <- paste0("Topic ", 0:(n_topics-1))
+  colnames(gamma_matrix) <- prs_names
+  
+  # Create color palette centered at 0
+  colors <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100)
+  
+  # Create breaks that are symmetric around 0
+  max_abs <- max(abs(gamma_matrix))
+  breaks <- seq(-max_abs, max_abs, length.out = 101)
+  
+  # Create the heatmap
+  ph <- pheatmap(gamma_matrix,
+                 color = colors,
+                 breaks = breaks,
+                 cluster_rows = FALSE,      # cluster topics
+                 cluster_cols = TRUE,      # cluster genetic effects
+                 show_rownames = TRUE,
+                 show_colnames = TRUE,
+                 main = "Genetic Effects (Gamma) Across Topics",
+                 fontsize = 8,
+                 angle_col = 45,
+                 treeheight_row = 20,      # height of dendrogram
+                 treeheight_col = 20)
+  
+   # Return both plots
+  return(
+    heatmap = ph,
+    
+  )
+}
+
+# Usage:
+plots <- plot_genetic_effects(model_data$gamma, prs_names, n_topics=10)
+
+# Display plots
+# The heatmap
+plots$heatmap
+
+# The Topic 7 barplot
+plots$topic7_plot
+
+# Optionally combine plots
+library(gridExtra)
+grid.arrange(
+  grid.grabExpr(grid.draw(plots$heatmap$gtable)),
+  plots$topic7_plot,
+  ncol = 1,
+  heights = c(1.5, 1)
+)
+
+# Get clustering order
+cluster_order <- plots$heatmap$tree_col$order
+print("PRS clustering order:")
+print(prs_names_list[cluster_order])
+
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+library(tidyverse)
+library(pheatmap)
+library(viridis)
+library(RColorBrewer)
+
+plot_topic_group_enrichment <- function(phi, disease_names, groups, time_points=50) {
+  
+  # Define groups to exclude
+  exclude_groups <- c("infectious diseases", "injuries & poisonings", "", "symptoms")
+  
+  # Filter groups
+  groups_filtered <- groups %>%
+    filter(!exclude_name %in% exclude_groups)
+  
+  # Convert phi to array if it's a tensor
+  phi_array <- as.array(phi)
+  n_topics <- dim(phi_array)[1]
+  
+  # Calculate probabilities for each topic, group, and time
+  enrichment_by_topic <- map(1:n_topics, function(k) {
+    # Get weights for this topic
+    topic_weights <- phi_array[k,,]
+    
+    # Calculate group means at each time point
+    remaining_groups <- unique(groups_filtered$exclude_name)
+    group_means <- matrix(nrow=length(remaining_groups), 
+                         ncol=time_points)
+    rownames(group_means) <- remaining_groups
+    colnames(group_means) <- paste0("T", 1:time_points)
+    
+    for(t in 1:time_points) {
+      weights_t <- topic_weights[,t]
+      # Calculate mean probability for each group
+      group_means[,t] <- sapply(remaining_groups, function(g) {
+        group_diseases <- which(disease_names %in% 
+                              groups_filtered$phenotype[groups_filtered$exclude_name == g])
+        if(length(group_diseases) > 0) {
+          mean(plogis(weights_t[group_diseases]))  # Convert to probability
+        } else {
+          NA
+        }
+      })
+    }
+    
+    return(group_means)
+  })
+  
+  # Find global min and max for consistent scale
+  all_values <- unlist(enrichment_by_topic)
+  value_range <- range(all_values, na.rm = TRUE)
+  
+  # Create color palette (using magma for better intensity visualization)
+  colors <- viridis(100, option = "plasma")
+  
+  # Plot heatmap for each topic
+  plot_grobs <- map(1:n_topics, function(k) {
+    data <- enrichment_by_topic[[k]]
+    
+    # Create nicer row names
+    rownames(data) <- stringr::str_to_title(rownames(data))
+    
+    # Create pheatmap with consistent scale
+    ph <- pheatmap(data,
+                  main = paste("Topic", k, "Mean Probability by Group"),
+                  color = colors,
+                  cluster_rows = FALSE,
+                  cluster_cols = FALSE,
+                  show_colnames = FALSE,
+                  breaks = seq(value_range[1], value_range[2], length.out = 101),
+                  fontsize = 8,
+                  angle_col = 45,
+                  silent = TRUE)
+    
+    # Convert to grob
+    grid.grabExpr(grid.draw(ph$gtable))
+  })
+  
+  # Return both the plots and the data
+  return(list(
+    plots = plot_grobs,
+    data = enrichment_by_topic,
+    value_range = value_range
+  ))
+}
+
+# Usage:
+result <- plot_topic_group_enrichment(phi, disease_names, groups)
+
+# Print value range
+cat("Probability range:", sprintf("%.4f to %.4f\n", result$value_range[1], result$value_range[2]))
+
+# Arrange plots in a grid
+do.call(grid.arrange, c(result$plots, ncol=3))
+
+# Optionally save the plot
+ggsave("topic_probabilities.pdf", marrangeGrob(grobs=result$plots, ncol=3, nrow=3),
+       width=40, height=30, dpi=600)
+```
+
+
+```{r}
+library(tidyverse)
+library(pheatmap)
+library(viridis)
+
+
+
+plot_group_transitions <- function(Y, pi_pred, disease_names, groups, age_bins = seq(30, 80, 10)) {
+  
+  # Filter out unwanted groups
+  exclude_groups <- c("infectious diseases", "injuries & poisonings", "", "symptoms","congenital anomalies")
+  key_groups <- unique(groups$exclude_name[!groups$exclude_name %in% exclude_groups])
+  
+  # Create group dictionary
+  group_dict <- map(key_groups, function(group) {
+    which(disease_names %in% groups$phenotype[groups$exclude_name == group])
+  })
+  names(group_dict) <- key_groups
+  
+
+  # For each age window
+  for(i in 2:(length(age_bins)-1)) {
+    age_start <- age_bins[i] - 30
+    age_end <- age_bins[i+1] - 30
+    
+    # Initialize matrices
+    marginal_probs <- numeric(length(key_groups))
+    conditional_matrix <- matrix(0, nrow = length(key_groups), ncol = length(key_groups))
+    ratio_matrix <- matrix(0, nrow = length(key_groups), ncol = length(key_groups))
+    counts_matrix <- matrix(0, nrow = length(key_groups), ncol = length(key_groups))
+    
+    names(marginal_probs) <- key_groups
+    rownames(conditional_matrix) <- colnames(conditional_matrix) <- key_groups
+    rownames(ratio_matrix) <- colnames(ratio_matrix) <- key_groups
+    
+    # Calculate marginal probabilities
+    for(idx1 in 1:length(key_groups)) {
+      group1 <- key_groups[idx1]
+      diseases1 <- group_dict[[group1]]
+      
+      at_risk <- which(rowSums(Y[, diseases1, 1:age_start]) == 0)
+      
+      if(length(at_risk) >= 100) {
+        group_risk <- rep(0, length(at_risk))
+        for(d in diseases1) {
+          # Extract probabilities for this disease
+          yearly_pi <- pi_pred[at_risk, d, (age_start+1):age_end]
+          # Calculate cumulative risk
+          if(length(dim(yearly_pi)) == 2) {
+            disease_risk <- 1 - apply(1 - yearly_pi, 1, prod)
+          } else {
+            disease_risk <- 1 - prod(1 - yearly_pi)
+          }
+          group_risk <- pmax(group_risk, disease_risk)
+        }
+        marginal_probs[idx1] <- mean(group_risk)
+      }
+    }
+    
+    # Calculate conditional probabilities
+    for(idx1 in 1:length(key_groups)) {
+      for(idx2 in 1:length(key_groups)) {
+        if(idx1 != idx2) {
+          group1 <- key_groups[idx1]
+          group2 <- key_groups[idx2]
+          
+          diseases1 <- group_dict[[group1]]
+          diseases2 <- group_dict[[group2]]
+          
+          at_risk <- which(rowSums(Y[, diseases1, 1:age_start]) == 0)
+          
+          if(age_start > 0) {
+            had_prev <- which(rowSums(Y[, diseases2, 1:age_start]) > 0)
+            mask <- intersect(at_risk, had_prev)
+            counts_matrix[idx1, idx2] <- length(mask)
+            
+            if(length(mask) >= 100) {
+              group_risk_cond <- rep(0, length(mask))
+              for(d in diseases1) {
+                # Extract probabilities for this disease
+                yearly_pi <- pi_pred[mask, d, (age_start+1):age_end]
+                # Calculate cumulative risk
+                if(length(dim(yearly_pi)) == 2) {
+                  disease_risk <- 1 - apply(1 - yearly_pi, 1, prod)
+                } else {
+                  disease_risk <- 1 - prod(1 - yearly_pi)
+                }
+                group_risk_cond <- pmax(group_risk_cond, disease_risk)
+              }
+              conditional_matrix[idx1, idx2] <- mean(group_risk_cond)
+              
+              if(marginal_probs[idx1] > 0) {
+                ratio_matrix[idx1, idx2] <- conditional_matrix[idx1, idx2] / marginal_probs[idx1]
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    
+    
+    
+    # Create plots
+    # 1. Marginal probabilities bar plot
+    p1 <- ggplot(data.frame(Group = names(marginal_probs), 
+                           Probability = marginal_probs)) +
+      geom_col(aes(x = reorder(Group, Probability), y = Probability,fill=Group)) +
+      coord_flip() +
+      labs(title = sprintf("Marginal Risk by Group\nAge %d-%d", age_bins[i], age_bins[i+1]),
+           x = "Disease Group", y = "Risk") +
+      theme_minimal()
+    
+    # 2. Conditional probabilities heatmap
+  # Ensure unique breaks
+  max_cond <- max(conditional_matrix, na.rm = TRUE)
+  breaks_cond <- unique(seq(0, max_cond * 1.1, length.out = 100))
+  if(length(breaks_cond) < 2) breaks_cond <- c(0, max_cond * 1.1)
+  
+  p2 <- pheatmap(conditional_matrix,
+                 main = sprintf("Conditional Risks\nAge %d-%d", age_bins[i], age_bins[i+1]),
+                 color = viridis(length(breaks_cond) - 1, option ="H" ),
+                 breaks = breaks_cond,
+                 display_numbers = TRUE,
+                 number_format = "%.3f",
+                 cluster_rows = FALSE,
+                 cluster_cols = FALSE)
+    
+
+    return(list(
+      marginal = marginal_probs,
+      conditional = conditional_matrix,
+     
+      counts = counts_matrix,
+      plots = list(marginal = p1, conditional = p2)
+    ))
+  }
+}
+
+# Usage:
+results <- plot_group_transitions(Y, pi_pred, disease_names_list, groups)
+
+# Display plots
+grid.arrange(
+  results$plots$marginal,
+  grid.grabExpr(grid.draw(results$plots$conditional$gtable)),
+  grid.grabExpr(grid.draw(results$plots$ratio$gtable)),
+  ncol = 3
+)
+
+results <- plot_group_transitions(Y, pi_pred, disease_names_list, groups)
+
+```
+
+```{r}
+analyze_signature_transitions <- function(theta, threshold = 0.2) {
+  # theta dimensions: [n_people, n_signatures, n_times]
+  n_people <- dim(theta)[1]
+  n_signatures <- dim(theta)[2]
+  n_times <- dim(theta)[3]
+  
+  # Create plot layout
+  par(mfrow = c(2,2))
+  
+  # 1. Average signature strengths over time
+  mean_theta <- apply(theta, c(2,3), mean)  # Average across people
+  matplot(1:n_times, t(mean_theta), type = "l", 
+          main = "Average Signature Strengths Over Time",
+          xlab = "Time", ylab = "Average θ")
+  legend("topright", legend = paste("Signature", 0:(n_signatures-1)), 
+         col = 1:n_signatures, lty = 1)
+  
+  # 2. Calculate transition matrix
+  transitions <- matrix(0, n_signatures, n_signatures)
+  
+  for(person in 1:n_people) {
+    for(t in 1:(n_times-1)) {
+      # Get dominant signatures (above threshold)
+      current <- which(theta[person, , t] > threshold)
+      next_t <- which(theta[person, , t+1] > threshold)
+      
+      # Record transitions
+      if(length(current) > 0 && length(next_t) > 0) {
+        for(i in current) {
+          for(j in next_t) {
+            transitions[j, i] <- transitions[j, i] + 1
+          }
+        }
+      }
+    }
+  }
+  
+  # Normalize by row sums (probability of transitioning TO each signature)
+  transitions_norm <- sweep(transitions, 2, colSums(transitions) + 1e-10, "/")
+  
+  # Plot transition heatmap
+  library(pheatmap)
+  pheatmap(transitions,
+           main = "Signature Transition Probabilities",
+           display_numbers = TRUE,
+           number_format = "%.2f",
+           cluster_rows = FALSE,
+           cluster_cols = FALSE,
+           labels_row = paste("Sig", 0:(n_signatures-1)),
+           labels_col = paste("Sig", 0:(n_signatures-1)))
+  
+  # 3. Example individual trajectories
+  # Find people with most signature switches
+  n_switches <- numeric(n_people)
+  for(person in 1:n_people) {
+    dominant_sigs <- apply(theta[person, , ], 2, which.max)
+    n_switches[person] <- sum(diff(dominant_sigs) != 0)
+  }
+  
+  interesting_people <- order(n_switches, decreasing = TRUE)[1:5]
+  m=melt(theta[interesting_people, , ], varnames = c("Person", "Signature", "Time"))
+  ggplot(m,aes(x=Time,y=value,fill=as.factor(Signature)))+scale_fill_simpsons()+
+    geom_area()+
+    facet_wrap(~Person)+
+    labs(title="Example Individual Signature Trajectories\n(Top signature switchers)",
+         x="Time",y="θ",fill="Signature")
+  # Plot trajectories for interesting people
+  matplot(1:n_times, t(theta[interesting_people[1], , ]), type = "l",
+          main = "Example Individual Signature Trajectories\n(Top signature switchers)",
+          xlab = "Time", ylab = "θ")
+  
+  return(transitions_norm)
+}
+
+# Usage:
+transitions <- analyze_signature_transitions(theta)
+```
+
+
+```{r}
+find_and_plot_exemplar_cases <- function(model, Y, G, disease_names_list, prs_names_list, n_cases=20) {
+  K <- 10  # Number of topics
+  
+  # PRS to phenotype mapping
+  prs_to_phenotype <- list(
+    "AMD" = "Macular degeneration (senile) of retina NOS",
+    "AD" = "Alzheimer's disease",
+    "AST" = "Asthma",
+    "AF" = "Atrial fibrillation",
+    "BD" = "Bipolar",
+    "BMI" = "Overweight, obesity and other hyperalimentation",
+    "CRC" = "Colorectal cancer",
+    "BC" = "Malignant neoplasm of female breast",
+    "CED" = "Celiac disease",
+    "CAD" = "Coronary atherosclerosis",
+    "EOC" = "Malignant neoplasm of ovary",
+    "T1D" = "Type 1 diabetes",
+    "T2D" = "Type 2 diabetes",
+    "UC" = "Ulcerative colitis",
+    "VTE" = "Other venous embolism and thrombosis",
+    "RA" = "Rheumatoid arthritis",
+    "SLE" = "Systemic lupus erythematosus",
+    "SCZ" = "Schizophrenia",
+    "MS" = "Multiple sclerosis",
+    "PD" = "Parkinson's disease"
+  )
+  
+  # Get model parameters
+  theta_np <- theta_pred  # Assuming these are already in R format
+  gamma_np <- model_data$gamma
+  
+  # Calculate genetic contributions for each person
+  genetic_contributions <- G %*% gamma_np  # N x K
+  
+  # Calculate disease burden
+  disease_burden <- apply(Y, 1, sum)
+  
+  # Find individuals with many diseases and strong genetic alignment
+  scores <- list()
+  for(i in 1:dim(Y)[1]) {
+    # Get their dominant topic
+    dominant_topic <- which.max(colMeans(theta_np[i,,]))
+    if(dominant_topic > K) dominant_topic <- K  # Safety check
+    
+    # Score based on genetic prediction and disease burden
+    genetic_score <- genetic_contributions[i, dominant_topic]
+    score <- genetic_score * disease_burden[i]
+    scores[[i]] <- c(i, score)
+  }
+  
+  # Get top cases
+  scores_mat <- do.call(rbind, scores)
+  top_cases <- scores_mat[order(scores_mat[,2], decreasing=TRUE)[1:n_cases],]
+  
+  # Plot each case
+  for(case in 1:nrow(top_cases)) {
+    idx <- top_cases[case,1]
+    score <- top_cases[case,2]
+    
+    cat(sprintf("\nAnalyzing Individual %d\n", idx))
+    
+    # Set up plotting area
+    par(mfrow=c(3,1), mar=c(4,10,4,2))
+    
+    # 1. Disease timeline
+    disease_events <- list()
+    for(d_idx in 1:dim(Y)[2]) {
+      events <- which(Y[idx,d_idx,] == 1)
+      if(length(events) > 0) {
+        disease_name <- disease_names_list[d_idx]
+        is_prs_disease <- disease_name %in% unlist(prs_to_phenotype)
+        disease_events[[length(disease_events) + 1]] <- list(
+          disease = disease_name,
+          events = events + 30,
+          is_prs_disease = is_prs_disease
+        )
+      }
+    }
+    
+    # Sort by first occurrence
+    first_events <- sapply(disease_events, function(x) min(x$events))
+    disease_events <- disease_events[order(first_events)]
+    
+    # Plot disease timeline
+    plot(NULL, xlim=c(30, 30+dim(Y)[3]), ylim=c(0, length(disease_events)),
+         ylab="", xlab="Age", main="Disease Timeline (* = Has PRS)")
+    
+    for(i in 1:length(disease_events)) {
+      d <- disease_events[[i]]
+      points(d$events, rep(i, length(d$events)), 
+             col=ifelse(d$is_prs_disease, "red", "blue"),
+             pch=19, cex=1)
+    }
+    
+    # Add disease labels
+    disease_labels <- sapply(disease_events, function(x) 
+    paste0(substr(x$disease, 1, 50), ifelse(x$is_prs_disease, "*", "")))
+    axis(2, at=1:length(disease_events), labels=disease_labels, las=2)
+    grid(nx=NULL, ny=NA)
+    
+    # 2. Topic trajectories
+    matplot(30:(30+dim(Y)[3]-1), t(theta_np[idx,,]), type="l", lty=1,
+            main=paste0("Topic Trajectories for",idx), xlab="Age", ylab="Topic Weight",col=1:K)
+    legend("topright", legend=paste("Topic", 1:K), col=1:K, lty=1)
+    grid()
+    
+    # 3. Genetic contributions
+    individual_genetics <- G[idx,]
+    topic_contributions <- individual_genetics %*% gamma_np
+    barplot(topic_contributions, main="Genetic Contributions to Topics",
+            xlab="Topic", ylab="Genetic Contribution")
+    grid()
+    
+    # Print matching PRS and phenotypes
+    cat("\nMatching PRS and phenotypes:\n")
+    for(prs in names(prs_to_phenotype)) {
+      phenotype <- prs_to_phenotype[[prs]]
+      if(any(sapply(disease_events, function(x) x$disease == phenotype))) {
+        prs_value <- individual_genetics[which(prs_names_list == prs)]
+        cat(sprintf("%s (value: %.3f) -> %s\n", 
+                   prs, prs_value, phenotype))
+      }
+    }
+  }
+}
+
+# Usage:
+find_and_plot_exemplar_cases(model, Y, G, disease_names_list, prs_names)
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(viridis)
+
+analyze_patient <- function(idx, Y, G, theta_pred, gamma_np, disease_names_list, 
+                          prs_names_list, prs_to_phenotype, K=10) {
+  
+  # Create consistent colors for topics
+  topic_colors <- scales::hue_pal()(K)
+  
+  # Helper function to create timeline data
+  create_timeline_data <- function(Y, idx, disease_names_list) {
+    timeline_data <- data.frame()
+    
+    for(d_idx in 1:dim(Y)[2]) {
+      events <- which(Y[idx, d_idx,] == 1)
+      if(length(events) > 0) {
+        disease_name <- disease_names_list[d_idx]
+        is_prs_disease <- disease_name %in% unlist(prs_to_phenotype)
+        
+        timeline_data <- rbind(timeline_data, 
+                             data.frame(
+                               disease = disease_name,
+                               age = events + 30,
+                               is_prs = is_prs_disease
+                             ))
+      }
+    }
+    
+    # Sort by first occurrence
+    timeline_data <- timeline_data %>%
+      group_by(disease) %>%
+      arrange(age) %>%
+      ungroup()
+    
+    return(timeline_data)
+  }
+  
+  # Create all visualizations
+  timeline_data <- create_timeline_data(Y, idx, disease_names_list)
+  
+  # 1. Disease Timeline Plot
+  timeline_plot <- ggplot(timeline_data, aes(x = age, y = reorder(disease, age))) +
+    geom_point(aes(color = is_prs), size = 3) +
+    scale_color_manual(values = c("FALSE" = "#2C3E50", "TRUE" = "#E74C3C"),
+                      labels = c("No PRS", "Has PRS")) +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_text(size = 8),
+      panel.grid.major.y = element_line(color = "gray90"),
+      legend.position = "top"
+    ) +
+    labs(
+      title = "Disease Timeline",
+      x = "Age",
+      y = NULL,
+      color = "PRS Status"
+    )
+  
+  # 2. Topic Trajectories Plot
+  trajectory_data <- as.data.frame(t(theta_pred[idx,,]))
+  trajectory_data$age <- 30:(30+dim(Y)[3]-1)
+  trajectory_data_long <- trajectory_data %>%
+    pivot_longer(-age, names_to = "topic", values_to = "weight") %>%
+    mutate(topic = factor(topic))
+  
+  trajectory_plot <- ggplot(trajectory_data_long, 
+                          aes(x = age, y = weight, color = topic)) +
+    geom_line(size = 1) +
+    scale_color_manual(values = topic_colors) +
+    theme_minimal() +
+    theme(legend.position = "right") +
+    labs(
+      title = paste("Topic Trajectories for Individual", idx),
+      x = "Age",
+      y = "Topic Weight",
+      color = "Topic"
+    )
+  
+  # 3. Genetic Contributions Plot
+  genetic_data <- data.frame(
+    topic = factor(1:K),
+    contribution = as.vector(G[idx,] %*% gamma_np)
+  )
+  
+  genetic_plot <- ggplot(genetic_data, aes(x = topic, y = contribution)) +
+    geom_col(aes(fill = topic)) +
+    scale_fill_manual(values = topic_colors) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      title = "Genetic Contributions to Topics",
+      x = "Topic",
+      y = "Contribution"
+    )
+  
+  # Print matching PRS and phenotypes
+  print_prs_matches <- function() {
+    cat("\nPRS-Phenotype Matches for Individual", idx, "\n")
+    cat(rep("-", 50), "\n")
+    
+    matches <- data.frame()
+    for(prs in names(prs_to_phenotype)) {
+      phenotype <- prs_to_phenotype[[prs]]
+      if(phenotype %in% timeline_data$disease) {
+        prs_value <- G[idx, which(prs_names_list == prs)]
+        matches <- rbind(matches, 
+                        data.frame(
+                          PRS = prs,
+                          Value = round(prs_value, 3),
+                          Phenotype = phenotype
+                        ))
+      }
+    }
+    
+    if(nrow(matches) > 0) {
+      print(matches, row.names = FALSE)
+    } else {
+      cat("No matching PRS-phenotype pairs found.\n")
+    }
+  }
+  
+  # Calculate disease burden and genetic score
+  disease_burden <- sum(Y[idx,,])
+  genetic_score <- max(rowMeans(theta_pred[idx,,]))  # Fixed to rowMeans
+  
+  # Print summary statistics
+  cat("\nSummary Statistics for Individual", idx, "\n")
+  cat(rep("-", 50), "\n")
+  cat(sprintf("Disease Burden: %d conditions\n", disease_burden))
+  cat(sprintf("Maximum Topic Weight: %.3f\n", genetic_score))
+  
+  # Arrange and display plots
+  grid.arrange(
+    timeline_plot, 
+    trajectory_plot,
+    genetic_plot,
+    ncol = 1,
+    heights = c(1.5, 1, 1)
+  )
+  
+  # Print PRS matches
+  print_prs_matches()
+}
+
+# Function to find and analyze top cases
+analyze_top_cases <- function(Y, G, theta_pred, gamma_np, disease_names_list, 
+                            prs_names_list, prs_to_phenotype, n_cases = 5) {
+  
+  # Calculate scores
+  disease_burden <- apply(Y, 1, sum)
+  genetic_contributions <- G %*% gamma_np
+  scores <- numeric(dim(Y)[1])
+  
+  for(i in 1:dim(Y)[1]) {
+    dominant_topic <- which.max(rowMeans(theta_pred[i,,]))  # Fixed to rowMeans
+    genetic_score <- genetic_contributions[i, dominant_topic]
+    scores[i] <- genetic_score * disease_burden[i]
+  }
+  
+  # Get top cases
+  top_indices <- order(scores, decreasing = TRUE)[1:n_cases]
+  
+  # Analyze each top case
+  for(idx in top_indices) {
+    cat("\n\nAnalyzing Individual", idx, "(Score:", round(scores[idx], 2), ")\n")
+    cat(rep("=", 70), "\n")
+    
+    analyze_patient(idx, Y, G, theta_pred, gamma_np, disease_names_list,
+                   prs_names_list, prs_to_phenotype)
+    
+    cat("\nPress [Enter] to continue...\n")
+    readline()
+  }
+}
+
+# Analyze top 5 cases
+analyze_top_cases(Y, G, theta_pred, gamma_np, disease_names_list, 
+                 prs_names, prs_to_phenotype, n_cases = 5)
+
+# Or analyze a specific patient
+analyze_patient(1, Y, G, theta_pred, gamma_np, disease_names_list,
+               prs_names, prs_to_phenotype)
+```
+
+
+```{r}
+ analyze_prediction_timing <- function(Y, pi_pred, window_size=5) {
+  N <- dim(Y)[1]
+  D <- dim(Y)[2]
+  T <- dim(Y)[3]
+  
+  # Store predictions before events
+  pre_event_preds <- list()
+  control_preds <- list()
+  
+  for(d in 1:D) {
+    for(i in 1:N) {
+      # Find first event for this person and disease
+      event_time <- which(Y[i,d,] == 1)[1]
+      
+      if(!is.na(event_time) && event_time > window_size) {
+        # Get predictions leading up to event
+        pre_event_window <- (event_time-window_size):(event_time-1)
+        pre_event_preds[[length(pre_event_preds) + 1]] <- 
+          pi_pred[i,d,pre_event_window]
+        
+        # Get matched control period from someone without the event
+        control_ids <- which(apply(Y[,d,], 1, sum) == 0)
+        if(length(control_ids) > 0) {
+          control_id <- sample(control_ids, 1)
+          control_preds[[length(control_preds) + 1]] <- 
+            pi_pred[control_id,d,pre_event_window]
+        }
+      }
+    }
+  }
+  
+  # Convert lists to vectors
+  pre_event_preds <- unlist(pre_event_preds)
+  control_preds <- unlist(control_preds)
+  
+  # Plot
+  par(mfrow=c(2,1))
+  
+  # 1. Distribution comparison
+  plot(density(pre_event_preds), 
+       main="Predictions Before Events vs Controls",
+       xlab="Predicted Probability",
+       col="red")
+  lines(density(control_preds), col="blue")
+  legend("topright", 
+         legend=c("Pre-Event", "Controls"),
+         col=c("red", "blue"),
+         lty=1)
+  
+  # 2. Time-to-event analysis
+  boxplot(split(pre_event_preds, 
+                rep(window_size:1, length(pre_event_preds)/window_size)),
+          main="Predictions Leading up to Events",
+          xlab="Time to Event",
+          ylab="Predicted Probability")
+  
+  # Statistical tests
+  # 1. Compare pre-event vs control predictions
+  wilcox_test <- wilcox.test(pre_event_preds, control_preds)
+  
+  # 2. Test for trend in pre-event predictions
+  time_to_event <- rep(window_size:1, length(pre_event_preds)/window_size)
+  trend_test <- cor.test(time_to_event, pre_event_preds, method="spearman")
+  
+  # Print results
+  cat("\nStatistical Tests:\n")
+  cat("-----------------\n")
+  cat("Pre-event vs Control Wilcoxon test:\n")
+  cat(sprintf("  p-value: %.4e\n", wilcox_test$p.value))
+  cat("\nTrend analysis (Spearman correlation):\n")
+  cat(sprintf("  rho: %.4f\n", trend_test$estimate))
+  cat(sprintf("  p-value: %.4e\n", trend_test$p.value))
+  
+  return(list(
+    pre_event_preds = pre_event_preds,
+    control_preds = control_preds,
+    wilcox_test = wilcox_test,
+    trend_test = trend_test
+  ))
+ }
+```
+
+```{r}
+# First, get top diseases
+get_top_diseases <- function(phi, n_top=10) {
+  mean_loadings <- apply(phi, c(1,2), mean)
+  top_diseases <- lapply(1:dim(phi)[1], function(k) {
+    topic_loadings <- scale(mean_loadings[k,])
+    order(topic_loadings, decreasing=TRUE)[1:n_top]
+  })
+  return(top_diseases)
+}
+
+# Create dataframe for plotting
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+# Assuming phi is your K x D x T array
+K <- dim(phi)[1]  # number of topics
+D <- dim(phi)[2]  # number of diseases
+T <- dim(phi)[3]  # number of timepoints
+
+times <- 30:80  # assuming these are your age ranges
+
+# Get top diseases
+top_diseases <- get_top_diseases(phi, 10)
+
+# Create plotting dataframe
+phi_df <- do.call(rbind, lapply(1:K, function(k) {
+  do.call(rbind, lapply(top_diseases[[k]], function(d) {
+    data.frame(
+      topic = factor(paste0("Topic ", k)),
+      disease = factor(disease_names[d]),
+      time = times,
+      loading = phi[k,d,]
+    )
+  }))
+}))
+
+# Create faceted plot
+p1 <- ggplot(phi_df, aes(x=time, y=loading, color=disease)) +
+  geom_line(size=1) +
+  facet_wrap(~topic, scales="free_y", ncol=2) +
+  theme_minimal() +
+  labs(title="Top Disease Trajectories by Topic",
+       x="Age",
+       y="Disease Loading") +
+  theme(legend.position="right",
+        plot.title = element_text(hjust=0.5, size=16),
+        strip.text = element_text(size=12)) +
+  scale_x_continuous(breaks=seq(30, 80, by=10))
+
+print(p1)
+
+Siimlarly, an individual’s relative enrichment in any one of these signatures at a given time 
+
+may change as influenced by genetics, environmental and previous diagnostic history. Characterizing a patient as loaded on ‘one signature’ belies the often complicated and beautiful trajectory of a. patient’s unique story. 
+
+
+which(rowSums(Y[,c(114,111,252),])==3&G$CAD>0&model_data$event_times[,111]<10)
+# Create heatmap
+mean_phi <- apply(phi, c(1,2), mean)
+top_n_all <- unique(unlist(top_diseases))
+
+heatmap_data <- reshape2::melt(mean_phi[,top_n_all])
+names(heatmap_data) <- c("Topic", "Disease", "Loading")
+
+p2 <- ggplot(heatmap_data, aes(x=Topic, y=Disease, fill=Loading)) +
+  geom_tile() +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint=0) +
+  theme_minimal() +
+  labs(title="Mean Disease Loadings by Topic",
+       x="Topic",
+       y="Disease") +
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+        plot.title = element_text(hjust=0.5, size=16))
+
+
+print(p2)
+
+```
+```{r}
+library(Matrix)
+library(tidyverse)
+
+# Store the actual IDs and ICD codes in order
+person_ids <- sort(unique(icdlab$eid))
+disease_codes <- sort(unique(icdlab$diag_icd10))
+
+# Create mapping dictionaries with names preserved
+id_map <- setNames(seq_len(length(person_ids)), person_ids)
+disease_map <- setNames(seq_len(length(disease_codes)), disease_codes)
+
+# Create sparse matrix with same logic as before
+sparse_data <- icdlab %>%
+  mutate(
+    id_idx = id_map[as.character(eid)],
+    disease_idx = disease_map[as.character(diag_icd10)],
+    age_idx = age_diag - 29
+  ) %>%
+  filter(age_idx >= 1, age_idx <= 52)
+
+# Create sparse array using sparseMatrix, now with dimnames
+sparse_arrays <- vector("list", 52)
+for(t in 1:52) {
+  temp_data <- sparse_data %>% filter(age_idx == t)
+  sparse_arrays[[t]] <- sparseMatrix(
+    i = temp_data$id_idx,
+    j = temp_data$disease_idx,
+    x = 1,
+    dims = c(length(id_map), length(disease_map)),
+    dimnames = list(person_ids, disease_codes)  # Add names to dimensions
+  )
+}
+
+# Save the dimension information
+array_dims <- list(
+  people = person_ids,
+  diseases = disease_codes,
+  ages = 30:81
+)
+
+# Now you can access by name or index:
+# By index: sparse_arrays[[t]][i,j]
+# By name: sparse_arrays[[t]]["1000015", "272"]
+```
+
+
+```{r}
+
+phiatm=ATM::UKB_HES_10topics[1:81,c(1:348),]
+colnames(phiatm)=c(disease_names_list)
+rownames(phiatm)=1:81
+l=melt(phiatm)
+names(l)=c("Time","Disease","Signature","value")
+
+# Step 1: Calculate the average value for ranking
+top_diseases <- l %>%
+group_by(Signature, Disease) %>%
+summarize(avg_value = mean(value, na.rm = TRUE)) %>%
+group_by(Signature) %>%
+arrange(Signature, desc(avg_value)) %>%
+slice_head(n = 20) %>%
+ungroup()
+# Step 2: Create a unique Disease-Signature combination for filtering
+l_top <- l %>%
+inner_join(top_diseases, by = c("Signature", "Disease")) %>%
+merge(groups, by.x = "Disease", by.y = "phenotype", all.x = TRUE)
+# Step 3: Create separate disease orders for each signature
+l_top <- l_top %>%
+group_by(Signature) %>%
+mutate(Disease = factor(Disease,
+levels = unique(Disease[order(avg_value,decreasing = F)]))) %>%
+ungroup()
+# Step 4: Plot with free_y scales to allow different diseases per facet
+p2 <- ggplot(l_top, aes(Time, Disease, fill = value)) +
+geom_tile() +
+facet_wrap(~ Signature, scales = "free_y", drop = TRUE) +
+labs(x = "Time (years from 30)", y = NULL,
+title = "Top 20 diseases per signature over time",
+fill = "Weight") +
+scale_fill_viridis_c(option = "C", direction = +1) +
+theme_minimal() +
+theme(axis.text.y = element_text(size = 8),
+strip.text = element_text(size = 10),
+axis.ticks.y = element_blank(),
+panel.spacing = unit(0.5, "lines"))
+
+```
