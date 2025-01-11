@@ -1,0 +1,151 @@
+---
+title: "RUnning LDA"
+format:
+  html:
+    toc: true
+    toc-location: body
+date: "1020204"
+author:
+  - name: "Sarah Urbut"
+embed-resources: true
+toc: true
+toc-expand: 2
+toc-title: Contents
+page-layout: full
+code-fold: true
+editor: visual
+---
+
+## Quarto
+
+In this document we will run the LDA model on the data generated in the previous step. We will use the `topicmodels` package to fit the LDA model, averaging our disease counts (max 1) for an individual over time. We will then visualize the results of the LDA model.
+
+## Generate Data
+
+We generate Data with 100 individuals, 5 diseases, 10 time points, and 3 topics (2 genetic features). I show the induced sparsity (max mu_d = 0.02 in this simulation)
+
+```{r, warning=FALSE, message=FALSE}
+library(topicmodels)
+library(ggplot2)
+source("../R/newsim.R")
+# Assuming 'Y' is the array of N individuals, D diseases, and T time points from your data generation
+data <- generate_tensor_data(N = 100, D = 5, T = 10, K = 3,num_covariates = 2)
+plot_individuals(data$S,num_individuals = 3)
+```
+
+## Running LDA
+
+1.  Summing across the time dimension (3rd dimension) \#### Collapse Y along the time dimension to get a matrix of individuals x diseases We will have to eliminate folks who have no disease (i.e. rowSums(Y_summed) == 0) We can then visualize the data to ensure that we have a count matrix, and plot our average $theta_ik$ and $eta_kd$ values. Recall that for a given topic our $eta_kd$ values need NOT sum to 1 across diseases.
+
+```{r}
+Y_summed <- apply(data$Y, c(1, 2), sum)
+nullfolks=which(rowSums(Y_summed) == 0) 
+Y_summed=Y_summed[-nullfolks,]# Check and eliminate any individuals with no diseases
+
+theta_summed <- apply(data$theta, c(1, 2), mean)
+eta_summed <- apply(data$eta, c(1, 2), mean)
+```
+
+```{r}
+
+# Assuming Y_summed is a matrix of diseases vs individuals
+Y_df <- as.data.frame(Y_summed)
+Y_df$Disease <- factor(rownames(Y_df))  # Adding Disease as a factor for y-axis
+
+# Convert to long format for ggplot
+Y_long <- reshape2::melt(Y_df, id.vars = "Disease")
+
+# Plot with ggplot2
+ggplot(Y_long, aes(x = variable, y = Disease, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +  # Adjust the color gradient
+  labs(y = "Individual", x = "Disease", title = "Summed data for Diseases") +
+  theme_minimal()
+```
+
+```{r}
+# Assuming theta_summed[-nullfolks,] is a matrix with individuals and topics
+theta_df <- as.data.frame(theta_summed[-nullfolks,])
+theta_df$Theta <- factor(rownames(theta_df))  # Adding Theta (topics) as a factor for y-axis
+
+# Convert to long format for ggplot
+theta_long <- reshape2::melt(theta_df, id.vars = "Theta")
+
+# Plot with ggplot2
+ggplot(theta_long, aes(x = variable, y = Theta, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "purple") +  # Adjust the color gradient
+  labs(y = "Individual", x = "Theta (Topic)", title = "Summed Theta data") +
+  theme_minimal()
+
+```
+
+```{r}
+# Assuming eta_summed is a matrix of topics and diseases
+eta_df <- as.data.frame(eta_summed)
+eta_df$Topic <- factor(rownames(eta_df))  # Adding Topic as a factor for x-axis
+
+# Convert to long format for ggplot
+eta_long <- reshape2::melt(eta_df, id.vars = "Topic")
+
+# Plot with ggplot2
+ggplot(eta_long, aes(x = Topic, y = variable, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "orange") +  # Adjust the color gradient
+  labs(x = "Topic", y = "Disease", title = "Summed eta data") +
+  theme_minimal()
+```
+
+Note that because this is NOT an allocation approach, eta need not sum to 1 across diseases for a topic (i.e. rowSums eta !=1)
+
+## Run LDA
+
+```{r}
+# Ensure that the resulting matrix is a count matrix (LDA works with non-negative integers)
+# Y_summed should now be a matrix where each row is an individual, and each column is a disease
+
+# Run LDA using the topicmodels package
+# Setting the number of topics (K)
+K <- 3  # You can adjust the number of topics according to your needs
+
+# Fitting the LDA model
+lda_model <- LDA(Y_summed, k = K, method = "Gibbs")
+```
+
+```{r}
+# View the result
+# Assuming lda_model@gamma is a matrix of topic proportions
+library(ggplot2)
+gamma_df <- as.data.frame(lda_model@gamma)
+gamma_df$Topic <- factor(rownames(gamma_df))  # Adding Topic as a factor for y-axis
+
+# Convert to long format for ggplot
+gamma_long <- reshape2::melt(gamma_df, id.vars = "Topic")
+
+# Plot with ggplot2
+ggplot(gamma_long, aes(x = variable, y = Topic, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +  # Adjust the color gradient
+  labs(y = "Individual", x = "Topic", title = "Topic distribution for individuals") +
+  theme_minimal()
+
+```
+
+```{r}
+# Assuming lda_model@beta is a matrix of disease probabilities per topic
+beta_exp <- exp(lda_model@beta)  # If you're using exp to scale the values
+beta_df <- as.data.frame(beta_exp)
+beta_df$Topic <- factor(rownames(beta_df))  # Adding Topic as a factor for x-axis
+
+# Convert to long format for ggplot
+beta_long <- reshape2::melt(beta_df, id.vars = "Topic")
+
+# Plot with ggplot2
+ggplot(beta_long, aes(x = Topic, y = variable, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red") +  # Adjust the color gradient
+  labs(x = "Topic", y = "Disease", title = "Topic distribution for diseases") +
+  theme_minimal()
+```
+
+The biggest problem here is that LDA fails to capture the variation in topic distribtuion (we have many folks with high topic variance) because by default it makes beta sum to 1.
