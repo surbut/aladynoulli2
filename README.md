@@ -1,7 +1,9 @@
 # aladynoulli
 Code for Solving Aladynoulli! 
 
-In this repo, you'll find the main script for running (solvinglogit.R) and the sampler (mcmc_sampler_softmax) in the Rscripts directory.
+In this repo, you'll find a guide to understanding, simulating, and solving aladynoulli.
+
+More description of this work can be found [here] (https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1).
 
 ### The Model
 
