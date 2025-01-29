@@ -29,7 +29,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.jitter = 1e-6
         # Store whether to use flat lambda
         self.flat_lambda = flat_lambda
-        self.init_var_scaler=init_var_scaler
+        self.init_var_scaler=init_var_scaler ## so that the initiation doesn't give us 'cheap losss'
         # If using flat lambda, modify signature references
         
     # Handle signature references
@@ -161,7 +161,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             L_k = torch.linalg.cholesky(self.K_lambda)
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
-                lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps*0.1
+                lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps*self.init_var_scaler
    
         if self.healthy_ref is not None:
             L_phi = torch.linalg.cholesky(self.K_phi)
@@ -173,7 +173,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             L_k = torch.linalg.cholesky(self.K_lambda)
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
-                lambda_init[i, self.K, :] = self.healthy_ref + eps*0.1
+                lambda_init[i, self.K, :] = self.healthy_ref + eps*self.init_var_scaler
             gamma_init[:, self.K] = 0.0
 
         self.gamma = nn.Parameter(gamma_init)
