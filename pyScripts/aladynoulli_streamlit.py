@@ -334,7 +334,7 @@ def download_model():
         os.makedirs('models')
     if not os.path.exists(model_path):
         # Replace with your Google Drive shared link
-        url = "YOUR_GOOGLE_DRIVE_SHARED_LINK"
+        url = "https://drive.google.com/file/d/1UQitweYPSG1tFxYM61KGwkBjVdeUZOIv/view?usp=sharing"
         st.info("Downloading model file... This may take a few minutes.")
         gdown.download(url, model_path, quiet=False)
     return model_path
