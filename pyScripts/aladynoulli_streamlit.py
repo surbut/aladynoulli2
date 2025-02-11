@@ -4,6 +4,8 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.special import softmax, expit
+import gdown  # Add this to requirements.txt
+import os
 
 class ModelVisualizer:
     def __init__(self, model_state_dict, G=None, disease_names=None):
@@ -325,11 +327,29 @@ def plot_phi_evolution(phi, clusters=None, disease_names=None):
     plt.tight_layout()
     return fig
 
+def download_model():
+    """Download model from Google Drive if not present"""
+    model_path = 'models/model.pt'
+    if not os.path.exists('models'):
+        os.makedirs('models')
+    if not os.path.exists(model_path):
+        # Replace with your Google Drive shared link
+        url = "YOUR_GOOGLE_DRIVE_SHARED_LINK"
+        st.info("Downloading model file... This may take a few minutes.")
+        gdown.download(url, model_path, quiet=False)
+    return model_path
+
 def main():
     st.title("Disease Trajectory Model Visualization")
     
+    try:
+        model_path = download_model()
+        first_model = torch.load(model_path)
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        return
+    
     # Load model state dict and additional data
-    first_model = torch.load('/Users/sarahurbut/Dropbox (Personal)/resultstraj_genetic_scale1/results/output_0_10000/model.pt')
     model_state_dict = first_model['model_state_dict']
     
     # Load and convert data types as needed
