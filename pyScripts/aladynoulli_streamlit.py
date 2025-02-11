@@ -328,27 +328,32 @@ def plot_phi_evolution(phi, clusters=None, disease_names=None):
     return fig
 
 def download_model():
-    """Download model from Google Drive if not present"""
+    """Download model from Dropbox if not present"""
     model_path = 'models/model.pt'
     if not os.path.exists('models'):
         os.makedirs('models')
     if not os.path.exists(model_path):
-        # Replace with your Google Drive shared link
-        url = "https://drive.google.com/file/d/1UQitweYPSG1tFxYM61KGwkBjVdeUZOIv/view?usp=sharing"
+        # Replace with your Dropbox direct download link
+        url = "https://www.dropbox.com/scl/fi/YOUR_FILE_ID/model.pt?rlkey=YOUR_RLKEY&dl=1"
         st.info("Downloading model file... This may take a few minutes.")
-        gdown.download(url, model_path, quiet=False)
+        try:
+            import requests
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            with open(model_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+        except Exception as e:
+            st.error(f"Download failed: {str(e)}")
+            raise
     return model_path
 
 def main():
     st.title("Disease Trajectory Model Visualization")
     
-    try:
-        model_path = download_model()
-        first_model = torch.load(model_path)
-    except Exception as e:
-        st.error(f"Error loading model: {str(e)}")
-        return
-    
+   
+    first_model = torch.load('/Users/sarahurbut/Dropbox (Personal)/resultstraj_genetic_scale1/results/output_0_10000/model.pt')
     # Load model state dict and additional data
     model_state_dict = first_model['model_state_dict']
     
