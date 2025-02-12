@@ -282,6 +282,64 @@ class ModelVisualizer:
         plt.tight_layout()
         return fig
 
+    def plot_disease_correlation(self, disease1_idx, disease2_idx, Y=None):
+        """Plot correlation between two diseases for disease-free patients"""
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+        
+        # Get probabilities for all patients
+        all_probs = np.zeros((self.N, self.T, 2))
+        for person_idx in range(self.N):
+            pi_t = self.compute_disease_probabilities(person_idx)
+            all_probs[person_idx, :, 0] = pi_t[:, disease1_idx]
+            all_probs[person_idx, :, 1] = pi_t[:, disease2_idx]
+        
+        # Left panel: Scatter plot with time progression
+        correlations = []
+        for t in range(self.T):
+            if Y is not None:
+                # Filter for disease-free patients at this timepoint
+                healthy_mask = (Y[:, disease1_idx, t] == 0) & (Y[:, disease2_idx, t] == 0)
+                probs1 = all_probs[healthy_mask, t, 0]
+                probs2 = all_probs[healthy_mask, t, 1]
+            else:
+                probs1 = all_probs[:, t, 0]
+                probs2 = all_probs[:, t, 1]
+            
+            # Plot scatter
+            ax1.scatter(probs1, probs2, 
+                       alpha=0.1, 
+                       color=plt.cm.viridis(t/self.T), 
+                       s=5)
+            
+            # Calculate correlation for this timepoint
+            correlations.append(np.corrcoef(probs1, probs2)[0,1])
+        
+        # Set axis limits using 99.9th percentile
+        max1 = np.percentile(all_probs[:,:,0], 99.9)
+        max2 = np.percentile(all_probs[:,:,1], 99.9)
+        ax1.set_xlim(0, max1 * 1.1)
+        ax1.set_ylim(0, max2 * 1.1)
+        
+        ax1.set_xlabel(f'{self.disease_names[disease1_idx]} probability')
+        ax1.set_ylabel(f'{self.disease_names[disease2_idx]} probability')
+        ax1.set_title('Disease Probability Correlations\n(Disease-free patients)')
+        
+        # Right panel: Correlation over time
+        times = range(self.T)
+        ax2.plot(times, correlations, '-o')
+        ax2.set_xlabel('Time')
+        ax2.set_ylabel('Correlation Coefficient')
+        ax2.set_title('Evolution of Risk Correlation Over Time')
+        ax2.grid(True)
+        
+        # Add colorbar
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, 
+                                  norm=plt.Normalize(vmin=0, vmax=self.T-1))
+        plt.colorbar(sm, ax=ax1, label='Timepoint')
+        
+        plt.tight_layout()
+        return fig
+
 def plot_phi_evolution(phi, clusters=None, disease_names=None):
     """Plot the evolution of phi values over time for each signature."""
     K, D, T = phi.shape
@@ -374,12 +432,13 @@ def main():
     time_idx = st.sidebar.slider("Select Time Point", 0, visualizer.T-1, 0)
     
     # Create tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "Individual Trajectories", 
         "Phi Evolution", 
         "Trajectory Comparison",
         "Genetic Effects",
-        "Predictions Analysis"
+        "Predictions Analysis",
+        "Disease Correlations"
     ])
     
     with tab1:
@@ -477,6 +536,38 @@ def main():
         # Show covariance structure
         cov_fig = visualizer.plot_disease_covariance(person_idx)
         st.pyplot(cov_fig)
+
+    with tab6:
+        st.markdown("### Disease Risk Correlations")
+        
+        # Create two dropdown menus for disease selection
+        col1, col2 = st.columns(2)
+        with col1:
+            disease1 = st.selectbox(
+                "Select First Disease",
+                options=range(len(visualizer.disease_names)),
+                format_func=lambda x: visualizer.disease_names[x]
+            )
+        with col2:
+            disease2 = st.selectbox(
+                "Select Second Disease",
+                options=range(len(visualizer.disease_names)),
+                format_func=lambda x: visualizer.disease_names[x]
+            )
+        
+        if disease1 != disease2:
+            corr_fig = visualizer.plot_disease_correlation(disease1, disease2)
+            st.pyplot(corr_fig)
+            
+            st.markdown("""
+            ### How to interpret:
+            - Left plot shows the correlation between risks for the two selected diseases
+            - Each point represents one person's risk values
+            - Right plot shows how the average risks for both diseases change over time
+            - Correlation coefficient shows the strength of the relationship
+            """)
+        else:
+            st.warning("Please select two different diseases to compare")
 
 if __name__ == "__main__":
     main()
