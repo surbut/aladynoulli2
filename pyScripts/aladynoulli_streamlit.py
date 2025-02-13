@@ -282,13 +282,16 @@ class ModelVisualizer:
         plt.tight_layout()
         return fig
 
-    def plot_disease_correlation(self, disease1_idx, disease2_idx, Y=None):
+    def plot_disease_correlation(self, disease1_idx, disease2_idx, Y=None, n_patients=10000):
         """Plot correlation between two diseases for disease-free patients"""
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
         
-        # Get probabilities for all patients
-        all_probs = np.zeros((self.N, self.T, 2))
-        for person_idx in range(self.N):
+        # Subset the first n_patients
+        subset_idx = slice(0, min(n_patients, self.N))
+        
+        # Get probabilities for subset of patients
+        all_probs = np.zeros((n_patients, self.T, 2))
+        for person_idx in range(n_patients):
             pi_t = self.compute_disease_probabilities(person_idx)
             all_probs[person_idx, :, 0] = pi_t[:, disease1_idx]
             all_probs[person_idx, :, 1] = pi_t[:, disease2_idx]
@@ -297,8 +300,7 @@ class ModelVisualizer:
         correlations = []
         for t in range(self.T):
             if Y is not None:
-                # Filter for disease-free patients at this timepoint
-                healthy_mask = (Y[:, disease1_idx, t] == 0) & (Y[:, disease2_idx, t] == 0)
+                healthy_mask = (Y[subset_idx, disease1_idx, t] == 0) & (Y[subset_idx, disease2_idx, t] == 0)
                 probs1 = all_probs[healthy_mask, t, 0]
                 probs2 = all_probs[healthy_mask, t, 1]
             else:
@@ -312,7 +314,9 @@ class ModelVisualizer:
                        s=5)
             
             # Calculate correlation for this timepoint
-            correlations.append(np.corrcoef(probs1, probs2)[0,1])
+            corr = np.corrcoef(probs1, probs2)[0,1]
+            print(f"Time {t}: correlation = {corr}")
+            correlations.append(corr)
         
         # Set axis limits using 99.9th percentile
         max1 = np.percentile(all_probs[:,:,0], 99.9)
@@ -323,6 +327,18 @@ class ModelVisualizer:
         ax1.set_xlabel(f'{self.disease_names[disease1_idx]} probability')
         ax1.set_ylabel(f'{self.disease_names[disease2_idx]} probability')
         ax1.set_title('Disease Probability Correlations\n(Disease-free patients)')
+        
+        # Calculate overall correlation (all timepoints combined)
+        all_disease1 = all_probs[:,:,0].flatten()
+        all_disease2 = all_probs[:,:,1].flatten()
+        overall_corr = np.corrcoef(all_disease1, all_disease2)[0,1]
+        ax1.text(0.05, 0.95, f'Overall r = {overall_corr:.3f}', 
+                 transform=ax1.transAxes,
+                 bbox=dict(facecolor='white', alpha=0.8))
+        
+        # Calculate per-timepoint correlations for right panel
+        correlations = [np.corrcoef(all_probs[:,t,0], all_probs[:,t,1])[0,1] 
+                       for t in range(self.T)]
         
         # Right panel: Correlation over time
         times = range(self.T)
