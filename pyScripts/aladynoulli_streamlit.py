@@ -356,6 +356,175 @@ class ModelVisualizer:
         plt.tight_layout()
         return fig
 
+    def plot_signatures_by_onset(self, disease_idx, Y, focus_signature=None):
+        """Analyze signature distributions stratified by age of onset with genetic enrichment"""
+        
+        # Convert Y to numpy if it's a tensor
+        if torch.is_tensor(Y):
+            Y = Y.detach().numpy()
+        
+        # Get first occurrence of disease for each patient
+        disease_times = np.argmax(Y[:, disease_idx, :] == 1, axis=1)
+        has_disease = disease_times > 0
+        
+        # Define onset groups
+        early = disease_times < 20
+        mid = (disease_times >= 20) & (disease_times < 35)
+        late = disease_times >= 35
+        
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6))
+        
+        # Plot signature distributions for each onset group
+        for k in range(self.K):
+            for onset, label, alpha in zip([early, mid, late], 
+                                         ['Early', 'Mid', 'Late'],
+                                         [0.3, 0.5, 0.7]):
+                if np.sum(onset) > 0:  # Changed from np.any() to np.sum() > 0
+                    ax1.hist(self.theta[onset, k, 0], alpha=alpha, 
+                            label=f'{label} - Sig {k}', bins=20)
+        
+        ax1.set_title('Signature Distributions by Age of Onset')
+        ax1.set_xlabel('Signature Weight')
+        ax1.set_ylabel('Count')
+        ax1.legend()
+        
+        # Plot temporal evolution of signatures for each onset group
+        times = range(self.T)
+        for k in range(self.K):
+            for onset, label, style in zip([early, mid, late],
+                                         ['Early', 'Mid', 'Late'],
+                                         ['-', '--', ':']):
+                if np.sum(onset) > 0:
+                    mean_trajectory = np.mean(self.theta[onset, k, :], axis=0)
+                    ax2.plot(times, mean_trajectory, style, 
+                            label=f'{label} - Sig {k}')
+        
+        ax2.set_title('Signature Evolution by Age of Onset')
+        ax2.set_xlabel('Time')
+        ax2.set_ylabel('Mean Signature Weight')
+        ax2.legend()
+        
+        # New: Genetic enrichment analysis
+        if focus_signature is not None:
+            # Get population average trajectory
+            pop_mean = np.mean(self.theta[:, focus_signature, :], axis=0)  # Shape (T,)
+            
+            # Calculate means for cases and non-cases at each timepoint
+            non_cases = ~(Y[:, disease_idx, :].any(axis=1))  # Never get disease
+            
+            baseline = self.theta[non_cases, focus_signature, :]
+            baseline_mean = np.mean(baseline, axis=0)  # Shape (T,)
+            
+            # Calculate enrichment for each onset group
+            enrichments = []
+            errors = []
+            for group, label in zip([early, mid, late], ['Early', 'Mid', 'Late']):
+                if np.sum(group) > 0:
+                    # Get values for this group
+                    group_theta = self.theta[group, focus_signature, :]  # Shape (n_group, T)
+                    
+                    # Calculate enrichment at each timepoint
+                    enrichment = np.mean(group_theta - baseline_mean[None, :], axis=(0,1))
+                    enrichments.append(enrichment)
+                    
+                    # Calculate standard error
+                    se = np.std(group_theta - baseline_mean[None, :]) / np.sqrt(np.sum(group))
+                    errors.append(se)
+                else:
+                    enrichments.append(0)
+                    errors.append(0)
+            
+            # Plot enrichment with error bars
+            groups = ['Early', 'Mid', 'Late']
+            ax3.bar(groups, enrichments, yerr=errors)
+            ax3.set_title(f'Signature {focus_signature} Enrichment vs Age-Matched Controls')
+            ax3.set_ylabel('Enrichment vs Controls')
+            ax3.axhline(y=0, color='black', linestyle='--', alpha=0.3)
+            
+            # Add statistical annotation
+            from scipy import stats
+            early_theta = self.theta[early, focus_signature, :]
+            late_theta = self.theta[late, focus_signature, :]
+            
+            # Compare mean enrichments
+            early_enrichment = np.mean(early_theta - baseline_mean[None, :], axis=1)
+            late_enrichment = np.mean(late_theta - baseline_mean[None, :], axis=1)
+            t_stat, p_val = stats.ttest_ind(early_enrichment, late_enrichment)
+            
+            ax3.text(0.05, 0.95, f'Early vs Late\np={p_val:.2e}', 
+                    transform=ax3.transAxes,
+                    bbox=dict(facecolor='white', alpha=0.8))
+        
+        plt.tight_layout()
+        return fig
+
+    def plot_signature_enrichments(self, disease_idx, Y):
+        """Plot enrichment of all signatures for early vs late onset"""
+        
+        # Convert Y to numpy if it's a tensor
+        if torch.is_tensor(Y):
+            Y = Y.detach().numpy()
+        
+        # Get onset groups
+        disease_times = np.argmax(Y[:, disease_idx, :] == 1, axis=1)
+        early = disease_times < 20
+        late = disease_times >= 35
+        non_cases = ~(Y[:, disease_idx, :].any(axis=1))
+        
+        # Calculate enrichments for all signatures
+        enrichments = []
+        errors = []
+        pvals = []
+        
+        for k in range(self.K):
+            # Get baseline
+            baseline = self.theta[non_cases, k, :]
+            baseline_mean = np.mean(baseline, axis=0)  # Shape (T,)
+            
+            # Calculate enrichment for each group relative to baseline
+            early_enrichment = np.mean(self.theta[early, k, :] - baseline_mean[None, :])
+            late_enrichment = np.mean(self.theta[late, k, :] - baseline_mean[None, :])
+            
+            # Store difference in enrichment
+            enrichments.append(early_enrichment - late_enrichment)
+            
+            # Calculate standard error of the difference
+            early_vals = self.theta[early, k, :] - baseline_mean[None, :]
+            late_vals = self.theta[late, k, :] - baseline_mean[None, :]
+            
+            # Pooled standard error
+            n1 = np.sum(early)
+            n2 = np.sum(late)
+            se = np.sqrt(np.var(early_vals.flatten())/n1 + np.var(late_vals.flatten())/n2)
+            errors.append(se)
+            
+            # Statistical test
+            from scipy import stats
+            _, p_val = stats.ttest_ind(early_vals.flatten(), late_vals.flatten())
+            pvals.append(p_val)
+        
+        # Plot
+        fig, ax = plt.subplots(figsize=(12, 6))
+        x = range(self.K)
+        
+        # Plot bars
+        bars = ax.bar(x, enrichments, yerr=errors)
+        
+        # Color significant bars
+        for i, (bar, pval) in enumerate(zip(bars, pvals)):
+            if pval < 0.05:
+                bar.set_color('red')
+                ax.text(i, enrichments[i], f'p={pval:.1e}', 
+                       ha='center', va='bottom')
+        
+        ax.axhline(y=0, color='black', linestyle='--', alpha=0.3)
+        ax.set_title(f'Early vs Late Onset Enrichment by Signature\nDisease: {self.disease_names[disease_idx]}')
+        ax.set_xlabel('Signature')
+        ax.set_ylabel('Early - Late Enrichment')
+        
+        plt.tight_layout()
+        return fig
+
 def plot_phi_evolution(phi, clusters=None, disease_names=None):
     """Plot the evolution of phi values over time for each signature."""
     K, D, T = phi.shape
@@ -448,13 +617,14 @@ def main():
     time_idx = st.sidebar.slider("Select Time Point", 0, visualizer.T-1, 0)
     
     # Create tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "Individual Trajectories", 
         "Phi Evolution", 
         "Trajectory Comparison",
         "Genetic Effects",
         "Predictions Analysis",
-        "Disease Correlations"
+        "Disease Correlations",
+        "Onset Analysis"  # New tab
     ])
     
     with tab1:
@@ -584,6 +754,43 @@ def main():
             """)
         else:
             st.warning("Please select two different diseases to compare")
+
+    with tab7:
+        st.markdown("### Signature Analysis by Age of Onset")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            disease_idx = st.selectbox(
+                "Select Disease for Onset Analysis",
+                options=range(len(visualizer.disease_names)),
+                format_func=lambda x: visualizer.disease_names[x]
+            )
+        with col2:
+            focus_sig = st.selectbox(
+                "Focus on Signature",
+                options=range(visualizer.K),
+                format_func=lambda x: f"Signature {x}"
+            )
+        
+        # Plot onset analysis if Y data is available
+        if 'Y' in first_model:
+            onset_fig = visualizer.plot_signatures_by_onset(
+                disease_idx, first_model['Y'], focus_signature=focus_sig)
+            st.pyplot(onset_fig)
+            
+            st.markdown("""
+            ### How to interpret:
+            - Left: Distribution of signature weights by onset group
+            - Middle: How signatures evolve over time for each onset group
+            - Right: Focused analysis of selected signature
+            - Statistical test compares early vs late onset groups
+            """)
+        else:
+            st.info("Outcome data (Y) not available for onset analysis")
+
+        st.markdown("### Signature Enrichment Analysis")
+        enrichment_fig = visualizer.plot_signature_enrichments(disease_idx, first_model['Y'])
+        st.pyplot(enrichment_fig)
 
 if __name__ == "__main__":
     main()
