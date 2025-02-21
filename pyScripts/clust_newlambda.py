@@ -42,6 +42,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         jitter_matrix = self.jitter * torch.eye(T)
         self.K_phi = K_phi + jitter_matrix  # Phi kernel stays fixed
         self.K_lambda_init = K_lambda + jitter_matrix  # Only for initialization
+        self.K_lambda = (self.lambda_amplitude ** 2) * self.base_K_lambda + self.jitter * torch.eye(self.T)
         
         # Remove learnable amplitude
         #self.log_lambda_amplitude = nn.Parameter(torch.tensor(1.0))  # DELETE
@@ -203,26 +204,6 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         print("Initialization complete!")
     
 
-    def update_kernels(self):
-        """Compute fixed covariance matrices"""
-        times = torch.arange(self.T, dtype=torch.float32)
-        sq_dists = (times.unsqueeze(0) - times.unsqueeze(1)) ** 2
-        
-        # Compute single kernel for each type
-        amplitude = torch.exp(self.log_lambda_amplitude)  # Get current amplitude
-        K_lambda = amplitude ** 2 * torch.exp(-0.5 * sq_dists / (self.lambda_length_scale ** 2))
-        K_phi = self.init_amplitude ** 2 * torch.exp(-0.5 * sq_dists / (self.phi_length_scale ** 2))
-        
-        # Add jitter once
-        jitter_matrix = self.jitter * torch.eye(self.T)
-        
-        # Store single kernel for each type
-        self.K_lambda = K_lambda + jitter_matrix
-        self.K_phi = K_phi + jitter_matrix
-
-        print(f"Lambda kernel condition number: {torch.linalg.cond(self.K_lambda):.2f}")
-        print(f"Phi kernel condition number: {torch.linalg.cond(self.K_phi):.2f}")
-
     def forward(self):
         """Forward pass computing predictions"""
         theta = torch.softmax(self.lambda_, dim=1)  # N x K x T
@@ -290,14 +271,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                      # Combine all terms
             total_loss = total_data_loss + gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T)
         
-        # Print current amplitude value during training
-        if self.training and torch.rand(1) < 0.01:  # Print occasionally
-            print(f"Current lambda GP amplitude: {torch.exp(self.log_lambda_amplitude).item():.3f}")
-        
-        print(f"Data loss: {total_data_loss:.4f}")
-        print(f"GP loss: {gp_loss:.4f}")
-        print(f"LRT loss: {signature_update_loss:.4f}")
-        
+            
         # Print monitoring info
         if self.training and torch.rand(1) < 0.01:  # Occasionally during training
             print(f"\nLoss components:")
@@ -339,7 +313,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def compute_gp_prior_loss(self):
         """Compute GP prior with fixed lambda amplitude of 2.0"""
         # Fixed K_lambda using amplitude of 2.0
-        K_lambda = (2.0 ** 2) * self.base_K_lambda + self.jitter * torch.eye(self.T)
+        
         
         # Initialize losses
         gp_loss_lambda = 0.0
@@ -359,11 +333,11 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                             self.genetic_scale * (self.G @ self.gamma[:, k]).unsqueeze(1)
             
             deviations_lambda = lambda_k - mean_lambda_k
-        for i in range(self.N):
-            dev_i = deviations_lambda[i:i+1].T
-            v_i = torch.cholesky_solve(dev_i, L_lambda)
-            gp_loss_lambda += 0.5 * torch.sum(v_i.T @ dev_i)
-        
+            for i in range(self.N):
+                dev_i = deviations_lambda[i:i+1].T
+                v_i = torch.cholesky_solve(dev_i, L_lambda)
+                gp_loss_lambda += 0.5 * torch.sum(v_i.T @ dev_i)
+            
         # Phi GP prior (unchanged, uses fixed K_phi)
         L_phi = torch.linalg.cholesky(self.K_phi)
         for k in range(self.K_total):
