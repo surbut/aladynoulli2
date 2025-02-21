@@ -15,20 +15,43 @@ from scipy.special import softmax
 import seaborn as sns
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
-    def __init__(self, N, D, T, K, P, G, Y, prevalence_t,init_var_scaler, genetic_scale,signature_references=None, healthy_reference=None, disease_names=None,flat_lambda=False):
+    def __init__(self, N, D, T, K, P, G, Y, prevalence_t, init_var_scaler, genetic_scale,
+                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False):
         super().__init__()
-        self.N = N
-        self.D = D
-        self.T = T
-        self.K = K
-        # Make K_total conditional on whether healthy_reference is provided
+        # Basic dimensions and settings
+        self.N, self.D, self.T, self.K = N, D, T, K
         self.K_total = K + 1 if healthy_reference is not None else K
         self.P = P
+        self.jitter = 1e-4
+        self.lrtpen = 0.1  # Stronger LRT penalty
+        # Fixed kernel parameters
+        self.lambda_length_scale = T/4
+        self.phi_length_scale = T/3
+        self.init_amplitude = 1.0  # Fixed initial amplitude for both kernels
+        
+        # Store base kernel matrix (structure without amplitude)
+        time_points = torch.arange(T, dtype=torch.float32)
+        time_diff = time_points[:, None] - time_points[None, :]
+        self.base_K_lambda = torch.exp(-0.5 * (time_diff**2) / (self.lambda_length_scale**2))
+        
+        # Initialize kernels with same initial amplitude
+        K_lambda = self.init_amplitude**2 * self.base_K_lambda
+        K_phi = self.init_amplitude**2 * torch.exp(-0.5 * (time_diff**2) / (self.phi_length_scale**2))
+        
+        # Add jitter and store
+        jitter_matrix = self.jitter * torch.eye(T)
+        self.K_phi = K_phi + jitter_matrix  # Phi kernel stays fixed
+        self.K_lambda_init = K_lambda + jitter_matrix  # Only for initialization
+        
+        # Remove learnable amplitude
+        #self.log_lambda_amplitude = nn.Parameter(torch.tensor(1.0))  # DELETE
+        
+        # Fixed amplitude as hyperparameter
+        self.lambda_amplitude = 2.0  # or whatever value works well
+        
+        # Store other needed values (prevalence, etc.)
         self.psi = None 
         self.disease_names = disease_names
-        self.jitter = 1e-6
-        # Store whether to use flat lambda
-        self.flat_lambda = flat_lambda
         self.init_var_scaler=init_var_scaler ## so that the initiation doesn't give us 'cheap losss'
         # If using flat lambda, modify signature references
         
@@ -60,17 +83,9 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             (self.prevalence_t + epsilon) / (1 - self.prevalence_t + epsilon)
         )  # D x T
         
-        # Fixed kernel parameters
-        self.lambda_length_scale = T/4
-        self.phi_length_scale = T/3
-         
-        self.amplitude = 1
-        self.lambda_amp=1
-
-        # Initialize parameters
-        self.update_kernels()
+        # Initialize parameters (lambda, phi, gamma, psi)
         self.initialize_params()
-        
+
     def initialize_params(self, psi_config=None, true_psi=None, **kwargs):
         """Initialize parameters with K disease clusters plus one healthy cluster"""
         Y_avg = torch.mean(self.Y, dim=2)
@@ -158,7 +173,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             gamma_init[:, k] = torch.linalg.lstsq(self.G, base_value_centered.unsqueeze(1)).solution.squeeze()
             print(f"Gamma init for k={k} (first 5): {gamma_init[:5, k]}")
             lambda_means = self.genetic_scale * (self.G @ gamma_init[:, k])
-            L_k = torch.linalg.cholesky(self.K_lambda)
+            L_k = torch.linalg.cholesky(self.K_lambda_init)
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
                 lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps*self.init_var_scaler
@@ -170,7 +185,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                 eps = L_phi @ torch.randn(self.T)
                 phi_init[self.K, d, :] = mean_phi + eps*self.init_var_scaler
 
-            L_k = torch.linalg.cholesky(self.K_lambda)
+            L_k = torch.linalg.cholesky(self.K_lambda_init)
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
                 lambda_init[i, self.K, :] = self.healthy_ref + eps*self.init_var_scaler
@@ -187,14 +202,16 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             print(f"Initializing with {self.K} disease states only")
         print("Initialization complete!")
     
+
     def update_kernels(self):
         """Compute fixed covariance matrices"""
         times = torch.arange(self.T, dtype=torch.float32)
         sq_dists = (times.unsqueeze(0) - times.unsqueeze(1)) ** 2
         
         # Compute single kernel for each type
-        K_lambda = self.lambda_amp ** 2 * torch.exp(-0.5 * sq_dists / (self.lambda_length_scale ** 2))
-        K_phi = self.amplitude ** 2 * torch.exp(-0.5 * sq_dists / (self.phi_length_scale ** 2))
+        amplitude = torch.exp(self.log_lambda_amplitude)  # Get current amplitude
+        K_lambda = amplitude ** 2 * torch.exp(-0.5 * sq_dists / (self.lambda_length_scale ** 2))
+        K_phi = self.init_amplitude ** 2 * torch.exp(-0.5 * sq_dists / (self.phi_length_scale ** 2))
         
         # Add jitter once
         jitter_matrix = self.jitter * torch.eye(self.T)
@@ -207,11 +224,10 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         print(f"Phi kernel condition number: {torch.linalg.cond(self.K_phi):.2f}")
 
     def forward(self):
-        theta = torch.softmax(self.lambda_, dim=1)
-        epsilon=1e-8
-        phi_prob = torch.sigmoid(self.phi)
+        """Forward pass computing predictions"""
+        theta = torch.softmax(self.lambda_, dim=1)  # N x K x T
+        phi_prob = torch.sigmoid(self.phi)  # K x D x T
         pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob)
-        pi = torch.clamp(pi, epsilon, 1-epsilon)
         return pi, theta, phi_prob
 
     def compute_loss(self, event_times):
@@ -233,80 +249,134 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         loss_no_event = -torch.sum(torch.log(1 - pi) * mask_at_event * (1 - self.Y))
         total_data_loss = (loss_censored + loss_event + loss_no_event) / (self.N)
 
-
-
-        
         # GP prior loss
         gp_loss = self.compute_gp_prior_loss()
         
-        # Simple vectorized LRT updates
+       
+        
+        # Average phi probabilities across time
+        phi_avg = phi_prob.mean(dim=2)  # [K x D]
+        
+
         signature_update_loss = 0.0
         diagnoses = self.Y  # [N x D x T]
         
-        # For each time point
-        for t in range(T):
-            # Get diagnoses at this time
-            diagnoses_t = diagnoses[:, :, t]  # [N x D]
-            phi_t = phi_prob[:, :, t]  # [K x D]
-            
-            # For each disease with any diagnoses
-            for d in range(D):
-                if torch.any(diagnoses_t[:, d]):
-                    # Get specificity for this disease
-                    spec_d = phi_t[:, d]  # [K]
-                    max_sig = torch.argmax(spec_d)
-                    other_mean = (torch.sum(spec_d) - spec_d[max_sig]) / (self.K_total - 1)
-                    lr = spec_d[max_sig] / (other_mean + epsilon)
+        for d in range(self.D):
+            if torch.any(diagnoses[:, d, :]):
+                spec_d = phi_avg[:, d]
+                max_sig = torch.argmax(spec_d)
+                other_mean = (torch.sum(spec_d) - spec_d[max_sig]) / (self.K_total - 1)
+                lr = spec_d[max_sig] / (other_mean + epsilon)
+                
+                if lr > 2:
+                    diagnosis_mask = diagnoses[:, d, :].bool()
+
+                    # Get indices where diagnoses occur
+                    patient_idx, time_idx = torch.where(diagnosis_mask)
+                    lambda_at_diagnosis = self.lambda_[patient_idx, max_sig, time_idx]
                     
-                    if lr > 2:
-                        # Convert to boolean mask
-                        diagnosed = diagnoses_t[:, d].bool()  # [N]
-                        signature_update_loss -= torch.sum(
-                            torch.log(lr) * self.lambda_[diagnosed, max_sig, t]
-                        )
+                    # Target value that will give substantial theta after softmax
+                    target_value = 2.0  # This should give ~0.4 theta share
+                     # Get disease prevalence
+                    disease_prevalence = diagnoses[:, d, :].float().mean() + epsilon  # Add epsilon to avoid division by zero
+
+                    # Scale LRT penalty by inverse prevalence
+                    prevalence_scaling = min(0.1 / disease_prevalence, 10.0)  # Cap scaling to avoid extreme values
+
+                    # Apply scaled penalty
+                    signature_update_loss = torch.sum(
+                        torch.log(lr) * prevalence_scaling * (target_value - lambda_at_diagnosis)
+                    )
+                     # Combine all terms
+            total_loss = total_data_loss + gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T)
         
-        # Combine all terms
-        total_loss = total_data_loss + gp_loss + 0.1 * signature_update_loss / (self.N * self.T)
+        # Print current amplitude value during training
+        if self.training and torch.rand(1) < 0.01:  # Print occasionally
+            print(f"Current lambda GP amplitude: {torch.exp(self.log_lambda_amplitude).item():.3f}")
         
+        print(f"Data loss: {total_data_loss:.4f}")
+        print(f"GP loss: {gp_loss:.4f}")
+        print(f"LRT loss: {signature_update_loss:.4f}")
+        
+        # Print monitoring info
+        if self.training and torch.rand(1) < 0.01:  # Occasionally during training
+            print(f"\nLoss components:")
+            print(f"Data loss: {total_data_loss:.4f}")
+            print(f"GP loss: {gp_loss:.4f}")
+            print(f"LRT loss: {self.lrtpen*signature_update_loss / (self.N * self.T):.4f}")
+            
+            # Add calibration monitoring like in notebook
+            with torch.no_grad():
+                pi = pi.detach()
+                Y = self.Y.detach()
+                
+                # Convert to numpy
+                pi_np = pi.cpu().numpy()
+                Y_np = Y.cpu().numpy()
+                
+                # Calculate marginal risks
+                observed_risk = Y_np.mean(axis=0).flatten()
+                predicted_risk = pi_np.mean(axis=0).flatten()
+                
+                # Calculate calibration stats
+                scale_factor = np.mean(observed_risk) / np.mean(predicted_risk)
+                calibrated_risk = predicted_risk * scale_factor
+                
+                # R² calculation
+                ss_res = np.sum((observed_risk - calibrated_risk) ** 2)
+                ss_tot = np.sum((observed_risk - np.mean(observed_risk)) ** 2)
+                r2 = 1 - (ss_res / ss_tot)
+                
+                print(f"\nCalibration Stats:")
+                print(f"Mean observed risk: {np.mean(observed_risk):.6f}")
+                print(f"Mean predicted risk: {np.mean(predicted_risk):.6f}")
+                print(f"Scale factor: {scale_factor:.3f}")
+                print(f"R²: {r2:.3f}")
+
         return total_loss
  
-    
+        
     def compute_gp_prior_loss(self):
-        """
-        Compute the average GP prior loss with time-dependent mean.
-        Lambda terms averaged by N, Phi terms averaged by D.
-        """
+        """Compute GP prior with fixed lambda amplitude of 2.0"""
+        # Fixed K_lambda using amplitude of 2.0
+        K_lambda = (2.0 ** 2) * self.base_K_lambda + self.jitter * torch.eye(self.T)
+        
+        # Initialize losses
         gp_loss_lambda = 0.0
         gp_loss_phi = 0.0
         
+        # Compute Cholesky once
+        L_lambda = torch.linalg.cholesky(K_lambda)
+        
+        # Lambda GP prior
         for k in range(self.K_total):
-            L_lambda = torch.linalg.cholesky(self.K_lambda)
-            L_phi = torch.linalg.cholesky(self.K_phi)
+            lambda_k = self.lambda_[:, k, :]  # N x T
             
-            # Lambda GP prior (unchanged)
-            lambda_k = self.lambda_[:, k, :]
-       
             if k == self.K and self.healthy_ref is not None:  # Healthy state
-                mean_lambda_k = self.healthy_ref.unsqueeze(0) 
+                mean_lambda_k = self.healthy_ref.unsqueeze(0)
             else:  # Disease signatures
-                mean_lambda_k = self.signature_refs[k].unsqueeze(0) + self.genetic_scale * (self.G @ self.gamma[:, k]).unsqueeze(1)
+                mean_lambda_k = self.signature_refs[k].unsqueeze(0) + \
+                            self.genetic_scale * (self.G @ self.gamma[:, k]).unsqueeze(1)
             
             deviations_lambda = lambda_k - mean_lambda_k
-            for i in range(self.N):
-                dev_i = deviations_lambda[i:i+1].T
-                v_i = torch.cholesky_solve(dev_i, L_lambda)
-                gp_loss_lambda += 0.5 * torch.sum(v_i.T @ dev_i)
-            
-            # Phi GP prior (updated to include psi)
+        for i in range(self.N):
+            dev_i = deviations_lambda[i:i+1].T
+            v_i = torch.cholesky_solve(dev_i, L_lambda)
+            gp_loss_lambda += 0.5 * torch.sum(v_i.T @ dev_i)
+        
+        # Phi GP prior (unchanged, uses fixed K_phi)
+        L_phi = torch.linalg.cholesky(self.K_phi)
+        for k in range(self.K_total):
             phi_k = self.phi[k]  # D x T
             for d in range(self.D):
-                mean_phi_d = self.logit_prev_t[d, :] + self.psi[k, d]  # Include psi deviation
+                mean_phi_d = self.logit_prev_t[d, :] + self.psi[k, d]
                 dev_d = (phi_k[d:d+1, :] - mean_phi_d).T
                 v_d = torch.cholesky_solve(dev_d, L_phi)
                 gp_loss_phi += 0.5 * torch.sum(v_d.T @ dev_d)
         
-        return gp_loss_lambda / (self.N ) + gp_loss_phi / (self.D)
-        
+        # Return combined loss with appropriate scaling
+        return gp_loss_lambda / self.N + gp_loss_phi / self.D
+
     def visualize_clusters(self, disease_names):
         """
         Visualize cluster assignments and disease names
@@ -336,393 +406,68 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             print(f"Mean psi value: {self.psi[self.K].mean().item():.4f}")
 
 
-    def fit(self, event_times, num_epochs=1000, learning_rate=1e-4, lambda_reg=1e-2,
-        convergence_threshold=1e-3, patience=20,warmup_epochs=10):
-        """
-        Fit model with early stopping and parameter monitoring
-        
-        optimizer = optim.Adam([
-            {'params': [self.lambda_, self.phi,self.psi]},
-            {'params': [self.gamma], 'weight_decay': lambda_reg}
-        ], lr=learning_rate)
-        """
+    def analyze_signature_responses(self, top_n=5):
+        ## look at tehta around a window 
+        """Monitor theta (signature proportion) changes for top N most specific diseases"""
+        with torch.no_grad():
+            pi, theta, phi_prob = self.forward()  # Get thetas from softmax(lambda)
+            phi_avg = phi_prob.mean(dim=2)
+            
+            
 
-            # Create optimizer with consistent learning rates
+            print(f"\nMonitoring signature responses:")
+            
+            # Find diseases with highest LR
+            disease_lrs = []
+            for d in range(self.D):
+                spec_d = phi_avg[:, d]
+                max_sig = torch.argmax(spec_d)
+                other_mean = (torch.sum(spec_d) - spec_d[max_sig]) / (self.K_total - 1)
+                lr = spec_d[max_sig] / (other_mean + 1e-8)
+                disease_lrs.append((d, max_sig, lr.item()))
+            
+            # Sort by LR and take top N
+            top_diseases = sorted(disease_lrs, key=lambda x: x[2], reverse=True)[:top_n]
+            
+            for d, max_sig, lr in top_diseases:
+                diagnosed = self.Y[:, d, :].any(dim=1)
+                if diagnosed.any():
+                    # Look at theta (proportion) values instead of lambda
+                    theta_vals = theta[diagnosed, max_sig, :] ## time around disease window
+                    theta_others = theta[~diagnosed, max_sig, :]
+                    
+                    print(f"\nDisease {d} (signature {max_sig}, LR={lr:.2f}):")
+                    print(f"  Theta for diagnosed: {theta_vals.mean():.3f} ± {theta_vals.std():.3f}")
+                    print(f"  Theta for others: {theta_others.mean():.3f}")
+                    print(f"  Proportion difference: {(theta_vals.mean() - theta_others.mean()):.3f}")
+
+    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
+        """Modified fit method with amplitude learning and lambda monitoring"""
         initial_lr = learning_rate / 100 
-        optimizer = optim.Adam([
-            {'params': [self.lambda_, self.phi], 'lr': learning_rate},
-            {'params': [self.psi], 'lr': learning_rate},  # Same base learning rate
-            {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
-        ])
-
-        
-        history = {
-            'loss': [],
-            'max_grad_lambda': [],
-            'max_grad_phi': [],
-            'max_grad_gamma': [],
-            'max_grad_psi': []
-        }
-        
-        best_loss = float('inf')
-        patience_counter = 0
-        prev_loss = float('inf')
-
-        
-        
-        print("Starting training...")
-        
-        for epoch in range(num_epochs):
-
-            if epoch < warmup_epochs:
-                current_lr = initial_lr + (learning_rate - initial_lr) * (epoch / warmup_epochs)
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = current_lr
-            
-            
-            optimizer.zero_grad()
-            
-            # Compute loss and backprop
-            loss = self.compute_loss(event_times)
-            loss_val = loss.item()
-            history['loss'].append(loss_val)
-            loss.backward()
-
-        
-            # Get and track gradients
-            grad_lambda = self.lambda_.grad.abs().max().item() if self.lambda_.grad is not None else 0
-            grad_phi = self.phi.grad.abs().max().item() if self.phi.grad is not None else 0
-            grad_gamma = self.gamma.grad.abs().max().item() if self.gamma.grad is not None else 0
-            grad_psi = self.psi.grad.abs().max().item() if self.psi.grad is not None else 0
-            
-            history['max_grad_lambda'].append(grad_lambda)
-            history['max_grad_phi'].append(grad_phi)
-            history['max_grad_gamma'].append(grad_gamma)
-            history['max_grad_psi'].append(grad_psi)
-
-                # Monitor psi gradients
-            print(f"\nEpoch {epoch}")
-            print(f"Loss: {loss.item():.4f}")
-            print("Psi gradient stats:")
-            print(f"Mean: {self.psi.grad.mean().item():.4e}")
-            print(f"Std:  {self.psi.grad.std().item():.4e}")
-            print(f"Max:  {self.psi.grad.max().item():.4e}")
-            print(f"Min:  {self.psi.grad.min().item():.4e}")
-            
-            # Check if psi is actually changing
-            ## old_psi = self.psi.detach().clone()
-            ## optimizer.step()
-            ## psi_change = (self.psi - old_psi).abs().mean().item()
-            ### print(f"Average psi change: {psi_change:.4e}")
-
-
-            if epoch < 10 or epoch % 10 == 0:
-                print(f"Epoch {epoch}, Loss: {loss_val:.4f}, "
-                    f"Gradients - Lambda: {grad_lambda:.3e}, Phi: {grad_phi:.3e}, "
-                    f"Gamma: {grad_gamma:.3e}, Psi: {grad_psi:.3e}")
-
-            # Check convergence
-            loss_change = abs(prev_loss - loss_val)
-            if loss_change < convergence_threshold:
-                print(f"\nConverged at epoch {epoch}. Loss change: {loss_change:.4f}")
-                break
-            
-            # Early stopping check
-            if loss_val < best_loss:
-                patience_counter = 0
-                best_loss = loss_val
-            else:
-                patience_counter += 1
-                if patience_counter >= patience:
-                    print(f"\nEarly stopping triggered at epoch {epoch}")
-                    break
-
-         
-        
-            optimizer.step()
-            prev_loss = loss_val
-            
-            # Time estimate on first epoch
-            if epoch == 0:
-                import time
-                start_time = time.time()
-            elif epoch == 1:
-                time_per_epoch = time.time() - start_time
-                estimated_total_time = time_per_epoch * num_epochs
-                print(f"\nEstimated total training time: {estimated_total_time/60:.1f} minutes")
-    
-        return history
-    
-    def visualize_healthy_state(self):
-        """
-        Visualize characteristics of the healthy state
-        """
-        # Get initial theta (proportions) from softmax of lambda
-        theta = torch.softmax(self.lambda_, dim=1)
-        healthy_props = theta[:, self.K, :].mean(dim=0)  # Average across individuals
-        
-        # Get disease probabilities for healthy state
-        phi_probs = torch.sigmoid(self.phi[self.K])  # D x T
-        
-        print("\nHealthy State Statistics:")
-        print(f"Average proportion in healthy state: {healthy_props.mean().item():.3f}")
-        print(f"Range of proportions: [{healthy_props.min().item():.3f}, {healthy_props.max().item():.3f}]")
-        print(f"\nDisease probabilities in healthy state:")
-        print(f"Mean: {phi_probs.mean().item():.3f}")
-        print(f"Range: [{phi_probs.min().item():.3f}, {phi_probs.max().item():.3f}]")
-        
-        # Optional: Plot distributions
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-        
-        # Plot proportion distribution
-        ax1.hist(healthy_props.detach().numpy(), bins=30)
-        ax1.set_title('Distribution of Healthy State Proportions')
-        ax1.set_xlabel('Proportion')
-        ax1.set_ylabel('Count')
-        
-        # Plot disease probability distribution
-        ax2.hist(phi_probs.flatten().detach().numpy(), bins=30)
-        ax2.set_title('Distribution of Disease Probabilities\nin Healthy State')
-        ax2.set_xlabel('Probability')
-        ax2.set_ylabel('Count')
-        
-        plt.tight_layout()
-        plt.show()
-    
-    def plot_genetic_scores(self, original_G=None):
-        """
-        Create box plots of genetic scores to compare original and transformed versions
-        
-        Parameters:
-        original_G: numpy array or torch tensor, the original G matrix before transformation
-        """
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-        
-        # Plot original G if provided
-        if original_G is not None:
-            if torch.is_tensor(original_G):
-                original_G = original_G.numpy()
-            
-            ax1.boxplot([original_G[:, p] for p in range(self.P)],
-                    labels=[f'Component {p+1}' for p in range(self.P)])
-            ax1.set_title('Original Genetic Components')
-            ax1.set_ylabel('Score')
-            ax1.grid(True, alpha=0.3)
-            
-            # Add mean line for original plot
-            orig_mean = original_G.mean()
-            ax1.axhline(y=orig_mean, color='r', linestyle='--', alpha=0.5, label=f'Mean ({orig_mean:.3f})')
-        
-        # Plot transformed G
-        G_np = self.G.numpy()
-        ax2.boxplot([G_np[:, p] for p in range(self.P)],
-                    labels=[f'Component {p+1}' for p in range(self.P)])
-        
-        # Add exact reference lines for transformed plot
-        ax2.axhline(y=0, color='r', linestyle='--', alpha=0.5, label='Mean (0)')
-        ax2.axhline(y=1, color='g', linestyle='--', alpha=0.5, label='±1 std')
-        ax2.axhline(y=-1, color='g', linestyle='--', alpha=0.5)
-        
-        ax2.set_title('Transformed Genetic Components\n(Centered and Scaled)')
-        ax2.set_ylabel('Standardized Score')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
-        
-        # Print summary statistics for both
-        print("\nGenetic Components Summary Statistics:")
-        print(f"{'Component':<10} {'Original Mean':>13} {'Original Std':>12} {'Trans. Mean':>12} {'Trans. Std':>11}")
-        print("-" * 60)
-        for p in range(self.P):
-            orig_mean = original_G[:, p].mean() if original_G is not None else float('nan')
-            orig_std = original_G[:, p].std() if original_G is not None else float('nan')
-            trans_mean = G_np[:, p].mean()
-            trans_std = G_np[:, p].std()
-            print(f"{p+1:<10} {orig_mean:>13.3f} {orig_std:>12.3f} {trans_mean:>12.3f} {trans_std:>11.3f}")
-                  
-    def plot_qq_genetic_scores(self, original_G=None, n_components=4):
-        """
-        Create Q-Q plots comparing original and transformed genetic components
-        
-        Parameters:
-        original_G: original genetic components tensor/array
-        n_components: number of components to plot (default=4)
-        """
-        import numpy as np
-        from scipy import stats
-        
-        # Convert tensors to numpy if needed
-        G_np = self.G.numpy()
-        if original_G is not None:
-            if torch.is_tensor(original_G):
-                original_G = original_G.numpy()
-        
-        # Randomly select components
-        selected_components = np.random.choice(self.P, size=n_components, replace=False)
-        
-        # Create subplot grid
-        fig, axes = plt.subplots(n_components, 2, figsize=(12, 4*n_components))
-        
-        for idx, comp in enumerate(selected_components):
-            # Original data Q-Q plot
-            if original_G is not None:
-                stats.probplot(original_G[:, comp], dist="norm", plot=axes[idx, 0])
-                axes[idx, 0].set_title(f'Original Component {comp+1}')
-            
-            # Transformed data Q-Q plot
-            stats.probplot(G_np[:, comp], dist="norm", plot=axes[idx, 1])
-            axes[idx, 1].set_title(f'Transformed Component {comp+1}')
-        
-        plt.tight_layout()
-        plt.show()
-        # Print summary statistics
-        print("\nHealthy State Disease Probabilities:")
-        print(f"Mean: {phi_probs[:, :, :].mean(dim=2)[self.K].mean().item():.3f}")
-        print(f"Max:  {phi_probs[:, :, :].mean(dim=2)[self.K].max().item():.3f}")
-                
-    def plot_disease_logits(self, n_diseases=5):
-        """
-        Plot logit values (phi) across states for randomly selected diseases,
-        highlighting that the healthy state (K) has lower values
-        """
-        # Select random diseases
-        random_diseases = np.random.choice(self.D, size=n_diseases, replace=False)
-        
-        # Create plot
-        fig, axes = plt.subplots(n_diseases, 1, figsize=(10, 3*n_diseases))
-        if n_diseases == 1:
-            axes = [axes]
-        
-        for idx, d in enumerate(random_diseases):
-            # Get logit values for each state
-            state_logits = self.phi[:, d, :].mean(dim=1).detach().numpy()  # Average over time
-            
-            # Create bar plot
-            bars = axes[idx].bar(range(self.K_total), state_logits)
-            
-            # Highlight healthy state
-            bars[self.K].set_color('green')
-            
-            # Add disease name if available
-            disease_label = f"Disease {d}" if self.disease_names is None else self.disease_names[d]
-            axes[idx].set_title(disease_label)
-            axes[idx].set_xlabel('State')
-            axes[idx].set_ylabel('Logit Value')
-            
-            # Annotate healthy state
-            axes[idx].text(self.K, state_logits[self.K], 
-                        f'Healthy\n{state_logits[self.K]:.3f}', 
-                        ha='center', va='bottom')
-        
-        plt.tight_layout()
-        plt.show()
-        
-        # Print summary statistics
-        print("\nHealthy State Logit Values:")
-        print(f"Mean: {self.phi[self.K, :, :].mean().item():.3f}")
-        print(f"Max:  {self.phi[self.K, :, :].max().item():.3f}")
-        
-    def fit_efficient(self, event_times, num_epochs=1000, learning_rate=1e-4, lambda_reg=1e-2,
-                 param_change_threshold=1e-5, consecutive_threshold=3):
-        """
-        Efficient fitting with parameter change monitoring
-        Args:
-            param_change_threshold: threshold for parameter changes
-            consecutive_threshold: number of consecutive small changes before stopping
-        """
         optimizer = optim.Adam([
             {'params': [self.lambda_, self.phi], 'lr': learning_rate},
             {'params': [self.psi], 'lr': learning_rate},
             {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
+            #,
+            #{'params': [self.log_lambda_amplitude], 'lr': learning_rate}  # Full learning rate
         ])
-        
-        history = {
-            'loss': [],
-            'param_changes': [],
-            'gradients': []
-        }
-        
-        consecutive_small_changes = 0
-        print("Starting efficient training...")
-        
-        # Store initial parameter values
-        old_params = {
-            'lambda': self.lambda_.detach().clone(),
-            'phi': self.phi.detach().clone(),
-            'psi': self.psi.detach().clone(),
-            'gamma': self.gamma.detach().clone()
-        }
+
+        losses = []
         
         for epoch in range(num_epochs):
             optimizer.zero_grad()
-            
-            # Compute loss and backprop
             loss = self.compute_loss(event_times)
-            loss_val = loss.item()
-            history['loss'].append(loss_val)
             loss.backward()
-            
-            # Track parameter changes every 5 epochs
-            if epoch % 5 == 0:
-                param_changes = {
-                    'lambda': (self.lambda_ - old_params['lambda']).abs().mean().item(),
-                    'phi': (self.phi - old_params['phi']).abs().mean().item(),
-                    'psi': (self.psi - old_params['psi']).abs().mean().item(),
-                    'gamma': (self.gamma - old_params['gamma']).abs().mean().item()
-                }
-                
-                max_change = max(param_changes.values())
-                history['param_changes'].append(param_changes)
-                
-                # Print progress every 10 epochs
-                if epoch % 10 == 0:
-                    print(f"\nEpoch {epoch}")
-                    print(f"Loss: {loss_val:.4f}")
-                    print(f"Max parameter change: {max_change:.2e}")
-                    
-                    # Store gradients for monitoring
-                    if self.lambda_.grad is not None:
-                        grads = {
-                            'lambda': self.lambda_.grad.abs().max().item(),
-                            'phi': self.phi.grad.abs().max().item(),
-                            'psi': self.psi.grad.abs().max().item(),
-                            'gamma': self.gamma.grad.abs().max().item()
-                        }
-                        history['gradients'].append(grads)
-                        print(f"Max gradients: {grads}")
-                
-                # Check for convergence based on parameter changes
-                if max_change < param_change_threshold:
-                    consecutive_small_changes += 1
-                    if consecutive_small_changes >= consecutive_threshold:
-                        print(f"\nParameters stabilized at epoch {epoch}")
-                        print(f"Final loss: {loss_val:.4f}")
-                        break
-                else:
-                    consecutive_small_changes = 0
-                
-                # Update old parameters
-                old_params = {
-                    'lambda': self.lambda_.detach().clone(),
-                    'phi': self.phi.detach().clone(),
-                    'psi': self.psi.detach().clone(),
-                    'gamma': self.gamma.detach().clone()
-                }
-            # Only update parameters if we haven't converged/stopped
             optimizer.step()
+            losses.append(loss.item())
             
-            # Time estimate on first epoch
-            if epoch == 0:
-                import time
-                start_time = time.time()
-            elif epoch == 1:
-                time_per_epoch = time.time() - start_time
-                estimated_total_time = time_per_epoch * num_epochs
-                print(f"\nEstimated total training time: {estimated_total_time/60:.1f} minutes")
+            if epoch % 1 == 0:
+                print(f"\nEpoch {epoch}")
+                print(f"Loss: {loss.item():.4f}")
+                self.analyze_signature_responses()  # Call as method
         
-        return history
+        return losses
+
     def plot_initial_params(self, n_samples=5):
         """
         Visualize initial parameters for sample diseases and individuals
@@ -888,545 +633,13 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         plt.show()
 
 
+def subset_data(Y, E, G, start_index, end_index):
+    indices = list(range(start_index, end_index))
+    Y_subset = Y[indices]  # Changed from slice to index list
+    E_subset = E[indices]
+    G_subset = G[indices]
+    return Y_subset, E_subset, G_subset, indices
 
-
-
-   
-
-## plotting code from here down
-def plot_training_diagnostics(history):
-    """Plot training diagnostics for fixed kernel model"""
-    plt.figure(figsize=(15, 8))
-    
-    # Plot loss
-    plt.subplot(2, 2, 1)
-    plt.plot(history['loss'])
-    plt.yscale('log')
-    plt.title('Training Loss Over Time')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.grid(True)
-    
-    # Plot gradients
-    plt.subplot(2, 2, 2)
-    plt.plot(history['max_grad_lambda'], label='λ')
-    plt.plot(history['max_grad_phi'], label='φ')
-    plt.plot(history['max_grad_gamma'], label='γ')
-    plt.yscale('log')
-    plt.title('Maximum Gradients')
-    plt.xlabel('Epoch')
-    plt.ylabel('Gradient Magnitude')
-    plt.legend()
-    plt.grid(True)
-    
-    # Plot condition numbers
-    plt.subplot(2, 2, 3)
-    plt.plot(history['condition_number_lambda'], label='λ kernels')
-    plt.plot(history['condition_number_phi'], label='φ kernels')
-    plt.yscale('log')
-    plt.title('Kernel Condition Numbers')
-    plt.xlabel('Epoch')
-    plt.ylabel('Condition Number')
-    plt.legend()
-    plt.grid(True)
-    
-    plt.tight_layout()
-    plt.show()
-
-# Usage:
-"""
-history = model.fit(event_times, num_epochs=1000)
-plot_training_diagnostics(history)
-"""
-
-
-# In a separate script/notebook:
-def calculate_population_references(Y_full, initial_clusters, K):
-    """
-    Pre-compute population reference trajectories
-    Returns:
-        - healthy_reference: T-length vector of healthy proportions
-        - signature_references: K x T matrix of signature trajectories
-    """
-    # Calculate and smooth trajectories as before
-    ...
-    return healthy_reference, signature_references
-
-
-def generate_synthetic_data(N=100, D=5, T=50, K=3, P=5, return_true_params=False):
-    """
-    Generate synthetic survival data for testing the model.
-    """
-    np.random.seed(123)
-
-    # Genetic covariates G (N x P)
-    G = np.random.randn(N, P)
-
-    # Prevalence of diseases (D)
-    prevalence = np.random.uniform(0.01, 0.05, D)
-
-    # Length scales and amplitudes for GP kernels
-    length_scales = np.random.uniform(T / 4, T / 3, K)
-    amplitudes = np.random.uniform(0.8, 1.2, K)
-
-    # Generate time differences for covariance matrices
-    time_points = np.arange(T)
-    time_diff = time_points[:, None] - time_points[None, :]
-
-    # Simulate mu_d (average disease prevalence trajectories)
-    mu_d = np.zeros((D, T))
-    for d in range(D):
-        base_trend = np.log(prevalence[d]) * np.ones(T)
-        mu_d[d, :] = base_trend
-
-    # Simulate lambda (individual-topic trajectories)
-    Gamma_k = np.random.randn(P, K)
-    lambda_ik = np.zeros((N, K, T))
-    for k in range(K):
-        cov_matrix = amplitudes[k] ** 2 * np.exp(-0.5 * (time_diff ** 2) / length_scales[k] ** 2)
-        for i in range(N):
-            mean_lambda = G[i] @ Gamma_k[:, k]
-            lambda_ik[i, k, :] = multivariate_normal.rvs(mean=mean_lambda * np.ones(T), cov=cov_matrix)
-
-    # Compute theta
-    exp_lambda = np.exp(lambda_ik)
-    theta = exp_lambda / np.sum(exp_lambda, axis=1, keepdims=True)  # N x K x T
-
-    # Simulate phi (topic-disease trajectories)
-    phi_kd = np.zeros((K, D, T))
-    for k in range(K):
-        cov_matrix = amplitudes[k] ** 2 * np.exp(-0.5 * (time_diff ** 2) / length_scales[k] ** 2)
-        for d in range(D):
-            mean_phi = np.log(prevalence[d]) * np.ones(T)
-            phi_kd[k, d, :] = multivariate_normal.rvs(mean=mean_phi, cov=cov_matrix)
-
-    # Compute eta
-    eta = expit(phi_kd)  # K x D x T
-
-    # Compute pi
-    pi = np.einsum('nkt,kdt->ndt', theta, eta)
-
-    # Generate survival data Y
-    Y = np.zeros((N, D, T), dtype=int)
-    event_times = np.full((N, D), T)
-    for n in range(N):
-        for d in range(D):
-            for t in range(T):
-                if Y[n, d, :t].sum() == 0:
-                    if np.random.rand() < pi[n, d, t]:
-                        Y[n, d, t] = 1
-                        event_times[n, d] = t
-                        break
-
-    if return_true_params:
-        return {
-            'Y': Y,
-            'G': G,
-            'prevalence': prevalence,
-            'length_scales': length_scales,
-            'amplitudes': amplitudes,
-            'event_times': event_times,
-            'theta': theta,
-            'phi': phi_kd,
-            'lambda': lambda_ik,
-            'gamma': Gamma_k,
-            'pi': pi
-        }
-    else:
-        return Y, G, prevalence, event_times
-
-
-
-
-def plot_model_fit(model, sim_data, n_samples=5, n_diseases=3):
-    """
-    Plot model fit against true synthetic data for selected individuals and diseases
-    
-    Parameters:
-    model: trained model
-    sim_data: dictionary with true synthetic data
-    n_samples: number of individuals to plot
-    n_diseases: number of diseases to plot
-    """
-    # Get model predictions
-    with torch.no_grad():
-        pi_pred = model.forward().cpu().numpy()
-    
-    # Get true pi from synthetic data
-    pi_true = sim_data['pi']
-    
-    N, D, T = pi_pred.shape
-    time_points = np.arange(T)
-    
-    # Select individuals with varying predictions
-    pi_var = np.var(pi_pred, axis=(1,2))  # Variance across diseases and time
-    sample_idx = np.quantile(np.arange(N), np.linspace(0, 1, n_samples)).astype(int)
-    
-    # Select most variable diseases
-    disease_var = np.var(pi_pred, axis=(0,2))  # Variance across individuals and time
-    disease_idx = np.argsort(-disease_var)[:n_diseases]
-    
-    # Create plots
-    fig, axes = plt.subplots(n_samples, n_diseases, figsize=(4*n_diseases, 4*n_samples))
-    
-    for i, ind in enumerate(sample_idx):
-        for j, dis in enumerate(disease_idx):
-            ax = axes[i,j] if n_samples > 1 and n_diseases > 1 else axes
-            
-            # Plot predicted and true pi
-            ax.plot(time_points, pi_pred[ind, dis, :], 
-                   'b-', label='Predicted', linewidth=2)
-            ax.plot(time_points, pi_true[ind, dis, :], 
-                   'r--', label='True', linewidth=2)
-            
-            ax.set_title(f'Individual {ind}, Disease {dis}')
-            ax.set_xlabel('Time')
-            ax.set_ylabel('Probability')
-            if i == 0 and j == 0:
-                ax.legend()
-    
-    plt.tight_layout()
-    plt.show()
-
-
-
-def plot_random_comparisons(true_pi, pred_pi, n_samples=10, n_cols=2):
-    """
-    Plot true vs predicted pi for random individuals and diseases
-    
-    Parameters:
-    true_pi: numpy array (N×D×T)
-    pred_pi: torch tensor (N×D×T)
-    n_samples: number of random comparisons to show
-    n_cols: number of columns in subplot grid
-    """
-    N, D, T = true_pi.shape
-    pred_pi = pred_pi.detach().numpy()
-    
-    # Generate random indices
-    random_inds = np.random.randint(0, N, n_samples)
-    random_diseases = np.random.randint(0, D, n_samples)
-    
-    # Calculate number of rows needed
-    n_rows = int(np.ceil(n_samples / n_cols))
-    
-    plt.figure(figsize=(6*n_cols, 4*n_rows))
-    
-    for idx in range(n_samples):
-        i = random_inds[idx]
-        d = random_diseases[idx]
-        
-        plt.subplot(n_rows, n_cols, idx+1)
-        
-        # Plot true and predicted
-        plt.plot(true_pi[i,d,:], 'b-', label='True π', linewidth=2)
-        plt.plot(pred_pi[i,d,:], 'r--', label='Predicted π', linewidth=2)
-        
-        plt.title(f'Individual {i}, Disease {d}')
-        plt.xlabel('Time')
-        plt.ylabel('Probability')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
-
-
-
-def plot_best_matches(true_pi, pred_pi, n_samples=10, n_cols=2):
-    """
-    Plot cases where model predictions best match true values
-    
-    Parameters:
-    true_pi: numpy array (N×D×T)
-    pred_pi: torch tensor (N×D×T)
-    """
-    N, D, T = true_pi.shape
-    pred_pi = pred_pi.detach().numpy()
-    
-    # Compute MSE for each individual-disease pair
-    mse = np.mean((true_pi - pred_pi)**2, axis=2)  # N×D
-    
-    # Get indices of best matches
-    best_indices = np.argsort(mse.flatten())[:n_samples]
-    best_pairs = [(idx // D, idx % D) for idx in best_indices]
-    
-    # Plot
-    n_rows = int(np.ceil(n_samples / n_cols))
-    plt.figure(figsize=(6*n_cols, 4*n_rows))
-    
-    for idx, (i, d) in enumerate(best_pairs):
-        plt.subplot(n_rows, n_cols, idx+1)
-        
-        # Plot true and predicted
-        plt.plot(true_pi[i,d,:], 'b-', label='True π', linewidth=2)
-        plt.plot(pred_pi[i,d,:], 'r--', label='Predicted π', linewidth=2)
-        
-        mse_val = mse[i,d]
-        plt.title(f'Individual {i}, Disease {d}\nMSE = {mse_val:.6f}')
-        plt.xlabel('Time')
-        plt.ylabel('Probability')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
-
-# Use after model fitting:
-# Example of preparing smoothed time-dependent prevalence
-
-
-def compute_smoothed_prevalence(Y, window_size=5):
-    """Compute smoothed time-dependent prevalence on logit scale"""
-    N, D, T = Y.shape
-    prevalence_t = np.zeros((D, T))
-    logit_prev_t = np.zeros((D, T))
-    
-    for d in range(D):
-        # Compute raw prevalence at each time point
-        raw_prev = Y[:, d, :].mean(axis=0)
-        
-        # Convert to logit scale
-        epsilon = 1e-8
-        logit_prev = np.log((raw_prev + epsilon) / (1 - raw_prev + epsilon))
-        
-        # Smooth on logit scale
-        from scipy.ndimage import gaussian_filter1d
-        smoothed_logit = gaussian_filter1d(logit_prev, sigma=window_size)
-        
-        # Store both versions
-        logit_prev_t[d, :] = smoothed_logit
-        prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
-    
-    return prevalence_t
-
-
-
-
-
-def generate_clustered_survival_data(N=1000, D=20, T=50, K=5, P=5):
-    """
-    Generate synthetic data matching our fitted model structure
-    """
-    # Fixed kernel parameters as in the fit
-    lambda_length = T/4
-    phi_length = T/3
-    amplitude = 1.0
-    
-    # Setup time grid
-    time_points = np.arange(T)
-    time_diff = time_points[:, None] - time_points[None, :]
-    K_lambda = amplitude**2 * np.exp(-0.5 * (time_diff**2) / lambda_length**2)
-    K_phi = amplitude**2 * np.exp(-0.5 * (time_diff**2) / phi_length**2)
-    
-        # 1. Generate more realistic baseline trajectories
-    logit_prev_t = np.zeros((D, T))
-    for d in range(D):
-        # More diverse base rates
-        base_rate = np.random.choice([
-            #np.random.uniform(-18, -16),  # Very rare
-            #np.random.uniform(-16, -14),  # Rare
-            np.random.uniform(-14, -12),  # Uncommon
-            np.random.uniform(-12, -10),  # Moderate
-            np.random.uniform(-10, -8),   # Common
-            np.random.uniform(-8, -6)     # Very common
-        ], p=[0.40, 0.40, 0.15, 0.05])
-        
-        # More diverse trajectory shapes
-        peak_age = np.random.uniform(20, 40)  # Wider range for peak
-        # Reduce slope range
-        slope = np.random.uniform(0.10, 0.4)  # More modest increase
-
-# Increase decay to ensure prevalence plateaus
-        decay = np.random.uniform(0.002, 0.01)
-        
-        # Add possibility of early vs late onset patterns
-        onset_shift = np.random.uniform(-10, 10)
-        time_points_shifted = time_points - onset_shift
-        
-        # Generate trajectory with more complex patterns
-        logit_prev_t[d, :] = base_rate + \
-                            slope * time_points_shifted - \
-                            decay * (time_points_shifted - peak_age)**2 #+ \
-                           # np.random.normal(0, 0.5, T)  # Add some noise
-        
-    # 2. Generate cluster assignments
-    clusters = np.zeros(D)
-    diseases_per_cluster = D // K
-    for k in range(K):
-        clusters[k*diseases_per_cluster:(k+1)*diseases_per_cluster] = k
-    
-    # 3. Generate lambda (individual trajectories)
-    G = np.random.randn(N, P)  # Genetic covariates
-    Gamma_k = np.random.randn(P, K)  # Genetic effects
-    lambda_ik = np.zeros((N, K, T))
-    
-    for i in range(N):
-        mean_lambda = G[i] @ Gamma_k  # Individual-specific means
-        for k in range(K):
-            lambda_ik[i,k,:] = multivariate_normal.rvs(
-                mean=mean_lambda[k] * np.ones(T), 
-                cov=K_lambda
-            )
-    
-    # 4. Generate phi with cluster structure
-    phi_kd = np.zeros((K, D, T))
-    psi = np.zeros((K, D))
-    
-    for k in range(K):
-        for d in range(D):
-            # Set cluster-specific offsets
-            if clusters[d] == k:
-                psi[k,d] = 1.0  # In-cluster
-            else:
-                psi[k,d] = -3.0  # Out-cluster
-                
-            # Generate phi around mu_d + psi
-            mean_phi = logit_prev_t[d,:] + psi[k,d]
-            phi_kd[k,d,:] = multivariate_normal.rvs(mean=mean_phi, cov=K_phi)
-    
-    # 5. Compute probabilities
-    theta = softmax(lambda_ik, axis=1)
-    eta = expit(phi_kd)
-    pi = np.einsum('nkt,kdt->ndt', theta, eta)
-    
-    # 6. Generate events
-    Y = np.zeros((N, D, T))
-    event_times = np.full((N, D), T)
-    
-    for n in range(N):
-        for d in range(D):
-            for t in range(T):
-                if Y[n,d,:t].sum() == 0:  # Still at risk
-                    if np.random.rand() < pi[n,d,t]:
-                        Y[n,d,t] = 1
-                        event_times[n,d] = t
-                        break
-    
-    return {
-        'Y': Y,
-        'G': G,
-        'event_times': event_times,
-        'clusters': clusters,
-        'logit_prev_t': logit_prev_t,
-        'theta': theta,
-        'phi': phi_kd,
-        'lambda': lambda_ik,
-        'psi': psi,
-        'pi': pi
-    }
-
-
-def plot_synthetic_components(data, num_samples=5):
-    plt.figure(figsize=(20, 12))
-    
-    # 1. Plot sample phi trajectories for each cluster
-    plt.subplot(231)
-    for k in range(data['phi'].shape[0]):  # For each cluster
-        for d in range(min(num_samples, data['phi'].shape[1])):  # Sample diseases
-            plt.plot(data['phi'][k,d,:], alpha=0.5, label=f'Cluster {k}' if d==0 else '')
-    plt.title('Sample φ Trajectories by Cluster')
-    plt.xlabel('Time')
-    plt.ylabel('φ Value')
-    plt.legend()
-    
-    # 2. Plot sample lambda trajectories
-    plt.subplot(232)
-    for i in range(min(num_samples, data['lambda'].shape[0])):  # Sample individuals
-        for k in range(data['lambda'].shape[1]):  # For each cluster
-            plt.plot(data['lambda'][i,k,:], alpha=0.5, label=f'Cluster {k}' if i==0 else '')
-    plt.title('Sample λ Trajectories')
-    plt.xlabel('Time')
-    plt.ylabel('λ Value')
-    plt.legend()
-    
-    # 3. Plot psi heatmap
-    plt.subplot(233)
-    sns.heatmap(data['psi'], cmap='RdBu_r', center=0)
-    plt.title('ψ Values (Cluster-Disease Assignment)')
-    plt.xlabel('Disease')
-    plt.ylabel('Cluster')
-    
-     # 4. Plot sample theta (signature weights) as bars instead of lines
-    plt.subplot(234)
-    width = 0.15  # Width of bars
-    x = np.arange(data['theta'].shape[1])  # Cluster indices
-    
-    for i in range(min(num_samples, data['theta'].shape[0])):
-        plt.bar(x + i*width, data['theta'][i,:,0], 
-               width, alpha=0.5, label=f'Individual {i}')
-    
-    plt.title('Sample θ Values (t=0)')
-    plt.xlabel('Cluster')
-    plt.ylabel('Weight')
-    plt.legend()
-    plt.xticks(x + width*2, [f'Cluster {i}' for i in x])
-    
-    # 5. Plot sample pi trajectories
-    plt.subplot(235)
-    for i in range(min(num_samples, data['pi'].shape[0])):
-        for d in range(min(3, data['pi'].shape[1])):
-            plt.plot(data['pi'][i,d,:], alpha=0.5, label=f'Ind {i}, Disease {d}' if i==0 else '')
-    plt.title('Sample π Trajectories')
-    plt.xlabel('Time')
-    plt.ylabel('Probability')
-    plt.yscale('log')
-    
-    plt.tight_layout()
-    plt.show()
-
-def calculate_calibration_stats(model, Y):
-    """Calculate calibration stats for a model"""
-    with torch.no_grad():
-        predicted = model.forward()
-        pi_pred = predicted[0] if isinstance(predicted, tuple) else predicted
-        pi_pred = pi_pred.cpu().detach().numpy()
-        Y_np = Y.cpu().detach().numpy() if torch.is_tensor(Y) else Y
-        
-        # Convert to numpy and calculate means
-        observed_risk = Y_np.mean(axis=0).flatten()
-        predicted_risk = pi_pred.mean(axis=0).flatten()
-        
-        scale_factor = np.mean(observed_risk) / np.mean(predicted_risk)
-        calibrated_risk = predicted_risk * scale_factor
-        
-        ss_res = np.sum((observed_risk - calibrated_risk) ** 2)
-        ss_tot = np.sum((observed_risk - np.mean(observed_risk)) ** 2)
-        r2 = 1 - (ss_res / ss_tot)
-        
-        return r2, scale_factor, observed_risk, predicted_risk, calibrated_risk
-
-def subset_data(Y, E, G, n_samples=50000, seed=42):
-    """
-    Subset the data to n_samples individuals while maintaining consistency
-    
-    Args:
-        Y: tensor of shape [N, D, T]
-        E: tensor of shape [N, D]
-        G: tensor of shape [N, P]
-        n_samples: number of individuals to keep
-        seed: random seed for reproducibility
-    
-    Returns:
-        Y_sub, E_sub, G_sub: subsetted tensors
-    """
-    torch.manual_seed(seed)
-    
-    # Get total number of individuals
-    N = Y.shape[0]
-    
-    # Randomly select n_samples indices
-    indices = torch.randperm(N)[:n_samples]
-    
-    # Subset all matrices using the same indices
-    Y_sub = Y[indices]
-    E_sub = E[indices]
-    G_sub = G[indices]
-    
-    print(f"Original shapes: Y={Y.shape}, E={E.shape}, G={G.shape}")
-    print(f"New shapes: Y={Y_sub.shape}, E={E_sub.shape}, G={G_sub.shape}")
-    
-    return Y_sub, E_sub, G_sub, indices
 
 
     

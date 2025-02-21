@@ -262,6 +262,9 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         #psi_reg = 0.1 * torch.norm(self.psi, p=1)  # L1 regularization to encourage sparsity
         
         total_loss = total_data_loss + gp_loss 
+           
+        print(f"Data loss: {total_data_loss:.4f}")
+        print(f"GP loss: {gp_loss:.4f}")
         return total_loss 
     
     def compute_gp_prior_loss(self):
