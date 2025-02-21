@@ -15,7 +15,7 @@ from scipy.special import softmax
 import seaborn as sns
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
-    def __init__(self, N, D, T, K, P, G, Y, prevalence_t, init_var_scaler, genetic_scale,
+    def __init__(self, N, D, T, K, P, G, Y, R,prevalence_t, init_var_scaler, genetic_scale,
                  signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False):
         super().__init__()
         # Basic dimensions and settings
@@ -23,13 +23,13 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.K_total = K + 1 if healthy_reference is not None else K
         self.P = P
         self.jitter = 1e-4
-        self.lrtpen = 1 # Stronger LRT penalty
+        self.lrtpen = R# Stronger LRT penalty
         # Fixed kernel parameters
         self.lambda_length_scale = T/4
         self.phi_length_scale = T/3
         self.init_amplitude = 1.0  # Fixed initial amplitude for both kernels
         # Fixed amplitude as hyperparameter
-        self.lambda_amplitude = 2.0 
+        self.lambda_amplitude = 5.0 
         
         # Store base kernel matrix (structure without amplitude)
         time_points = torch.arange(T, dtype=torch.float32)
