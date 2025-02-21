@@ -23,11 +23,13 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.K_total = K + 1 if healthy_reference is not None else K
         self.P = P
         self.jitter = 1e-4
-        self.lrtpen = 0.1  # Stronger LRT penalty
+        self.lrtpen = 1 # Stronger LRT penalty
         # Fixed kernel parameters
         self.lambda_length_scale = T/4
         self.phi_length_scale = T/3
         self.init_amplitude = 1.0  # Fixed initial amplitude for both kernels
+        # Fixed amplitude as hyperparameter
+        self.lambda_amplitude = 2.0 
         
         # Store base kernel matrix (structure without amplitude)
         time_points = torch.arange(T, dtype=torch.float32)
@@ -40,6 +42,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         
         # Add jitter and store
         jitter_matrix = self.jitter * torch.eye(T)
+
         self.K_phi = K_phi + jitter_matrix  # Phi kernel stays fixed
         self.K_lambda_init = K_lambda + jitter_matrix  # Only for initialization
         self.K_lambda = (self.lambda_amplitude ** 2) * self.base_K_lambda + self.jitter * torch.eye(self.T)
@@ -47,8 +50,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Remove learnable amplitude
         #self.log_lambda_amplitude = nn.Parameter(torch.tensor(1.0))  # DELETE
         
-        # Fixed amplitude as hyperparameter
-        self.lambda_amplitude = 2.0  # or whatever value works well
+         # or whatever value works well
         
         # Store other needed values (prevalence, etc.)
         self.psi = None 
@@ -320,7 +322,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         gp_loss_phi = 0.0
         
         # Compute Cholesky once
-        L_lambda = torch.linalg.cholesky(K_lambda)
+        L_lambda = torch.linalg.cholesky(self.K_lambda)
         
         # Lambda GP prior
         for k in range(self.K_total):
