@@ -26,7 +26,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.P = P
         self.psi = None 
         self.disease_names = disease_names
-        self.jitter = 1e-6
+        self.jitter = 1e-4
         # Store whether to use flat lambda
         self.flat_lambda = flat_lambda
         self.init_var_scaler=init_var_scaler ## so that the initiation doesn't give us 'cheap losss'
@@ -64,8 +64,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.lambda_length_scale = T/4
         self.phi_length_scale = T/3
          
-        self.amplitude = 1
-        self.lambda_amp=1
+        self.amplitude = 1.0
+        self.lambda_amp= 2.0
 
         # Initialize parameters
         self.update_kernels()
@@ -234,8 +234,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         mask_at_event = (time_grid == event_times_expanded).float()  # N x D x T
 
         # Check shapes
-        print(f"mask_before_event shape: {mask_before_event.shape}")
-        print(f"mask_at_event shape: {mask_at_event.shape}")
+        #print(f"mask_before_event shape: {mask_before_event.shape}")
+        #print(f"mask_at_event shape: {mask_at_event.shape}")
        
         # Compute loss components
          # Loss components work automatically because:
@@ -263,8 +263,10 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         
         total_loss = total_data_loss + gp_loss 
            
-        print(f"Data loss: {total_data_loss:.4f}")
-        print(f"GP loss: {gp_loss:.4f}")
+        if self.training and torch.rand(1) < 0.01:  # Occasionally during training
+            print(f"\nLoss components:")
+            print(f"Data loss: {total_data_loss:.4f}")
+            print(f"GP loss: {gp_loss:.4f}")
         return total_loss 
     
     def compute_gp_prior_loss(self):
@@ -275,11 +277,11 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         gp_loss_lambda = 0.0
         gp_loss_phi = 0.0
         
+        L_lambda = torch.linalg.cholesky(self.K_lambda)
+        L_phi = torch.linalg.cholesky(self.K_phi)
+
         for k in range(self.K_total):
-            L_lambda = torch.linalg.cholesky(self.K_lambda)
-            L_phi = torch.linalg.cholesky(self.K_phi)
-            
-            # Lambda GP prior (unchanged)
+          # Lambda GP prior (unchanged)
             lambda_k = self.lambda_[:, k, :]
        
             if k == self.K and self.healthy_ref is not None:  # Healthy state
@@ -332,16 +334,58 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             print(f"Mean psi value: {self.psi[self.K].mean().item():.4f}")
 
 
+
+    def fit(self, event_times, num_epochs=1000, learning_rate=1e-2, lambda_reg=1e-2):
+        """
+        Fit model with simplified training loop from clust_newlambda
+        """
+        optimizer = optim.Adam([
+            {'params': [self.lambda_, self.phi], 'lr': learning_rate},
+            {'params': [self.psi], 'lr': learning_rate},
+            {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
+        ])
+        
+        history = []
+        print("Starting training...")
+        
+        for epoch in range(num_epochs):
+            optimizer.zero_grad()
+            
+            # Compute loss and backprop
+            loss = self.compute_loss(event_times)
+            loss_val = loss.item()
+            history.append(loss_val)
+            loss.backward()
+            
+            if epoch % 1 == 0:
+                print(f"\nEpoch {epoch}")
+                print(f"Loss: {loss_val:.4f}")
+            
+            optimizer.step()
+            
+            # Time estimate on first epoch
+            if epoch == 0:
+                import time
+                start_time = time.time()
+            elif epoch == 1:
+                time_per_epoch = time.time() - start_time
+                estimated_total_time = time_per_epoch * num_epochs
+                print(f"\nEstimated total training time: {estimated_total_time/60:.1f} minutes")
+        
+        return history
+
+
+    """
     def fit(self, event_times, num_epochs=1000, learning_rate=1e-4, lambda_reg=1e-2,
         convergence_threshold=1e-3, patience=20,warmup_epochs=10):
-        """
-        Fit model with early stopping and parameter monitoring
+        
+        # Fit model with early stopping and parameter monitoring
         
         optimizer = optim.Adam([
             {'params': [self.lambda_, self.phi,self.psi]},
             {'params': [self.gamma], 'weight_decay': lambda_reg}
         ], lr=learning_rate)
-        """
+       
 
             # Create optimizer with consistent learning rates
         initial_lr = learning_rate / 100 
@@ -448,7 +492,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                 print(f"\nEstimated total training time: {estimated_total_time/60:.1f} minutes")
     
         return history
-    
+    """
+
     def visualize_healthy_state(self):
         """
         Visualize characteristics of the healthy state
