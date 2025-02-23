@@ -31,22 +31,23 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.phi_length_scale = T/3
         self.init_amplitude = 1.0  # Fixed initial amplitude for both kernels
         # Fixed amplitude as hyperparameter
-        self.lambda_amplitude = 5.0 
+        self.lambda_amplitude_init = np.sqrt(init_var_scaler)  # For lambda initialization
+        self.phi_amplitude_init = np.sqrt(init_var_scaler)
         
         # Store base kernel matrix (structure without amplitude)
         time_points = torch.arange(T, dtype=torch.float32)
         time_diff = time_points[:, None] - time_points[None, :]
         self.base_K_lambda = torch.exp(-0.5 * (time_diff**2) / (self.lambda_length_scale**2))
-        
+        self.base_K_phi = torch.exp(-0.5 * (time_diff**2) / (self.phi_length_scale**2))
         # Initialize kernels with same initial amplitude
-        K_lambda = self.init_amplitude**2 * self.base_K_lambda
-        K_phi = self.init_amplitude**2 * torch.exp(-0.5 * (time_diff**2) / (self.phi_length_scale**2))
-        
+        self.K_lambda_init = (self.lambda_amplitude_init**2) * self.base_K_lambda + self.jitter * torch.eye(T)
+        self.K_phi_init = (self.phi_amplitude_init**2) * self.base_K_phi + self.jitter * torch.eye(T)
+
         # Add jitter and store
         jitter_matrix = self.jitter * torch.eye(T)
 
-        self.K_phi = K_phi + jitter_matrix  # Phi kernel stays fixed
-        self.K_lambda_init = K_lambda + jitter_matrix  # Only for initialization
+        self.K_phi = (self.phi_amplitude ** 2) * self.base_K_phi + self.jitter * torch.eye(self.T) # Phi kernel stays fixed
+          # Only for initialization
         self.K_lambda = (self.lambda_amplitude ** 2) * self.base_K_lambda + self.jitter * torch.eye(self.T)
         
         # Remove learnable amplitude
@@ -150,11 +151,11 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
 
         # Initialize phi for disease clusters
         for k in range(self.K):
-            L_phi = torch.linalg.cholesky(self.K_phi)
+            L_phi = torch.linalg.cholesky(self.K_phi_init)
             for d in range(self.D):
                 mean_phi = self.logit_prev_t[d, :] + psi_init[k, d]
                 eps = L_phi @ torch.randn(self.T)
-                phi_init[k, d, :] = mean_phi + eps*self.init_var_scaler
+                phi_init[k, d, :] = mean_phi + eps
    
 
         # Initialize lambda and gamma for disease clusters
@@ -181,19 +182,19 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             L_k = torch.linalg.cholesky(self.K_lambda_init)
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
-                lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps*self.init_var_scaler
+                lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
    
         if self.healthy_ref is not None:
-            L_phi = torch.linalg.cholesky(self.K_phi)
+            L_phi = torch.linalg.cholesky(self.K_phi_init)
             for d in range(self.D):
                 mean_phi = self.logit_prev_t[d, :] + psi_init[self.K, d]
                 eps = L_phi @ torch.randn(self.T)
-                phi_init[self.K, d, :] = mean_phi + eps*self.init_var_scaler
+                phi_init[self.K, d, :] = mean_phi + eps
 
             L_k = torch.linalg.cholesky(self.K_lambda_init)
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
-                lambda_init[i, self.K, :] = self.healthy_ref + eps*self.init_var_scaler
+                lambda_init[i, self.K, :] = self.healthy_ref + eps
             gamma_init[:, self.K] = 0.0
 
         self.gamma = nn.Parameter(gamma_init)
@@ -237,86 +238,41 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         total_data_loss = (loss_censored + loss_event + loss_no_event) / (self.N)
 
         # GP prior loss
-        #gp_loss = self.compute_gp_prior_loss()
-        gp_loss = 0
-       
-        
-        # Average phi probabilities across time
-        phi_avg = phi_prob.mean(dim=2)  # [K x D]
-        
-
+        if self.gpweight > 0:
+            gp_loss = self.compute_gp_prior_loss()
+        else:
+            gp_loss = 0.0
         signature_update_loss = 0.0
         
-        
-        """ 
-        diagnoses = self.Y  # [N x D x T]
-        for d in range(self.D):
-            if torch.any(diagnoses[:, d, :]):
-                spec_d = phi_avg[:, d]
-                max_sig = torch.argmax(spec_d)
-                other_mean = (torch.sum(spec_d) - spec_d[max_sig]) / (self.K_total - 1)
-                lr = spec_d[max_sig] / (other_mean + epsilon)
-                
-                if lr > 2:
-                    diagnosis_mask = diagnoses[:, d, :].bool()
-
-                    # Get indices where diagnoses occur
-                    patient_idx, time_idx = torch.where(diagnosis_mask)
-                    lambda_at_diagnosis = self.lambda_[patient_idx, max_sig, time_idx]
+        if self.lrtpen > 0:
+            diagnoses = self.Y  # [N x D x T]
+            phi_avg = phi_prob.mean(dim=2)  
+            for d in range(self.D):
+                if torch.any(diagnoses[:, d, :]):
+                    spec_d = phi_avg[:, d]
+                    max_sig = torch.argmax(spec_d)
                     
-                    # Target value that will give substantial theta after softmax
-                    target_value = 2.0  # This should give ~0.4 theta share
-                     # Get disease prevalence
-                    disease_prevalence = diagnoses[:, d, :].float().mean() + epsilon  # Add epsilon to avoid division by zero
-
-                    # Scale LRT penalty by inverse prevalence
-                    prevalence_scaling = min(0.1 / disease_prevalence, 10.0)  # Cap scaling to avoid extreme values
-
-                    # Apply scaled penalty
-                    signature_update_loss = torch.sum(
-                        torch.log(lr) * prevalence_scaling * (target_value - lambda_at_diagnosis)
-                    )
-                     # Combine all terms
-            """
+                    other_mean = (torch.sum(spec_d) - spec_d[max_sig]) / (self.K_total - 1)
+                    lr = spec_d[max_sig] / (other_mean + epsilon)
+                    
+                    if lr > 2:
+                        diagnosis_mask = diagnoses[:, d, :].bool()
+                        patient_idx, time_idx = torch.where(diagnosis_mask)
+                        lambda_at_diagnosis = self.lambda_[patient_idx, max_sig, time_idx]
+                        
+                        target_value = 2.0  # This should give ~0.4 theta share
+                        disease_prevalence = diagnoses[:, d, :].float().mean() + epsilon
+                        prevalence_scaling = min(0.1 / disease_prevalence, 10.0)
+                        
+                        signature_update_loss += torch.sum(
+                            torch.log(lr) * prevalence_scaling * (target_value - lambda_at_diagnosis)
+                        )
+                
         total_loss = total_data_loss + self.gpweight*gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T)
         
-            
-        # Print monitoring info
-        if self.training and torch.rand(1) < 0.01:  # Occasionally during training
-            print(f"\nLoss components:")
-            print(f"Data loss: {total_data_loss:.4f}")
-            print(f"GP loss: {gp_loss:.4f}")
-            print(f"LRT loss: {self.lrtpen*signature_update_loss / (self.N * self.T):.4f}")
-            
-            # Add calibration monitoring like in notebook
-            with torch.no_grad():
-                pi = pi.detach()
-                Y = self.Y.detach()
-                
-                # Convert to numpy
-                pi_np = pi.cpu().numpy()
-                Y_np = Y.cpu().numpy()
-                
-                # Calculate marginal risks
-                observed_risk = Y_np.mean(axis=0).flatten()
-                predicted_risk = pi_np.mean(axis=0).flatten()
-                
-                # Calculate calibration stats
-                scale_factor = np.mean(observed_risk) / np.mean(predicted_risk)
-                calibrated_risk = predicted_risk * scale_factor
-                
-                # R² calculation
-                ss_res = np.sum((observed_risk - calibrated_risk) ** 2)
-                ss_tot = np.sum((observed_risk - np.mean(observed_risk)) ** 2)
-                r2 = 1 - (ss_res / ss_tot)
-                
-                print(f"\nCalibration Stats:")
-                print(f"Mean observed risk: {np.mean(observed_risk):.6f}")
-                print(f"Mean predicted risk: {np.mean(predicted_risk):.6f}")
-                print(f"Scale factor: {scale_factor:.3f}")
-                print(f"R²: {r2:.3f}")
-
         return total_loss
+
+
  
         
     def compute_gp_prior_loss(self):
@@ -393,6 +349,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         
         return losses
     
+### now  do some viausliaziont ###
 
     def visualize_clusters(self, disease_names):
         """
