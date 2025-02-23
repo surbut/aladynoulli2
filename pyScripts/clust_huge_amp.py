@@ -316,22 +316,24 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Return combined loss with appropriate scaling
         return gp_loss_lambda / self.N + gp_loss_phi / self.D
 
-    
-
-    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
-        """Modified fit method with amplitude learning and lambda monitoring"""
         
-        #kappa_lr = learning_rate 
+    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
+        """Modified fit method with separate learning rates"""
+        
         optimizer = optim.Adam([
-            {'params': [self.lambda_, self.phi], 'lr': learning_rate},
-            {'params': [self.psi], 'lr': learning_rate},
-            {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
-            #,
-            #{'params': [self.kappa], 'lr': kappa_lr} 
-            #,
-            #{'params': [self.log_lambda_amplitude], 'lr': learning_rate}  # Full learning rate
+            # Lambda and phi might need smaller learning rates if using GP
+            {'params': [self.lambda_, self.phi], 
+            'lr': learning_rate * (0.1 if self.gpweight > 0 else 1.0)},
+            
+            # Psi can probably use the base learning rate
+            {'params': [self.psi], 
+            'lr': learning_rate},
+            
+            # Gamma might need regularization to prevent overfitting
+            {'params': [self.gamma], 
+            'weight_decay': lambda_reg, 
+            'lr': learning_rate}
         ])
-        losses = []
         
         for epoch in range(num_epochs):
             optimizer.zero_grad()
