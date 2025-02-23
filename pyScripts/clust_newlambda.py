@@ -15,14 +15,16 @@ from scipy.special import softmax
 import seaborn as sns
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
-    def __init__(self, N, D, T, K, P, G, Y, R,prevalence_t, init_var_scaler, genetic_scale,
+    def __init__(self, N, D, T, K, P, G, Y, R,W,prevalence_t, init_var_scaler, genetic_scale,
                  signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False):
         super().__init__()
         # Basic dimensions and settings
         self.N, self.D, self.T, self.K = N, D, T, K
         self.K_total = K + 1 if healthy_reference is not None else K
         self.P = P
+        self.gpweight=W
         self.jitter = 1e-4
+        #self.kappa = nn.Parameter(torch.ones(1)) 
         self.lrtpen = R# Stronger LRT penalty
         # Fixed kernel parameters
         self.lambda_length_scale = T/4
@@ -207,10 +209,12 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     
 
     def forward(self):
-        """Forward pass computing predictions"""
-        theta = torch.softmax(self.lambda_, dim=1)  # N x K x T
-        phi_prob = torch.sigmoid(self.phi)  # K x D x T
-        pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob)
+        theta = torch.softmax(self.lambda_, dim=1)
+        epsilon=1e-8
+        phi_prob = torch.sigmoid(self.phi)
+        # Apply kappa scaling inside the computation of pi
+        pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) #* self.kappa
+        pi = torch.clamp(pi, epsilon, 1-epsilon)
         return pi, theta, phi_prob
 
     def compute_loss(self, event_times):
@@ -233,8 +237,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         total_data_loss = (loss_censored + loss_event + loss_no_event) / (self.N)
 
         # GP prior loss
-        gp_loss = self.compute_gp_prior_loss()
-        
+        #gp_loss = self.compute_gp_prior_loss()
+        gp_loss = 0
        
         
         # Average phi probabilities across time
@@ -242,8 +246,10 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         
 
         signature_update_loss = 0.0
-        diagnoses = self.Y  # [N x D x T]
         
+        
+        """ 
+        diagnoses = self.Y  # [N x D x T]
         for d in range(self.D):
             if torch.any(diagnoses[:, d, :]):
                 spec_d = phi_avg[:, d]
@@ -271,7 +277,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                         torch.log(lr) * prevalence_scaling * (target_value - lambda_at_diagnosis)
                     )
                      # Combine all terms
-            total_loss = total_data_loss + gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T)
+            """
+        total_loss = total_data_loss + self.gpweight*gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T)
         
             
         # Print monitoring info
@@ -353,6 +360,40 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Return combined loss with appropriate scaling
         return gp_loss_lambda / self.N + gp_loss_phi / self.D
 
+    
+
+    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
+        """Modified fit method with amplitude learning and lambda monitoring"""
+        
+        #kappa_lr = learning_rate 
+        optimizer = optim.Adam([
+            {'params': [self.lambda_, self.phi], 'lr': learning_rate},
+            {'params': [self.psi], 'lr': learning_rate},
+            {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
+            #,
+            #{'params': [self.kappa], 'lr': kappa_lr} 
+            #,
+            #{'params': [self.log_lambda_amplitude], 'lr': learning_rate}  # Full learning rate
+        ])
+        losses = []
+        
+        for epoch in range(num_epochs):
+            optimizer.zero_grad()
+            loss = self.compute_loss(event_times)
+            loss.backward()
+            #if self.kappa.grad is not None:
+             #   print(f"Kappa gradient: {self.kappa.grad.item():.3e}")
+            optimizer.step()
+            losses.append(loss.item())
+            
+            if epoch % 1 == 0:
+                print(f"\nEpoch {epoch}")
+                print(f"Loss: {loss.item():.4f}")
+                self.analyze_signature_responses()  # Call as method
+        
+        return losses
+    
+
     def visualize_clusters(self, disease_names):
         """
         Visualize cluster assignments and disease names
@@ -416,33 +457,6 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                     print(f"  Theta for diagnosed: {theta_vals.mean():.3f} ± {theta_vals.std():.3f}")
                     print(f"  Theta for others: {theta_others.mean():.3f}")
                     print(f"  Proportion difference: {(theta_vals.mean() - theta_others.mean()):.3f}")
-
-    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
-        """Modified fit method with amplitude learning and lambda monitoring"""
-        initial_lr = learning_rate / 100 
-        optimizer = optim.Adam([
-            {'params': [self.lambda_, self.phi], 'lr': learning_rate},
-            {'params': [self.psi], 'lr': learning_rate},
-            {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
-            #,
-            #{'params': [self.log_lambda_amplitude], 'lr': learning_rate}  # Full learning rate
-        ])
-
-        losses = []
-        
-        for epoch in range(num_epochs):
-            optimizer.zero_grad()
-            loss = self.compute_loss(event_times)
-            loss.backward()
-            optimizer.step()
-            losses.append(loss.item())
-            
-            if epoch % 1 == 0:
-                print(f"\nEpoch {epoch}")
-                print(f"Loss: {loss.item():.4f}")
-                self.analyze_signature_responses()  # Call as method
-        
-        return losses
 
     def plot_initial_params(self, n_samples=5):
         """
