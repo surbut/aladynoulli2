@@ -65,7 +65,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.phi_length_scale = T/3
          
         self.amplitude = 1.0
-        self.lambda_amp= 2.0
+        self.lambda_amp= 1.0
 
         # Initialize parameters
         self.update_kernels()
