@@ -276,7 +276,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
  
         
     def compute_gp_prior_loss(self):
-        """Compute GP prior with fixed lambda amplitude of 2.0"""
+        # compute with amplitude above 
         # Fixed K_lambda using amplitude of 2.0
         
         
