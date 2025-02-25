@@ -242,7 +242,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
        
         
         # Average phi probabilities across time
-        phi_avg = phi_prob.mean(dim=2)  # [K x D]
+          # [K x D]
         
 
         signature_update_loss = 0.0
@@ -250,6 +250,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         
         """ 
         diagnoses = self.Y  # [N x D x T]
+        phi_avg = phi_prob.mean(dim=2)
         for d in range(self.D):
             if torch.any(diagnoses[:, d, :]):
                 spec_d = phi_avg[:, d]
@@ -273,7 +274,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                     prevalence_scaling = min(0.1 / disease_prevalence, 10.0)  # Cap scaling to avoid extreme values
 
                     # Apply scaled penalty
-                    signature_update_loss = torch.sum(
+                    signature_update_loss += torch.sum(
                         torch.log(lr) * prevalence_scaling * (target_value - lambda_at_diagnosis)
                     )
                      # Combine all terms

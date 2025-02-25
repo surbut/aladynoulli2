@@ -15,7 +15,7 @@ from scipy.special import softmax
 import seaborn as sns
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
-    def __init__(self, N, D, T, K, P, G, Y, R,W,prevalence_t, init_var_scaler, genetic_scale,
+    def __init__(self, N, D, T, K, P, G, Y, R,W,prevalence_t, init_sd_scaler, genetic_scale,
                  signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False):
         super().__init__()
         # Basic dimensions and settings
@@ -23,7 +23,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.K_total = K + 1 if healthy_reference is not None else K
         self.P = P
         self.gpweight=W
-        self.jitter = 1e-4
+        self.jitter = 1e-6
         #self.kappa = nn.Parameter(torch.ones(1)) 
         self.lrtpen = R# Stronger LRT penalty
         # Fixed kernel parameters
@@ -31,8 +31,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.phi_length_scale = T/3
         self.init_amplitude = 1.0  # Fixed initial amplitude for both kernels
         # Fixed amplitude as hyperparameter
-        self.lambda_amplitude_init = np.sqrt(init_var_scaler)  # For lambda initialization
-        self.phi_amplitude_init = np.sqrt(init_var_scaler)
+        self.lambda_amplitude_init = init_sd_scaler  # For lambda initialization
+        self.phi_amplitude_init = init_sd_scaler
         
         # Store base kernel matrix (structure without amplitude)
         time_points = torch.arange(T, dtype=torch.float32)
@@ -42,6 +42,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Initialize kernels with same initial amplitude
         self.K_lambda_init = (self.lambda_amplitude_init**2) * self.base_K_lambda + self.jitter * torch.eye(T)
         self.K_phi_init = (self.phi_amplitude_init**2) * self.base_K_phi + self.jitter * torch.eye(T)
+        self.phi_amplitude=1
+        self.lambda_amplitude=1
 
         # Add jitter and store
         jitter_matrix = self.jitter * torch.eye(T)
@@ -58,9 +60,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Store other needed values (prevalence, etc.)
         self.psi = None 
         self.disease_names = disease_names
-        self.init_var_scaler=init_var_scaler ## so that the initiation doesn't give us 'cheap losss'
-        # If using flat lambda, modify signature references
-        
+          
     # Handle signature references
         if flat_lambda:
             self.signature_refs = torch.zeros(K)
@@ -320,21 +320,14 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
         """Modified fit method with separate learning rates"""
         
+        # Current setup:
         optimizer = optim.Adam([
-            # Lambda and phi might need smaller learning rates if using GP
-            {'params': [self.lambda_, self.phi], 
-            'lr': learning_rate * (0.1 if self.gpweight > 0 else 1.0)},
-            
-            # Psi can probably use the base learning rate
-            {'params': [self.psi], 
-            'lr': learning_rate},
-            
-            # Gamma might need regularization to prevent overfitting
-            {'params': [self.gamma], 
-            'weight_decay': lambda_reg, 
-            'lr': learning_rate}
+            {'params': [self.lambda_], 'lr': learning_rate},      # e.g. 1e-2
+            {'params': [self.phi], 'lr': learning_rate * 0.1},    # e.g. 1e-3
+            {'params': [self.psi], 'lr': learning_rate*0.1},          
+            {'params': [self.gamma], 'lr': learning_rate} # Same slower rate as phi
         ])
-        
+        losses = []
         for epoch in range(num_epochs):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
