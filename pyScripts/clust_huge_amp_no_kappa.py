@@ -33,7 +33,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Fixed amplitude as hyperparameter
         self.lambda_amplitude_init = init_sd_scaler  # For lambda initialization
         self.phi_amplitude_init = init_sd_scaler
-        self.kappa = nn.Parameter(torch.ones(1))  # Single global calibration parameter
+        #self.kappa = nn.Parameter(torch.ones(1))  # Single global calibration parameter
     
         
         # Store base kernel matrix (structure without amplitude)
@@ -216,7 +216,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         epsilon=1e-8
         phi_prob = torch.sigmoid(self.phi)
         # Apply kappa scaling inside the computation of pi
-        pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * self.kappa
+        pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) #* self.kappa
         pi = torch.clamp(pi, epsilon, 1-epsilon)
         return pi, theta, phi_prob
 
@@ -326,7 +326,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         optimizer = optim.Adam([
             {'params': [self.lambda_], 'lr': learning_rate},      # e.g. 1e-2
             {'params': [self.phi], 'lr': learning_rate * 0.1},
-            {'params': [self.kappa], 'lr': learning_rate},    # e.g. 1e-3
+            #{'params': [self.kappa], 'lr': learning_rate},    # e.g. 1e-3
             {'params': [self.psi], 'lr': learning_rate*0.1},          
             {'params': [self.gamma], 'lr': learning_rate} # Same slower rate as phi
         ])
