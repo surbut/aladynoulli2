@@ -13,7 +13,45 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import SpectralClustering
 
 
-
+def plot_signature_temporal_patterns(model, disease_names, plot_dir, n_top=10, selected_signatures=[0,5,6,19]):
+    """Show temporal patterns of top diseases for each signature"""
+    phi = model.phi.detach().numpy()
+    prevalence_logit = model.logit_prev_t.detach().numpy()
+    import os
+    phi_centered = np.zeros_like(phi)
+    for k in range(phi.shape[0]):
+        for d in range(phi.shape[1]):
+            phi_centered[k, d, :] = phi[k, d, :] - prevalence_logit[d, :]
+    
+    phi_avg = phi_centered.mean(axis=2)
+    
+    if selected_signatures is None:
+        selected_signatures = range(phi_avg.shape[0])
+    
+    n_sigs = len(selected_signatures)
+    fig, axes = plt.subplots(n_sigs, 1, figsize=(15, 5*n_sigs))
+    if n_sigs == 1:
+        axes = [axes]
+    
+    for i, k in enumerate(selected_signatures):
+        scores = phi_avg[k, :]
+        top_indices = np.argsort(scores)[-n_top:][::-1]
+        
+        ax = axes[i]
+        for idx in top_indices:
+            temporal_pattern = phi[k, idx, :]
+            disease_name = disease_names[idx]
+            ax.plot(temporal_pattern, label=disease_name)
+        
+        ax.set_title(f'Signature {k} - Top Disease Temporal Patterns')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Phi Value')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(plot_dir, 'temporal_patterns_withkappa.png'))
+    plt.close('all') 
 
 def plot_training_evolution(history, plot_dir):
     """Plot and save training metrics."""
@@ -260,6 +298,10 @@ def generate_plots(model, plot_dir, history, essentials):
     
     # Theta differences
     plot_theta_differences(model, plot_dir)
+
+    plot_signature_temporal_patterns(model, essentials['disease_names'], plot_dir)
+    
+
     
     # Disease lambda alignment for specific diseases
     plot_disease_lambda_alignment()
