@@ -163,32 +163,23 @@ def plot_theta_differences(model, plot_dir):
     plt.close()
 
 
-def plot_disease_lambda_alignment(model, plot_dir, disease_idx):
+def plot_disease_lambda_alignment(model):
     """
-    Plot lambda values aligned with disease occurrences for selected patients.
-    
-    Args:
-        model: The trained model
-        plot_dir: Directory to save plots
-        disease_idx: Index of the disease to analyze
+    Plot lambda values aligned with disease occurrences for selected patients
     """
     # Find patients with specific diseases and their diagnosis times
+    disease_idx = 112  # MI
     patients_with_disease = []
     diagnosis_times = []
     
-    Y = model.Y.cpu()  # Move to CPU for analysis
     for patient in range(model.Y.shape[0]):
-        diag_time = torch.where(Y[patient, disease_idx])[0]
+        diag_time = torch.where(model.Y[patient, disease_idx])[0]
         if len(diag_time) > 0:
             patients_with_disease.append(patient)
             diagnosis_times.append(diag_time[0].item())
     
     # Sample a few patients
     n_samples = min(5, len(patients_with_disease))
-    if n_samples == 0:
-        print(f"No patients found with disease {disease_idx}")
-        return
-        
     sample_indices = np.random.choice(len(patients_with_disease), n_samples, replace=False)
     
     # Create plot
@@ -196,41 +187,29 @@ def plot_disease_lambda_alignment(model, plot_dir, disease_idx):
     time_points = np.arange(model.T)
     
     # Find signature that most strongly associates with this disease
-    psi_disease = model.psi[:, disease_idx].detach().cpu()
+    psi_disease = model.psi[:, disease_idx].detach()
     sig_idx = torch.argmax(psi_disease).item()
     
     # Plot for each sampled patient
-    lambda_vals = model.lambda_.detach().cpu()  # Move to CPU once
     for idx in sample_indices:
         patient = patients_with_disease[idx]
         diag_time = diagnosis_times[idx]
         
-        # Plot lambda
-        lambda_values = torch.softmax(lambda_vals[patient], dim=0)[sig_idx]
+        # Plot lambda (detached)
+        lambda_values = torch.softmax(model.lambda_[patient].detach(), dim=0)[sig_idx]
         ax.plot(time_points, lambda_values.numpy(),
                 alpha=0.5, label=f'Patient {patient}')
         
         # Mark diagnosis time
         ax.axvline(x=diag_time, linestyle=':', alpha=0.3)
     
-    ax.set_title(f'Lambda Values for Signature {sig_idx}\n(Most Associated with Disease {disease_idx})')
+    ax.set_title(f'Lambda Values for Signature {sig_idx} (Most Associated with MI)\nVertical Lines Show Diagnosis Times')
     ax.set_xlabel('Time')
     ax.set_ylabel('Lambda (proportion)')
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     ax.grid(True, alpha=0.3)
-    
     plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, f"disease_{disease_idx}_lambda_alignment.png"), 
-                bbox_inches='tight')
-    plt.close()
-
-    # Save statistics to file
-    stats_file = os.path.join(plot_dir, f"disease_{disease_idx}_lambda_stats.txt")
-    with open(stats_file, 'w') as f:
-        f.write(f"Disease {disease_idx} Lambda Statistics:\n")
-        f.write(f"Number of patients with disease: {len(patients_with_disease)}\n")
-        f.write(f"Most associated signature: {sig_idx}\n")
-        f.write(f"Psi value for this association: {psi_disease[sig_idx]:.3f}\n")
+    plt.show()
 
 
 
@@ -283,9 +262,7 @@ def generate_plots(model, plot_dir, history, essentials):
     plot_theta_differences(model, plot_dir)
     
     # Disease lambda alignment for specific diseases
-    diseases_of_interest = [112, 67, 127]
-    for disease_idx in diseases_of_interest:
-        plot_disease_lambda_alignment(model, plot_dir, disease_idx)
+    plot_disease_lambda_alignment()
     
     print("All plots generated successfully!")
 
@@ -391,7 +368,7 @@ def main(args):
 
         # Train model
         print("Starting training...")
-        history = model.fit(E_subset, num_epochs=100, learning_rate=1e-1, lambda_reg=1e-2)
+        history = model.fit(E_subset, num_epochs=200, learning_rate=1e-1, lambda_reg=1e-2)
         print("Training completed!")
 
         # Get predictions
