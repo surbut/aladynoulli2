@@ -330,13 +330,23 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             {'params': [self.psi], 'lr': learning_rate*0.1},          
             {'params': [self.gamma], 'lr': learning_rate} # Same slower rate as phi
         ])
+
+        #Initialize gradient history
+        gradient_history = {
+            'lambda_grad': [],
+            'phi_grad': []
+        }
         losses = []
         for epoch in range(num_epochs):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
             loss.backward()
-            #if self.kappa.grad is not None:
-             #   print(f"Kappa gradient: {self.kappa.grad.item():.3e}")
+            if self.kappa.grad is not None:
+               print(f"Kappa gradient: {self.kappa.grad.item():.3e}")
+
+            gradient_history['lambda_grad'].append(self.lambda_.grad.clone().detach())
+            gradient_history['phi_grad'].append(self.phi.grad.clone().detach())
+        
             optimizer.step()
             losses.append(loss.item())
             
@@ -345,7 +355,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                 print(f"Loss: {loss.item():.4f}")
                 self.analyze_signature_responses()  # Call as method
         
-        return losses
+        return losses, gradient_history
     
 ### now  do some viausliaziont ###
 
