@@ -301,10 +301,8 @@ def generate_plots(model, plot_dir, history, essentials):
 
     plot_signature_temporal_patterns(model, essentials['disease_names'], plot_dir)
     
-
-    
     # Disease lambda alignment for specific diseases
-    plot_disease_lambda_alignment()
+    plot_disease_lambda_alignment(model)
     
     print("All plots generated successfully!")
 
@@ -425,8 +423,8 @@ def main(args):
             'model_state_dict': model.state_dict(),
             'clusters': model.clusters,
             'initial_state': initial_state,
-            'pi': pi,
-            'theta': theta,
+            #'pi': pi,
+            #'theta': theta,
             'Y': Y_subset.cpu(),
             'prevalence_t': essentials['prevalence_t'],
             'logit_prevalence_t': model.logit_prev_t,
