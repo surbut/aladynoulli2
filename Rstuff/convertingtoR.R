@@ -124,17 +124,21 @@ pce_df=readRDS("~/Dropbox (Personal)/first10kukb_pce.rds")
 pce_goff=pce_df$pce_goff
 pce_goff[is.na(pce_goff)]=mean(pce_df$pce_goff,na.rm=TRUE)
 ## probabilities of ascvd indices
-ascvd_probs=pi_pred[,c(112:115),]*cal
+ascvd_probs=pi_pred[,c(112:117),]*cal
 ## probability of surviving each
-ascvd_survival=1-ascvd_probs
+ascvd_survival=1-ascvd_probs # Nx6xT
 ## probabilty of failing one per time interval, NxT
-ascvd_at_least_one=apply(ascvd_survival,c(1,3),function(x){1-prod(x)})
+ascvd_at_least_one=apply(ascvd_survival,c(1,3),function(x){1-prod(x)}) #nxT
+pro_surv_all=1-ascvd_at_least_one ##nxT
 ### Probaility of failing ten years
 ascvd_risk=matrix(0,nrow=dim(ya)[1],ncol=dim(ya)[3]-10)
 
-for(t in 1:(dim(ya)[3]-10)){
-  ascvd_risk[,t]=1-prod(1-ascvd_at_least_one[,t:(t+10)])
+for(i in 1:N){
+  for(t in 1:(dim(ya)[3]-10)){
+    ascvd_risk[i,t]=1-prod(pro_surv_all[i,t:(t+10)],scientific=TRUE)
+  }
 }
+
 
 ascvd_risk=data.frame(ascvd_risk)
 enroll_index=pce_df$age-30
@@ -142,4 +146,10 @@ ascvd_risk[,eval(enroll_index)]
 
 ten_year_risks = ascvd_risk[cbind(1:nrow(ascvd_risk), enroll_index)]
 
-#all.equal(as.character(rownames(biga[[1]]))[1:10000],as.character(pce_df$id))
+all.equal(as.character(rownames(biga[[1]]))[1:10000],as.character(pce_df$id))
+
+prevent=fread("~/Dropbox (Personal)/for_akl/ukb_pce_prevent_scores.csv")
+m=merge(pce_df,prevent,by.x="id",by.y="eid",all.x = T)
+m$prevent_impute=m$prevent_base_ascvd_risk
+m$prevent_impute[is.na(m$prevent_impute)]=mean(na.omit(m$prevent_base_ascvd_risk))
+saveRDS(m,"~/Dropbox (Personal)/pce_df_prevent.rds")
