@@ -143,24 +143,22 @@ def plot_calibration(model, plot_dir):
 def plot_psi_heatmap(model, disease_names, plot_dir, figsize=(12, 8)):
     """Plot and save psi heatmap."""
     plt.figure(figsize=figsize)
-    
-    # Get psi values from model and move to CPU if needed
     psi = model.psi.detach().cpu().numpy()
     
     # Create heatmap
     im = plt.imshow(psi, aspect='auto', cmap='RdBu_r', vmin=-5, vmax=5)
-    
     plt.colorbar(im, label='ψ value')
     plt.xlabel('Disease')
     plt.ylabel('Signature')
     plt.title('ψ (Signature-Disease Associations)')
     
-    if disease_names is not None:
-        plt.xticks(range(len(disease_names)), disease_names, 
-                  rotation=90, fontsize=8)
+    # Show fewer x-ticks to avoid overcrowding
+    n_ticks = 20  # Adjust this number to show more/fewer disease names
+    tick_indices = np.linspace(0, len(disease_names)-1, n_ticks, dtype=int)
+    plt.xticks(tick_indices, [disease_names[i] for i in tick_indices], 
+              rotation=90, fontsize=8)
     
     plt.yticks(range(psi.shape[0]), [f'Signature {i}' for i in range(psi.shape[0])])
-    
     plt.tight_layout()
     plt.savefig(os.path.join(plot_dir, "psi_heatmap.png"), bbox_inches='tight', dpi=300)
     plt.close()
@@ -438,9 +436,11 @@ def main(args):
                 'T': Y_subset.shape[2],
                 'P': G_subset.shape[1],
                 'K': model.phi.shape[0]
-            },
-            'training_history': history
+            }
+            #'training_history': history
         }
+
+        
         
         save_model_and_results(model, save_dict, run_dir)
         
