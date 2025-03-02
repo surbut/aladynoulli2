@@ -15,6 +15,8 @@ from sklearn.cluster import SpectralClustering
 
 def plot_signature_temporal_patterns(model, disease_names, plot_dir, n_top=10, selected_signatures=[0,5,6,19]):
     """Show temporal patterns of top diseases for each signature"""
+    disease_names_list = disease_names[0].values.tolist()
+    
     phi = model.phi.detach().numpy()
     prevalence_logit = model.logit_prev_t.detach().numpy()
     import os
@@ -40,7 +42,7 @@ def plot_signature_temporal_patterns(model, disease_names, plot_dir, n_top=10, s
         ax = axes[i]
         for idx in top_indices:
             temporal_pattern = phi[k, idx, :]
-            disease_name = disease_names[idx]
+            disease_name = disease_names_list[idx]
             ax.plot(temporal_pattern, label=disease_name)
         
         ax.set_title(f'Signature {k} - Top Disease Temporal Patterns')
@@ -199,7 +201,7 @@ def plot_theta_differences(model, plot_dir):
     plt.close()
 
 
-def plot_disease_lambda_alignment(model):
+def plot_disease_lambda_alignment(model,plot_dir):
     """
     Plot lambda values aligned with disease occurrences for selected patients
     """
@@ -247,6 +249,9 @@ def plot_disease_lambda_alignment(model):
     plt.tight_layout()
     plt.show()
 
+    plt.savefig(os.path.join(plot_dir, "lambda_alignment.png"), bbox_inches='tight', dpi=300)
+    plt.close()
+
 
 
 def load_model_essentials(base_path):
@@ -292,7 +297,7 @@ def generate_plots(model, plot_dir, history, essentials):
     plot_calibration(model, plot_dir)
     
     # Psi heatmap
-    plot_psi_heatmap(model, essentials['disease_names'], plot_dir)
+    #plot_psi_heatmap(model, essentials['disease_names'], plot_dir)
     
     # Theta differences
     plot_theta_differences(model, plot_dir)
@@ -300,7 +305,7 @@ def generate_plots(model, plot_dir, history, essentials):
     plot_signature_temporal_patterns(model, essentials['disease_names'], plot_dir)
     
     # Disease lambda alignment for specific diseases
-    plot_disease_lambda_alignment(model)
+    plot_disease_lambda_alignment(model,plot_dir=plot_dir)
     
     print("All plots generated successfully!")
 
