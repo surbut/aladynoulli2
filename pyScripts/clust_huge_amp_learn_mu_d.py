@@ -344,8 +344,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
             loss.backward()
-            if self.kappa.grad is not None:
-               print(f"Kappa gradient: {self.kappa.grad.item():.3e}")
+            #if self.kappa.grad is not None:
+             #  print(f"Kappa gradient: {self.kappa.grad.item():.3e}")
 
             gradient_history['lambda_grad'].append(self.lambda_.grad.clone().detach())
             gradient_history['phi_grad'].append(self.phi.grad.clone().detach())
