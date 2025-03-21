@@ -595,6 +595,3 @@ def subset_data(Y, E, G, start_index, end_index):
     G_subset = G[indices]
     return Y_subset, E_subset, G_subset, indices
 
-
-
-    
