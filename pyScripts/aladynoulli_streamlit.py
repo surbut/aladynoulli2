@@ -596,7 +596,7 @@ def main():
     st.title("Disease Trajectory Model Visualization")
     
    
-    first_model = torch.load('/Users/sarahurbut/Dropbox (Personal)/model_with_kappa_bigam.pt')
+    first_model = torch.load('/Users/sarahurbut/Dropbox/model_with_kappa_bigam.pt')
     # Load model state dict and additional data
     model_state_dict = first_model['model_state_dict']
     
