@@ -1,0 +1,545 @@
+% science_template.tex
+% See accompanying readme.txt for copyright statement, change log etc.
+
+% Any modification of this template, including writing a paper using it,
+% MUST rename the file i.e. use a different file name.
+
+%%%%%%%%%%%%%%%% START OF PREAMBLE %%%%%%%%%%%%%%%
+
+% Basic setup. Authors shouldn't need to adjust these commands.
+% It's annoying, but please do NOT strip these into a separate file.
+% They need to be included in this .tex for our production software to work.
+
+% Use the basic LaTeX article class, 12pt text
+\documentclass[12pt]{article}
+
+% Science uses Times font. If you don't have this installed (most LaTeX installations will be
+% fine) or prefer the old Computer Modern fonts, comment out the following line
+\usepackage{newtxtext,newtxmath}
+% Depending on your LaTeX fonts installation, you might get better results with one or both of these:
+%\usepackage{mathptmx}
+%\usepackage{txfonts}
+
+% Allow external graphics files
+\usepackage{graphicx}
+
+% Use US letter sized paper with 1 inch margins
+\usepackage[letterpaper,margin=1in]{geometry}
+
+% Double line spacing, including in captions
+\linespread{1.5} % For some reason double spacing is 1.5, not 2.0!
+
+% One space after each sentence
+\frenchspacing
+
+% Abstract formatting and spacing - no heading
+\renewenvironment{abstract}
+	{\quotation}
+	{\endquotation}
+
+% No date in the title section
+\date{}
+
+% Reference section heading
+\renewcommand\refname{References and Notes}
+
+% Figure and Table labels in bold
+\makeatletter
+\renewcommand{\fnum@figure}{\textbf{Figure \thefigure}}
+\renewcommand{\fnum@table}{\textbf{Table \thetable}}
+\makeatother
+
+% Call the accompanying scicite.sty package.
+% This formats citation numbers in Science style.
+\usepackage{scicite}
+
+% Provides the \url command, and fixes a crash if URLs or DOIs contain underscores
+\usepackage{url}
+
+%%%%%%%%%%%% CUSTOM COMMANDS AND PACKAGES %%%%%%%%%%%%
+
+% Authors can define simple custom commands e.g. as shortcuts to save on typing
+% Use \newcommand (not \def) to avoid overwriting existing commands.
+% Keep them as simple as possible and note the warning in the text below.
+% Example:
+\newcommand{\pcc}{\,cm$^{-3}$}	% per cm-cubed
+
+% Please DO NOT import additional external packages or .sty files.
+% Those are unlikely to work with our conversion software and will cause problems later.
+% Don't add any more \usepackage{} commands.
+
+
+%%%%%%%%%%%%%%%% TITLE AND AUTHORS %%%%%%%%%%%%%%%%
+
+% Title of the paper.
+% Keep it short and understandable by any reader of Science.
+% Avoid acronyms or jargon. Use sentence case.
+\def\scititle{
+	A simple \textit{Science} \LaTeX\ template
+}
+% Store the title in a variable for reuse in the supplement (otherwise \maketitle deletes it)
+\title{\bfseries \boldmath \scititle}
+
+% Author and institution list.
+% Institution numbers etc. should be hard-coded, do *not* use the \footnote command.
+\author{
+	% You can write out first names or use initials - either way is acceptable, but be consistent
+	First~Author$^{1\ast\dagger}$,
+	A.~Scientist$^{2\dagger}$,
+	Someone~E.~Else$^{2}$\and
+	% Additional lines of authors should be inserted using the \and command (not \\)
+	% Institution list, in a slightly smaller font
+	\small$^{1}$Department, Institution, City \& Postal Code, Country.\and
+	\small$^{2}$Another Department, Different Institution, City \& Postal Code, Country.\and
+	% Identify at least one corresponding author, with contact email address
+	\small$^\ast$Corresponding author. Email: example@mail.com\and
+	% Joint contributions can be indicated like this
+	\small$^\dagger$These authors contributed equally to this work.
+}
+
+%%%%%%%%%%%%%%%%% END OF PREAMBLE %%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%% START OF MAIN TEXT %%%%%%%%%%%%%%%
+\begin{document} 
+
+% Insert the title and author list
+\maketitle
+
+% Abstract, in bold
+% There are strict length limits, and not all formats have abstracts.
+% Consult the journal instructions to authors for details.
+% Do not cite any references in the abstract.
+\begin{abstract} \bfseries \boldmath
+% Start with one or two sentences of background
+This is a simple template to prepare papers in \LaTeX\ for the \textit{Science}-family journals.
+Abstracts start with one or two sentences of background, which should be
+comprehensible to any scientist.
+% Then summarise the results of your observations, experiments, simulations etc.
+The following text should outline the main results of the research.
+Simple mathematical expressions can be included e.g. $a^2+b^2=c^2$.
+% End with a statement of your main conclusions
+The final sentence of the abstract should state the main conclusions and implications.
+\end{abstract}
+
+
+% The first paragraph of any Science paper does NOT have a heading
+% Nor is it indented
+\noindent
+
+
+\section{Introduction}
+Predicting the onset of complex diseases remains one of medicine's grand challenges. While electronic health records (EHRs) now capture rich longitudinal data on millions of patients, our ability to translate these data into accurate, personalized disease forecasts remains limited. Current approaches typically focus on predicting single diseases using static risk factors, failing to capture the dynamic, interconnected nature of disease development [1,2].
+
+The human disease trajectory—the temporal sequence of health states a person experiences—emerges from complex interactions between genetic predisposition, environmental exposures, and physiological processes [3]. These underlying processes often manifest across multiple related conditions before culminating in clinical diagnoses. For example, atherosclerotic cardiovascular disease (ASCVD) develops through decades of subclinical progression, with risk factors and early manifestations appearing years before major events like myocardial infarction [4].
+
+We hypothesized that latent disease signatures—unobserved biological processes that influence multiple disease risks simultaneously—could be inferred from longitudinal health records and used to predict future disease trajectories. These signatures would represent fundamental patterns of disease susceptibility that evolve over time and manifest differently across individuals.
+
+Here, we present a probabilistic model that identifies interpretable disease signatures and captures their patient-specific temporal evolution. Our approach, which we call Aladynoulli (Adaptive LAtent DYNamics), learns a set of latent signatures that associate with different disease patterns, while simultaneously modeling how each patient's relationship to these signatures changes over time. Unlike traditional risk models that rely on known clinical risk factors, Aladynoulli discovers latent patterns directly from disease co-occurrence data, potentially capturing biological processes not yet recognized in clinical practice.
+
+We applied Aladynoulli to longitudinal health records from [dataset description], comprising [N] patients followed for up to [T] years across [D] disease categories. To rigorously evaluate predictive performance, we implemented a censoring approach that simulates real-world prediction scenarios by hiding future ASCVD events during model training. Our model successfully predicted these censored events, demonstrating its ability to identify at-risk patients years before clinical diagnosis.
+Beyond prediction, Aladynoulli reveals distinct patient subgroups with shared disease signature patterns, potentially representing different pathophysiological mechanisms. By connecting these signatures to genetic data, we identified both known and novel genetic associations, providing insights into the biological processes underlying disease trajectories.
+Our findings demonstrate that modeling latent disease signatures and their temporal dynamics can improve disease prediction while offering new perspectives on disease mechanisms. This approach represents a step toward precision medicine that accounts for the complex, time-varying nature of disease risk.
+
+\section{Model Overview}
+
+ALADYNOULLI (Adaptive LAtent DYNamics with BernOULLI outcomes) captures the complex interplay between latent disease signatures and their temporal evolution in individual patients (Fig. 1A). The model represents disease risk through a mixture of latent signatures that evolve over time.
+
+For each patient $i$, disease $d$, and time point $t$, we model the probability of disease occurrence $\pi_{i,d,t}$ as:
+
+$$\pi_{i,d,t} = \kappa \cdot \sum_{k} \theta_{i,k,t} \cdot \text{expit}(\phi_{k,d,t})$$
+
+where $\kappa$ is a calibration parameter, $\theta_{i,k,t}$ represents patient $i$'s time-varying association with signature $k$, and $\phi_{k,d,t}$ captures the relationship between signature $k$ and disease $d$ over time.
+
+The patient-signature associations are modeled as a softmax over latent variables:
+
+$$\theta_{i,k,t} = \text{softmax}_k(\lambda_{i,\cdot,t})$$
+
+This ensures that signature associations form a proper mixture, with patients exhibiting varying degrees of affinity for different signatures over time.
+
+The patient-specific latent variables follow a Gaussian process prior:
+
+$$\lambda_{i,k} \sim \mathcal{N}(r_k \cdot \mathbf{1}_T + \Gamma_k^{\top}\mathbf{g}_i \cdot \mathbf{1}_T, K_{\lambda})$$
+
+where $r_k$ is a signature-specific baseline, $\Gamma_k$ captures how genetic/demographic factors $\mathbf{g}_i$ influence signature affinity, and $K_{\lambda}$ is a kernel function ensuring temporal smoothness.
+
+Similarly, the disease-signature associations follow a Gaussian process:
+
+$$\phi_{k,d} \sim \mathcal{N}(\mu_d + \psi_{k,d} \cdot \mathbf{1}_T, K_{\phi})$$
+
+where $\mu_d$ is a disease-specific baseline, $\psi_{k,d}$ represents the overall strength of association between signature $k$ and disease $d$, and $K_{\phi}$ allows for temporal variation in these associations.
+
+The distribution of $\theta$ values across the population reveals distinct patient subgroups with varying signature affinities (Fig. 1B). For example, a subset of patients shows increasing values of $\theta_{i,5,t}$ over time, indicating growing association with Signature 5, which is strongly linked to cardiovascular diseases.
+
+The learned $\psi_{k,d}$ parameters reveal distinct disease association patterns for each signature (Fig. 1C). For example, Signature 5 shows strong positive associations with multiple cardiovascular conditions including myocardial infarction, ischemic heart disease, and heart failure, suggesting it may represent an underlying atherosclerotic process.
+
+By modeling both patient-signature associations ($\theta$) and signature-disease associations ($\phi$), ALADYNOULLI captures the dynamic nature of disease risk while learning interpretable patterns. This structure enables three key capabilities: (1) predicting future disease occurrences by projecting signature trajectories forward in time, (2) identifying patient subgroups with similar signature patterns, and (3) adapting predictions as new clinical information becomes available (Fig. 1D).
+
+This formulation allows ALADYNOULLI to discover latent patterns directly from disease co-occurrence data, potentially capturing biological processes not yet recognized in clinical practice. The Bernoulli likelihood component properly models the binary nature of disease events while accounting for their temporal dependencies through the latent signature dynamics.
+
+
+\section{Results: Calibration and Discrimination}
+
+\section{Results: An individual walk through}
+
+\section{REsults: Population}
+
+\section{Results: Genetics}
+
+
+
+\section{extra stuff}
+
+Citing references:
+Science uses a numeric citation system. Cite references by number e.g.~\cite{example}.
+The template will combine reference numbers automatically~\cite{example,example2},
+including ranges~\cite{example,example2, example_preprint}.
+Reference author names and years should be stated in the reference list, not in the text.
+If you want to add a comment, use the syntax [see \cite{example} for details].
+% Not \cite[see][for details]{example}. Unfortunately that isn't compatible with scicite.sty
+
+Referring to supplementary material:
+Whenever more details are given in the Materials and Methods section, cite an entry in
+the reference list that directs readers there, like this~\cite{methods}.
+To refer to material in the Supplementary Text section, just write (Supplementary Text).
+See guidance below for the difference between those two types of supplementary material.
+Supplementary figures and tables are referred to in lowercase
+e.g.~figure~\ref{fig:sup_example} or table~\ref{tab:sup_example}.
+Material in separate files needs to be hand coded e.g.~data~S1, movie~S2.
+
+Mathematics:
+Simple mathematical expressions can be inserted in the text like $2\times3=6$.
+Variables should be italic but textual labels are roman e.g.~$T_\text{max}$.
+Explain the meaning of all variables on their first appearance.
+More complicated expressions should be entered as numbered equations, such as
+
+\begin{equation}
+	x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}.
+	\label{eq:example} % Use a logical label
+\end{equation}
+
+\noindent\ Do not indent text immediately after an equation.
+They can be referred back to as e.g.~Equation~\ref{eq:example}.
+
+Formatting:
+Names of software packages should be set in small capitals e.g.~\textsc{NumPy}.
+Use a non-breaking space between a number and its unit e.g.~7.4~km,
+and thin spaces between different parts of a unit e.g.~12~m\,s$^{-1}$.
+Use $\pm$ (not parentheses) to indicate uncertainties e.g.~$g=9.8\pm0.2$~m\,s$^{-2}$.
+
+% Research Articles and Reviews split the text into sections using headings
+% Use a short (up 6 words) descriptive phrase, not generic 'Results' or 'Conclusions'
+% Most other formats do not have headings, see the journal instructions to authors for details
+\subsection*{An example heading}
+Research Articles and Reviews use headings to split the main text into sections;
+most other formats do not have headings.
+
+Length limits:
+The \textit{Science}-family journals impose limits on the number of words, figures\slash
+tables, and references cited in the main text.
+The limits vary between the journals and article types.
+Refer to the instructions to authors on the journal website for the current limits.
+
+
+% If your text is very short you might need to uncomment the following line to avoid
+% layout problems with the figures and tables.
+%\newpage
+
+
+%%%%%%%%%%%%%%%% MAIN TEXT FIGURES %%%%%%%%%%%%%%%
+
+\begin{figure} % Do NOT use \begin{figure*}
+	\centering
+	\includegraphics[width=0.6\textwidth]{example_figure} % for an image file named example_figure.*
+	% Pick an appropriate width - in print, figures are usually one or two columns wide, which can
+	% be approximated by 0.3\textwidth or 0.6\textwidth respectively. Use appropriate label sizes.
+
+	% Captions go below figures
+	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
+		Then explain what is being shown, the meanings of any line styles, plotting symbols etc.
+		Multi-panel figures must label the panels A, B, C, etc. and refer to them in the caption
+		like this: (\textbf{A}) Description of panel A. (\textbf{B}) Description of panel B.
+		Captions are placed below figures.}
+	\label{fig:example} % give each figure a logical label name
+\end{figure}
+
+
+%%%%%%%%%%%%%%%% MAIN TEXT TABLES %%%%%%%%%%%%%%%
+
+\begin{table} % Do NOT use \begin{table*}
+	\centering
+	% Captions go above tables
+	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
+		Then explain what is being listed in the table, the meaning of each column etc.
+		Captions are placed above tables.}
+	\label{tab:example} % give each table a logical label name
+	
+	\begin{tabular}{lccc} % four columns, alignment for each
+		\\
+		\hline
+		Sample & $A$ & $B$ & $C$\\
+		 & (unit) & (unit) & (unit)\\
+		\hline
+		First & 1 & 2 & 3\\
+		Second & 4 & 6 & 8\\
+		Third & 5 & 7 & 9\\
+		\hline
+	\end{tabular}
+\end{table}
+
+
+
+%%%%%%%%%%%%%%%% REFERENCES %%%%%%%%%%%%%%%
+
+\clearpage % Clear all remaining figures and tables then start a new page
+
+% The list of references goes after the main text and before the acknowledgements
+% When preparing an initial submission, we recommend you use BibTeX, like this:
+%
+\bibliography{science_template} % for a file named science_template.bib
+\bibliographystyle{sciencemag}
+
+% After the paper has completed peer review and been revised ready for acceptance,
+% you should comment out the lines above and copy-paste the contents of your .bbl
+% file here instead. This will help ensure that our conversion software works correctly.
+% Remember to re-run BibTeX first - check the timestamp!
+%
+% Example of the first three entries copy-pasted from science_template.bbl:
+%
+%\begin{thebibliography}{1}
+%
+%\bibitem{example}
+%A.~N. {Author}, An example reference. \emph{Journal of Improbable Research}
+%  \textbf{1}, 67 (2020).
+%
+%\bibitem{example2}
+%F.~M. {Surname}, S.~{Author}, A second example. \emph{Interesting Research
+%  Letters} \textbf{32}, 897 (2019).
+%
+%\bibitem{example_preprint}
+%P.~{One}, P.~{Two}, P.~{Three}, {An unpublished preprint}. \emph{preprint}
+%  (2021), arXiv:2101.12345.
+%
+%\end{thebibliography}
+
+
+%%%%%%%%%%%%%%%% ACKNOWLEDGEMENTS %%%%%%%%%%%%%%%
+
+\section*{Acknowledgments}
+Here you can thank helpful colleagues who did not meet the journal's authorship criteria, or
+provide other acknowledgements that don't fit the (compulsory) subheadings below.
+Formatting requirements for each of these sections differ between the \textit{Science}-family
+journals; consult the instructions to authors on the journal website for full details.
+\paragraph*{Funding:}
+List the grants, fellowships etc. that funded the research;
+use initials to specify which author(s) were supported by each source.
+Include grant numbers when appropriate or required by the funding agency.
+For example: F.~A. was funded by the Generous Science Agency grant~2372.
+\paragraph*{Author contributions:}
+List each author’s contributions to the paper.
+Use initials to abbreviate author names.
+\paragraph*{Competing interests:}
+Disclose any potential conflicts of interest for all authors, such as patent applications,
+additional affiliations, consultancies, financial relationships etc.
+See the journal editorial policies web page for types of competing interest that must be declared.
+If there are no competing interests, state:
+``There are no competing interests to declare.''
+\paragraph*{Data and materials availability:}
+Specify where the data, software, physical samples, simulation outputs or other materials
+underlying the paper are archived.
+They must be publicly accessible when the paper is published (without embargo) and enable
+readers to reproduce all the results in the paper.
+Contact the editor if you’re unsure what needs to be shared.
+
+Our preference is for digital material to be deposited in a suitable non-profit online data or
+software repository that issues the material with a DOI.
+Alternatively, an institutional repository, subject-based archive, commercial repository etc.
+is acceptable, as are (short) supplementary tables or a machine-readable supplementary data file.
+‘Available on request’ or personal web pages are not allowed.
+
+Cite the relevant DOI \cite{dataset}, URL \cite{example_url} or reference \cite{example2}
+in this statement.
+These \textit{do not} count towards the reference limit if they are only cited in the acknowledgements.
+Be specific and state a unique identifier -- such as an accession number, software version number
+or observation ID -- so readers can easily retrieve the exact material used.
+
+Declare any restrictions on sharing or re-use -- such as a Materials Transfer Agreement (MTA) or
+legal restrictions -- which must be approved by your editor.
+Unreasonable restrictions will preclude publication.
+Consult the journal's editorial policies web page for more details.
+
+
+%%%%%%%%%%%%%%%% SUPPLEMENT LIST %%%%%%%%%%%%%%%
+
+% List the contents of your Supplementary Materials, including the numbers of any
+% supplementary figures, tables, external data files etc. and any references that are
+% cited only in the supplement. In this example, refs. 7-8 are cited only in the supplement.
+% Fill out your numbers accordingly and delete any lines that aren't applicable.
+\subsection*{Supplementary materials}
+Materials and Methods\\
+Supplementary Text\\
+Figs. S1 to S3\\
+Tables S1 to S4\\
+References \textit{(7-\arabic{enumiv})}\\ % automatically fills out the last reference number
+% (filling out the other numbers automatically is possible but fiddly and liable to break)
+Movie S1\\
+Data S1
+
+%%%%%%%%%%%%%%%% END OF MAIN TEXT %%%%%%%%%%%%%%%
+
+\newpage
+
+%%%%%%%%%%%%%%%% START OF SUPPLEMENT %%%%%%%%%%%%%%%
+
+% Figures, tables, equations and pages in the supplement are numbered S1, S2 etc.
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\theequation}{S\arabic{equation}}
+\renewcommand{\thepage}{S\arabic{page}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\setcounter{equation}{0}
+\setcounter{page}{1} % not 0 as \newpage already started a supplementary page
+% References continue the numbering from the main text.
+
+
+%%%%%%%%%%%%%%%% SUPPLEMENT TITLE PAGE %%%%%%%%%%%%%%%
+
+\begin{center}
+\section*{Supplementary Materials for\\ \scititle}
+
+% Author list for the supplement
+% Indicate the corresponding authors, but do NOT include institutions here
+% It would be nice if the template auto-generated this, but doing so is complicated...
+First~Author$^{\ast\dagger}$,
+A.~Scientist$^\dagger$,
+Someone~E.~Else\\ % we're not in a \author{} environment this time, so use \\ for a new line
+\small$^\ast$Corresponding author. Email: example@mail.com\\
+\small$^\dagger$These authors contributed equally to this work.
+\end{center}
+
+% Fill out the numbers for each type of supplementary material,
+% and delete any lines that aren't applicable.
+% These are just example numbers that don't match the rest of this template.
+\subsubsection*{This PDF file includes:}
+Materials and Methods\\
+Supplementary Text\\
+Figures S1 to S3\\
+Tables S1 to S4\\
+Captions for Movies S1 to S2\\
+Captions for Data S1 to S2
+
+\subsubsection*{Other Supplementary Materials for this manuscript:}
+Movies S1 to S2\\
+Data S1 to S2
+
+\newpage
+
+%%%%%%%%%%%%%%%% MATERIALS AND METHODS %%%%%%%%%%%%%%%
+
+\subsection*{Materials and Methods}
+
+The Materials and Methods section should contain details of the samples measured,
+experiments performed, observations taken, simulations run, data analysis, statistical methods etc.
+Give enough detail for any competent researcher in your field to fully reproduce the results.
+
+To refer to this section from the main text, use the numbered note in the reference list \cite{methods}.
+Refer to figures and tables in the same way as in the main text but now all capitalized e.g.
+Fig.~\ref{fig:example}, Table~\ref{tab:example},
+Fig.~\ref{fig:sup_example} and Table~\ref{tab:sup_example}.
+Cite references in the usual way \cite{example2},
+including any that are only cited in the supplement \cite{sm_example,conference_example}.
+
+The numbering of figures, tables, equations and pages has been reset to start from S1, as in
+\begin{equation}
+	\cos(2\theta) = \cos^2\theta - \sin^2\theta.
+	\label{eq:sup_example} % Use a logical label
+\end{equation}
+
+\subsubsection*{Example supplement heading}
+
+The two main sections of the supplement can be split up using headings.
+
+
+%%%%%%%%%%%%%%%% SUPPLEMENTARY TEXT %%%%%%%%%%%%%%%
+
+\subsection*{Supplementary Text}
+The Supplementary Text section can only be used to directly support statements made in the main text
+e.g. to present more detailed justifications of assumptions, investigate alternative scenarios,
+provide extended acknowledgements etc.
+Material in this section cannot claim results or conclusions that weren't mentioned in the main text.
+To refer to this section from the main text, just write (Supplementary Text).
+
+\subsubsection*{Example supplement heading}
+
+The two main sections of the supplement can be split up using headings.
+
+% If your supplement is very short you might need to uncomment the following line to avoid
+% layout problems with the figures and tables.
+%\newpage
+
+%%%%%%%%%%%%%%%% SUPPLEMENTARY FIGURES %%%%%%%%%%%%%%%
+
+\begin{figure} % Do not use \begin{figure*}
+	\centering
+	\includegraphics[width=0.6\textwidth]{example_figure} % for an image file named example_figure.*
+	% Pick an appriopriate width for the size of the image
+
+	% Captions go below figures
+	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
+		Follow the same style as main text figures.
+		If the design is substantially the same as another figure, avoid repeating information
+		e.g. say `Same as Figure~\ref{fig:example}, but for the control sample.'}
+	\label{fig:sup_example} % give each figure a logical label name
+\end{figure}
+
+%%%%%%%%%%%%%%%% SUPPLEMENTARY TABLES %%%%%%%%%%%%%%%
+
+\begin{table} % Do not use \begin{table*}
+	\centering
+	% Captions go above tables
+	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
+		Follow the same style as main text tables.
+		If the design is similar to previous tables, avoid repetition by refering back to them.}
+	\label{tab:sup_example} % give each table a logical label name
+
+	\begin{tabular}{lccr} % four columns, alignment for each
+		\\
+		\hline
+		A & B & C & D\\
+		\hline
+		1 & 2 & 3 & 4\\
+		2 & 4 & 6 & 8\\
+		3 & 5 & 7 & 9\\
+		\hline
+	\end{tabular}
+\end{table}
+
+
+%%%%%%%%%%% CAPTIONS FOR OTHER SUPPLEMENTARY FILES %%%%%%%%%%
+
+\clearpage % Clear all remaining figures and tables then start a new page
+
+\paragraph{Caption for Movie S1.}
+\textbf{All captions must start with a short bold sentence, acting as a title.}
+Then explain what is shown in the supplementary video file.
+Give as much detail as you would for a figure e.g. explain axes, color maps etc.
+If the video is an animated equivalent of one of the static figures, state e.g.
+`Animated version of Figure~\ref{fig:example}.'
+
+\paragraph{Caption for Data S1.}
+\textbf{All captions must start with a short bold sentence, acting as a title.}
+Then explain what is included in the supplementary data file.
+Give as much detail as you would for a table e.g. explain the meaning of every column,
+units used, any special notation etc.
+
+
+%%%%%%%%%%%%%%%% SUPPLEMENTARY REFERENCES %%%%%%%%%%%%%%%
+
+% Do NOT include a reference list in the supplement.
+% All references must be in a single list at the end of the main text.
+% The copyeditors will ensure that the correct reference list appears with each version of the paper
+% (print, HTML, PDF, mobile app, metadata for bibliographic databases etc.)
+
+\end{document}
+% End of science_template.tex
