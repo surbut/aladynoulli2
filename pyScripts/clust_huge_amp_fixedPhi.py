@@ -46,18 +46,24 @@ class AladynSurvivalFixedPhi(nn.Module):
         self.K_phi_init = (self.phi_amplitude_init**2) * self.base_K_phi + self.jitter * torch.eye(T)
         self.phi_amplitude = 1
         self.lambda_amplitude = 1
-
-        # Add jitter and store
-        jitter_matrix = self.jitter * torch.eye(T)
-
+        # Calculate phi GP loss once since it's constant
+       
         # Fixed Phi kernel (not updated during training)
         self.K_phi = (self.phi_amplitude ** 2) * self.base_K_phi + self.jitter * torch.eye(self.T)
         self.K_lambda = (self.lambda_amplitude ** 2) * self.base_K_lambda + self.jitter * torch.eye(self.T)
-        
+         # Store prevalence and compute logit
+        self.prevalence_t = torch.tensor(prevalence_t, dtype=torch.float32)
+        epsilon = 1e-8
+        self.logit_prev_t = torch.log(
+            (self.prevalence_t + epsilon) / (1 - self.prevalence_t + epsilon)
+        )  # D x T
         # Store pretrained phi and psi (will not be updated)
         self.register_buffer('phi', torch.tensor(pretrained_phi, dtype=torch.float32))
         self.register_buffer('psi', torch.tensor(pretrained_psi, dtype=torch.float32))
-        self.disease_names = disease_names
+        self.phi_gp_loss = self._calculate_phi_gp_loss()
+        print(f"Pre-calculated phi GP loss: {self.phi_gp_loss:.4f}")
+    
+
           
         # Handle signature references
         if flat_lambda:
@@ -82,15 +88,26 @@ class AladynSurvivalFixedPhi(nn.Module):
         
         self.Y = torch.tensor(Y, dtype=torch.float32)
         
-        # Store prevalence and compute logit
-        self.prevalence_t = torch.tensor(prevalence_t, dtype=torch.float32)
-        epsilon = 1e-8
-        self.logit_prev_t = torch.log(
-            (self.prevalence_t + epsilon) / (1 - self.prevalence_t + epsilon)
-        )  # D x T
+       
         
         # Initialize only individual-specific parameters (lambda, gamma)
         self.initialize_params()
+
+    def _calculate_phi_gp_loss(self):
+        """Calculate phi GP loss once at initialization"""
+        gp_loss_phi = 0.0
+        
+        L_phi = torch.linalg.cholesky(self.K_phi)
+        for k in range(self.K_total):
+            phi_k = self.phi[k]  # D x T
+            for d in range(self.D):
+                mean_phi_d = self.logit_prev_t[d, :] + self.psi[k, d]
+                dev_d = (phi_k[d:d+1, :] - mean_phi_d).T
+                v_d = torch.cholesky_solve(dev_d, L_phi)
+                gp_loss_phi += 0.5 * torch.sum(v_d.T @ dev_d)
+        
+        return gp_loss_phi / self.D
+
 
     def initialize_params(self, **kwargs):
         """Initialize only individual-specific parameters (lambda, gamma)"""
@@ -210,6 +227,7 @@ class AladynSurvivalFixedPhi(nn.Module):
         """Compute GP prior loss only for lambda parameters (phi is fixed)"""
         # Initialize loss
         gp_loss_lambda = 0.0
+        gp_loss_phi = 0.0 
         
         # Compute Cholesky once
         L_lambda = torch.linalg.cholesky(self.K_lambda)
@@ -231,8 +249,10 @@ class AladynSurvivalFixedPhi(nn.Module):
                 gp_loss_lambda += 0.5 * torch.sum(v_i.T @ dev_i)
             
         # Return loss with appropriate scaling
-        return gp_loss_lambda / self.N
         
+        # Return combined loss with appropriate scaling
+        return gp_loss_lambda / self.N + self.phi_gp_loss 
+    
     def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
         """Modified fit method that only updates lambda and gamma"""
         
