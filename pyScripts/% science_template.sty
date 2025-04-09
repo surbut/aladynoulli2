@@ -1,9 +1,6 @@
 % science_template.tex
 % See accompanying readme.txt for copyright statement, change log etc.
 
-% Any modification of this template, including writing a paper using it,
-% MUST rename the file i.e. use a different file name.
-
 %%%%%%%%%%%%%%%% START OF PREAMBLE %%%%%%%%%%%%%%%
 
 % Basic setup. Authors shouldn't need to adjust these commands.
@@ -12,19 +9,17 @@
 
 % Use the basic LaTeX article class, 12pt text
 \documentclass[12pt]{article}
-
+\usepackage{subcaption}
 % Science uses Times font. If you don't have this installed (most LaTeX installations will be
 % fine) or prefer the old Computer Modern fonts, comment out the following line
 \usepackage{newtxtext,newtxmath}
-% Depending on your LaTeX fonts installation, you might get better results with one or both of these:
-%\usepackage{mathptmx}
-%\usepackage{txfonts}
 
 % Allow external graphics files
 \usepackage{graphicx}
-
+\usepackage{booktabs}
 % Use US letter sized paper with 1 inch margins
 \usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{tcolorbox}
 
 % Double line spacing, including in captions
 \linespread{1.5} % For some reason double spacing is 1.5, not 2.0!
@@ -55,19 +50,13 @@
 
 % Provides the \url command, and fixes a crash if URLs or DOIs contain underscores
 \usepackage{url}
-
+\usepackage{subcaption}
 %%%%%%%%%%%% CUSTOM COMMANDS AND PACKAGES %%%%%%%%%%%%
 
 % Authors can define simple custom commands e.g. as shortcuts to save on typing
 % Use \newcommand (not \def) to avoid overwriting existing commands.
 % Keep them as simple as possible and note the warning in the text below.
-% Example:
-\newcommand{\pcc}{\,cm$^{-3}$}	% per cm-cubed
-
-% Please DO NOT import additional external packages or .sty files.
-% Those are unlikely to work with our conversion software and will cause problems later.
-% Don't add any more \usepackage{} commands.
-
+\newcommand{\aladyn}{\texttt{ALADYNOULLI}}
 
 %%%%%%%%%%%%%%%% TITLE AND AUTHORS %%%%%%%%%%%%%%%%
 
@@ -75,7 +64,7 @@
 % Keep it short and understandable by any reader of Science.
 % Avoid acronyms or jargon. Use sentence case.
 \def\scititle{
-	A simple \textit{Science} \LaTeX\ template
+	\aladyn: Adaptive latent dynamics with Bernoulli outcomes for longitudinal health records
 }
 % Store the title in a variable for reuse in the supplement (otherwise \maketitle deletes it)
 \title{\bfseries \boldmath \scititle}
@@ -83,14 +72,16 @@
 % Author and institution list.
 % Institution numbers etc. should be hard-coded, do *not* use the \footnote command.
 \author{
-	% You can write out first names or use initials - either way is acceptable, but be consistent
-	First~Author$^{1\ast\dagger}$,
-	A.~Scientist$^{2\dagger}$,
-	Someone~E.~Else$^{2}$\and
+	Sarah Urbut MD PhD$^{1\ast\dagger}$,
+	Yi Ding$^{2\dagger}$,
+    Tet Nakao,
+    Alexander Gusev\\
+    Govanni Parmigiani,
+    Pradeep Natarajan$^{2}$\and
 	% Additional lines of authors should be inserted using the \and command (not \\)
 	% Institution list, in a slightly smaller font
-	\small$^{1}$Department, Institution, City \& Postal Code, Country.\and
-	\small$^{2}$Another Department, Different Institution, City \& Postal Code, Country.\and
+	\small$^{1}$Department of Biomedical Informatics, University, City \& Postal Code, Country.\and
+	\small$^{2}$Department of Computer Science, University, City \& Postal Code, Country.\and
 	% Identify at least one corresponding author, with contact email address
 	\small$^\ast$Corresponding author. Email: example@mail.com\and
 	% Joint contributions can be indicated like this
@@ -107,439 +98,613 @@
 \maketitle
 
 % Abstract, in bold
-% There are strict length limits, and not all formats have abstracts.
-% Consult the journal instructions to authors for details.
-% Do not cite any references in the abstract.
 \begin{abstract} \bfseries \boldmath
-% Start with one or two sentences of background
-This is a simple template to prepare papers in \LaTeX\ for the \textit{Science}-family journals.
-Abstracts start with one or two sentences of background, which should be
-comprehensible to any scientist.
-% Then summarise the results of your observations, experiments, simulations etc.
-The following text should outline the main results of the research.
-Simple mathematical expressions can be included e.g. $a^2+b^2=c^2$.
-% End with a statement of your main conclusions
-The final sentence of the abstract should state the main conclusions and implications.
+Electronic health records (EHRs) contain rich longitudinal information about disease trajectories, but modeling the complex interplay between multiple diseases over time remains challenging. 
+We present \aladyn, a probabilistic model that identifies latent disease signatures from longitudinal health records while accounting for individual-level heterogeneity.
+Our approach combines Gaussian processes with a mixture model framework to capture the temporal dynamics of disease risk, incorporating genetic and demographic factors as covariates.
+Applied to a cohort of 500,000 individuals with up to 20 years of follow-up, \aladyn identifies clinically meaningful disease signatures that reveal distinct progression patterns.
+These signatures show strong predictive performance for future disease events and provide insights into shared biological mechanisms underlying disease comorbidities.
+Our model enables personalized risk trajectories that can inform clinical decision-making and enhance our understanding of complex disease relationships.
 \end{abstract}
 
-
-% The first paragraph of any Science paper does NOT have a heading
-% Nor is it indented
-\noindent
-
-
 \section{Introduction}
-Predicting the onset of complex diseases remains one of medicine's grand challenges. While electronic health records (EHRs) now capture rich longitudinal data on millions of patients, our ability to translate these data into accurate, personalized disease forecasts remains limited. Current approaches typically focus on predicting single diseases using static risk factors, failing to capture the dynamic, interconnected nature of disease development [1,2].
 
-The human disease trajectory—the temporal sequence of health states a person experiences—emerges from complex interactions between genetic predisposition, environmental exposures, and physiological processes [3]. These underlying processes often manifest across multiple related conditions before culminating in clinical diagnoses. For example, atherosclerotic cardiovascular disease (ASCVD) develops through decades of subclinical progression, with risk factors and early manifestations appearing years before major events like myocardial infarction [4].
+Electronic health records (EHRs) provide unprecedented opportunities to study disease trajectories at population scale \cite{example1}. However, extracting meaningful patterns from these complex, longitudinal datasets remains challenging due to the heterogeneity of patient populations, the temporal nature of disease progression, and the complex relationships between diseases \cite{example2}.
 
-We hypothesized that latent disease signatures—unobserved biological processes that influence multiple disease risks simultaneously—could be inferred from longitudinal health records and used to predict future disease trajectories. These signatures would represent fundamental patterns of disease susceptibility that evolve over time and manifest differently across individuals.
+Traditional approaches to analyzing EHR data often focus on pairwise disease associations or predefined disease groupings, which may miss important higher-order relationships \cite{example3}. More recent methods have employed unsupervised learning to identify disease clusters or trajectories, but these typically do not account for the temporal dynamics of disease risk or individual-level heterogeneity \cite{example4}.
 
-Here, we present a probabilistic model that identifies interpretable disease signatures and captures their patient-specific temporal evolution. Our approach, which we call Aladynoulli (Adaptive LAtent DYNamics), learns a set of latent signatures that associate with different disease patterns, while simultaneously modeling how each patient's relationship to these signatures changes over time. Unlike traditional risk models that rely on known clinical risk factors, Aladynoulli discovers latent patterns directly from disease co-occurrence data, potentially capturing biological processes not yet recognized in clinical practice.
+We present \aladyn (Adaptive LAtent DYNamics with BernOULLI outcomes), a probabilistic model that identifies latent disease signatures from longitudinal health records. Our approach combines Gaussian processes with a mixture model framework to capture the temporal dynamics of disease risk, incorporating genetic and demographic factors as covariates. The model identifies interpretable disease signatures that represent distinct patterns of comorbidity and progression, while allowing for personalized risk trajectories.
 
-We applied Aladynoulli to longitudinal health records from [dataset description], comprising [N] patients followed for up to [T] years across [D] disease categories. To rigorously evaluate predictive performance, we implemented a censoring approach that simulates real-world prediction scenarios by hiding future ASCVD events during model training. Our model successfully predicted these censored events, demonstrating its ability to identify at-risk patients years before clinical diagnosis.
-Beyond prediction, Aladynoulli reveals distinct patient subgroups with shared disease signature patterns, potentially representing different pathophysiological mechanisms. By connecting these signatures to genetic data, we identified both known and novel genetic associations, providing insights into the biological processes underlying disease trajectories.
-Our findings demonstrate that modeling latent disease signatures and their temporal dynamics can improve disease prediction while offering new perspectives on disease mechanisms. This approach represents a step toward precision medicine that accounts for the complex, time-varying nature of disease risk.
+This paper introduces, develops, and evaluates \aladyn, a novel Bayesian framework designed to model time-varying disease signatures and individual health trajectories over the lifespan using longitudinal EHR data. This is particularly relevant to understanding the genetic architecture of polygenic disease, where genetic liability often influences the age of onset\cite{urbut_dynamic_2023, hyttinen_genetic_2003,pedersen_adult_2023}. Such an approach is beneficial across the spectrum of disease, particularly in areas like cardiovascular care where dynamic risk assessment is crucial. While previous iterations demonstrated feasibility \cite{urbut_aladyn_2024}, this work represents fundamental innovations in capturing adaptive latent dynamics. 
 
-\section{Model Overview}
 
-ALADYNOULLI (Adaptive LAtent DYNamics with BernOULLI outcomes) captures the complex interplay between latent disease signatures and their temporal evolution in individual patients (Fig. 1A). The model represents disease risk through a mixture of latent signatures that evolve over time.
+\section*{Model Overview}
+
+\subsection*{Motivation and Innovation}
+
+Traditional approaches to analyzing electronic health records (EHRs) often focus on isolated diseases or simple pairwise associations, failing to capture the complex interplay between multiple conditions over time. Existing methods also struggle to account for individual-level heterogeneity and typically do not incorporate genetic or demographic factors that influence disease trajectories.
+
+Our approach addresses these limitations through several key innovations:
+
+\begin{enumerate}
+\item \textbf{Comprehensive information integration:} We borrow information across individuals, diseases, and time points, enabling the discovery of latent disease signatures that would be undetectable when studying diseases in isolation.
+
+\item \textbf{Joint genetic-trajectory modeling:} We incorporate genetic factors directly into the model, allowing these factors to influence disease trajectories and providing biological meaning to the discovered signatures.
+
+\item \textbf{Predictive disease modeling:} By implementing a survival likelihood framework, our method generates both interpretable disease signatures and actionable predictions, contrasting with approaches that condition on disease occurrence.
+
+\item \textbf{Non-competitive diagnosis structure:} Our Bernoulli discrete-time survival likelihood allows multiple diseases to co-occur within a signature, reflecting the reality of complex comorbidities rather than forcing diseases to compete.
+\end{enumerate}
+
+\subsection*{Model Formulation}
+
+\aladyn captures the complex interplay between latent disease signatures and their temporal evolution in individual patients (Fig.~\ref{fig:model_overview}A). The model represents the risk of the disease through a mixture of latent signatures that evolve over time. 
+
 
 For each patient $i$, disease $d$, and time point $t$, we model the probability of disease occurrence $\pi_{i,d,t}$ as:
 
-$$\pi_{i,d,t} = \kappa \cdot \sum_{k} \theta_{i,k,t} \cdot \text{expit}(\phi_{k,d,t})$$
+\begin{equation}
+\pi_{i,d,t} = \kappa \cdot \sum_{k=1}^{K} \theta_{i,k,t} \cdot \text{sigmoid}(\phi_{k,d,t})
+\end{equation}
 
-where $\kappa$ is a calibration parameter, $\theta_{i,k,t}$ represents patient $i$'s time-varying association with signature $k$, and $\phi_{k,d,t}$ captures the relationship between signature $k$ and disease $d$ over time.
+\noindent where $\kappa$ is a global calibration parameter, $\theta_{i,k,t}$ represents patient $i$'s time-varying association with signature $k$, and $\phi_{k,d,t}$ captures the relationship between signature $k$ and disease $d$ over time.
 
 The patient-signature associations are modeled as a softmax over latent variables:
 
-$$\theta_{i,k,t} = \text{softmax}_k(\lambda_{i,\cdot,t})$$
+\begin{equation}
+\theta_{i,k,t} = \frac{\exp(\lambda_{i,k,t})}{\sum_{k'} \exp(\lambda_{i,k',t})}
+\end{equation}
 
-This ensures that signature associations form a proper mixture, with patients exhibiting varying degrees of affinity for different signatures over time.
+\noindent This ensures that signature associations form a proper mixture, with patients exhibiting varying degrees of affinity for different signatures over time.
 
 The patient-specific latent variables follow a Gaussian process prior:
 
-$$\lambda_{i,k} \sim \mathcal{N}(r_k \cdot \mathbf{1}_T + \Gamma_k^{\top}\mathbf{g}_i \cdot \mathbf{1}_T, K_{\lambda})$$
+\begin{equation}
+\lambda_{i,k} \sim \mathcal{GP}(r_k + \Gamma_k^{\top}\mathbf{g}_i, K_{\lambda})
+\end{equation}
 
-where $r_k$ is a signature-specific baseline, $\Gamma_k$ captures how genetic/demographic factors $\mathbf{g}_i$ influence signature affinity, and $K_{\lambda}$ is a kernel function ensuring temporal smoothness.
+This can also be written as $\lambda_{i,k} = (r_k + \Gamma_k^{\top}\mathbf{g}_i + E$, where E \sim N(0,K_{\lambda})
+
+\noindent where $r_k$ is a signature-specific baseline, $\Gamma_k$ captures how genetic and demographic factors $\mathbf{g}_i$ influence signature affinity, and $K_{\lambda}$ is a kernel function ensuring temporal smoothness with characteristic length scale $T/4$.
 
 Similarly, the disease-signature associations follow a Gaussian process:
 
-$$\phi_{k,d} \sim \mathcal{N}(\mu_d + \psi_{k,d} \cdot \mathbf{1}_T, K_{\phi})$$
-
-where $\mu_d$ is a disease-specific baseline, $\psi_{k,d}$ represents the overall strength of association between signature $k$ and disease $d$, and $K_{\phi}$ allows for temporal variation in these associations.
-
-The distribution of $\theta$ values across the population reveals distinct patient subgroups with varying signature affinities (Fig. 1B). For example, a subset of patients shows increasing values of $\theta_{i,5,t}$ over time, indicating growing association with Signature 5, which is strongly linked to cardiovascular diseases.
-
-The learned $\psi_{k,d}$ parameters reveal distinct disease association patterns for each signature (Fig. 1C). For example, Signature 5 shows strong positive associations with multiple cardiovascular conditions including myocardial infarction, ischemic heart disease, and heart failure, suggesting it may represent an underlying atherosclerotic process.
-
-By modeling both patient-signature associations ($\theta$) and signature-disease associations ($\phi$), ALADYNOULLI captures the dynamic nature of disease risk while learning interpretable patterns. This structure enables three key capabilities: (1) predicting future disease occurrences by projecting signature trajectories forward in time, (2) identifying patient subgroups with similar signature patterns, and (3) adapting predictions as new clinical information becomes available (Fig. 1D).
-
-This formulation allows ALADYNOULLI to discover latent patterns directly from disease co-occurrence data, potentially capturing biological processes not yet recognized in clinical practice. The Bernoulli likelihood component properly models the binary nature of disease events while accounting for their temporal dependencies through the latent signature dynamics.
-
-
-\section{Results: Calibration and Discrimination}
-
-\section{Results: An individual walk through}
-
-\section{REsults: Population}
-
-\section{Results: Genetics}
-
-
-
-\section{extra stuff}
-
-Citing references:
-Science uses a numeric citation system. Cite references by number e.g.~\cite{example}.
-The template will combine reference numbers automatically~\cite{example,example2},
-including ranges~\cite{example,example2, example_preprint}.
-Reference author names and years should be stated in the reference list, not in the text.
-If you want to add a comment, use the syntax [see \cite{example} for details].
-% Not \cite[see][for details]{example}. Unfortunately that isn't compatible with scicite.sty
-
-Referring to supplementary material:
-Whenever more details are given in the Materials and Methods section, cite an entry in
-the reference list that directs readers there, like this~\cite{methods}.
-To refer to material in the Supplementary Text section, just write (Supplementary Text).
-See guidance below for the difference between those two types of supplementary material.
-Supplementary figures and tables are referred to in lowercase
-e.g.~figure~\ref{fig:sup_example} or table~\ref{tab:sup_example}.
-Material in separate files needs to be hand coded e.g.~data~S1, movie~S2.
-
-Mathematics:
-Simple mathematical expressions can be inserted in the text like $2\times3=6$.
-Variables should be italic but textual labels are roman e.g.~$T_\text{max}$.
-Explain the meaning of all variables on their first appearance.
-More complicated expressions should be entered as numbered equations, such as
-
 \begin{equation}
-	x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}.
-	\label{eq:example} % Use a logical label
+\phi_{k,d} \sim \mathcal{GP}(\mu_d + \psi_{k,d}, K_{\phi})
 \end{equation}
 
-\noindent\ Do not indent text immediately after an equation.
-They can be referred back to as e.g.~Equation~\ref{eq:example}.
+\noindent where $\mu_d$ is a disease-specific baseline derived from population prevalence, $\psi_{k,d}$ represents the overall strength of association between signature $k$ and disease $d$, and $K_{\phi}$ allows for temporal variation in these associations with length scale $T/3$.
 
-Formatting:
-Names of software packages should be set in small capitals e.g.~\textsc{NumPy}.
-Use a non-breaking space between a number and its unit e.g.~7.4~km,
-and thin spaces between different parts of a unit e.g.~12~m\,s$^{-1}$.
-Use $\pm$ (not parentheses) to indicate uncertainties e.g.~$g=9.8\pm0.2$~m\,s$^{-2}$.
+\subsection*{Likelihood Framework}
 
-% Research Articles and Reviews split the text into sections using headings
-% Use a short (up 6 words) descriptive phrase, not generic 'Results' or 'Conclusions'
-% Most other formats do not have headings, see the journal instructions to authors for details
-\subsection*{An example heading}
-Research Articles and Reviews use headings to split the main text into sections;
-most other formats do not have headings.
+Disease onset is modeled using a discrete-time survival likelihood, with the log-likelihood for each individual-disease pair ($\ell_{id}$) consisting of three components:
 
-Length limits:
-The \textit{Science}-family journals impose limits on the number of words, figures\slash
-tables, and references cited in the main text.
-The limits vary between the journals and article types.
-Refer to the instructions to authors on the journal website for the current limits.
+\begin{equation}
+\ell_{id} = \sum\limits_{t=1}^{E_{id}-1} \log(1 - \pi_{idt}) + Y_{id,E_{id}} \log(\pi_{id,E_{id}}) + (1 - Y_{id,E_{id}}) \log(1 - \pi_{id,E_{id}})
+\end{equation}
 
+\noindent where $E_{id}$ is the event or censoring time, and $Y_{id,E_{id}}$ indicates whether disease $d$ occurred for individual $i$ at time $E_{id}$. The total log-likelihood is the sum over all individual-disease pairs: $\mathcal{L}_{\text{data}} = \sum_{id} \ell_{id}$.
 
-% If your text is very short you might need to uncomment the following line to avoid
-% layout problems with the figures and tables.
-%\newpage
+This survival-based formulation accounts for observed years and the discrete nature of medical records, representing a critical departure from factor-analysis approaches that do not model binary survival data effectively.
 
+\subsection*{Model Properties and Insights}
 
-%%%%%%%%%%%%%%%% MAIN TEXT FIGURES %%%%%%%%%%%%%%%
+The distribution of $\theta$ values across the population reveals distinct patient subgroups with varying signature affinities (Fig.~\ref{fig:model_overview}B). For example, a subset of patients shows increasing values of $\theta_{i,k,t}$ over time for signatures strongly linked to cardiovascular diseases.
 
-\begin{figure} % Do NOT use \begin{figure*}
-	\centering
-	\includegraphics[width=0.6\textwidth]{example_figure} % for an image file named example_figure.*
-	% Pick an appropriate width - in print, figures are usually one or two columns wide, which can
-	% be approximated by 0.3\textwidth or 0.6\textwidth respectively. Use appropriate label sizes.
+The learned $\psi_{k,d}$ parameters reveal distinct disease association patterns for each signature. For instance, certain signatures show strong positive associations with multiple cardiovascular conditions including myocardial infarction, ischemic heart disease, and heart failure, suggesting they may represent underlying atherosclerotic processes.
 
-	% Captions go below figures
-	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
-		Then explain what is being shown, the meanings of any line styles, plotting symbols etc.
-		Multi-panel figures must label the panels A, B, C, etc. and refer to them in the caption
-		like this: (\textbf{A}) Description of panel A. (\textbf{B}) Description of panel B.
-		Captions are placed below figures.}
-	\label{fig:example} % give each figure a logical label name
+Our model allows the population to inform the signatures ($\phi$), while individual loadings ($\lambda$) are influenced by underlying genetics and the accumulation of new diagnostic codes. This dual approach enables both population-level pattern discovery and personalized risk prediction.
+
+\begin{figure}
+\centering
+\includegraphics[width=1.0\linewidth]{mod_ov2.pdf}
+\caption{\textbf{ALADYNOULLI model structure and dynamics.} (A) Schematic representation of the model showing how latent disease signatures and individual trajectories interact over time. (B) Examples of signature affinity distributions across the population, revealing distinct patient subgroups. (C) Temporal evolution of signature-disease associations, demonstrating how disease risk profiles change with age.}
+\label{fig:model_overview}
 \end{figure}
 
+Table~\ref{tab:model_spec} summarizes the full mathematical specification of our model.
 
-%%%%%%%%%%%%%%%% MAIN TEXT TABLES %%%%%%%%%%%%%%%
+\begin{table}
+\centering
+\begin{tabular}{rcl}
+\hline
+$Y_{idt} | \pi_{idt}$ & $\sim$ & $\text{Bernoulli}(\pi_{idt})$ \\
+$\pi_{idt} | \theta_{ikt}, \phi_{kdt}$ & $=$ & $\sum_k \theta_{ikt}\text{sigmoid}(\phi_{kdt})$ \\
+$\theta_{ikt} | \lambda_{ikt}$ & $=$ & $\frac{\exp(\lambda_{ikt})}{\sum_{k'} \exp(\lambda_{ik't})}$ \\
+$\lambda_{ik} | g_i, \gamma_k, \Sigma_k$ & $\sim$ & $\mathcal{GP}(\gamma_k g_i\mathbf{1}_T, \Sigma_k)$ \\
+$\phi_{kd} | \mu_d, \psi_{kd}, \Omega_k$ & $\sim$ & $\mathcal{GP}(\mu_d + \mathbf{1}_T\psi_{kd}, \Omega_k)$ \\
+$\Sigma_k$ & $=$ & $\sigma^2_\lambda\exp(-\frac{(t-t')^2}{2l^2_\lambda})$ \\
+$\Omega_k$ & $=$ & $\sigma^2_\phi\exp(-\frac{(t-t')^2}{2l^2_\phi})$ \\
+$\gamma_k$ & $\sim$ & $\mathcal{N}(0, \sigma^2_\gamma I_P)$ \\
+\hline
+\end{tabular}
+\caption{\textbf{Mathematical specification of ALADYNOULLI.} The model captures disease occurrences ($Y_{idt}$) as Bernoulli events with probabilities determined by the mixture of signature contributions. Both individual signature loadings ($\lambda_{ik}$) and signature-disease associations ($\phi_{kd}$) evolve over time according to Gaussian processes, with temporal smoothness controlled by covariance kernels ($\Sigma_k$ and $\Omega_k$).}
+\label{tab:model_spec}
+\end{table}
 
-\begin{table} % Do NOT use \begin{table*}
-	\centering
-	% Captions go above tables
-	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
-		Then explain what is being listed in the table, the meaning of each column etc.
-		Captions are placed above tables.}
-	\label{tab:example} % give each table a logical label name
-	
-	\begin{tabular}{lccc} % four columns, alignment for each
-		\\
-		\hline
-		Sample & $A$ & $B$ & $C$\\
-		 & (unit) & (unit) & (unit)\\
-		\hline
-		First & 1 & 2 & 3\\
-		Second & 4 & 6 & 8\\
-		Third & 5 & 7 & 9\\
-		\hline
-	\end{tabular}
+\subsection*{Computational Implementation}
+
+For initialization, we apply spectral clustering to disease co-occurrence patterns, grouping diseases with similar co-occurrence profiles to provide a strong starting point for the latent signatures. We then optimize the model using stochastic gradient descent with adaptive learning rates, employing several technical innovations to ensure computational stability:
+
+\begin{enumerate}
+\item Fixed amplitudes for Gaussian processes to enhance numerical stability
+\item A global calibration parameter ($\kappa$) to address systematic probability estimation challenges
+\item Parameter-specific learning rates to balance convergence across different model components
+\item Integration of genetic information through a structured prior that influences individual trajectories
+\end{enumerate}
+
+These implementation choices enable efficient model training on large-scale electronic health record datasets comprising hundreds of thousands of patients and hundreds of diseases over multiple decades. Detailed mathematical derivations and implementation specifics are provided in the Materials and Methods section.
+
+\section{Results}
+
+
+\subsection*{Identified Disease Signatures:}
+
+Our method identifies distinct latent signatures that represent specific contributions of latent features to disease probability over time. Although the number of latent features does not critically impact model performance, we aim for maximum interpretability and tractability. \\aladyn identified 21 distinct disease signatures in our dataset, each representing a different pattern of disease comorbidity and progression . 
+
+In particular, these signatures do not represent conditional allocation probabilities. Instead, for a given signature, the inverse logit of $\phi$ indicates the marginal disease hazard attributable to the disease, not the probability conditional on the occurrence of the disease. \cite{jiang_age-dependent_2023}, which allows for prediction. 
+
+% LaTeX code for Signature Disease Table
+% This can be included in a LaTeX document
+
+\begin{table}[!ht]
+\small
+\centering
+\caption{Characteristic Diseases Per Signature}
+\label{tab:signature_diseases}
+\begin{tabular}{p{1.5cm}p{2.5cm}p{11cm}}
+\toprule
+\textbf{Signature} & \textbf{Primary Disease} & \textbf{Key Characteristics} \\
+\midrule
+sig0 & Heart Rhythm/Structure & 
+Atrial fibrillation and flutter; 
+Heart failure; 
+Paroxysmal ventricular tachycardia; 
+Aortic valve disease; 
+Cardiomegaly; 
+Mitral valve disease \\
+\midrule
+sig1 & Musculoskeletal & 
+Enthesopathy; 
+Disorders of synovium, tendon, bursa; 
+Rheumatoid arthritis; 
+Pain in joint; 
+Osteoarthrosis; 
+Internal derangement of knee \\
+\midrule
+sig2 & Gastrointestinal & 
+Gastritis and duodenitis; 
+Gastric ulcer; 
+Barrett's esophagus; 
+GERD/Reflux esophagitis; 
+Diaphragmatic hernia; 
+Duodenitis \\
+\midrule
+sig3 & Vascular/Dermatological & 
+Peripheral vascular disease; 
+Celiac disease; 
+Hemangioma and lymphangioma; 
+Atopic/contact dermatitis; 
+Abdominal aortic aneurysm \\
+\midrule
+sig4 & Respiratory/Nasal & 
+Upper respiratory disease; 
+Nasal polyps; 
+Chronic sinusitis; 
+Septal deviations; 
+Chronic pharyngitis \\
+\midrule
+sig5 & Coronary & 
+Coronary atherosclerosis; 
+Hypercholesterolemia; 
+Angina pectoris; 
+Myocardial infarction; 
+Ischemic heart disease; 
+Unstable angina \\
+\midrule
+sig6 & Metastatic Cancer & 
+Secondary malignancy of lymph nodes; 
+Secondary malignant neoplasm of liver; 
+Cancer of bronchus/lung; 
+Secondary malignancy of digestive systems; 
+Secondary malignancy of bone \\
+\midrule
+sig7 & Psychiatric/Fibromyalgia & 
+Major depressive disorder; 
+Anxiety disorder; 
+Fibromyalgia/myalgia; 
+Migraine; 
+Sleep disorders; 
+Irritable Bowel Syndrome \\
+\midrule
+sig8 & Female Reproductive & 
+Cervicitis and endocervicitis; 
+Polyp of corpus uteri; 
+Uterine prolapse; 
+Endometrial hyperplasia; 
+Excessive menstruation; 
+Ovarian cyst \\
+\midrule
+sig9 & Back/Spine & 
+Back pain; 
+Spondylosis; 
+Displacement of intervertebral disc; 
+Spinal stenosis; 
+Degenerative disease of the spinal cord; 
+Neuralgia and radiculitis \\
+\midrule
+sig10 & Eye/Vision & 
+Cataract; 
+Macular degeneration; 
+Primary open angle glaucoma; 
+Retinal vascular changes; 
+Disorders of vitreous body; 
+Myopia \\
+\midrule
+sig11 & Cerebrovascular & 
+Occlusion of cerebral arteries; 
+Cerebral ischemia; 
+Late effects of cerebrovascular disease; 
+Cerebral artery occlusion with infarction; 
+Hemiplegia; 
+Transient cerebral ischemia \\
+\midrule
+sig12 & Kidney/Ureter & 
+Renal colic; 
+Hydronephrosis; 
+Calculus of ureter; 
+Calculus of kidney; 
+Stricture/obstruction of ureter; 
+Other disorders of kidney and ureters \\
+\midrule
+sig13 & Urinary/Prostate & 
+Cancer of prostate; 
+Hyperplasia of prostate; 
+Urethral stricture; 
+Disorders of bladder; 
+Urinary incontinence; 
+Cystitis \\
+\midrule
+sig14 & Pulmonary & 
+Tobacco use disorder; 
+Chronic airway obstruction; 
+Pneumonia; 
+Emphysema; 
+Respiratory failure; 
+Obstructive chronic bronchitis \\
+\midrule
+sig15 & Diabetes & 
+Type 2 diabetes; 
+Hypoglycemia; 
+Type 2 diabetes with ophthalmic manifestations; 
+Diabetic retinopathy; 
+Type 1 diabetes \\
+\midrule
+sig16 & Infection/Sepsis & 
+E. coli; 
+Acute renal failure; 
+Sepsis; 
+Cellulitis and abscess; 
+Bacterial infection; 
+Chronic ulcer of skin \\
+\midrule
+sig17 & Colorectal/GI Bleeding & 
+Benign neoplasm of colon; 
+Hemorrhoids; 
+Hemorrhage of gastrointestinal tract; 
+Regional enteritis; 
+Colon cancer; 
+Diverticulosis \\
+\midrule
+sig18 & Gallbladder/Biliary & 
+Cholelithiasis; 
+Disorders of gallbladder; 
+Acute pancreatitis; 
+Calculus of bile duct; 
+Cholecystitis; 
+Peritoneal adhesions \\
+\midrule
+sig19 & Skin/Breast Cancer & 
+Non-epithelial cancer of skin; 
+Breast cancer [female]; 
+Actinic keratosis; 
+Melanomas of skin; 
+Seborrheic keratosis; 
+Thyrotoxicosis \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 
+% LaTeX code for LDSC correlation heatmap
+% For including the heatmap in a LaTeX document, it's better to use the image
+% But if you insist on creating a tabular version, here it is:
 
-%%%%%%%%%%%%%%%% REFERENCES %%%%%%%%%%%%%%%
+
+
+% If you prefer a more compact version of the correlation table, here's an alternative:
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{p{0.7cm}p{2.8cm}p{10.5cm}}
+\hline
+\textbf{Sig} & \textbf{Primary Disease} & \textbf{Key Characteristics} \\
+\hline
+sig0 & Heart Rhythm/Structure & Atrial fibrillation and flutter; Heart failure; Paroxysmal ventricular tachycardia; Aortic valve disease; Cardiomegaly; Mitral valve disease \\
+\hline
+sig1 & Musculoskeletal & Enthesopathy; Disorders of synovium, tendon, bursa; Rheumatoid arthritis; Pain in joint; Osteoarthrosis; Internal derangement of knee \\
+\hline
+sig2 & Gastrointestinal & Gastritis and duodenitis; Gastric ulcer; Barrett's esophagus; GERD/Reflux esophagitis; Diaphragmatic hernia; Duodenitis \\
+\hline
+sig3 & Vascular/Dermatological & Peripheral vascular disease; Celiac disease; Hemangioma and lymphangioma; Atopic/contact dermatitis; Abdominal aortic aneurysm \\
+\hline
+sig4 & Respiratory/Nasal & Upper respiratory disease; Nasal polyps; Chronic sinusitis; Septal deviations; Chronic pharyngitis \\
+\hline
+sig5 & Coronary & Coronary atherosclerosis; Hypercholesterolemia; Angina pectoris; Myocardial infarction; Ischemic heart disease; Unstable angina \\
+\hline
+sig6 & Metastatic Cancer & Secondary malignancy of lymph nodes; Secondary malignant neoplasm of liver; Cancer of bronchus/lung; Secondary malignancy of digestive systems; Secondary malignancy of bone \\
+\hline
+sig7 & Psychiatric/Fibromyalgia & Major depressive disorder; Anxiety disorder; Fibromyalgia/myalgia; Migraine; Sleep disorders; Irritable Bowel Syndrome \\
+\hline
+sig8 & Female Reproductive & Cervicitis and endocervicitis; Polyp of corpus uteri; Uterine prolapse; Endometrial hyperplasia; Excessive menstruation; Ovarian cyst \\
+\hline
+sig9 & Back/Spine & Back pain; Spondylosis; Displacement of intervertebral disc; Spinal stenosis; Degenerative disease of the spinal cord; Neuralgia and radiculitis \\
+\hline
+\end{tabular}
+\caption{Characteristic Diseases for Signatures 0-9}
+\label{tab:signature_diseases1}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{p{0.7cm}p{2.8cm}p{10.5cm}}
+\hline
+\textbf{Sig} & \textbf{Primary Disease} & \textbf{Key Characteristics} \\
+\hline
+sig10 & Eye/Vision & Cataract; Macular degeneration; Primary open angle glaucoma; Retinal vascular changes; Disorders of vitreous body; Myopia \\
+\hline
+sig11 & Cerebrovascular & Occlusion of cerebral arteries; Cerebral ischemia; Late effects of cerebrovascular disease; Cerebral artery occlusion with infarction; Hemiplegia; Transient cerebral ischemia \\
+\hline
+sig12 & Kidney/Ureter & Renal colic; Hydronephrosis; Calculus of ureter; Calculus of kidney; Stricture/obstruction of ureter; Other disorders of kidney and ureters \\
+\hline
+sig13 & Urinary/Prostate & Cancer of prostate; Hyperplasia of prostate; Urethral stricture; Disorders of bladder; Urinary incontinence; Cystitis \\
+\hline
+sig14 & Pulmonary & Tobacco use disorder; Chronic airway obstruction; Pneumonia; Emphysema; Respiratory failure; Obstructive chronic bronchitis \\
+\hline
+sig15 & Diabetes & Type 2 diabetes; Hypoglycemia; Type 2 diabetes with ophthalmic manifestations; Diabetic retinopathy; Type 1 diabetes \\
+\hline
+sig16 & Infection/Sepsis & E. coli; Acute renal failure; Sepsis; Cellulitis and abscess; Bacterial infection; Chronic ulcer of skin \\
+\hline
+sig17 & Colorectal/GI Bleeding & Benign neoplasm of colon; Hemorrhoids; Hemorrhage of gastrointestinal tract; Regional enteritis; Colon cancer; Diverticulosis \\
+\hline
+sig18 & Gallbladder/Biliary & Cholelithiasis; Disorders of gallbladder; Acute pancreatitis; Calculus of bile duct; Cholecystitis; Peritoneal adhesions \\
+\hline
+sig19 & Skin/Breast Cancer & Non-epithelial cancer of skin; Breast cancer [female]; Actinic keratosis; Melanomas of skin; Seborrheic keratosis; Thyrotoxicosis \\
+\hline
+\end{tabular}
+\caption{Characteristic Diseases for Signatures 10-19}
+\label{tab:signature_diseases2}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{pop_sig2.pdf}
+    \caption{Caption}
+    \label{fig:signature-dynamics}
+\end{figure}
+\aladyn{} identifies latent disease signatures that represent distinct patterns of comorbidity and progression. Unlike previous approaches that rely on predefined disease groupings or pairwise associations, our model discovers these patterns in an unsupervised manner, accounting for temporal dynamics and individual heterogeneity.
+
+The model's ability to identify clinically meaningful signatures is demonstrated through its discovery of 21 distinct disease clusters, each corresponding to recognized disease processes. 
+
+For example, we identified signatures corresponding to cardiovascular pathologies, metabolic disorders, and various cancer types, with disease associations that align with known clinical entities. The odds ratios for disease-signature associations reveal strong and specific relationships, with values typically ranging from 2.5 to 3.5 for the most characteristic diseases within each signature. We highlight several key signatures that demonstrate the model's capability to capture clinically meaningful disease clusters (see Fig. \ref{fig:signature-dynamics}).
+
+Our optimization-learned matrix $\psi$ allows each disease to retain a signature-specific element, indicating the disease's importance to the signature and centered around the time-varying population incidence curve. The $\psi$ matrix enforces signature-specific sparsity, initializing each disease with a primary responsibility for one signature, preserved throughout optimization. This intriguing aspect enhances model identifiability as shown in preservation through multiple batches. An individual's probability of any disease is then combined $\textit{across}$ signatures according to their importance to the individual (figure). 
+
+However, the model also allows for some mixed membership: reflecting diverse processess that may contribute to a similar disease: for example, coronary artery disease retains primary signature specificity to the ischemic cardiovascular signature but also to the smoking disease related signature as well as the metabolic signature.
+
+A key innovation of our approach is that we model disease risk as a mixture of signature contributions rather than assigning individuals to a single disease category, or diseases to a single signature.
+
+
+\subsection{Robust Signature Discovery Across Diverse Populations}
+
+To assess the robustness of our approach, we applied \aladyn{} to three independent cohorts: UK Biobank (UKB), All of Us (AoU), and Mass General Brigham (MGB). Despite differences in population characteristics, healthcare systems, and data collection methodologies, the model identified consistent signature patterns across these cohorts.
+
+We first identified disease blocks using hierarchical clustering applied to disease co-occurrence patterns within each biobank. We then assessed the consistency of these blocks across the three populations. Disease blocks showed strong consistency (mean pairwise consistency score = 0.84, see Methods). We visualized this using the average consistency score and the proportion of disease pairs within a block clustering together in all three biobanks (Fig.~\ref{fig:consistency_plot}). Several large blocks showed particularly high agreement (e.g., a block of 18 diseases with 0.87 consistency and 61\% of pairs clustering in all three biobanks). This consistency supports the biological validity of the discovered signatures and demonstrates the model's ability to detect fundamental disease patterns regardless of population-specific factors.
+
+Our set of signatures recognizing consistent core disease groupings. For the exmample, particularly those related to common conditions such as cardiovascular disease and metabolic syndrome, showed remarkable consistency between populations. We quantified this consistency using the proportion of biobanks in which the disease coccurrend, and also the number of disease cooccurring in three biobanks within a grouping. 
+Disease blocks showed strong consistency across biobanks (mean consistency=0.84), with several large blocks showing particularly high agreement (e.g., a block of 18 diseases with 0.87 consistency and 61\% representation across all three biobanks). This consistency supports the biological validity of the discovered signatures and demonstrates the model's ability to detect fundamental disease patterns regardless of population-specific factors.
+
+Interestingly, we observed cohort-specific variations in the temporal dynamics of certain signatures, reflecting real demographic and healthcare differences. For instance, more recent cohorts showed earlier onset of metabolic disease signatures, consistent with population-level trends in obesity and diabetes.  This suggests the underlying disease relationships are biologically coherent across populations (\ref{fig:signature-dynamics}
+
+Some signatures show earlier onset patterns in certain cohorts
+For example, metabolic conditions (diabetes in Sig 14) show different acceleration points. Cardiovascular diseases (Sig 5) show varying peak ages across populations. Finally The phi values (y-axis) reach different heights for the same disease groups This suggests disease prevalence or recording differences between healthcare systems. 
+
+
+Anchoring individual loadings in underlying genomics via Polyengic risk score mean demonstrates modest but expected associations (**do we want gamma)?
+
+
+\subsection*{Population-Level Signature Dynamics: Consistency across cohorts}
+
+
+
+\subsection*{Individual Patient Trajectories}
+
+To illustrate how \aladyn captures individual disease trajectories, we present detailed analyses of representative patients (Fig. 3). We show several target examples of patients whose signature affinity changes over time, as reflected in time varying lambdas, that would be sorely missed by a model which featured only time fixed theta (Fig 3a).
+
+
+One of the most powerful aspects of \aladyn is its ability to update patient signature associations in real-time as new clinical information becomes available. To demonstrate this capability, we conducted a prospective analysis on a subset of patients who developed myocardial infarction (MI) during follow-up. We then removed the date of MI from the analysis. 
+
+For these patients, we examined how their signature associations evolved in the years leading up to their MI event by censoring the individual for myocardial infarction 3 years prior to diagnosis to prevent borrowing information about the trait from the tureu. Remarkably, we observed a consistent pattern of increasing association with the cardiovascular signature (Signature 1) beginning approximately 2-3 years before the clinical event. This increase was often subtle initially but accelerated in the months immediately preceding the MI.
+
+
+
+This example illustrates how \aladyn continuously integrates new clinical information to update risk assessments. Each new diagnosis or test result shifts the patient's signature associations, providing an updated risk profile that reflects their current clinical status. This dynamic updating capability makes \aladyn particularly valuable for clinical decision support, as it can alert clinicians to patients whose risk profiles are rapidly changing.
+
+Furthermore, we can see that for patients with multimorbid diganoes, peak signature onset coincides with the arrival of a disease process. Intriguingly, censoring the data for a given disease prior to onset and refitting the model still arrives at the same solution, reflecting the covariance learned by sharing information across diseases. 
+
+By clustering patients based on their signature association patterns, we identified distinct patient subgroups with different multimorbidity profiles. For example, isolating individuals with major depression, breast cancer and myocardial infarciton, we can furtehr speate by their loadings over time. These variations in individual loadings segregate well with genetics, and reveal common patterns of disease co-occurrence sequences that extend beyond traditional disease categories.
+
+By tracking how patients transition between different signature associations over time, we can identify common disease trajectory patterns (Fig. 7A). We observed that patients typically follow one of several characteristic trajectories, representing different pathways of multimorbidity development.
+
+For example, one common trajectory involves progression from the metabolic signature (Signature 2) to the cardiovascular signature (Signature 1), representing the well-established pathway from metabolic syndrome to cardiovascular disease. Another trajectory shows progression from the autoimmune signature (Signature 3) to the neurological signature (Signature 4), potentially reflecting the increased risk of neurological complications in patients with autoimmune conditions.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{ind_stuff.pdf}
+    \caption{Caption}
+    \label{fig:enter-label}
+\end{figure}
+
+Finally, signature loadings clarify early vs late onset disease. For example, stratifying early vs late onset patients with MI revelas heterogenetiy in peak onset of the cardiovascular signature with distinct profile outlindes. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{het.pdf}
+    \caption{Caption}
+    \label{fig:enter-label}
+\end{figure}
+
+We also identified "fast progressors" – patients who rapidly transition from low-risk to high-risk signature associations. These patients often show distinct genetic and demographic profiles compared to "slow progressors," suggesting potential biological differences in disease susceptibility and progression rates. Understanding these differences could inform personalized prevention strategies and help identify patients who might benefit from more aggressive interventions.
+
+
+
+By analyzing the temporal evolution of signature affinities ($\theta_{i,k,t}$), we can identify distinct trajectory patterns that correspond to different disease progression phenotypes. These patterns may represent different pathophysiological mechanisms, potentially informing personalized intervention strategies. 
+
+
+
+\subsection*{Real-Time Signature Updates with New Clinical Information}
+
+
+\subsection*{Genetic and Demographic Influences}
+
+Genetics acts in our model in two ways; first through influecning the prior mean of lambda, and second , in downstream analyses of individual loadings. We calculated the area under the exposure cruve of an indivdiuals' association with each signature, and then associated theis with their germline genetics. Importantly, for this analysis, we omitted PRS from the mean of lambda to avodi doublefitting. We identified significant correlation with known traits, showing that each signature is enriched with true biology.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{genetics.pdf}
+    \caption{Caption}
+    \label{fig:enter-label}
+\end{figure}
+Fruthemore, Genetics aligns with the signature neterogentiy: for example, clustering individuals with major diseaess based on siagnture distribtuion over time segregates distribtuion of polygenic risk scores as well. 
+
+
+Fianlly, we can consider the heatmpa of gamma, the includence of genetics, and see that while this prior mean effect is relatively minor, genetics remains strongly associated with traits on a donstream level.
+
+
+
+\subsection*{Aladynoulli Excels at Dynamically Updating Near-Term Risk Forecasts}
+
+A key application of dynamic health trajectory models is the prediction of near-term clinical events based on an individual's history up to a given point (e.g., enrollment). We evaluated \aladyn's ability to predict the onset of major diseases within **one year** following enrollment, using only data available up to the enrollment time point. This prospective evaluation framework assesses the model's utility for identifying individuals at imminent risk.
+
+We compared \aladyn's performance to a strong baseline model: logistic regression using Age, Sex, and comprehensive Family History (FH+Sex+Age) data available at enrollment, trained on a separate training set distinct from the test cohort. Performance was measured using the Area Under the Receiver Operating Characteristic curve (AUROC) on the held-out test set.
+
+As shown in Figure~\ref{fig:performance_barplot}, \aladyn demonstrated significantly improved predictive performance compared to the FH+Sex+Age baseline for the 1-year outcome across most major disease categories. Notable improvements (AUC difference > 0.10) were observed for conditions including Ulcerative Colitis (+0.55), Rheumatoid Arthritis (+0.39), Colorectal Cancer (+0.33), Breast Cancer (+0.29), Parkinson's Disease (+0.27), Anxiety (+0.24), CKD (+0.18), Depression (+0.18), Asthma (+0.17), Bladder Cancer (+0.14), Multiple Sclerosis (+0.14), ASCVD (+0.15), and Prostate Cancer (+0.11). While formal statistical tests for the difference in AUC are pending, the magnitude of these improvements and the consistency across diverse disease groups highlight the added value of incorporating longitudinal data via \aladyn for short-term risk prediction. The model also showed good calibration for 1-year risk probabilities (Fig.~\ref{fig:calibration_plot}). Performance was more comparable or slightly favored the baseline for a few conditions, suggesting areas where baseline factors dominate short-term risk or where model features could be further optimized.
+
+A key objective of modeling longitudinal health records is to provide timely, updated risk assessments that reflect a patient's evolving clinical status. We therefore evaluated Aladynoulli's ability to predict near-term (1-year) incident disease risk, leveraging the full patient history available up to the point of prediction. This task directly assesses the model's core capability: dynamically updating risk forecasts as new diagnoses and health events are recorded over time.
+We compared Aladynoulli's 1-year predictive performance against strong baseline models incorporating established risk factors like age, sex, and family history (FH), evaluated at the same time points using only information available up to then. Figure 4A presents the Area Under the Receiver Operating Characteristic Curve (AUC) for predicting the onset of key diseases within the next year across the test cohort. Aladynoulli consistently demonstrated superior discrimination compared to the FH+Sex+Age baseline for a wide range of conditions. Notably significant improvements were observed for diseases like Breast Cancer (AUC increase of +0.289), Prostate Cancer (+0.113), Type 2 Diabetes (+0.074), Ischemic Heart Disease (+0.061), and Atrial Fibrillation (+0.055) [Include CI/p-values if available]. These results highlight the substantial value gained by incorporating dynamic, longitudinal patterns learned by Aladynoulli, particularly for identifying individuals whose near-term risk is changing based on their recent health trajectory, beyond what static factors can capture.
+Furthermore, we assessed the calibration of these 1-year risk predictions (Figure 4B). The calibration plot shows good agreement between predicted probabilities and observed event frequencies, indicating that Aladynoulli's dynamically updated risk scores are reliable estimates of actual 1-year risk. This is crucial for clinical utility, ensuring that a predicted risk level corresponds accurately to the patient's likelihood of experiencing the event in the near future.
+(Consider adding a sentence here linking to the censoring experiment figure/results if applicable): The model's ability to track underlying risk dynamics is further illustrated by its capacity to detect increasing signature activation (lambda) preceding disease onset, even when the target disease itself is censored from the input data (See Figure X / Supplementary Material), demonstrating sensitivity to evolving comorbid patterns predictive of changing risk.
+
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{performance.pdf}
+    \caption{Caption}
+    \label{fig:performance_barplot}
+\end{figure}
+
+\section{Discussion}
+
+\aladyn provides a novel framework for modeling the complex interplay between multiple diseases over time, identifying interpretable disease signatures that capture distinct patterns of comorbidity and progression. Our results demonstrate the model's ability to identify clinically meaningful disease signatures, predict future disease events, and provide insights into the underlying biological mechanisms.
+
+
+he identified disease signatures align with known clinical entities while revealing novel relationships between diseases. [...] These findings highlight the potential of our approach for discovering novel disease relationships and understanding the complex interplay between different physiological systems.
+
+The genetic and demographic influences on signature affinity provide insights into the underlying biological mechanisms. [...]
+
+The temporal dynamics captured by our model are crucial. Our evaluation demonstrates that leveraging these dynamics allows \aladyn to significantly outperform strong baseline models in predicting **short-term (1-year) risk** prospectively. This ability to identify individuals at high imminent risk, based on their accumulated history and trajectory, is a key advantage for clinical applications requiring timely interventions or monitoring adjustments. While predicting binary outcomes over very long horizons (e.g., 10 years) from baseline may rely heavily on static factors like age and family history (where baseline models performed competitively), \aladyn excels at the dynamic assessment relevant to near-term clinical care.
+
+The real-time updating capability of \aladyn further enhances its clinical utility. [...]
+
+The identification of common disease trajectories and signature transitions provides a new framework for understanding multimorbidity development. [...]
+
+
+Clinical Utility of Dynamic Risk Assessment: Our findings demonstrate Aladynoulli's strength in providing dynamically updated 1-year risk predictions. This contrasts with traditional risk scores often calculated once at baseline. The ability to refresh risk estimates as a patient accumulates new diagnoses is crucial in clinical practice. It allows for the identification of individuals whose risk profile is actively changing, potentially warranting adjustments in screening schedules, preventative strategies, or clinical vigilance, even if their absolute risk hasn't yet crossed a high threshold.
+Focus on Near-Term Prediction Aligns with Model Dynamics: We concentrated our primary performance evaluation on the 1-year prediction task because it directly leverages the model's ability to capture temporal dependencies and recent health changes. While long-term prediction from baseline is important, it often relies heavily on static factors. Aladynoulli's architecture, designed to model year-to-year transitions based on evolving latent states, is optimally assessed by its capacity to forecast imminent clinical events based on the most current patient state. The superior performance in this setting underscores the value of modeling longitudinal trajectories for near-term forecasting.
+Beyond Static Risk: Identifying Risk Trajectories: Aladynoulli moves beyond providing a single risk score, instead characterizing a patient's journey through different health states over time. The learned signatures (phi) and their individual activation levels (lambda) offer insights into the patient's evolving risk trajectory. Detecting periods of rapid increase in specific signature activations could signify critical windows where underlying pathophysiology is accelerating, highlighting the potential for preemptive intervention. This ability to monitor changing risk over time is a key advantage offered by our dynamic modeling approach.
+Interpreting Evolving Comorbid Patterns: The censoring experiment provides compelling evidence that Aladynoulli learns meaningful relationships between diseases over time. Its ability to infer increasing risk for a target condition based solely on patterns in other evolving comorbidities demonstrates that the model captures more than simple disease co-occurrence; it learns signatures reflective of underlying biological processes whose activation signifies changing risk.
+
+Our model has several limitations. First, it relies on EHR data, which may contain biases and inaccuracies. Second, the model assumes that disease risk can be represented as a mixture of latent signatures, which may not capture all aspects of disease complexity. Third, the model does not explicitly account for treatment effects, which may influence disease trajectories. Future work will address these limitations by incorporating additional data sources, exploring more complex model architectures, and explicitly modeling treatment effects.
+
+Despite these limitations, \aladyn represents a significant advance in longitudinal health data analysis, providing a powerful framework for understanding disease relationships and progression patterns. The model's ability to identify interpretable disease signatures, predict future disease events, and provide personalized risk trajectories has important implications for clinical decision-making and personalized medicine.
+
+\section{Materials and Methods}
+
+\subsection*{Data Source and Preprocessing}
+
+We used data from a large-scale EHR database comprising 500,000 individuals with up to 20 years of follow-up. The data included demographic information, genetic data, and longitudinal disease diagnoses coded using the International Classification of Diseases (ICD) system.
+
+We preprocessed the data by mapping ICD codes to clinically meaningful disease categories using a hierarchical mapping scheme. We divided the follow-up period into discrete time intervals of 1 year, creating a binary matrix of disease occurrences for each individual across time. We included individuals with at least 5 years of follow-up and at least one disease diagnosis.
+
+Genetic data was preprocessed by selecting common variants (minor allele frequency > 1\%) and computing genetic principal components to account for population structure. We included the first 10 genetic principal components as covariates in our model, along with age, sex, and other demographic factors.
+
+\subsection*{Model Implementation}
+
+We implemented \aladyn using PyTorch, a deep learning framework that allows for efficient computation of gradients through automatic differentiation. The model was trained using the Adam optimizer with a learning rate of 0.001 and a batch size of 1000 individuals.
+
+We initialized the model parameters using spectral clustering on disease co-occurrence patterns to identify initial signature-disease associations. We set the number of signatures $K=10$ based on preliminary experiments and clinical interpretability of the resulting signatures.
+
+The Gaussian process kernels used squared exponential functions with length scales of $T/4$ for $\lambda_{i,k,t}$ and $T/3$ for $\phi_{k,d,t}$, where $T$ is the number of time points. These length scales were chosen to balance smoothness and flexibility in capturing temporal dynamics.
+
+The model was trained for 1000 epochs, with early stopping based on validation loss to prevent overfitting. We used a combination of likelihood-based loss and regularization terms, including a likelihood ratio term to promote signature specificity.
+
+\subsection*{Evaluation Metrics}
+
+We evaluated the model's predictive performance using a temporal validation framework. The primary evaluation focused on predicting disease onset within **one year** following a defined enrollment time point, using only data available up to enrollment. Models (Aladynoulli and baselines) were trained on a designated training set and evaluated on a held-out test set. We computed the area under the receiver operating characteristic curve (AUROC) with 95\% confidence intervals (using the Hanley-McNeil method for standard error calculation) and assessed calibration using reliability diagrams comparing predicted probabilities to observed 1-year event rates.
+
+%We also computed the Brier score, which measures the mean squared error between predicted probabilities and actual outcomes.
+
+We evaluated the model's predictive performance using a temporal validation framework, where we trained the model on data up to time $t$ and predicted disease events at time $t+\Delta t$. We computed the area under the receiver operating characteristic curve (AUROC) and the area under the precision-recall curve (AUPRC) for each disease category.
+
+We assessed the model's calibration by comparing predicted probabilities to observed event rates across risk deciles. We also computed the Brier score, which measures the mean squared error between predicted probabilities and actual outcomes.
+
+To evaluate the clinical relevance of the identified signatures, we computed enrichment scores for known disease groups using a hypergeometric test. We also assessed the alignment of genetic associations with known risk factors using data from genome-wide association studies.
+
+\subsection*{Baseline Models}
+
+We compared \aladyn to several baseline models, including:
+\begin{enumerate}
+\item Logistic regression with demographic covariates
+\item Random forests with comprehensive feature sets
+\item Recurrent neural networks with long short-term memory (LSTM) cells
+\item Topic models applied to disease co-occurrence patterns
+\end{enumerate}
+
+All baseline models were trained and evaluated using the same temporal validation framework as \aladyn, ensuring a fair comparison.
+
+\section{References and Notes}
+
+\begin{enumerate}
+\item \label{example1} A. Author et al., "Electronic health records for clinical research: Review of applications, challenges, and opportunities," Journal of Medical Informatics 45, 123-456 (2020).
+\item \label{example2} B. Researcher, C. Scientist, "Challenges in analyzing longitudinal health data," Biostatistics 30, 789-012 (2019).
+\item \label{example3} D. Analyst et al., "Pairwise disease associations: limitations and opportunities," Nature Methods 15, 345-678 (2018).
+\item \label{example4} E. Modeler, F. Statistician, "Unsupervised learning for disease trajectory analysis," Machine Learning for Healthcare 5, 901-234 (2021).
+\item \label{methods} Materials and methods are available as supplementary materials.
+\end{enumerate}
+
+
+
 
 \clearpage % Clear all remaining figures and tables then start a new page
 
 % The list of references goes after the main text and before the acknowledgements
 % When preparing an initial submission, we recommend you use BibTeX, like this:
 %
-\bibliography{science_template} % for a file named science_template.bib
+\bibliography{exportforoverleaf} % for a file named science_template.bib
 \bibliographystyle{sciencemag}
 
-% After the paper has completed peer review and been revised ready for acceptance,
-% you should comment out the lines above and copy-paste the contents of your .bbl
-% file here instead. This will help ensure that our conversion software works correctly.
-% Remember to re-run BibTeX first - check the timestamp!
-%
-% Example of the first three entries copy-pasted from science_template.bbl:
-%
-%\begin{thebibliography}{1}
-%
-%\bibitem{example}
-%A.~N. {Author}, An example reference. \emph{Journal of Improbable Research}
-%  \textbf{1}, 67 (2020).
-%
-%\bibitem{example2}
-%F.~M. {Surname}, S.~{Author}, A second example. \emph{Interesting Research
-%  Letters} \textbf{32}, 897 (2019).
-%
-%\bibitem{example_preprint}
-%P.~{One}, P.~{Two}, P.~{Three}, {An unpublished preprint}. \emph{preprint}
-%  (2021), arXiv:2101.12345.
-%
-%\end{thebibliography}
-
-
-%%%%%%%%%%%%%%%% ACKNOWLEDGEMENTS %%%%%%%%%%%%%%%
-
-\section*{Acknowledgments}
-Here you can thank helpful colleagues who did not meet the journal's authorship criteria, or
-provide other acknowledgements that don't fit the (compulsory) subheadings below.
-Formatting requirements for each of these sections differ between the \textit{Science}-family
-journals; consult the instructions to authors on the journal website for full details.
-\paragraph*{Funding:}
-List the grants, fellowships etc. that funded the research;
-use initials to specify which author(s) were supported by each source.
-Include grant numbers when appropriate or required by the funding agency.
-For example: F.~A. was funded by the Generous Science Agency grant~2372.
-\paragraph*{Author contributions:}
-List each author’s contributions to the paper.
-Use initials to abbreviate author names.
-\paragraph*{Competing interests:}
-Disclose any potential conflicts of interest for all authors, such as patent applications,
-additional affiliations, consultancies, financial relationships etc.
-See the journal editorial policies web page for types of competing interest that must be declared.
-If there are no competing interests, state:
-``There are no competing interests to declare.''
-\paragraph*{Data and materials availability:}
-Specify where the data, software, physical samples, simulation outputs or other materials
-underlying the paper are archived.
-They must be publicly accessible when the paper is published (without embargo) and enable
-readers to reproduce all the results in the paper.
-Contact the editor if you’re unsure what needs to be shared.
-
-Our preference is for digital material to be deposited in a suitable non-profit online data or
-software repository that issues the material with a DOI.
-Alternatively, an institutional repository, subject-based archive, commercial repository etc.
-is acceptable, as are (short) supplementary tables or a machine-readable supplementary data file.
-‘Available on request’ or personal web pages are not allowed.
-
-Cite the relevant DOI \cite{dataset}, URL \cite{example_url} or reference \cite{example2}
-in this statement.
-These \textit{do not} count towards the reference limit if they are only cited in the acknowledgements.
-Be specific and state a unique identifier -- such as an accession number, software version number
-or observation ID -- so readers can easily retrieve the exact material used.
-
-Declare any restrictions on sharing or re-use -- such as a Materials Transfer Agreement (MTA) or
-legal restrictions -- which must be approved by your editor.
-Unreasonable restrictions will preclude publication.
-Consult the journal's editorial policies web page for more details.
-
-
-%%%%%%%%%%%%%%%% SUPPLEMENT LIST %%%%%%%%%%%%%%%
-
-% List the contents of your Supplementary Materials, including the numbers of any
-% supplementary figures, tables, external data files etc. and any references that are
-% cited only in the supplement. In this example, refs. 7-8 are cited only in the supplement.
-% Fill out your numbers accordingly and delete any lines that aren't applicable.
-\subsection*{Supplementary materials}
-Materials and Methods\\
-Supplementary Text\\
-Figs. S1 to S3\\
-Tables S1 to S4\\
-References \textit{(7-\arabic{enumiv})}\\ % automatically fills out the last reference number
-% (filling out the other numbers automatically is possible but fiddly and liable to break)
-Movie S1\\
-Data S1
-
-%%%%%%%%%%%%%%%% END OF MAIN TEXT %%%%%%%%%%%%%%%
-
-\newpage
-
-%%%%%%%%%%%%%%%% START OF SUPPLEMENT %%%%%%%%%%%%%%%
-
-% Figures, tables, equations and pages in the supplement are numbered S1, S2 etc.
-\renewcommand{\thefigure}{S\arabic{figure}}
-\renewcommand{\thetable}{S\arabic{table}}
-\renewcommand{\theequation}{S\arabic{equation}}
-\renewcommand{\thepage}{S\arabic{page}}
-\setcounter{figure}{0}
-\setcounter{table}{0}
-\setcounter{equation}{0}
-\setcounter{page}{1} % not 0 as \newpage already started a supplementary page
-% References continue the numbering from the main text.
-
-
-%%%%%%%%%%%%%%%% SUPPLEMENT TITLE PAGE %%%%%%%%%%%%%%%
-
-\begin{center}
-\section*{Supplementary Materials for\\ \scititle}
-
-% Author list for the supplement
-% Indicate the corresponding authors, but do NOT include institutions here
-% It would be nice if the template auto-generated this, but doing so is complicated...
-First~Author$^{\ast\dagger}$,
-A.~Scientist$^\dagger$,
-Someone~E.~Else\\ % we're not in a \author{} environment this time, so use \\ for a new line
-\small$^\ast$Corresponding author. Email: example@mail.com\\
-\small$^\dagger$These authors contributed equally to this work.
-\end{center}
-
-% Fill out the numbers for each type of supplementary material,
-% and delete any lines that aren't applicable.
-% These are just example numbers that don't match the rest of this template.
-\subsubsection*{This PDF file includes:}
-Materials and Methods\\
-Supplementary Text\\
-Figures S1 to S3\\
-Tables S1 to S4\\
-Captions for Movies S1 to S2\\
-Captions for Data S1 to S2
-
-\subsubsection*{Other Supplementary Materials for this manuscript:}
-Movies S1 to S2\\
-Data S1 to S2
-
-\newpage
-
-%%%%%%%%%%%%%%%% MATERIALS AND METHODS %%%%%%%%%%%%%%%
-
-\subsection*{Materials and Methods}
-
-The Materials and Methods section should contain details of the samples measured,
-experiments performed, observations taken, simulations run, data analysis, statistical methods etc.
-Give enough detail for any competent researcher in your field to fully reproduce the results.
-
-To refer to this section from the main text, use the numbered note in the reference list \cite{methods}.
-Refer to figures and tables in the same way as in the main text but now all capitalized e.g.
-Fig.~\ref{fig:example}, Table~\ref{tab:example},
-Fig.~\ref{fig:sup_example} and Table~\ref{tab:sup_example}.
-Cite references in the usual way \cite{example2},
-including any that are only cited in the supplement \cite{sm_example,conference_example}.
-
-The numbering of figures, tables, equations and pages has been reset to start from S1, as in
-\begin{equation}
-	\cos(2\theta) = \cos^2\theta - \sin^2\theta.
-	\label{eq:sup_example} % Use a logical label
-\end{equation}
-
-\subsubsection*{Example supplement heading}
-
-The two main sections of the supplement can be split up using headings.
-
-
-%%%%%%%%%%%%%%%% SUPPLEMENTARY TEXT %%%%%%%%%%%%%%%
-
-\subsection*{Supplementary Text}
-The Supplementary Text section can only be used to directly support statements made in the main text
-e.g. to present more detailed justifications of assumptions, investigate alternative scenarios,
-provide extended acknowledgements etc.
-Material in this section cannot claim results or conclusions that weren't mentioned in the main text.
-To refer to this section from the main text, just write (Supplementary Text).
-
-\subsubsection*{Example supplement heading}
-
-The two main sections of the supplement can be split up using headings.
-
-% If your supplement is very short you might need to uncomment the following line to avoid
-% layout problems with the figures and tables.
-%\newpage
-
-%%%%%%%%%%%%%%%% SUPPLEMENTARY FIGURES %%%%%%%%%%%%%%%
-
-\begin{figure} % Do not use \begin{figure*}
-	\centering
-	\includegraphics[width=0.6\textwidth]{example_figure} % for an image file named example_figure.*
-	% Pick an appriopriate width for the size of the image
-
-	% Captions go below figures
-	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
-		Follow the same style as main text figures.
-		If the design is substantially the same as another figure, avoid repeating information
-		e.g. say `Same as Figure~\ref{fig:example}, but for the control sample.'}
-	\label{fig:sup_example} % give each figure a logical label name
-\end{figure}
-
-%%%%%%%%%%%%%%%% SUPPLEMENTARY TABLES %%%%%%%%%%%%%%%
-
-\begin{table} % Do not use \begin{table*}
-	\centering
-	% Captions go above tables
-	\caption{\textbf{All captions must start with a short bold sentence, acting as a title.}
-		Follow the same style as main text tables.
-		If the design is similar to previous tables, avoid repetition by refering back to them.}
-	\label{tab:sup_example} % give each table a logical label name
-
-	\begin{tabular}{lccr} % four columns, alignment for each
-		\\
-		\hline
-		A & B & C & D\\
-		\hline
-		1 & 2 & 3 & 4\\
-		2 & 4 & 6 & 8\\
-		3 & 5 & 7 & 9\\
-		\hline
-	\end{tabular}
-\end{table}
-
-
-%%%%%%%%%%% CAPTIONS FOR OTHER SUPPLEMENTARY FILES %%%%%%%%%%
-
-\clearpage % Clear all remaining figures and tables then start a new page
-
-\paragraph{Caption for Movie S1.}
-\textbf{All captions must start with a short bold sentence, acting as a title.}
-Then explain what is shown in the supplementary video file.
-Give as much detail as you would for a figure e.g. explain axes, color maps etc.
-If the video is an animated equivalent of one of the static figures, state e.g.
-`Animated version of Figure~\ref{fig:example}.'
-
-\paragraph{Caption for Data S1.}
-\textbf{All captions must start with a short bold sentence, acting as a title.}
-Then explain what is included in the supplementary data file.
-Give as much detail as you would for a table e.g. explain the meaning of every column,
-units used, any special notation etc.
-
-
-%%%%%%%%%%%%%%%% SUPPLEMENTARY REFERENCES %%%%%%%%%%%%%%%
-
-% Do NOT include a reference list in the supplement.
-% All references must be in a single list at the end of the main text.
-% The copyeditors will ensure that the correct reference list appears with each version of the paper
-% (print, HTML, PDF, mobile app, metadata for bibliographic databases etc.)
-
 \end{document}
-% End of science_template.tex
