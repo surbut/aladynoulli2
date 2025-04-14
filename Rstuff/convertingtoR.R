@@ -1,28 +1,89 @@
 # Install if needed
 ## restart R
-install.packages("reticulate")
 library(reticulate)
 ## convert ro R
-use_condaenv("r-tensornoulli")
-
+#use_condaenv("r-tensornoulli")
+use_condaenv("/opt/miniconda3/envs/new_env_pyro2", required = TRUE)
 torch <- import("torch")
-library(reticulate)
-library(torch)
+
 # 1. Load the model and get phi
 
-model=torch$load("/Users/sarahurbut/Dropbox (Personal)/resultstraj_genetic_scale1/results/output_0_10000/model.pt",weights_only=FALSE)
+#model=torch$load("/Users/sarahurbut/Dropbox (Personal)/resultstraj_genetic_scale1/results/output_0_10000/model.pt",weights_only=FALSE)
+model=torch$load("/Users/sarahurbut/Dropbox/resultshighamp//results/output_0_10000/model.pt",weights_only=FALSE)
+sig_refs=torch$load("/Users/sarahurbut/Dropbox/data_for_running/reference_trajectories.pt",weights_only=FALSE)
 
-
+sigs=tensor_to_r(sig_refs$signature_refs)
 # Function to convert torch tensor to R array
 tensor_to_r <- function(tensor) {
   as.array(tensor$detach()$cpu()$numpy())
 }
 
+
+
+sigs=rbind(sigs,rep(-5,52))
+softmax=function(x){
+  exp(x)/sum(exp(x))
+}
+
+
+
+
+# 3. Calculate population-level theta using softmax
+softmax <- function(x) {
+  exp(x) / sum(exp(x))
+}
+pop_theta <- apply(sigs, 2, softmax)  # [K+1, T]
+# 5. Calculate pi predictions using tensor multiplication
+# This is equivalent to the Python einsum('nkt,kdt->ndt')
+pi_pred <- array(0, dim=c(dim(all_thetas)[1], dim(phi_prob)[2], dim(all_thetas)[3]))
+N=dim(all_thetas)[1]
+for(i in 1:N) {
+  #for (d in 1:D) {
+  for (t in 1:T)
+  {
+    pi_pred[i, , t] <- all_thetas[i, , t] %*% phi_prob[, , t]
+  }
+}
+
+image(t(d))
+
+matplot(t(phi_prob[6,,]))
+
+model_apu=torch$load("/Users/sarahurbut/Dropbox/model_with_kappa_bigam_aou.pt",weights_only=FALSE)
+
+
+
+
+
+# 4. Calculate average disease probabilities
+T <- dim(phi_prob)[3]
+D <- dim(phi_prob)[2]
+avg_pi <- matrix(0, nrow=D, ncol=T)
+
+# For each timepoint
+
+for(t in 1:T) {
+  # Get phi at this timepoint
+  phi_t <- phi_prob[,,t]  # [K, D]
+  
+  for(n in 1:N){
+  
+  # Get population theta at this timepoint and ensure it's a column vector
+  theta_t <- matrix(pop_theta[,t], ncol=1)  # [K,1]
+  
+  # Calculate disease probabilities: [D] = ([D,K] %*% [K,1]) * scalar
+  avg_pi[,t] <- as.vector(t(phi_t) %*% theta_t) * kappa
+}
+
+pop_theta=apply(sigs,2,softmax)
+matplot(t(pop_theta))
+theta=apply(model_params$lambda,c(1,3),softmax)
 # Convert model parameters
 model_params <- list(
   phi = tensor_to_r(model$model_state_dict$phi),
   psi = tensor_to_r(model$model_state_dict$psi),
-  lambda = tensor_to_r(model$model_state_dict$lambda)
+  lambda = tensor_to_r(model$model_state_dict$lambda),
+  kappa=tensor_to_r(model$model_state_dict$kappa)
 )
 
 mu_d=tensor_to_r(model$logit_prevalence_t)
@@ -85,27 +146,17 @@ softmax_by_k <- function(x) {
   sweep(exp_x, c(1,3), apply(exp_x, c(1,3), sum), "/")
 }
 
-all_thetas <- softmax_by_k(all_lambdas)
+all_thetas <- softmax_by_k(model_params$lambda)
 phi_prob <- 1/(1 + exp(-phi_kd))
 
 # 4. Convert phi to probabilities using sigmoid
 sigmoid <- function(x) {
   1/(1 + exp(-x))
 }
-phi_prob <- sigmoid(phi_kd)
-D=348
+phi_prob <- sigmoid(model_params$phi)
 
-# 5. Calculate pi predictions using tensor multiplication
-# This is equivalent to the Python einsum('nkt,kdt->ndt')
-pi_pred <- array(0, dim=c(dim(all_thetas)[1], dim(phi_prob)[2], dim(all_thetas)[3]))
-for(i in 1:N) {
-  for (d in 1:D) {
-    for (t in 1:T)
-    {
-      pi_pred[i, d, t] <- all_thetas[i, , t] %*% phi_prob[, d, t]
-    }
-  }
-}
+
+
 
 
 y_observed_mean=apply(ya,c(2,3),mean)
@@ -153,3 +204,271 @@ m=merge(pce_df,prevent,by.x="id",by.y="eid",all.x = T)
 m$prevent_impute=m$prevent_base_ascvd_risk
 m$prevent_impute[is.na(m$prevent_impute)]=mean(na.omit(m$prevent_base_ascvd_risk))
 saveRDS(m,"~/Dropbox (Personal)/pce_df_prevent.rds")
+
+original_psi=torch$load('/Users/sarahurbut/Dropbox/data_for_running/initial_psi_400k.pt')
+original_psi=tensor_to_r(psi)
+original_psi=tensor_to_r(original_psi)
+image(original_psi)
+image(model_params$psi)
+
+sm=apply(original_psi,2,function(x){exp(x)/sum(exp(x))})
+smo=apply(model_params$psi[c(1:20),],2,function(x){exp(x)/sum(exp(x))})
+smo2=apply(model_params$psi[c(1:20),],2,function(x){(x)/sum((x))})
+
+# Assuming original_psi_softmax_r is your softmax-transformed matrix
+# Calculate the variance for each signature
+variance_explained <- apply(smo, 2, var)
+
+# Calculate the proportion of variance explained
+total_variance <- sum(variance_explained)
+proportion_variance_explained <- variance_explained / total_variance
+
+
+
+library(ggplot2)
+library(gridExtra)
+library(viridis)
+
+## signatures across diseases 
+matplot(t(phi_prob[5,,]))
+matplot(t(phi_prob[1,,]))
+matplot(t(phi_prob[18,,]))
+
+# 1. Population-level signature proportions
+sigs <- rbind(sigs, rep(-5, 52))
+pop_theta <- apply(sigs, 2, softmax)
+rownames(pop_theta)=paste("Sig",seq(1:21))
+p1 <- ggplot(data = as.data.frame(t(pop_theta))) +
+  geom_line(aes(x = 1:52, y = V1, color = "Sig 1")) +
+  geom_line(aes(x = 1:52, y = V2, color = "Sig 2")) +
+  # ... add other signatures
+  labs(title = "Population-Level Signature Proportions",
+       x = "Age", y = "Proportion") +
+  theme_minimal()
+
+# 2. Disease probabilities
+# Calculate individual-averaged probabilities
+N <- dim(all_thetas)[1]
+D <- dim(phi_prob)[2]
+T <- dim(phi_prob)[3]
+
+pi_individual_avg <- matrix(0, nrow=D, ncol=T)
+for(t in 1:T) {
+  pi_t <- matrix(0, nrow=N, ncol=D)
+  for(i in 1:N) {
+    pi_t[i,] <- all_thetas[i,,t] %*% phi_prob[,,t]
+  }
+  pi_individual_avg[,t] <- colMeans(pi_t)
+}
+pi_individual_avg <- pi_individual_avg * kappa
+
+# Population-level probabilities
+pi_pop <- matrix(0, nrow=D, ncol=T)
+for(t in 1:T) {
+  pi_pop[,t] <- as.vector(t(phi_prob[,,t]) %*% matrix(pop_theta[,t], ncol=1)) * kappa
+}
+
+# Create heatmap of differences
+diff_matrix <- pi_individual_avg - pi_pop
+
+p2 <- ggplot(data = reshape2::melt(diff_matrix)) +
+  geom_tile(aes(x = Var2, y = Var1, fill = value)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  labs(title = "Individual vs Population Probability Differences",
+       x = "Age", y = "Disease") +
+  theme_minimal()
+
+# Arrange plots
+grid.arrange(p1, p2, ncol=1)
+
+
+library(ggplot2)
+library(gridExtra)
+library(reshape2)
+library(viridis)
+
+# 1. Signatures across diseases (for selected signatures)
+selected_sigs <- c(6, 7, 16)  # Your selected signatures
+sig_names <- c("Cardiovascular", "Cancer", "Metabolic")  # Example names
+
+# Create data frames for signature-specific disease trajectories
+plot_data_list <- list()
+for(i in seq_along(selected_sigs)) {
+  sig_idx <- selected_sigs[i]
+  df <- data.frame(
+    Time = rep(1:52, ncol(phi_prob)),
+    Disease = rep(model$disease_names,each=52),
+    Probability = as.vector(t(phi_prob[sig_idx,,]))
+  )
+  plot_data_list[[i]] <- df
+}
+
+# Create signature-specific plots
+sig_plots <- lapply(seq_along(selected_sigs), function(i) {
+  ggplot(plot_data_list[[i]], aes(x=Time, y=Probability, color=Disease)) +
+    geom_line(alpha=0.6) +
+    labs(title=paste("Signature", selected_sigs[i], "-", sig_names[i]),
+         x="Age", y="Disease Probability") +
+    theme_minimal() +
+    theme(legend.position="none") +
+    scale_color_viridis(discrete=TRUE)
+})
+
+# 2. Population-level signature proportions
+sigs <- rbind(sigs, rep(-5, 52))
+pop_theta <- apply(sigs, 2, softmax)
+rownames(pop_theta) <- paste("Sig", 1:nrow(pop_theta))
+
+theta_df <- melt(pop_theta)
+colnames(theta_df) <- c("Signature", "Time", "Proportion")
+
+p_theta <- ggplot(theta_df, aes(x=Time, y=Proportion, color=Signature)) +
+  geom_line() +
+  labs(title="Population-Level Signature Proportions",
+       x="Age", y="Proportion") +
+  theme_minimal() +
+  theme(legend.position="right") +
+  scale_color_viridis(discrete=TRUE)
+
+# Arrange all plots
+grid.arrange(
+  sig_plots[[1]], sig_plots[[2]], sig_plots[[3]], 
+  p_theta,
+  ncol=2
+)
+
+
+library(ggplot2)
+library(gridExtra)
+library(reshape2)
+library(viridis)
+
+# 1. Signatures across diseases (for selected signatures)
+selected_sigs <- c(5, 1, 18)  # Your selected signatures
+sig_names <- c("Cardiovascular", "Cancer", "Metabolic")  # Example names
+
+# Create data frames with disease names
+plot_data_list <- list()
+for(i in seq_along(selected_sigs)) {
+  sig_idx <- selected_sigs[i]
+  df <- data.frame(
+    Time = rep(1:52, ncol(phi_prob)),
+    Disease = rep(model$disease_names, each=52),
+    Probability = as.vector(t(phi_prob[sig_idx,,]))
+  )
+  plot_data_list[[i]] <- df
+}
+
+# Create signature-specific plots
+# For each signature, show only top N diseases for clarity
+N_top_diseases <- 10
+
+sig_plots <- lapply(seq_along(selected_sigs), function(i) {
+  # Find top diseases for this signature based on maximum probability
+  top_diseases <- plot_data_list[[i]] %>%
+    group_by(Disease) %>%
+    summarize(max_prob = max(Probability)) %>%
+    arrange(desc(max_prob)) %>%
+    head(N_top_diseases) %>%
+    pull(Disease)
+  
+  # Filter data for top diseases
+  plot_data <- plot_data_list[[i]] %>%
+    filter(Disease %in% top_diseases)
+  
+  ggplot(plot_data, aes(x=Time, y=Probability, color=Disease)) +
+    geom_line(linewidth=1, alpha=0.8) +
+    labs(title=paste("Signature", selected_sigs[i], "-", sig_names[i]),
+         x="Age", y="Disease Probability") +
+    theme_minimal() +
+    theme(legend.position="right",
+          legend.text = element_text(size=8),
+          plot.title = element_text(size=12)) +
+    scale_color_viridis(discrete=TRUE) +
+    guides(color=guide_legend(ncol=1))
+})
+
+# Population-level signature proportions plot (as before)
+sigs <- rbind(sigs, rep(-5, 52))
+pop_theta <- apply(sigs, 2, softmax)
+rownames(pop_theta) <- paste("Sig", 1:nrow(pop_theta))
+
+theta_df <- melt(pop_theta)
+colnames(theta_df) <- c("Signature", "Time", "Proportion")
+
+p_theta <- ggplot(theta_df, aes(x=Time, y=Proportion, color=Signature)) +
+  geom_line() +
+  labs(title="Population-Level Signature Proportions",
+       x="Age", y="Proportion") +
+  theme_minimal() +
+  theme(legend.position="right") +
+  scale_color_viridis(discrete=TRUE)
+
+# Arrange all plots
+grid.arrange(
+  sig_plots[[1]], sig_plots[[2]], 
+  sig_plots[[3]], p_theta,
+  ncol=2
+)
+
+
+library(ggplot2)
+library(gridExtra)
+library(reshape2)
+library(viridis)
+
+# 1. Signatures across diseases (for selected signatures)
+selected_sigs <- c(5, 1, 18)  # Your selected signatures
+sig_names <- c("Cardiovascular", "Cancer", "Metabolic")  # Example names
+
+# Create data frames with disease names - simplified version
+plot_data_list <- list()
+for(i in seq_along(selected_sigs)) {
+  sig_idx <- selected_sigs[i]
+  df <- data.frame(
+    Time = 1:52,
+    Disease_Matrix = t(phi_prob[sig_idx,,])  # Transpose to get diseases as columns
+  )
+  colnames(df)[-1] <- model$disease_names  # Name columns after diseases
+  
+  # Melt to long format
+  df_long <- melt(df, id.vars = "Time", 
+                  variable.name = "Disease", 
+                  value.name = "Probability")
+  
+  plot_data_list[[i]] <- df_long
+}
+
+# Create signature-specific plots
+N_top_diseases <- 10
+
+sig_plots <- lapply(seq_along(selected_sigs), function(i) {
+  # Find top diseases for this signature
+  top_diseases <- plot_data_list[[i]] %>%
+    group_by(Disease) %>%
+    summarize(max_prob = max(Probability)) %>%
+    arrange(desc(max_prob)) %>%
+    head(N_top_diseases) %>%
+    pull(Disease)
+  
+  # Filter data for top diseases
+  plot_data <- plot_data_list[[i]] %>%
+    filter(Disease %in% top_diseases)
+  
+  ggplot(plot_data, aes(x=Time, y=Probability, color=Disease)) +
+    geom_line(linewidth=1, alpha=0.8) +
+    labs(title=paste("Signature", selected_sigs[i], "-", sig_names[i]),
+         x="Age", y="Disease Probability") +
+    theme_minimal() +
+    theme(legend.position="right",
+          legend.text = element_text(size=8),
+          plot.title = element_text(size=12)) +
+    scale_color_viridis(discrete=TRUE)
+})
+
+# Arrange plots
+grid.arrange(
+  sig_plots[[1]], sig_plots[[2]], 
+  sig_plots[[3]], 
+  ncol=2
+)
