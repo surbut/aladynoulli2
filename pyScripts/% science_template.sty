@@ -13,7 +13,7 @@
 % Science uses Times font. If you don't have this installed (most LaTeX installations will be
 % fine) or prefer the old Computer Modern fonts, comment out the following line
 \usepackage{newtxtext,newtxmath}
-
+\usepackage{setspace}
 % Allow external graphics files
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -72,20 +72,20 @@
 % Author and institution list.
 % Institution numbers etc. should be hard-coded, do *not* use the \footnote command.
 \author{
-	Sarah Urbut MD PhD$^{1\ast\dagger}$,
-	Yi Ding$^{2\dagger}$,
+	Sarah Urbut$^{1\ast\dagger}$,
+	Yi Ding$^{2}$,
     Tet Nakao,
-    Alexander Gusev\\
-    Govanni Parmigiani,
-    Pradeep Natarajan$^{2}$\and
+    Alessandro Zito,
+    Alexander Gusev,\\
+     Pradeep Natarajan and Giovanni Parmigiani
 	% Additional lines of authors should be inserted using the \and command (not \\)
 	% Institution list, in a slightly smaller font
-	\small$^{1}$Department of Biomedical Informatics, University, City \& Postal Code, Country.\and
-	\small$^{2}$Department of Computer Science, University, City \& Postal Code, Country.\and
+	%\small$^{1}$MGH, University, City \& Postal Code, Country.\and
+	%\small$^{2}$Department of Computer Science, University, City \& Postal %Code, Country.\and
 	% Identify at least one corresponding author, with contact email address
-	\small$^\ast$Corresponding author. Email: example@mail.com\and
+	%\small$^\ast$Corresponding author. Email: example@mail.com\and
 	% Joint contributions can be indicated like this
-	\small$^\dagger$These authors contributed equally to this work.
+	%\small$^\dagger$These authors contributed equally to this work.
 }
 
 %%%%%%%%%%%%%%%%% END OF PREAMBLE %%%%%%%%%%%%%%%%
@@ -489,11 +489,19 @@ sig19 & Skin/Breast Cancer & Non-epithelial cancer of skin; Breast cancer [femal
 \end{table}
 
 \begin{figure}
-    \centering
+   % \centering
+   \singlespacing
     \includegraphics[width=1\linewidth]{pop_sig2.pdf}
-    \caption{Caption}
+    \caption{{Population-Level State Definitions and Temporal Patterns}
+This figure illustrates the dynamic temporal patterns and state definitions learned by the Aladynoulli model across various disease states.
+Top Row (A): Displays the trajectories of the top 5 diseases for selected states, showing how the probability of state activation evolves with age. Each line represents a different disease, highlighting the model's ability to capture distinct temporal patterns for each state.
+Middle Row (B): Focuses on specific diseases, illustrating the model's capacity to track changes in disease signature activation (phi) over time. The shaded areas represent confidence intervals, indicating the robustness of these trajectories across populations.
+Right Column (C): Features a heatmap of disease-state associations, with darker colors indicating stronger associations. This visualization underscores the model's ability to identify key disease clusters and their relationships.
+Bottom Right (D): A scatter plot demonstrating the consistency of disease groupings across biobanks. Each point represents a disease, with its position reflecting the average consistency score and variance, validating the robustness of the learned groupings.
+These visualizations collectively highlight Aladynoulli's strength in modeling dynamic disease trajectories and its potential for identifying changing risk patterns over time.}
     \label{fig:signature-dynamics}
 \end{figure}
+
 \aladyn{} identifies latent disease signatures that represent distinct patterns of comorbidity and progression. Unlike previous approaches that rely on predefined disease groupings or pairwise associations, our model discovers these patterns in an unsupervised manner, accounting for temporal dynamics and individual heterogeneity.
 
 The model's ability to identify clinically meaningful signatures is demonstrated through its discovery of 21 distinct disease clusters, each corresponding to recognized disease processes. 
@@ -552,18 +560,23 @@ For example, one common trajectory involves progression from the metabolic signa
 
 \begin{figure}
     \centering
+     \singlespacing
     \includegraphics[width=1\linewidth]{ind_stuff.pdf}
-    \caption{Caption}
+    \caption{
+\textbf{Individual-Level Risk and Signature Dynamics Over Time}
+\textbf{Top Left:} Displays the state proportions for a specific patient across different time points, showing how the composition of health states evolves. The right panel summarizes the average state proportions, highlighting dominant states. \textbf{Top Right:} Example of signature loadings ($\lambda$) over time for two patients. Each line represents a different signature, with peaks indicating periods of increased activation. The plots demonstrate how the model tracks changes in signature activation, reflecting shifts in underlying risk.\textbf{Middle Left:} Shows the calculated risk of coronary atherosclerosis for an individual, decomposed into contributions from different signatures. The shaded areas represent the influence of each signature on the overall risk, illustrating the model's ability to integrate multiple disease patterns.\textbf{Bottom Left:} Individual signature loadings over time, highlighting how different signatures contribute to the patient's risk profile. The trajectories reveal the dynamic nature of risk assessment, with certain signatures becoming more prominent as the patient ages. \textbf{Bottom Right:} Signature-specific probabilities for coronary atherosclerosis, showing how the likelihood of disease changes with age. This plot underscores the model's capacity to provide detailed, age-specific risk estimates based on evolving health data.
+}
+
     \label{fig:enter-label}
 \end{figure}
 
 Finally, signature loadings clarify early vs late onset disease. For example, stratifying early vs late onset patients with MI revelas heterogenetiy in peak onset of the cardiovascular signature with distinct profile outlindes. 
 
 \begin{figure}
-    \centering
-    \includegraphics[width=1\linewidth]{het.pdf}
-    \caption{Caption}
-    \label{fig:enter-label}
+\singlespacing
+    \includegraphics[width=1\linewidth]{trajectory.pdf}
+    \caption{\textbf{Heterogeneity} \textbf{Top Row:} Shows the dynamics of signature loadings across different clusters, highlighting how individuals are grouped by their temporal health state patterns. Each plot represents a distinct cluster, with the right panel summarizing the average state proportions for the population.\textbf{Middle Row:} Heatmaps displaying the feature loadings for various signatures, emphasizing differences in signature composition across clusters. These heatmaps provide insights into how signature loadings vary with disease progression and onset.\textbf{Bottom Row:} Analyzes early and late onset breast cancer by examining signature trajectories. The plots reveal how signature loadings evolve over time for each onset type, offering insights into the temporal patterns associated with breast cancer development.}
+\label{fig:enter-label}
 \end{figure}
 
 We also identified "fast progressors" – patients who rapidly transition from low-risk to high-risk signature associations. These patients often show distinct genetic and demographic profiles compared to "slow progressors," suggesting potential biological differences in disease susceptibility and progression rates. Understanding these differences could inform personalized prevention strategies and help identify patients who might benefit from more aggressive interventions.
@@ -582,11 +595,14 @@ By analyzing the temporal evolution of signature affinities ($\theta_{i,k,t}$), 
 Genetics acts in our model in two ways; first through influecning the prior mean of lambda, and second , in downstream analyses of individual loadings. We calculated the area under the exposure cruve of an indivdiuals' association with each signature, and then associated theis with their germline genetics. Importantly, for this analysis, we omitted PRS from the mean of lambda to avodi doublefitting. We identified significant correlation with known traits, showing that each signature is enriched with true biology.
 
 \begin{figure}
-    \centering
-    \includegraphics[width=1\linewidth]{genetics.pdf}
-    \caption{Caption}
+\centering
+\singlespacing
+\includegraphics[width=1\linewidth]{genetics.pdf}
+\caption{\textbf{Genetic Correlations and Signature Associations with Diseases}\textbf{Top Left:} Heatmap showing genetic correlations between various disease signatures and conditions such as coronary atherosclerosis, type 2 diabetes, and breast cancer. Color intensity indicates the strength and direction of the correlation, with statistical significance denoted by asterisks. \textbf{Top Right:} Heatmap of PRS-disease associations, illustrating how polygenic risk scores relate to different disease signatures. Darker colors represent stronger associations. \textbf{Bottom Left:} Manhattan plots displaying the genetic loci associated with specific signatures, highlighting significant correlations across chromosomes.\textbf{Bottom Right:} Temporal dynamics of signature loadings for selected diseases, showing how signature activation changes over time. These plots provide insights into the evolving genetic risk patterns associated with each condition.}
+
     \label{fig:enter-label}
 \end{figure}
+
 Fruthemore, Genetics aligns with the signature neterogentiy: for example, clustering individuals with major diseaess based on siagnture distribtuion over time segregates distribtuion of polygenic risk scores as well. 
 
 
@@ -596,24 +612,38 @@ Fianlly, we can consider the heatmpa of gamma, the includence of genetics, and s
 
 \subsection*{Aladynoulli Excels at Dynamically Updating Near-Term Risk Forecasts}
 
-A key application of dynamic health trajectory models is the prediction of near-term clinical events based on an individual's history up to a given point (e.g., enrollment). We evaluated \aladyn's ability to predict the onset of major diseases within **one year** following enrollment, using only data available up to the enrollment time point. This prospective evaluation framework assesses the model's utility for identifying individuals at imminent risk.
+A key application of dynamic health trajectory models is the prediction of near-term clinical events based on an individual's history up to a given point (e.g., enrollment). We evaluated \aladyn's ability to predict the onset of major diseases within following enrollment, using only data available up to the enrollment time point. This prospective evaluation framework assesses the model's utility for identifying individuals at imminent risk.
 
-We compared \aladyn's performance to a strong baseline model: logistic regression using Age, Sex, and comprehensive Family History (FH+Sex+Age) data available at enrollment, trained on a separate training set distinct from the test cohort. Performance was measured using the Area Under the Receiver Operating Characteristic curve (AUROC) on the held-out test set.
+In this analysis, we compared the performance of the Aladynoulli model against the Cox proportional hazards model across various diseases, focusing on both 10-year and 1-year predictions. We compared \aladyn's performance to a strong baseline model: a Cox model using age as a covariate with Sex, and comprehensive Family History data available at enrollment, trained on a separate training set distinct from the test cohort. Performance was measured using the Area Under the Receiver Operating Characteristic curve (AUROC) on the held-out test set.
+
+Aladynoulli consistently demonstrates strong C-index values across multiple diseases, indicating reliable predictive accuracy. The model performs well in both short-term (1-year) and long-term (10-year) predictions, showcasing its adaptability to different time frames.
+
+The Cox model serves as a useful benchmark for time-to-event data. However, Aladynoulli often outperforms it, especially in diseases with lower event rates.
+
+A key aspect of Aladynoulli's approach is its two-phase process. Initially, the model was trained with access to all data, allowing it to learn comprehensive patterns. In the prediction phase, however, the model was restricted to data available only at enrollment, simulating a real-world scenario where future data is unknown. This highlights Aladynoulli's ability to make accurate predictions without relying on post-enrollment data, unlike the Cox model, which uses all available information.
+
+The strong performance of Aladynoulli in key diseases like ASCVD and Diabetes aligns well with clinical expectations, making it a valuable tool for healthcare decision-making. In cases where 1-year Cox data is unavailable, Aladynoulli still provides robust predictions, ensuring comprehensive coverage across all diseases.
+
+Overall, the Aladynoulli model's ability to deliver accurate predictions without post-enrollment data underscores its potential as a powerful tool in predictive modeling, offering insights that are both clinically relevant and statistically robust.
 
 As shown in Figure~\ref{fig:performance_barplot}, \aladyn demonstrated significantly improved predictive performance compared to the FH+Sex+Age baseline for the 1-year outcome across most major disease categories. Notable improvements (AUC difference > 0.10) were observed for conditions including Ulcerative Colitis (+0.55), Rheumatoid Arthritis (+0.39), Colorectal Cancer (+0.33), Breast Cancer (+0.29), Parkinson's Disease (+0.27), Anxiety (+0.24), CKD (+0.18), Depression (+0.18), Asthma (+0.17), Bladder Cancer (+0.14), Multiple Sclerosis (+0.14), ASCVD (+0.15), and Prostate Cancer (+0.11). While formal statistical tests for the difference in AUC are pending, the magnitude of these improvements and the consistency across diverse disease groups highlight the added value of incorporating longitudinal data via \aladyn for short-term risk prediction. The model also showed good calibration for 1-year risk probabilities (Fig.~\ref{fig:calibration_plot}). Performance was more comparable or slightly favored the baseline for a few conditions, suggesting areas where baseline factors dominate short-term risk or where model features could be further optimized.
 
-A key objective of modeling longitudinal health records is to provide timely, updated risk assessments that reflect a patient's evolving clinical status. We therefore evaluated Aladynoulli's ability to predict near-term (1-year) incident disease risk, leveraging the full patient history available up to the point of prediction. This task directly assesses the model's core capability: dynamically updating risk forecasts as new diagnoses and health events are recorded over time.
-We compared Aladynoulli's 1-year predictive performance against strong baseline models incorporating established risk factors like age, sex, and family history (FH), evaluated at the same time points using only information available up to then. Figure 4A presents the Area Under the Receiver Operating Characteristic Curve (AUC) for predicting the onset of key diseases within the next year across the test cohort. Aladynoulli consistently demonstrated superior discrimination compared to the FH+Sex+Age baseline for a wide range of conditions. Notably significant improvements were observed for diseases like Breast Cancer (AUC increase of +0.289), Prostate Cancer (+0.113), Type 2 Diabetes (+0.074), Ischemic Heart Disease (+0.061), and Atrial Fibrillation (+0.055) [Include CI/p-values if available]. These results highlight the substantial value gained by incorporating dynamic, longitudinal patterns learned by Aladynoulli, particularly for identifying individuals whose near-term risk is changing based on their recent health trajectory, beyond what static factors can capture.
-Furthermore, we assessed the calibration of these 1-year risk predictions (Figure 4B). The calibration plot shows good agreement between predicted probabilities and observed event frequencies, indicating that Aladynoulli's dynamically updated risk scores are reliable estimates of actual 1-year risk. This is crucial for clinical utility, ensuring that a predicted risk level corresponds accurately to the patient's likelihood of experiencing the event in the near future.
-(Consider adding a sentence here linking to the censoring experiment figure/results if applicable): The model's ability to track underlying risk dynamics is further illustrated by its capacity to detect increasing signature activation (lambda) preceding disease onset, even when the target disease itself is censored from the input data (See Figure X / Supplementary Material), demonstrating sensitivity to evolving comorbid patterns predictive of changing risk.
+These results highlight the substantial value gained by incorporating dynamic, longitudinal patterns learned by Aladynoulli, particularly for identifying individuals whose near-term risk is changing based on their recent health trajectory, beyond what static factors can capture. Furthermore, we assessed the calibration of these 1-year risk predictions (Figure 4B). The calibration plot shows good agreement between predicted probabilities and observed event frequencies, indicating that Aladynoulli's dynamically updated risk scores are reliable estimates of actual 1-year risk. This is crucial for clinical utility, ensuring that a predicted risk level corresponds accurately to the patient's likelihood of experiencing the event in the near future.
 
+The model's ability to track underlying risk dynamics is further illustrated by its capacity to detect increasing signature activation (lambda) preceding disease onset, even when the target disease itself is censored from the input data (See Figure X / Supplementary Material), demonstrating sensitivity to evolving comorbid patterns predictive of changing risk.
 
 
 
 \begin{figure}
     \centering
+    \singlespacing
     \includegraphics[width=1\linewidth]{performance.pdf}
-    \caption{Caption}
+    \caption{\textbf{Model Performance and Risk Dynamics}
+    This figure presents the performance of the Aladynoulli model compared to the Cox model, along with insights into risk dynamics and signature activation.
+    \textbf{Top Left:} Calibration plot for 1-year risk predictions, showing the agreement between predicted and observed risks. The calibration curve closely follows the line of perfect calibration, indicating reliable risk estimates.
+    \textbf{Top Right:} Bar plot comparing the C-index performance of the Aladynoulli model against the Cox model for predicting 1-year and 10-year outcomes across various disease groups. The plot highlights Aladynoulli's superior performance, especially in scenarios where the Cox model lacks data.
+    \textbf{Bottom Left:} Plot comparing 10-year risk predictions with prevalence-based risk for ASCVD. The model's predictions are shown alongside the prevalence-based risk, demonstrating the model's ability to capture long-term risk trends.
+    \textbf{Bottom Right:} Lambda values for Signature 5, associated with myocardial infarction, showing how signature activation changes over time for different patients. Blue lines indicate diagnosis times, while red lines mark censoring times, illustrating the model's capacity to track dynamic risk changes.}
     \label{fig:performance_barplot}
 \end{figure}
 
