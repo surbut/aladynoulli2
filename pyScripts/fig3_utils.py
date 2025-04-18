@@ -10,6 +10,17 @@ import random
 import glob
 import traceback
 
+from sklearn.metrics import roc_auc_score, roc_curve
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
+import torch
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import List, Dict, Optional, Any 
+
 # Helper Function to Find Batch Dirs
 def find_batch_dirs(base_dir):
     dirs = []
@@ -362,8 +373,8 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
             batch_model_path = os.path.join(batch_info['path'], 'model.pt')
             model_data = torch.load(batch_model_path, map_location='cpu')
             if 'model_state_dict' not in model_data or 'lambda_' not in model_data['model_state_dict']:
-                 print(f"  Error: Could not load lambda_ for patient {global_patient_idx} from {batch_model_path}. Skipping.")
-                 continue
+                print(f"  Error: Could not load lambda_ for patient {global_patient_idx} from {batch_model_path}. Skipping.")
+                continue
 
             # Extract the lambda for this specific patient: K x T
             lambda_patient = model_data['model_state_dict']['lambda_'][patient_idx_in_batch].detach().cpu()
@@ -371,17 +382,14 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
             # Calculate patient's theta by applying softmax over signatures (dim 0)
             theta_patient = torch.softmax(lambda_patient, dim=0).numpy()  # Shape: K x T
 
-            # --- Create the 2-panel plot ---
-            fig = plt.figure(figsize=figsize_per_patient)
-            gs = GridSpec(2, 1, height_ratios=[2.5, 1], hspace=0.05)  # Reduced space between plots
-            ax1 = fig.add_subplot(gs[0])  # Top panel for theta
-            ax2 = fig.add_subplot(gs[1], sharex=ax1)  # Bottom panel for timeline
+            # --- Create the 2-panel plot side by side ---
+            fig = plt.figure(figsize=(figsize_per_patient[0] * 1.3, figsize_per_patient[1]))  # Wider to accommodate side panel
+            gs = GridSpec(2, 2, height_ratios=[2.5, 1], width_ratios=[3, 1], hspace=0.05)  # 2x2 grid
+            ax1 = fig.add_subplot(gs[0, 0])  # Top left: temporal theta
+            ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)  # Bottom left: timeline
+            ax3 = fig.add_subplot(gs[:, 1])  # Right side: stacked bar
 
-            # Panel 1: Theta trajectories
-            plotted_signatures = set()  # Keep track of signatures already plotted (for pop avg label)
-            
-            # Replace the theta plotting section with this improved code:
-            # First, collect valid conditions and prepare
+            # First collect valid conditions and prepare
             valid_conditions = []
             for d_idx, diag_time_idx in conditions:
                 sig_idx = disease_primary_sig.get(d_idx)
@@ -394,18 +402,15 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                 print(f"  Warning: None of the {len(conditions)} conditions could be mapped to signatures. Skipping patient.")
                 continue
 
-            print(f"  Found {len(valid_conditions)} out of {len(conditions)} conditions with valid signature mappings.")
-
             # Use a distinct colormap
             num_conditions = len(valid_conditions)
             cmap_name = 'viridis' if num_conditions > 10 else 'tab10'
             colors = plt.cm.get_cmap(cmap_name, max(10, num_conditions))
 
-            # Prepare condition details for timeline
+            # Prepare condition details and collect signatures
             condition_details = []
             signatures_to_plot = set()
 
-            # Collect all signatures and prepare condition details
             for i, (d_idx, diag_time_idx, sig_idx) in enumerate(valid_conditions):
                 signatures_to_plot.add(sig_idx)
                 disease_name = disease_names_list[d_idx] if 0 <= d_idx < len(disease_names_list) else f"Disease {d_idx}"
@@ -420,21 +425,7 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                     'd_idx': d_idx
                 })
 
-            # FIRST: Plot ALL population averages (with dashed lines)
-            '''
-            for sig_idx in signatures_to_plot:
-                if sig_idx in pop_avg_theta:
-                    # Find conditions with this signature
-                    matching_conditions = [c for c in condition_details if c['sig_idx'] == sig_idx]
-                    if matching_conditions:
-                        color = matching_conditions[0]['color']
-                        label = f"Pop Avg Sig {sig_idx}"
-                        ax1.plot(time_points, pop_avg_theta[sig_idx],
-                                color=color, linestyle='--', linewidth=2.0, 
-                                alpha=0.7, zorder=1, label=label)
-           '''
-
-            # SECOND: Plot patient-specific trajectories (with solid lines)
+            # --- Left Panels: Original temporal plot ---
             for i, detail in enumerate(condition_details):
                 d_idx = detail['d_idx']
                 sig_idx = detail['sig_idx']
@@ -442,69 +433,88 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                 diag_time = detail['time']
                 color = detail['color']
                 
-                # Truncate long disease names for the label
                 label_text_short = f"{disease_name[:20]}{'...' if len(disease_name)>20 else ''}"
                 label_patient = f"Sig {sig_idx} ({label_text_short})"
                 
-                # Plot patient's trajectory with HIGHER zorder
+                # Plot trajectory
                 ax1.plot(time_points, theta_patient[sig_idx, :],
                         color=color, linewidth=2.5, alpha=0.95, 
                         zorder=3, label=label_patient)
                 
                 # Mark diagnosis time
                 ax1.axvline(x=diag_time, color=color, linestyle=':', 
-                            alpha=0.7, linewidth=1.5, zorder=2)
+                          alpha=0.7, linewidth=1.5, zorder=2)
                 
-                # Find and mark the peak
+                # Mark peak
                 peak_idx = np.argmax(theta_patient[sig_idx, :])
                 peak_time = time_points[peak_idx]
                 peak_value = theta_patient[sig_idx, peak_idx]
                 ax1.scatter(peak_time, peak_value, marker='*', s=120, 
-                            color=color, edgecolor='black', linewidth=1, 
-                            zorder=4, label=None)
+                          color=color, edgecolor='black', linewidth=1, 
+                          zorder=4, label=None)
 
-            # Configure theta plot (ax1)
-            ax1.set_title(f'Figure 3 Example: Signature Loadings ($\\Theta$) Over Time\nPatient {global_patient_idx}', fontsize=14, pad=10)
+            # Configure top panel
+            ax1.set_title(f'Signature Loadings ($\\Theta$) Over Time\nPatient {global_patient_idx}', 
+                         fontsize=14, pad=10)
             ax1.set_ylabel('Signature Loading ($\\Theta$)', fontsize=12)
-            ax1.grid(True, axis='y', linestyle='--', alpha=0.5)  # Grid lines only horizontal
-            ax1.legend(loc='upper left', fontsize='x-small', ncol=2)  # Adjust legend position/size
-            ax1.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)  # Remove x-axis ticks and labels
-            ax1.set_ylim(bottom=0)  # Ensure y-axis starts at 0
+            ax1.grid(True, axis='y', linestyle='--', alpha=0.5)
+            ax1.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+            ax1.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+            ax1.set_ylim(bottom=0)
 
-            # Panel 2: Disease Timeline
+            # --- Panel 2: Disease Timeline ---
             ax2.set_yticks(range(num_conditions))
-            # Use full names for y-tick labels on timeline
             ax2.set_yticklabels([d['name'] for d in condition_details], fontsize='small')
             ax2.set_ylim(-0.5, num_conditions - 0.5)
-            ax2.invert_yaxis()  # Show first diagnosis at the top
+            ax2.invert_yaxis()
 
             for detail in condition_details:
                 # Mark diagnosis point
-                ax2.scatter(detail['time'], detail['y_pos'], marker='o', s=80, color=detail['color'], zorder=5, label=None, edgecolors='black', linewidth=0.5)
+                ax2.scatter(detail['time'], detail['y_pos'], marker='o', s=80, 
+                          color=detail['color'], zorder=5, label=None, 
+                          edgecolors='black', linewidth=0.5)
                 # Draw line up to diagnosis
-                ax2.hlines(detail['y_pos'], time_points[0], detail['time'], colors=detail['color'], linestyles='-', alpha=0.6, linewidth=1.5)
+                ax2.hlines(detail['y_pos'], time_points[0], detail['time'], 
+                         colors=detail['color'], linestyles='-', alpha=0.6, linewidth=1.5)
 
-            # Configure timeline plot (ax2)
             ax2.set_xlabel('Age (years)', fontsize=12)
             ax2.set_ylabel('Diagnosed Condition', fontsize=12)
-            ax2.grid(True, axis='x', linestyle='--', alpha=0.5)  # Grid lines only vertical
-            ax2.spines['top'].set_visible(False)  # Remove top spine
-            ax2.spines['right'].set_visible(False)  # Remove right spine
+            ax2.grid(True, axis='x', linestyle='--', alpha=0.5)
+            ax2.spines['top'].set_visible(False)
+            ax2.spines['right'].set_visible(False)
 
-            # Adjust layout and display
-            plt.tight_layout(rect=[0, 0, 1, 0.97])  # Add space for main title
-            plt.show()
-            patient_figures.append(fig)  # Store the figure object
+            # --- Right Panel: Stacked Bar Summary ---
+            theta_avg = np.mean(theta_patient, axis=1)  # Average over time
+            bottom = 0
+            sig_indices = sorted(list(signatures_to_plot))
+
+            # Create stacked bar
+            for sig_idx in sig_indices:
+                matching_detail = next(detail for detail in condition_details if detail['sig_idx'] == sig_idx)
+                color = matching_detail['color']
+                label = f"Sig {sig_idx} ({matching_detail['name'][:20]}{'...' if len(matching_detail['name'])>20 else ''})"
+                ax3.bar([0], [theta_avg[sig_idx]], bottom=bottom, color=color, 
+                        alpha=0.7, label=label, width=0.5)
+                bottom += theta_avg[sig_idx]
+
+            ax3.set_title('Static Model\nSummary', pad=15)
+            ax3.set_ylabel('Average Loading (θ)')
+            ax3.set_xlim(-0.5, 0.5)
+            ax3.set_xticks([])
+            ax3.grid(True, axis='y', linestyle='--', alpha=0.5)
+            ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+
+            # Adjust layout
+            plt.tight_layout(rect=[0, 0, 0.85, 0.97])  # Make room for legend
+            
+            patient_figures.append(fig)
 
         except Exception as e_plot:
             print(f"  Error generating plot for Patient {global_patient_idx}: {e_plot}")
             traceback.print_exc()
 
     print(f"\nFinished plotting {len(patient_figures)} multi-morbid dynamics examples.")
-    # Return the essentials dict (containing reference data) and the list of generated figures
     return essentials, patient_figures
-
-
 
 
 
@@ -820,3 +830,534 @@ run_mixture_visualization_on_real_data(model_file,
                                            kappa_value=kappa,
                                            output_filename=output_file)
  """
+
+
+def visualize_individual_vs_population(
+    lambda_values_np: np.ndarray,  # (N, K, T)
+    phi_values_np: np.ndarray,     # (K, D, T)
+    individual_idx: int,           # Index of individual with high sig 5 loading
+    cv_diseases: List[str],        # List of cardiovascular diseases to show
+    disease_indices: List[int],    # Corresponding disease indices
+    time_points: np.ndarray,       # Time points array
+    kappa: float = 1.0,
+    output_path: Optional[str] = None
+):
+    """
+    Visualize how an individual's signature loadings compare to population,
+    and how this affects their disease probabilities.
+    
+    Args:
+        lambda_values_np: Individual signature loadings (N, K, T)
+        phi_values_np: Signature-disease associations (K, D, T)
+        individual_idx: Index of individual to visualize
+        cv_diseases: Names of cardiovascular diseases
+        disease_indices: Indices of these diseases in the data
+        time_points: Array of time points
+        kappa: Calibration parameter
+        output_path: Where to save the plot
+    """
+    N, K, T = lambda_values_np.shape
+    
+    # Calculate population average thetas
+    print("Calculating population theta...")
+    theta_pop = np.zeros((N, K, T))
+    for i in range(N):
+        for t in range(T):
+            exp_lambda = np.exp(lambda_values_np[i, :, t])
+            sum_exp_lambda = np.sum(exp_lambda)
+            theta_pop[i, :, t] = exp_lambda / sum_exp_lambda if sum_exp_lambda > 0 else np.zeros(K)
+    
+    # Get average population theta
+    theta_pop_mean = np.mean(theta_pop, axis=0)  # (K, T)
+    theta_pop_std = np.std(theta_pop, axis=0)    # (K, T)
+    
+    # Get individual's theta
+    theta_individual = theta_pop[individual_idx]  # (K, T)
+    
+    # Calculate disease probabilities from phi (sigmoid)
+    phi_probs = 1 / (1 + np.exp(-phi_values_np))  # (K, D, T)
+    
+    # Create figure with 3 rows
+    fig = plt.figure(figsize=(15, 12))
+    gs = gridspec.GridSpec(3, 1, height_ratios=[1, 1, 1.5])
+    
+    # --- Panel 1: Signature Loadings Comparison ---
+    ax1 = fig.add_subplot(gs[0])
+    # Plot population mean ± std for Signature 5
+    ax1.fill_between(time_points, 
+                    theta_pop_mean[5] - theta_pop_std[5],
+                    theta_pop_mean[5] + theta_pop_std[5],
+                    alpha=0.2, color='gray', label='Population θ₅ ± SD')
+    ax1.plot(time_points, theta_pop_mean[5], 'k--', label='Population Mean θ₅')
+    ax1.plot(time_points, theta_individual[5], 'r-', linewidth=2, label='Individual θ₅')
+    ax1.set_title('Signature 5 (Cardiovascular) Loading Over Time')
+    ax1.set_ylabel('Loading (θ)')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # --- Panel 2: Phi Values for CV Diseases ---
+    ax2 = fig.add_subplot(gs[1])
+    colors = plt.cm.tab10(np.linspace(0, 1, len(cv_diseases)))
+    for i, (disease, idx, color) in enumerate(zip(cv_diseases, disease_indices, colors)):
+        ax2.plot(time_points, phi_probs[5, idx], color=color, label=disease)
+    ax2.set_title('Signature 5 Disease Associations (φ)')
+    ax2.set_ylabel('P(Disease | Signature 5)')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax2.grid(True, alpha=0.3)
+    
+    # --- Panel 3: Individual vs Population Disease Probabilities ---
+    ax3 = fig.add_subplot(gs[2])
+    
+    # Calculate probabilities for population and individual
+    pop_probs = np.zeros((N, len(disease_indices), T))
+    for i in range(N):
+        for d_idx, disease_idx in enumerate(disease_indices):
+            contribution = np.sum(theta_pop[i] * phi_probs[:, disease_idx], axis=0)
+            pop_probs[i, d_idx] = kappa * contribution
+    
+    pop_mean = np.mean(pop_probs, axis=0)  # (D, T)
+    pop_std = np.std(pop_probs, axis=0)    # (D, T)
+    
+    # Calculate individual probabilities
+    ind_probs = np.zeros((len(disease_indices), T))
+    for d_idx, disease_idx in enumerate(disease_indices):
+        contribution = np.sum(theta_individual * phi_probs[:, disease_idx], axis=0)
+        ind_probs[d_idx] = kappa * contribution
+    
+    # Plot for each disease
+    for i, (disease, color) in enumerate(zip(cv_diseases, colors)):
+        # Population
+        ax3.fill_between(time_points,
+                        pop_mean[i] - pop_std[i],
+                        pop_mean[i] + pop_std[i],
+                        alpha=0.2, color=color)
+        ax3.plot(time_points, pop_mean[i], '--', color=color, 
+                label=f'{disease} (Population)')
+        # Individual
+        ax3.plot(time_points, ind_probs[i], '-', color=color, linewidth=2,
+                label=f'{disease} (Individual)')
+    
+    ax3.set_title('Disease Probabilities: Individual vs Population')
+    ax3.set_xlabel('Age')
+    ax3.set_ylabel('Probability')
+    ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+    else:
+        plt.show()
+
+# Example usage:
+def visualize_disease_contribution_breakdown(
+    lambda_values_np: np.ndarray,  # (N, K, T)
+    phi_values_np: np.ndarray,     # (K, D, T)
+    individual_idx: int,
+    disease_idx: int,              
+    disease_name: str,             
+    time_points: np.ndarray,       
+    signature_names: Optional[List[str]] = None,
+    kappa: float = 1.0,
+    output_path: Optional[str] = None
+):
+    """
+    Visualize how all signatures contribute to a specific disease's probability,
+    with a heatmap showing signature-disease associations over time.
+    """
+    # Convert inputs to numpy if they're torch tensors
+    if torch.is_tensor(lambda_values_np):
+        lambda_values_np = lambda_values_np.detach().cpu().numpy()
+    if torch.is_tensor(phi_values_np):
+        phi_values_np = phi_values_np.detach().cpu().numpy()
+    if torch.is_tensor(kappa):
+        kappa = kappa.item()
+
+    N, K, T = lambda_values_np.shape
+
+    # --- Calculations ---
+    # Calculate theta for all individuals and the population average
+    theta_all = np.zeros((N, K, T))
+    for i in range(N):
+        exp_lambda = np.exp(lambda_values_np[i, :, :])
+        theta_all[i, :, :] = exp_lambda / np.sum(exp_lambda, axis=0, keepdims=True)
+    
+    # Population statistics
+    theta_pop_mean = np.mean(theta_all, axis=0)  # (K, T)
+    theta_pop_std = np.std(theta_all, axis=0)    # (K, T)
+
+    # Individual theta
+    theta_individual = theta_all[individual_idx]  # (K, T)
+
+    # Get raw phi values for the target disease
+    phi_disease = phi_values_np[:, disease_idx, :]  # (K, T)
+    
+    # Calculate contributions using sigmoid of phi
+    phi_probs_disease = 1 / (1 + np.exp(-phi_disease))
+    contributions = theta_individual * phi_probs_disease
+    total_latent_risk = np.sum(contributions, axis=0)  # (T,)
+    total_prob_disease = kappa * total_latent_risk     # (T,)
+    total_prob_disease = np.minimum(1.0, np.maximum(0.0, total_prob_disease))
+
+    # Scale contributions
+    scaled_contributions = contributions.copy()  # (K, T)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        scaling_factor = np.divide(total_prob_disease, total_latent_risk)  # (T,)
+        scaling_factor = np.where(np.isfinite(scaling_factor), scaling_factor, 0.0)  # (T,)
+        scaled_contributions = scaled_contributions * scaling_factor[None, :]  # Broadcasting (T,) to (K, T)casting (T,) to (K, T)    # --- Plotting ---
+    if signature_names is None:
+        signature_names = [f"Signature {k}" for k in range(K)]
+
+    fig = plt.figure(figsize=(12, 15))
+    gs = gridspec.GridSpec(3, 1, height_ratios=[1.5, 1.2, 2])
+    palette = sns.color_palette("husl", K)
+
+    # --- Panel 1: Population and Individual Signature Loadings (theta) ---
+    ax1 = fig.add_subplot(gs[0])
+    for k in range(K):
+        ax1.plot(time_points, theta_pop_mean[k], '--', color=palette[k], 
+                 alpha=0.5, label=f'Pop. Mean {signature_names[k]}')
+        ci = theta_pop_std[k]
+        ax1.fill_between(time_points, 
+                        theta_pop_mean[k] - ci,
+                        theta_pop_mean[k] + ci,
+                        color=palette[k], alpha=0.1)
+        ax1.plot(time_points, theta_individual[k], '-', color=palette[k],
+                 linewidth=2, label=f'Individual {signature_names[k]}')
+
+    ax1.set_title(f'Signature Loadings (θ): Individual {individual_idx} vs Population', pad=15)
+    ax1.set_ylabel('Loading (θ)')
+    ax1.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+    ax1.grid(True, alpha=0.3)
+    ax1.tick_params(labelbottom=False)
+
+    # --- Panel 2: Signature-Disease Association Heatmap ---
+    ax2 = fig.add_subplot(gs[1])
+    df_heatmap = pd.DataFrame(
+        phi_disease,
+        index=signature_names,
+        columns=time_points
+    )
+    sns.heatmap(df_heatmap, 
+                cmap='RdBu_r',
+                ax=ax2,
+                cbar_kws={'label': 'log-odds(Disease | Signature k, Age t)'})
+    ax2.set_title(f'Temporal Signature Associations for {disease_name}', pad=15)
+    ax2.set_xlabel('')  # Remove x-label since it's shared
+    ax2.set_ylabel('Signature')
+    ax2.tick_params(rotation=0)
+
+    # --- Panel 3: Stacked Contribution to Disease Probability ---
+    ax3 = fig.add_subplot(gs[2], sharex=ax1)
+    ax3.stackplot(time_points, scaled_contributions, labels=signature_names, 
+                 colors=palette, alpha=0.7)
+    ax3.plot(time_points, total_prob_disease, 'k--', linewidth=2, 
+             label='Total Risk ($\pi_{idt}$)')
+    ax3.set_title(f'Signature Contributions to Risk of "{disease_name}"', pad=15)
+    ax3.set_xlabel('Age')
+    ax3.set_ylabel('Risk ($\pi$)')
+    ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+    ax3.grid(True, alpha=0.3)
+    
+    plot_max_y = (np.max(total_prob_disease) * 1.1) if np.any(total_prob_disease > 0) else 0.1
+    ax3.set_ylim(0, plot_max_y)
+
+    plt.suptitle(f"Probability Breakdown for '{disease_name}' - Individual {individual_idx}", 
+                fontsize=16, y=0.99)
+    plt.tight_layout(rect=[0, 0, 0.88, 0.97])
+
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+
+
+import torch
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import seaborn as sns
+from typing import Dict, List, Optional
+def visualize_disease_contribution_breakdown_two(
+    lambda_values_np: np.ndarray,  # (N, K, T)
+    phi_values_np: np.ndarray,     # (K, D, T)
+    individual_idx: int,
+    disease_idx: int,              
+    disease_name: str,             
+    time_points: np.ndarray,       
+    signature_names: Optional[List[str]] = None,
+    kappa: float = 1.0,
+    output_path: Optional[str] = None
+):
+    """
+    Visualize how all signatures contribute to a specific disease's probability,
+    including population-level signature loadings for comparison.
+    """
+    N, K, T = lambda_values_np.shape
+
+    # --- Calculations ---
+    # Calculate theta for all individuals and the population average
+    theta_all = np.zeros((N, K, T))
+    for i in range(N):
+        exp_lambda = np.exp(lambda_values_np[i, :, :])
+        theta_all[i, :, :] = exp_lambda / np.sum(exp_lambda, axis=0, keepdims=True)
+    
+    # Population statistics
+    theta_pop_mean = np.mean(theta_all, axis=0)  # (K, T)
+    theta_pop_std = np.std(theta_all, axis=0)    # (K, T)
+
+    # Individual theta
+    theta_individual = theta_all[individual_idx]  # (K, T)
+
+    # Calculate phi probabilities for the target disease
+    phi_probs_disease = 1 / (1 + np.exp(-phi_values_np[:, disease_idx, :])) # (K, T)
+
+    # Calculate contributions
+    contributions = theta_individual * phi_probs_disease
+    total_latent_risk = np.sum(contributions, axis=0)
+    total_prob_disease = kappa * total_latent_risk
+    total_prob_disease = np.minimum(1.0, np.maximum(0.0, total_prob_disease))
+
+    # Scale contributions
+    scaled_contributions = contributions.copy()
+    with np.errstate(divide='ignore', invalid='ignore'):
+        scaling_factor = np.divide(total_prob_disease, total_latent_risk)
+        scaling_factor[~np.isfinite(scaling_factor)] = 0
+    scaled_contributions *= scaling_factor[np.newaxis, :]
+
+    # --- Plotting ---
+    if signature_names is None:
+        signature_names = [f"Sig {k}" for k in range(K)]
+
+    fig = plt.figure(figsize=(12, 15))
+    gs = gridspec.GridSpec(3, 1, height_ratios=[1.5, 1, 2])
+    palette = sns.color_palette("husl", K)
+
+    # --- Panel 1: Population and Individual Signature Loadings (theta) ---
+    ax1 = fig.add_subplot(gs[0])
+    
+    # Plot population means and confidence intervals
+    for k in range(K):
+        # Plot population mean
+        ax1.plot(time_points, theta_pop_mean[k], '--', color=palette[k], 
+                 alpha=0.5, label=f'Pop. Mean {signature_names[k]}')
+        
+        # Plot confidence interval
+        ci = theta_pop_std[k]
+        ax1.fill_between(time_points, 
+                        theta_pop_mean[k] - ci,
+                        theta_pop_mean[k] + ci,
+                        color=palette[k], alpha=0.1)
+        
+        # Plot individual's loading
+        ax1.plot(time_points, theta_individual[k], '-', color=palette[k],
+                 linewidth=2, label=f'Individual {signature_names[k]}')
+
+    ax1.set_title(f'Signature Loadings (θ): Individual {individual_idx} vs Population', pad=15)
+    ax1.set_ylabel('Loading (θ)')
+    ax1.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+    ax1.grid(True, alpha=0.3)
+    ax1.tick_params(labelbottom=False)
+
+    # --- Panel 2: Signature-Disease Association (phi probability) ---
+    ax2 = fig.add_subplot(gs[1], sharex=ax1)
+    for k in range(K):
+        ax2.plot(time_points, phi_probs_disease[k, :], '-', color=palette[k],
+                 linewidth=1.5, label=signature_names[k])
+    ax2.set_title(f'Signature Associations for "{disease_name}" (P(Disease | Sig k))', pad=15)
+    ax2.set_ylabel('P(Dis | Sig k)')
+    ax2.grid(True, alpha=0.3)
+    ax2.tick_params(labelbottom=False)
+
+    # --- Panel 3: Stacked Contribution to Disease Probability ---
+    ax3 = fig.add_subplot(gs[2], sharex=ax1)
+    ax3.stackplot(time_points, scaled_contributions, labels=signature_names, 
+                 colors=palette, alpha=0.7)
+    ax3.plot(time_points, total_prob_disease, 'k--', linewidth=2, 
+             label='Total Calculated Risk ($\pi_{idt}$)')
+    ax3.set_title(f'Signature Contributions to Risk of "{disease_name}"', pad=15)
+    ax3.set_xlabel('Age')
+    ax3.set_ylabel('Calculated Risk ($\pi$)')
+    ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+    ax3.grid(True, alpha=0.3)
+    
+    plot_max_y = (np.max(total_prob_disease) * 1.1) if np.any(total_prob_disease > 0) else 0.1
+    ax3.set_ylim(0, plot_max_y)
+
+    plt.suptitle(f"Probability Breakdown for '{disease_name}' - Individual {individual_idx}", 
+                fontsize=16, y=0.99)
+    plt.tight_layout(rect=[0, 0, 0.88, 0.97])
+
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def analyze_age_onset_patterns_from_checkpoint(
+    model_path: str,
+    disease_index: int,
+    disease_name: str,
+    early_threshold: int = 50,
+    late_threshold: int = 70,
+    output_path: Optional[str] = None
+):
+    """
+    Compare signature patterns between early and late onset disease from a model checkpoint.
+    
+    Args:
+        model_path: Path to the model checkpoint file
+        disease_index: Index of the disease to analyze
+        disease_name: Name of the disease (for plotting)
+        early_threshold: Age threshold for early onset (default 50)
+        late_threshold: Age threshold for late onset (default 70)
+        output_path: Optional path to save the figure
+    """
+    print(f"\nAnalyzing age onset patterns for {disease_name} (index {disease_index})")
+    print("=" * 50)
+    
+    # Load model checkpoint
+    print(f"Loading model from {model_path}")
+    checkpoint = torch.load(model_path, map_location='cpu')
+    
+    # Extract necessary data
+    Y = checkpoint['Y']  # Disease occurrence matrix
+    lambda_values = checkpoint['model_state_dict']['lambda_']  # Signature loadings
+    
+    # Convert to numpy if needed
+    if torch.is_tensor(Y):
+        Y = Y.detach().cpu().numpy()
+    if torch.is_tensor(lambda_values):
+        lambda_values = lambda_values.detach().cpu().numpy()
+    
+    N, K, T = lambda_values.shape
+    time_points = np.arange(30, 30 + T)  # Assuming starts at age 30
+    
+    early_onset = []
+    late_onset = []
+    
+    # Find patients with disease and categorize by age of onset
+    for p in range(Y.shape[0]):
+        diagnosis_times = np.where(Y[p, disease_index] > 0.5)[0]
+        if len(diagnosis_times) > 0:
+            diagnosis_time = diagnosis_times[0]
+            diagnosis_age = 30 + diagnosis_time
+            
+            if diagnosis_age < early_threshold:
+                early_onset.append((p, diagnosis_age))
+            elif diagnosis_age > late_threshold:
+                late_onset.append((p, diagnosis_age))
+    
+    print(f"Found {len(early_onset)} early-onset patients (diagnosis < {early_threshold})")
+    print(f"Found {len(late_onset)} late-onset patients (diagnosis > {late_threshold})")
+    
+    # Calculate mean ages
+    if early_onset:
+        early_ages = [age for _, age in early_onset]
+        print(f"\nEarly onset mean age: {np.mean(early_ages):.1f} (range: {min(early_ages):.1f}-{max(early_ages):.1f})")
+    
+    if late_onset:
+        late_ages = [age for _, age in late_onset]
+        print(f"Late onset mean age: {np.mean(late_ages):.1f} (range: {min(late_ages):.1f}-{max(late_ages):.1f})")
+    
+    # Extract patient indices
+    early_patients = [p for p, _ in early_onset]
+    late_patients = [p for p, _ in late_onset]
+    
+    # Create visualization
+    fig = plt.figure(figsize=(15, 12))
+    gs = gridspec.GridSpec(2, 2, height_ratios=[1, 1])
+    
+    # Plot early onset patterns
+    if early_patients:
+        # Top left: Individual trajectories
+        ax1 = fig.add_subplot(gs[0, 0])
+        # Calculate theta for early onset patients
+        early_theta = np.zeros((len(early_patients), K, T))
+        for i, p_idx in enumerate(early_patients):
+            exp_lambda = np.exp(lambda_values[p_idx])
+            early_theta[i] = exp_lambda / np.sum(exp_lambda, axis=0)
+        
+        # Plot individual trajectories
+        for i in range(len(early_patients)):
+            for k in range(K):
+                ax1.plot(time_points, early_theta[i, k], alpha=0.1)
+        
+        # Plot mean trajectory
+        mean_early = np.mean(early_theta, axis=0)
+        for k in range(K):
+            ax1.plot(time_points, mean_early[k], linewidth=2, 
+                    label=f'Signature {k}')
+        
+        ax1.set_title(f'Early Onset Patterns (<{early_threshold}, n={len(early_patients)})')
+        ax1.set_ylabel('Signature Loading (θ)')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        
+        # Top right: Heatmap of mean patterns
+        ax2 = fig.add_subplot(gs[0, 1])
+        sns.heatmap(mean_early, cmap='viridis', 
+                   xticklabels=time_points[::5],
+                   yticklabels=[f'Sig {k}' for k in range(K)],
+                   ax=ax2)
+        ax2.set_title('Mean Early Onset Pattern')
+        ax2.set_xlabel('Age')
+    
+    # Plot late onset patterns
+    if late_patients:
+        # Bottom left: Individual trajectories
+        ax3 = fig.add_subplot(gs[1, 0])
+        # Calculate theta for late onset patients
+        late_theta = np.zeros((len(late_patients), K, T))
+        for i, p_idx in enumerate(late_patients):
+            exp_lambda = np.exp(lambda_values[p_idx])
+            late_theta[i] = exp_lambda / np.sum(exp_lambda, axis=0)
+        
+        # Plot individual trajectories
+        for i in range(len(late_patients)):
+            for k in range(K):
+                ax3.plot(time_points, late_theta[i, k], alpha=0.1)
+        
+        # Plot mean trajectory
+        mean_late = np.mean(late_theta, axis=0)
+        for k in range(K):
+            ax3.plot(time_points, mean_late[k], linewidth=2,
+                    label=f'Signature {k}')
+        
+        ax3.set_title(f'Late Onset Patterns (>{late_threshold}, n={len(late_patients)})')
+        ax3.set_xlabel('Age')
+        ax3.set_ylabel('Signature Loading (θ)')
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        
+        # Bottom right: Heatmap of mean patterns
+        ax4 = fig.add_subplot(gs[1, 1])
+        sns.heatmap(mean_late, cmap='viridis',
+                   xticklabels=time_points[::5],
+                   yticklabels=[f'Sig {k}' for k in range(K)],
+                   ax=ax4)
+        ax4.set_title('Mean Late Onset Pattern')
+        ax4.set_xlabel('Age')
+    
+    plt.suptitle(f'Age Onset Patterns for {disease_name}', fontsize=14, y=1.02)
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+        plt.close()
+    else:
+        plt.show()
+    
+    return early_patients, late_patients
+
+# Example usage:
