@@ -1006,7 +1006,7 @@ def visualize_disease_contribution_breakdown(
     with np.errstate(divide='ignore', invalid='ignore'):
         scaling_factor = np.divide(total_prob_disease, total_latent_risk)  # (T,)
         scaling_factor = np.where(np.isfinite(scaling_factor), scaling_factor, 0.0)  # (T,)
-        scaled_contributions = scaled_contributions * scaling_factor[None, :]  # Broadcasting (T,) to (K, T)casting (T,) to (K, T)    # --- Plotting ---
+        scaled_contributions = scaled_contributions * scaling_factor[None, :]  # Broadcasting (T,) to (K, T)
     if signature_names is None:
         signature_names = [f"Signature {k}" for k in range(K)]
 
@@ -1202,153 +1202,162 @@ def visualize_disease_contribution_breakdown_two(
     else:
         plt.show()
 
-
-def analyze_age_onset_patterns_from_checkpoint(
-    model_path: str,
-    disease_index: int,
-    disease_name: str,
-    early_threshold: int = 50,
-    late_threshold: int = 70,
+def analyze_age_onset_patterns_across_batches(
+    results_base_dir: str,
+    disease_index: int = 114,
+    early_threshold: int = 55,
+    late_threshold: int = 65,
     output_path: Optional[str] = None
 ):
     """
-    Compare signature patterns between early and late onset disease from a model checkpoint.
-    
-    Args:
-        model_path: Path to the model checkpoint file
-        disease_index: Index of the disease to analyze
-        disease_name: Name of the disease (for plotting)
-        early_threshold: Age threshold for early onset (default 50)
-        late_threshold: Age threshold for late onset (default 70)
-        output_path: Optional path to save the figure
+    Optimized version that loads each batch file only once
     """
-    print(f"\nAnalyzing age onset patterns for {disease_name} (index {disease_index})")
-    print("=" * 50)
+    batch_dirs = find_batch_dirs(results_base_dir)
+    if not batch_dirs:
+        print("Error: No batch directories found. Cannot proceed.")
+        return [], []
     
-    # Load model checkpoint
-    print(f"Loading model from {model_path}")
-    checkpoint = torch.load(model_path, map_location='cpu')
+    print(f"\n--- Scanning {len(batch_dirs)} Batches for Early/Late Onset Patterns ---")
     
-    # Extract necessary data
-    Y = checkpoint['Y']  # Disease occurrence matrix
-    lambda_values = checkpoint['model_state_dict']['lambda_']  # Signature loadings
+    # Initialize storage
+    all_early_onset = []  # (global_idx, lambda_values, diagnosis_age)
+    all_late_onset = []
+    total_patients_scanned = 0
     
-    # Convert to numpy if needed
-    if torch.is_tensor(Y):
-        Y = Y.detach().cpu().numpy()
-    if torch.is_tensor(lambda_values):
-        lambda_values = lambda_values.detach().cpu().numpy()
-    
-    N, K, T = lambda_values.shape
-    time_points = np.arange(30, 30 + T)  # Assuming starts at age 30
-    
-    early_onset = []
-    late_onset = []
-    
-    # Find patients with disease and categorize by age of onset
-    for p in range(Y.shape[0]):
-        diagnosis_times = np.where(Y[p, disease_index] > 0.5)[0]
-        if len(diagnosis_times) > 0:
-            diagnosis_time = diagnosis_times[0]
-            diagnosis_age = 30 + diagnosis_time
+    # Process each batch - load data only once per batch
+    for batch_info in batch_dirs:
+        batch_model_path = os.path.join(batch_info['path'], 'model.pt')
+        if not os.path.exists(batch_model_path):
+            continue
             
-            if diagnosis_age < early_threshold:
-                early_onset.append((p, diagnosis_age))
-            elif diagnosis_age > late_threshold:
-                late_onset.append((p, diagnosis_age))
+        try:
+            # Load batch data once
+            print(f"Processing batch {batch_info['name']}...")
+            model_data = torch.load(batch_model_path, map_location='cpu')
+            Y_batch = model_data['Y']
+            lambda_batch = model_data['model_state_dict']['lambda_']
+            
+            # Convert to numpy
+            if torch.is_tensor(Y_batch):
+                Y_batch = Y_batch.cpu().numpy()
+            if torch.is_tensor(lambda_batch):
+                lambda_batch = lambda_batch.cpu().numpy()
+            
+            current_N = Y_batch.shape[0]
+            total_patients_scanned += current_N
+            
+            # Process all patients in this batch
+            for local_idx in range(current_N):
+                diagnosis_times = np.where(Y_batch[local_idx, disease_index] > 0.5)[0]
+                if len(diagnosis_times) > 0:
+                    diagnosis_time = diagnosis_times[0]
+                    diagnosis_age = 30 + diagnosis_time
+                    global_idx = batch_info['start'] + local_idx
+                    
+                    # Store lambda values with the patient info
+                    lambda_values = lambda_batch[local_idx]
+                    if diagnosis_age < early_threshold:
+                        all_early_onset.append((global_idx, lambda_values, diagnosis_age))
+                    elif diagnosis_age > late_threshold:
+                        all_late_onset.append((global_idx, lambda_values, diagnosis_age))
+                        
+        except Exception as e:
+            print(f"Error processing batch {batch_info['name']}: {e}")
+            continue
     
-    print(f"Found {len(early_onset)} early-onset patients (diagnosis < {early_threshold})")
-    print(f"Found {len(late_onset)} late-onset patients (diagnosis > {late_threshold})")
+    print(f"\nFound across {total_patients_scanned} patients:")
+    print(f"- {len(all_early_onset)} early-onset cases (<{early_threshold} years)")
+    print(f"- {len(all_late_onset)} late-onset cases (>{late_threshold} years)")
     
-    # Calculate mean ages
-    if early_onset:
-        early_ages = [age for _, age in early_onset]
-        print(f"\nEarly onset mean age: {np.mean(early_ages):.1f} (range: {min(early_ages):.1f}-{max(early_ages):.1f})")
+    if not all_early_onset or not all_late_onset:
+        print("Insufficient data for analysis")
+        return [], []
     
-    if late_onset:
-        late_ages = [age for _, age in late_onset]
-        print(f"Late onset mean age: {np.mean(late_ages):.1f} (range: {min(late_ages):.1f}-{max(late_ages):.1f})")
+    # Calculate statistics and prepare plotting data
+    early_ages = [age for _, _, age in all_early_onset]
+    late_ages = [age for _, _, age in all_late_onset]
+    print(f"\nEarly onset mean age: {np.mean(early_ages):.1f} (range: {min(early_ages):.1f}-{max(early_ages):.1f})")
+    print(f"Late onset mean age: {np.mean(late_ages):.1f} (range: {min(late_ages):.1f}-{max(late_ages):.1f})")
     
-    # Extract patient indices
-    early_patients = [p for p, _ in early_onset]
-    late_patients = [p for p, _ in late_onset]
+    # Get dimensions from the stored lambda values
+    K = all_early_onset[0][1].shape[0]
+    T = all_early_onset[0][1].shape[1]
+    time_points = np.arange(30, 30 + T)
+    
+    # Calculate theta values directly from stored lambda values
+    early_theta = np.zeros((len(all_early_onset), K, T))
+    late_theta = np.zeros((len(all_late_onset), K, T))
+    
+    for i, (_, lambda_values, _) in enumerate(all_early_onset):
+        exp_lambda = np.exp(lambda_values)
+        early_theta[i] = exp_lambda / np.sum(exp_lambda, axis=0)
+    
+    for i, (_, lambda_values, _) in enumerate(all_late_onset):
+        exp_lambda = np.exp(lambda_values)
+        late_theta[i] = exp_lambda / np.sum(exp_lambda, axis=0)
     
     # Create visualization
-    fig = plt.figure(figsize=(15, 12))
-    gs = gridspec.GridSpec(2, 2, height_ratios=[1, 1])
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
     
-    # Plot early onset patterns
-    if early_patients:
-        # Top left: Individual trajectories
-        ax1 = fig.add_subplot(gs[0, 0])
-        # Calculate theta for early onset patients
-        early_theta = np.zeros((len(early_patients), K, T))
-        for i, p_idx in enumerate(early_patients):
-            exp_lambda = np.exp(lambda_values[p_idx])
-            early_theta[i] = exp_lambda / np.sum(exp_lambda, axis=0)
+    def plot_group_patterns(theta_values, mean_age, axes, title_prefix):
+        ax_prop, ax_vel = axes
         
-        # Plot individual trajectories
-        for i in range(len(early_patients)):
-            for k in range(K):
-                ax1.plot(time_points, early_theta[i, k], alpha=0.1)
+        # Calculate mean and SEM
+        mean_theta = np.mean(theta_values, axis=0)
+        sem_theta = np.std(theta_values, axis=0) / np.sqrt(len(theta_values))
         
-        # Plot mean trajectory
-        mean_early = np.mean(early_theta, axis=0)
+        # Calculate velocities
+        velocities = np.gradient(mean_theta, axis=1)
+        vel_sem = np.std(np.gradient(theta_values, axis=2), axis=0) / np.sqrt(len(theta_values))
+        
+        # Plot proportions
         for k in range(K):
-            ax1.plot(time_points, mean_early[k], linewidth=2, 
-                    label=f'Signature {k}')
+            color = f'C{k}'
+            ax_prop.plot(time_points, mean_theta[k], label=f'Signature {k}', color=color)
+            ax_prop.fill_between(time_points, 
+                               mean_theta[k] - sem_theta[k],
+                               mean_theta[k] + sem_theta[k],
+                               color=color, alpha=0.2)
         
-        ax1.set_title(f'Early Onset Patterns (<{early_threshold}, n={len(early_patients)})')
-        ax1.set_ylabel('Signature Loading (θ)')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        # Top right: Heatmap of mean patterns
-        ax2 = fig.add_subplot(gs[0, 1])
-        sns.heatmap(mean_early, cmap='viridis', 
-                   xticklabels=time_points[::5],
-                   yticklabels=[f'Sig {k}' for k in range(K)],
-                   ax=ax2)
-        ax2.set_title('Mean Early Onset Pattern')
-        ax2.set_xlabel('Age')
-    
-    # Plot late onset patterns
-    if late_patients:
-        # Bottom left: Individual trajectories
-        ax3 = fig.add_subplot(gs[1, 0])
-        # Calculate theta for late onset patients
-        late_theta = np.zeros((len(late_patients), K, T))
-        for i, p_idx in enumerate(late_patients):
-            exp_lambda = np.exp(lambda_values[p_idx])
-            late_theta[i] = exp_lambda / np.sum(exp_lambda, axis=0)
-        
-        # Plot individual trajectories
-        for i in range(len(late_patients)):
-            for k in range(K):
-                ax3.plot(time_points, late_theta[i, k], alpha=0.1)
-        
-        # Plot mean trajectory
-        mean_late = np.mean(late_theta, axis=0)
+        # Plot velocities
         for k in range(K):
-            ax3.plot(time_points, mean_late[k], linewidth=2,
-                    label=f'Signature {k}')
+            color = f'C{k}'
+            ax_vel.plot(time_points, velocities[k], label=f'Signature {k}', color=color)
+            ax_vel.fill_between(time_points,
+                              velocities[k] - vel_sem[k],
+                              velocities[k] + vel_sem[k],
+                              color=color, alpha=0.2)
         
-        ax3.set_title(f'Late Onset Patterns (>{late_threshold}, n={len(late_patients)})')
-        ax3.set_xlabel('Age')
-        ax3.set_ylabel('Signature Loading (θ)')
-        ax3.legend()
-        ax3.grid(True, alpha=0.3)
+        # Add vertical lines for diagnosis age
+        ax_prop.axvline(mean_age, color='red', linestyle=':', label=f'Avg Diagnosis Age: {mean_age:.1f}')
+        ax_vel.axvline(mean_age, color='red', linestyle=':', label=f'Avg Diagnosis Age: {mean_age:.1f}')
         
-        # Bottom right: Heatmap of mean patterns
-        ax4 = fig.add_subplot(gs[1, 1])
-        sns.heatmap(mean_late, cmap='viridis',
-                   xticklabels=time_points[::5],
-                   yticklabels=[f'Sig {k}' for k in range(K)],
-                   ax=ax4)
-        ax4.set_title('Mean Late Onset Pattern')
-        ax4.set_xlabel('Age')
+        # Customize plots
+        ax_prop.set_title(f'{title_prefix}\nProportions')
+        ax_vel.set_title(f'{title_prefix}\nVelocities')
+        ax_prop.set_ylabel('Average Signature Loading')
+        ax_vel.set_ylabel('Velocity')
+        ax_prop.grid(True, alpha=0.3)
+        ax_vel.grid(True, alpha=0.3)
     
-    plt.suptitle(f'Age Onset Patterns for {disease_name}', fontsize=14, y=1.02)
+    # Plot patterns
+    plot_group_patterns(
+        early_theta, 
+        np.mean(early_ages),
+        (ax1, ax2),
+        f'Early Onset (<{early_threshold}, n={len(all_early_onset)})'
+    )
+    
+    plot_group_patterns(
+        late_theta,
+        np.mean(late_ages),
+        (ax3, ax4),
+        f'Late Onset (>{late_threshold}, n={len(all_late_onset)})'
+    )
+    
+    # Add legend and adjust layout
+    handles, labels = ax1.get_legend_handles_labels()
+    fig.legend(handles, labels, bbox_to_anchor=(1.15, 0.5), loc='center left')
     plt.tight_layout()
     
     if output_path:
@@ -1358,6 +1367,197 @@ def analyze_age_onset_patterns_from_checkpoint(
     else:
         plt.show()
     
-    return early_patients, late_patients
+    return [idx for idx, _, _ in all_early_onset], [idx for idx, _, _ in all_late_onset]
 
-# Example usage:
+def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, output_path=None):
+    """
+    Plot signature proportion deviations by cluster for a specific disease across all batches
+    
+    Args:
+        disease_idx: Index of the disease to analyze
+        batch_size: Number of patients per batch
+        n_batches: Number of batches to process
+        n_clusters: Number of clusters to use
+        n_top_sigs: Number of top signatures to show
+        subtract_reference: Whether to subtract reference trajectories
+        output_path: Path to save the PDF file. If None, plot is shown but not saved.
+    """
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.cluster import KMeans
+    import traceback
+    
+    print(f"Starting analysis for disease {disease_idx} across all batches...")
+    
+    # Load batch 1 model to get disease names and signature information
+    model_path = '/Users/sarahurbut/Dropbox/resultshighamp/results/output_0_10000/model.pt'
+    print("\nLoading batch 1 model for reference...")
+    
+    try:
+        model1 = torch.load(model_path)
+        disease_names = model1['disease_names'][0].tolist()
+        K_total = model1['model_state_dict']['lambda_'].shape[1]  # Number of signatures
+        time_points = model1['Y'].shape[2]  # Number of time points
+        
+        disease_name = disease_names[disease_idx] if disease_idx < len(disease_names) else f"Disease {disease_idx}"
+        print(f"Analyzing {disease_name}")
+        
+        # Get reference trajectories from first batch
+        if 'signature_refs' in model1:
+            if model1.get('healthy_ref') is not None:
+                # Create full reference including healthy state
+                reference_lambda = torch.zeros((K_total, time_points))
+                reference_lambda[:-1] = model1['signature_refs']  # Disease signatures
+                reference_lambda[-1] = model1['healthy_ref']  # Healthy reference
+                # Convert to proportions using softmax
+                reference_theta = torch.softmax(reference_lambda, dim=0).detach().numpy()
+            else:
+                reference_theta = torch.softmax(model1['signature_refs'], dim=0).detach().numpy()
+        else:
+            # If no reference, we'll calculate population average later
+            reference_theta = None
+    except Exception as e:
+        print(f"ERROR loading model: {str(e)}")
+        traceback.print_exc()
+        return None
+    
+    # Collect patients with this disease across all batches
+    all_patients = []  # Will store (batch_idx, patient_idx) tuples
+    all_features = []  # Will store signature proportions
+    all_thetas = []    # Will store full theta matrices
+    
+    # Process each batch
+    for batch in range(n_batches):
+        start_idx = batch * batch_size
+        end_idx = (batch + 1) * batch_size
+        
+        model_path = f'/Users/sarahurbut/Dropbox/resultshighamp/results/output_{start_idx}_{end_idx}/model.pt'
+        print(f"\nProcessing batch {batch+1}/{n_batches} (patients {start_idx}-{end_idx})")
+        
+        try:
+            model = torch.load(model_path)
+            lambda_values = model['model_state_dict']['lambda_']
+            Y_batch = model['Y'].numpy()
+            
+            # Find patients with this disease
+            for i in range(Y_batch.shape[0]):
+                if np.any(Y_batch[i, disease_idx]):
+                    # Get signature proportions
+                    theta = torch.softmax(lambda_values[i], dim=0).detach().numpy()
+                    mean_props = theta.mean(axis=1)
+                    
+                    # Store patient data
+                    all_patients.append((batch, i))
+                    all_features.append(mean_props)
+                    all_thetas.append(theta)
+            
+            print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
+            
+        except FileNotFoundError:
+            print(f"Warning: Could not find model file for batch {batch}")
+            break  # Assume we've reached the end of batches
+        except Exception as e:
+            print(f"Error processing batch {batch}: {str(e)}")
+            traceback.print_exc()
+            continue
+    
+    if len(all_patients) == 0:
+        print(f"No patients found with disease {disease_idx}")
+        return None
+    
+    print(f"\nTotal patients with {disease_name}: {len(all_patients)}")
+    
+    # If no reference theta, use population average
+    if reference_theta is None:
+        reference_theta = np.mean(all_thetas, axis=0)
+        print("Using population average as reference")
+    
+    # Convert to numpy arrays
+    all_features = np.array(all_features)
+    
+    # Perform clustering
+    print(f"\nPerforming clustering with {n_clusters} clusters...")
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    patient_clusters = kmeans.fit_predict(all_features)
+    
+    # Create figure and axes
+    fig, axes = plt.subplots(n_clusters, 1, figsize=(12, 5*n_clusters))
+    if n_clusters == 1:
+        axes = [axes]  # Make axes iterable if only one cluster
+    
+    time_points = np.arange(time_points)
+    
+    for cluster_idx in range(n_clusters):
+        # Get patients in this cluster
+        cluster_indices = np.where(patient_clusters == cluster_idx)[0]
+        cluster_thetas = [all_thetas[i] for i in cluster_indices]
+        
+        # Calculate average theta for this cluster
+        avg_theta = np.mean(cluster_thetas, axis=0)
+        
+        if subtract_reference:
+            # Subtract reference from average
+            avg_theta = avg_theta - reference_theta
+        
+        # Calculate mean deviation for each signature
+        mean_props = np.abs(avg_theta).mean(axis=1)
+        
+        # Get top signatures by absolute mean deviation
+        top_sig_idx = np.argsort(mean_props)[-n_top_sigs:][::-1]
+        
+        # Create stacked area plot
+        bottom_pos = np.zeros(time_points.shape)
+        bottom_neg = np.zeros(time_points.shape)
+        colors = plt.cm.tab20(np.linspace(0, 1, n_top_sigs))
+        
+        for i, sig in enumerate(top_sig_idx):
+            values = avg_theta[sig]
+            if subtract_reference:
+                # For deviations, split positive and negative
+                pos_values = np.maximum(values, 0)
+                neg_values = np.minimum(values, 0)
+                
+                axes[cluster_idx].fill_between(time_points, bottom_pos, bottom_pos + pos_values,
+                                             label=f'Sig {sig} (Δθ={mean_props[sig]:.3f})',
+                                             color=colors[i])
+                axes[cluster_idx].fill_between(time_points, bottom_neg, bottom_neg + neg_values,
+                                             color=colors[i], alpha=0.5)
+                
+                bottom_pos += pos_values
+                bottom_neg += neg_values
+            else:
+                axes[cluster_idx].fill_between(time_points, bottom_pos, bottom_pos + values,
+                                             label=f'Sig {sig} (θ={mean_props[sig]:.3f})',
+                                             color=colors[i])
+                bottom_pos += values
+        
+        title = f'Cluster {cluster_idx}: '
+        title += 'Signature Proportion Deviations from Population Average' if subtract_reference else 'Average Signature Proportions'
+        title += f'\n({len(cluster_indices)} patients)'
+        
+        axes[cluster_idx].set_title(title)
+        axes[cluster_idx].set_xlabel('Time (Age 30-81)')
+        axes[cluster_idx].set_ylabel('Δ Proportion (θ)' if subtract_reference else 'Proportion (θ)')
+        axes[cluster_idx].legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        if subtract_reference:
+            # Center y-axis around 0 for deviations
+            max_dev = max(abs(bottom_pos.max()), abs(bottom_neg.min()))
+            axes[cluster_idx].set_ylim(-max_dev, max_dev)
+            axes[cluster_idx].axhline(y=0, color='k', linestyle='-', alpha=0.2)
+        else:
+            axes[cluster_idx].set_ylim(0, 1.05)
+    
+    plt.suptitle(f'{"Signature Proportion Deviations" if subtract_reference else "Average Signature Proportions"}\n'
+                f'by Cluster for {disease_name}')
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+        plt.close(fig)
+    else:
+        plt.show()
+    
+    return fig
