@@ -1,0 +1,122 @@
+library(tidyverse)
+library(viridis)
+library(patchwork)
+
+set.seed(2024)
+
+# Parameters
+n_ind <- 12
+n_pop <- 2
+n_marker <- 3
+
+# 1. Simulate population allele frequencies (for each marker, each pop)
+pop_freqs <- matrix(runif(n_pop * n_marker, 0.2, 0.8), nrow = n_pop)
+colnames(pop_freqs) <- paste0("M", 1:n_marker)
+rownames(pop_freqs) <- paste0("Pop", 1:n_pop)
+
+# 2. Simulate true ancestry proportions for each individual
+# We'll make 4 mostly Pop1, 4 mostly Pop2, 4 admixed
+q_true <- rbind(
+  t(replicate(4, c(rbeta(1, 8, 2), rbeta(1, 2, 8)))),   # mostly Pop1
+  t(replicate(4, c(rbeta(1, 2, 8), rbeta(1, 8, 2)))),   # mostly Pop2
+  t(replicate(4, c(rbeta(1, 5, 5), rbeta(1, 5, 5))))    # admixed
+)
+q_true <- q_true / rowSums(q_true)
+colnames(q_true) <- c("Pop1", "Pop2")
+
+# 3. Simulate genotypes for each individual at each marker
+# For simplicity, haploid: each allele is drawn from a population with probability = q
+geno <- matrix(NA, nrow = n_ind, ncol = n_marker)
+for (i in 1:n_ind) {
+  for (j in 1:n_marker) {
+    # Choose population for this allele
+    pop <- sample(1:n_pop, 1, prob = q_true[i, ])
+    # Draw allele: 1 = reference (A), 0 = alt (C)
+    geno[i, j] <- rbinom(1, 1, pop_freqs[pop, j])
+  }
+}
+colnames(geno) <- paste0("M", 1:n_marker)
+rownames(geno) <- paste0("Ind", 1:n_ind)
+
+# 4. "Estimate" ancestry proportions over iterations (toy EM/MCMC)
+# We'll start with random q, and update using the observed alleles and pop freqs
+n_iter <- 10
+q_est <- array(NA, dim = c(n_ind, n_pop, n_iter))
+q_est[,,1] <- t(apply(matrix(runif(n_ind * n_pop), ncol = n_pop), 1, function(x) x/sum(x)))
+
+for (it in 2:n_iter) {
+  for (i in 1:n_ind) {
+    # For each population, compute likelihood of observed alleles
+    loglike <- rep(0, n_pop)
+    for (k in 1:n_pop) {
+      for (j in 1:n_marker) {
+        p <- pop_freqs[k, j]
+        a <- geno[i, j]
+        loglike[k] <- loglike[k] + dbinom(a, 1, p, log=TRUE)
+      }
+    }
+    # Add prior (Dirichlet(1,1) = uniform)
+    post <- exp(loglike - max(loglike)) # for stability
+    post <- post / sum(post)
+    # Update q as convex combination (like EM)
+    q_est[i, , it] <- 0.7 * q_est[i, , it-1] + 0.3 * post
+    q_est[i, , it] <- q_est[i, , it] / sum(q_est[i, , it])
+  }
+}
+
+# 5. Prepare data for plotting
+
+# True ancestry
+q_true_df <- as.data.frame(q_true)
+q_true_df$Individual <- factor(1:n_ind)
+q_true_long <- pivot_longer(q_true_df, cols = starts_with("Pop"), names_to = "Population", values_to = "Proportion")
+
+# Estimated ancestry at each iteration
+q_est_df <- as.data.frame(q_est[,,n_iter])
+colnames(q_est_df) <- c("Pop1", "Pop2")
+q_est_df$Individual <- factor(1:n_ind)
+q_est_long <- pivot_longer(q_est_df, cols = starts_with("Pop"), names_to = "Population", values_to = "Proportion")
+
+# Estimated ancestry over all iterations (for a few individuals)
+q_iter <- as.data.frame(q_est[1:6,,])
+names(q_iter) <- c("Pop1", "Pop2")
+q_iter$Iteration <- rep(1:n_iter, each=6)
+q_iter$Individual <- rep(1:6, times=n_iter)
+q_iter_long <- pivot_longer(q_iter, cols = c("Pop1", "Pop2"), names_to = "Population", values_to = "Proportion")
+
+# 6. Plot
+
+# STRUCTURE-style barplot: true ancestry
+p_true <- ggplot(q_true_long, aes(x = Individual, y = Proportion, fill = Population)) +
+  geom_col(width = 1) +
+  scale_fill_manual(values = c("Pop1" = "blue", "Pop2" = "red")) +
+  labs(title = "True Ancestry Proportions", y = "Proportion", x = "Individual") +
+  theme_minimal(base_size = 14)
+
+# STRUCTURE-style barplot: estimated ancestry (final iteration)
+p_est <- ggplot(q_est_long, aes(x = Individual, y = Proportion, fill = Population)) +
+  geom_col(width = 1) +
+  scale_fill_manual(values = c("Pop1" = "blue", "Pop2" = "red")) +
+  labs(title = "Estimated Ancestry (Iteration 10)", y = "Proportion", x = "Individual") +
+  theme_minimal(base_size = 14)
+
+# Trajectory plot for a few individuals
+p_traj <- ggplot(q_iter_long, aes(x = Iteration, y = Proportion, color = Population)) +
+  geom_line(size = 1.2) +
+  facet_wrap(~ Individual, nrow = 2) +
+  scale_color_manual(values = c("Pop1" = "blue", "Pop2" = "red")) +
+  labs(title = "Ancestry Proportion Trajectories (First 6 Individuals)", y = "Proportion", x = "Iteration") +
+  theme_minimal(base_size = 12)
+
+# Heatmap of population allele frequencies
+pop_freqs_df <- as.data.frame(pop_freqs)
+pop_freqs_df$Population <- rownames(pop_freqs)
+pop_freqs_long <- pivot_longer(pop_freqs_df, cols = starts_with("M"), names_to = "Marker", values_to = "Frequency")
+p_freq <- ggplot(pop_freqs_long, aes(x = Marker, y = Population, fill = Frequency)) +
+  geom_tile() +
+  scale_fill_viridis(option = "C") +
+  labs(title = "Population Allele Frequencies", x = "Marker", y = "Population") +
+  theme_minimal(base_size = 12)
+
+# Combine plots
+(p_true | p_est) / (p_traj | p_freq) + plot_layout(heights = c(1, 1.2)) 
