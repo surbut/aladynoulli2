@@ -97,11 +97,12 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def initialize_params(self, psi_config=None, true_psi=None, **kwargs):
         """Initialize parameters with K disease clusters plus one healthy cluster"""
         Y_avg = torch.mean(self.Y, dim=2)
-        epsilon = 1e-8
-        Y_avg = torch.log((Y_avg + epsilon)/(1-Y_avg+epsilon))
+        epsilon = 1e-6  # Increased epsilon for better numerical stability
+        # Clamp Y_avg to valid probability range before logit transform
+        Y_avg = torch.clamp(Y_avg, epsilon, 1.0 - epsilon)
+        Y_avg = torch.log(Y_avg/(1-Y_avg))  # Now safe to do logit transform
 
-        
-   # Initialize psi for disease clusters
+        # Initialize psi for disease clusters
         if true_psi is not None:
             # Use provided psi and add healthy cluster
             psi_init = torch.zeros((self.K_total, self.D))
@@ -122,6 +123,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         else:
             # Original clustering code for disease clusters
             Y_corr = torch.corrcoef(Y_avg.T)
+            # Handle NaN values in correlation matrix
+            Y_corr = torch.nan_to_num(Y_corr, nan=0.0)
             similarity = (Y_corr + 1) / 2
             
             spectral = SpectralClustering(
@@ -147,6 +150,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             unique, counts = np.unique(self.clusters, return_counts=True)
             for k, count in zip(unique, counts):
                 print(f"Cluster {k}: {count} diseases")
+        
         gamma_init = torch.zeros((self.P, self.K_total))
         lambda_init = torch.zeros((self.N, self.K_total, self.T))
         phi_init = torch.zeros((self.K_total, self.D, self.T))
