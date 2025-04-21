@@ -275,9 +275,15 @@ def generate_clustered_survival_data_from_real(N, D, T, K, P,
                                              real_psi,  # Still needed to get cluster structure
                                              init_sd_scaler=1e-2,
                                              G=None,
-                                             use_fixed_psi=False):  # New parameter
+                                             use_fixed_psi=False,
+                                             signature_scale=0.1):  # Control signature strength
     """
-    Generate synthetic data using real patterns with option for fixed psi values
+    Generate synthetic data using real patterns with scaled signature effects
+    
+    Parameters:
+    -----------
+    signature_scale : float
+        Scale factor for signature references (0 = no effect, 1 = full effect)
     """
     # Convert PyTorch tensors to numpy if needed
     if torch.is_tensor(real_signature_refs):
@@ -305,20 +311,23 @@ def generate_clustered_survival_data_from_real(N, D, T, K, P,
     K_lambda_init = (init_sd_scaler**2) * np.exp(-0.5 * (time_diff**2) / (lambda_length**2))
     K_phi_init = (init_sd_scaler**2) * np.exp(-0.5 * (time_diff**2) / (phi_length**2))
 
-    # Generate lambda using real signatures and gamma
+    # Generate lambda using scaled signature references and gamma
     lambda_ik = np.zeros((N, K, T))
     for i in range(N):
-        lambda_means = G[i] @ real_gamma
+        lambda_means = G[i] @ real_gamma  # This should be shape (K,)
         for k in range(K):
             eps = np.random.multivariate_normal(np.zeros(T), K_lambda_init)
-            lambda_ik[i,k,:] = real_signature_refs[k,:T] + lambda_means[k] + eps
+            # Scale the signature reference contribution
+            sig_ref = real_signature_refs[k,:T] if real_signature_refs.shape[1] > T else real_signature_refs[k]
+            mean_shift = np.full(T, lambda_means[k])  # Broadcast mean to shape (T,)
+            lambda_ik[i,k,:] = signature_scale * sig_ref + mean_shift + eps
 
     # Get cluster assignments from real psi
     clusters = np.argmax(real_psi, axis=0)
     
     # Generate new psi with fixed values if requested
     if use_fixed_psi:
-        psi = np.full((K, D), -2.0)  # Initialize all to out-cluster value
+        psi = np.full((K, D), -4.0)  # Initialize all to out-cluster value
         for k in range(K):
             psi[k, clusters == k] = 1.0  # Set in-cluster value
     else:
@@ -610,7 +619,113 @@ def generate_clustered_survival_data_with_refs(N, D, T, K, P, signature_refs=Non
         'signature_refs': signature_refs
     }
 
+""" 
 sim_data = generate_clustered_survival_data_with_refs(
     N, D, T, K, P,
     signature_refs=None  # This will use the default flat references
 )
+
+"""
+
+def generate_state_driven_data(N, D, T, K, P, init_sd_scaler=1e-2):
+    """
+    Generate synthetic data where disease clustering emerges from shared state activation.
+    People with similar state patterns get similar diseases.
+    
+    Parameters:
+    -----------
+    N : int
+        Number of individuals
+    D : int
+        Number of diseases
+    T : int
+        Number of time points
+    K : int
+        Number of states
+    P : int
+        Number of genetic components
+    init_sd_scaler : float
+        Scale for initial noise
+    """
+    # Generate genetic components
+    G = np.random.randn(N, P)
+    G = G - G.mean(axis=0, keepdims=True)
+    G = G / G.std(axis=0, keepdims=True)
+    
+    # Generate gamma (genetic effects on states)
+    gamma = np.random.randn(P, K)
+    
+    # Setup kernel parameters
+    lambda_length = T/4
+    time_points = np.arange(T)
+    time_diff = time_points[:, None] - time_points[None, :]
+    K_lambda = (init_sd_scaler**2) * np.exp(-0.5 * (time_diff**2) / (lambda_length**2))
+    
+    # Generate lambda (individual state trajectories)
+    lambda_ik = np.zeros((N, K, T))
+    for i in range(N):
+        # Each person gets a base state pattern from their genetics
+        state_means = G[i] @ gamma
+        for k in range(K):
+            # Add smooth temporal variation
+            eps = np.random.multivariate_normal(np.zeros(T), K_lambda)
+            lambda_ik[i,k,:] = state_means[k] + eps
+    
+    # Convert to state proportions
+    theta = softmax(lambda_ik, axis=1)  # N x K x T
+    
+    # Now create disease-state associations
+    # Each disease will be strongly associated with 1-2 states
+    disease_state_weights = np.zeros((K, D))
+    for d in range(D):
+        # Pick 1 or 2 states for this disease
+        n_states = np.random.choice([1, 2], p=[0.7, 0.3])
+        primary_states = np.random.choice(K, size=n_states, replace=False)
+        disease_state_weights[primary_states, d] = np.random.uniform(1, 2, size=n_states)
+        # Small weights for other states
+        other_states = np.setdiff1d(np.arange(K), primary_states)
+        disease_state_weights[other_states, d] = np.random.uniform(-3, -2, size=len(other_states))
+    
+    # Generate base disease trajectories (simpler than real_logit_prev_t)
+    base_trajectories = np.zeros((D, T))
+    for d in range(D):
+        # Simple increasing risk with age
+        base_rate = np.random.uniform(-6, -4)  # Base rate
+        slope = np.random.uniform(0.02, 0.05)  # Age effect
+        base_trajectories[d] = base_rate + slope * time_points
+    
+    # Combine everything to get probabilities
+    # pi[n,d,t] = σ(base[d,t] + Σ_k theta[n,k,t] * weights[k,d])
+    pi = np.zeros((N, D, T))
+    for n in range(N):
+        for t in range(T):
+            state_effects = theta[n, :, t, None] * disease_state_weights  # K x D
+            pi[n, :, t] = expit(base_trajectories[:, t] + state_effects.sum(axis=0))
+    
+    # Generate events
+    Y = np.zeros((N, D, T))
+    event_times = np.full((N, D), T)
+    
+    for n in range(N):
+        for d in range(D):
+            for t in range(T):
+                if Y[n,d,:t].sum() == 0:  # Still at risk
+                    if np.random.rand() < pi[n,d,t]:
+                        Y[n,d,t] = 1
+                        event_times[n,d] = t
+                        break
+    
+    # Get emergent clusters from disease-state associations
+    clusters = np.argmax(disease_state_weights, axis=0)
+    
+    return {
+        'Y': Y,
+        'G': G,
+        'event_times': event_times,
+        'theta': theta,
+        'lambda': lambda_ik,
+        'disease_state_weights': disease_state_weights,
+        'pi': pi,
+        'clusters': clusters,
+        'gamma': gamma
+    }

@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
 from collections import defaultdict
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, adjusted_rand_score, normalized_mutual_info_score
+from scipy.optimize import linear_sum_assignment
 
 def group_diseases_by_cluster(clusters, disease_names_df):
     """
@@ -58,6 +62,43 @@ def group_diseases_by_cluster(clusters, disease_names_df):
     
     return cluster_diseases, cluster_indices
 
+def plot_confusion_matrix(true_clusters, pred_clusters, K):
+    """
+    Plot confusion matrix and compute clustering metrics.
+    Reorders clusters to maximize diagonal alignment.
+    """
+    # Compute confusion matrix
+    conf_mat = confusion_matrix(true_clusters, pred_clusters)
+    
+    # Normalize by true cluster sizes
+    conf_mat_norm = conf_mat / conf_mat.sum(axis=1, keepdims=True)
+    
+    # Use Hungarian algorithm to find optimal matching
+    row_ind, col_ind = linear_sum_assignment(-conf_mat_norm)
+    
+    # Reorder the confusion matrix
+    conf_mat_reordered = conf_mat_norm[:, col_ind]
+    
+    # Plot
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(conf_mat_reordered, annot=True, fmt='.2f', cmap='Blues',
+                xticklabels=range(K), yticklabels=range(K))
+    plt.title('Confusion Matrix (Normalized & Reordered)')
+    plt.xlabel('Predicted Cluster')
+    plt.ylabel('True Cluster')
+    
+    # Compute metrics
+    ari = adjusted_rand_score(true_clusters, pred_clusters)
+    nmi = normalized_mutual_info_score(true_clusters, pred_clusters)
+    
+    print(f"\nClustering Metrics:")
+    print(f"Adjusted Rand Index: {ari:.3f}")
+    print(f"Normalized Mutual Information: {nmi:.3f}")
+    
+    plt.show()
+    
+    return col_ind  # Return the optimal ordering
+
 if __name__ == "__main__":
     # Example usage
     import torch
@@ -71,3 +112,22 @@ if __name__ == "__main__":
     
     # Group diseases
     cluster_diseases, cluster_indices = group_diseases_by_cluster(clusters, disease_names) 
+
+    # Load simulation data
+    print("Loading simulation data...")
+    sim_data = np.load('state_driven_sim.npz')
+    true_clusters = sim_data['clusters']
+
+    # Load model results (assuming you've saved them after fitting)
+    # You'll need to replace this with actual model results
+    print("Loading model results...")
+    # pred_clusters = ... # This will come from your model fit
+
+    # For now, let's just look at the true cluster structure
+    unique_clusters, counts = np.unique(true_clusters, return_counts=True)
+    print("\nTrue Cluster Sizes:")
+    for k, count in zip(unique_clusters, counts):
+        print(f"Cluster {k}: {count} diseases")
+
+    # Once you have model results, uncomment this:
+    # plot_confusion_matrix(true_clusters, pred_clusters, K=20) 
