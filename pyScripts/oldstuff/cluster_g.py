@@ -1105,7 +1105,7 @@ def generate_clustered_survival_data(N=1000, D=20, T=50, K=5, P=5):
     }
 
 
-def plot_synthetic_components(data, num_samples=5):
+def plot_synthetic_components(data, num_samples=5,save_path=None):
     plt.figure(figsize=(20, 12))
     
     # 1. Plot sample phi trajectories for each cluster
@@ -1161,4 +1161,12 @@ def plot_synthetic_components(data, num_samples=5):
     plt.yscale('log')
     
     plt.tight_layout()
+
+
+    
+    # Save to PDF if path is provided
+    if save_path:
+        plt.savefig(save_path, format='pdf', bbox_inches='tight', dpi=300)
+    
+   
     plt.show()

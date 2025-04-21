@@ -221,6 +221,73 @@ def compare_with_pce(model, pce_df, ascvd_indices=[111,112,113,114,115,116]):
     plt.grid(True)
     plt.show()
 
+def compare_with_pce(model, pce_df, ascvd_indices=[111,112,113,114,115,116]):
+    """
+    Compare 10-year predictions using single timepoint prediction
+    """
+    our_10yr_risks = []
+    actual_10yr = []
+
+    # Get predictions
+    pi = model.forward()[0].detach().numpy()
+    
+    # Get mean risks across patients for calibration
+    predicted_risk_2d = pi.mean(axis=0)  # Shape: [D, T]
+    observed_risk_2d = model.Y.numpy().mean(axis=0)  # Shape: [D, T]
+    
+    # Sort and get LOESS calibration curve
+    pred_flat = predicted_risk_2d.flatten()
+    obs_flat = observed_risk_2d.flatten()
+    sort_idx = np.argsort(pred_flat)
+    smoothed = lowess(obs_flat[sort_idx], pred_flat[sort_idx], frac=0.3)
+    
+    # Apply calibration to all predictions using interpolation
+    pi_calibrated = np.interp(pi.flatten(), smoothed[:, 0], smoothed[:, 1]).reshape(pi.shape)
+    
+    # Calculate 10-year risks using only enrollment time prediction
+    for patient_idx, row in enumerate(pce_df.itertuples()):
+        enroll_time = int(row.age - 30)
+        if enroll_time + 10 >= model.T:
+            continue
+            
+        # Only use predictions at enrollment time
+        pi_ascvd = pi_calibrated[patient_idx, ascvd_indices, enroll_time]
+        
+        # Calculate 1-year risk first
+        yearly_risk = 1 - np.prod(1 - pi_ascvd)
+        
+        # Convert to 10-year risk
+        risk = 1 - (1 - yearly_risk)**10
+        our_10yr_risks.append(risk)
+        
+        # Still look at actual events over 10 years
+        Y_ascvd = model.Y[patient_idx, ascvd_indices, enroll_time:enroll_time+10]
+        actual = torch.any(torch.any(Y_ascvd, dim=0))
+        actual_10yr.append(actual.item())
+   
+    # Rest of the function remains the same
+    our_10yr_risks = np.array(our_10yr_risks)
+    actual_10yr = np.array(actual_10yr)
+    pce_risks = pce_df['pce_goff_fuull'].values[:len(our_10yr_risks)]
+    
+    # Calculate ROC AUCs
+    our_auc = roc_auc_score(actual_10yr, our_10yr_risks)
+    pce_auc = roc_auc_score(actual_10yr, pce_risks)
+    
+    print(f"\nROC AUC Comparison (10-year prediction from enrollment):")
+    print(f"Our model: {our_auc:.3f}")
+    print(f"PCE: {pce_auc:.3f}")
+    
+    plt.figure(figsize=(8,6))
+    plot_roc_curve(actual_10yr, our_10yr_risks, label=f'Our Model (AUC={our_auc:.3f})')
+    plot_roc_curve(actual_10yr, pce_risks, label=f'PCE (AUC={pce_auc:.3f})')
+    plt.plot([0,1], [0,1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curves for 10-year ASCVD Prediction')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 import torch
