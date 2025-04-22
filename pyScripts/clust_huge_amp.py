@@ -16,7 +16,7 @@ import seaborn as sns
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def __init__(self, N, D, T, K, P, G, Y, R,W,prevalence_t, init_sd_scaler, genetic_scale,
-                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False):
+                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False, learn_kappa=True):
         super().__init__()
         # Basic dimensions and settings
         self.N, self.D, self.T, self.K = N, D, T, K
@@ -24,7 +24,11 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.P = P
         self.gpweight=W
         self.jitter = 1e-6
-        #self.kappa = nn.Parameter(torch.ones(1)) 
+        # Make kappa configurable
+        if learn_kappa:
+            self.kappa = nn.Parameter(torch.ones(1))  # Learnable kappa
+        else:
+            self.kappa = torch.ones(1)  # Fixed kappa
         self.lrtpen = R# Stronger LRT penalty
         # Fixed kernel parameters
         self.lambda_length_scale = T/4
@@ -33,7 +37,6 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Fixed amplitude as hyperparameter
         self.lambda_amplitude_init = init_sd_scaler  # For lambda initialization
         self.phi_amplitude_init = init_sd_scaler
-        self.kappa = nn.Parameter(torch.ones(1))  # Single global calibration parameter
     
         
         # Store base kernel matrix (structure without amplitude)
@@ -219,7 +222,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         theta = torch.softmax(self.lambda_, dim=1)
         epsilon=1e-8
         phi_prob = torch.sigmoid(self.phi)
-        # Apply kappa scaling inside the computation of pi
+        # Apply fixed kappa
         pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * self.kappa
         pi = torch.clamp(pi, epsilon, 1-epsilon)
         return pi, theta, phi_prob
@@ -326,14 +329,20 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
         """Modified fit method with separate learning rates"""
         
-        # Current setup:
-        optimizer = optim.Adam([
+        # Create parameter groups based on whether kappa is learnable
+        param_groups = [
             {'params': [self.lambda_], 'lr': learning_rate},      # e.g. 1e-2
             {'params': [self.phi], 'lr': learning_rate * 0.1},
-            {'params': [self.kappa], 'lr': learning_rate},    # e.g. 1e-3
             {'params': [self.psi], 'lr': learning_rate*0.1},          
-            {'params': [self.gamma], 'lr': learning_rate} # Same slower rate as phi
-        ])
+            {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
+     
+        ]
+        
+        # Add kappa to optimizer only if it's learnable
+        if isinstance(self.kappa, nn.Parameter):
+            param_groups.append({'params': [self.kappa], 'lr': learning_rate})
+        
+        optimizer = optim.Adam(param_groups)
 
         #Initialize gradient history
         gradient_history = {
@@ -345,9 +354,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
             loss.backward()
-            if self.kappa.grad is not None:
-               print(f"Kappa gradient: {self.kappa.grad.item():.3e}")
-
+            # Remove kappa gradient printing
+            
             gradient_history['lambda_grad'].append(self.lambda_.grad.clone().detach())
             gradient_history['phi_grad'].append(self.phi.grad.clone().detach())
         

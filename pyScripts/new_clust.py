@@ -443,7 +443,7 @@ def generate_clustered_survival_data(N=1000, D=20, T=50, K=5, P=5):
         logit_prev_t[d, :] = base_rate + \
                             slope * time_points_shifted - \
                             decay * (time_points_shifted - peak_age)**2
-    
+        
     # 2. Generate cluster assignments
     clusters = np.zeros(D)
     diseases_per_cluster = D // K
@@ -1116,4 +1116,715 @@ def plot_sim_components_with_phi(sim_data, n_samples=3):
                 bbox=dict(facecolor='white', alpha=0.8))
     
     plt.tight_layout()
+    return fig
+
+def compare_model_runs(run1, run2, K):
+    """
+    Compare two model runs by matching clusters and comparing parameters
+    
+    Parameters:
+    -----------
+    run1, run2 : dict
+        Dictionaries containing model parameters including:
+        - clusters
+        - lambda
+        - psi
+        - logit_prev_t (base trajectories)
+    K : int
+        Number of clusters
+    """
+    import numpy as np
+    from scipy.optimize import linear_sum_assignment
+    import matplotlib.pyplot as plt
+    
+    # First match clusters using psi similarity
+    psi1, psi2 = run1['psi'], run2['psi']
+    similarity_matrix = np.zeros((K, K))
+    
+    for i in range(K):
+        for j in range(K):
+            similarity_matrix[i,j] = np.corrcoef(psi1[i,:], psi2[j,:])[0,1]
+    
+    # Use Hungarian algorithm to find best matching
+    row_ind, col_ind = linear_sum_assignment(-similarity_matrix)
+    
+    # Create figure for comparisons
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    
+    # 1. Plot psi correlation heatmap
+    ax = axes[0,0]
+    im = ax.imshow(similarity_matrix, cmap='RdBu_r', vmin=-1, vmax=1)
+    ax.set_title('Psi Correlations Between Runs')
+    ax.set_xlabel('Run 2 Clusters')
+    ax.set_ylabel('Run 1 Clusters')
+    plt.colorbar(im, ax=ax)
+    
+    # 2. Plot matched effective phis
+    ax = axes[0,1]
+    for k in range(K):
+        k2 = col_ind[k]  # Matched cluster in run2
+        
+        # Compute effective phi (psi + base trajectory) for a sample disease
+        d = np.argmax(psi1[k,:])  # Get most associated disease
+        phi1 = run1['logit_prev_t'][d,:] + psi1[k,d]
+        phi2 = run2['logit_prev_t'][d,:] + psi2[k2,d]
+        
+        ax.plot(phi1, '-', label=f'Run1 Cluster {k}')
+        ax.plot(phi2, '--', label=f'Run2 Cluster {k2}')
+    
+    ax.set_title('Effective Phi for Matched Clusters\n(Most Associated Disease)')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Logit Probability')
+    ax.legend()
+    
+    # 3. Plot lambda comparisons for a few individuals
+    ax = axes[1,0]
+    n_samples = 3
+    sample_inds = np.random.choice(run1['lambda'].shape[0], n_samples)
+    
+    for i, n in enumerate(sample_inds):
+        for k in range(K):
+            k2 = col_ind[k]
+            ax.plot(run1['lambda'][n,k,:], '-', label=f'Run1 Ind{n} Clust{k}')
+            ax.plot(run2['lambda'][n,k2,:], '--', label=f'Run2 Ind{n} Clust{k2}')
+    
+    ax.set_title('Lambda Trajectories for Sample Individuals')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Lambda Value')
+    ax.legend()
+    
+    # 4. Plot cluster assignment confusion matrix
+    ax = axes[1,1]
+    clusters1, clusters2 = run1['clusters'], run2['clusters']
+    conf_mat = np.zeros((K, K))
+    for i in range(len(clusters1)):
+        conf_mat[clusters1[i], clusters2[i]] += 1
+    
+    im = ax.imshow(conf_mat / conf_mat.sum(axis=1, keepdims=True), 
+                   cmap='Blues')
+    ax.set_title('Normalized Cluster Assignment Confusion Matrix')
+    ax.set_xlabel('Run 2 Clusters')
+    ax.set_ylabel('Run 1 Clusters')
+    plt.colorbar(im, ax=ax)
+    
+    # Add summary statistics as text
+    stats_text = (
+        f"Average Psi Correlation: {np.mean([similarity_matrix[i,col_ind[i]] for i in range(K)]):.3f}\n"
+        f"Cluster Assignment Agreement: {np.sum(clusters1 == clusters2) / len(clusters1):.3f}"
+    )
+    plt.figtext(0.02, 0.02, stats_text, fontsize=10, 
+                bbox=dict(facecolor='white', alpha=0.8))
+    
+    plt.tight_layout()
+    return fig, row_ind, col_ind
+
+def compare_fit_to_truth(sim_data, model_fit, K, n_diseases=4):
+    """
+    Compare model fit against simulation truth with simpler disease-specific plots
+    """
+    import numpy as np
+    from scipy.optimize import linear_sum_assignment
+    import matplotlib.pyplot as plt
+    
+    # First match clusters using disease-state weight patterns
+    true_weights = sim_data['disease_state_weights']
+    fit_weights = model_fit['psi']
+    similarity_matrix = np.zeros((K, K))
+    
+    for i in range(K):
+        for j in range(K):
+            similarity_matrix[i,j] = np.corrcoef(true_weights[i,:], fit_weights[j,:])[0,1]
+    
+    # Use Hungarian algorithm to find best matching
+    row_ind, col_ind = linear_sum_assignment(-similarity_matrix)
+    
+    # Create figure for comparisons
+    fig = plt.figure(figsize=(20, 5*n_diseases))
+    
+    # Find diseases with most events
+    Y = sim_data['Y']
+    event_counts = Y.sum(axis=(0,2))  # Sum over individuals and time
+    top_diseases = np.argsort(event_counts)[-n_diseases:]  # Top n_diseases by event count
+    
+    # Plot each disease comparison
+    for idx, d in enumerate(top_diseases):
+        ax = plt.subplot(n_diseases, 1, idx+1)
+        
+        # Get predicted probabilities
+        pi_pred = model_fit['pi']
+        mean_pred = pi_pred[:, d, :].mean(axis=0)  # Average across people
+        
+        # Get actual incidence
+        actual_incidence = Y[:, d, :].mean(axis=0)  # Average across people
+        
+        # Plot
+        ax.plot(mean_pred, label='Model Predicted average π')
+        ax.plot(actual_incidence, label='Actual Incidence')
+        ax.set_title(f'Disease {d}: Predicted vs Actual Prevalence')
+        ax.legend()
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Probability')
+    
+    # Add summary statistics as text
+    matched_corrs = [similarity_matrix[i,col_ind[i]] for i in range(K)]
+    stats_text = (
+        f"Average Disease-State Weight Correlation: {np.mean(matched_corrs):.3f}\n"
+        f"Min Correlation: {np.min(matched_corrs):.3f}\n"
+        f"Max Correlation: {np.max(matched_corrs):.3f}"
+    )
+    plt.figtext(0.02, 0.02, stats_text, fontsize=10, 
+                bbox=dict(facecolor='white', alpha=0.8))
+    
+    plt.tight_layout()
+    return fig, row_ind, col_ind
+
+def extract_model_dict(model):
+    """
+    Extract parameters from an AladynSurvivalFixedKernelsAvgLoss model into dictionary format
+    
+    Parameters:
+    -----------
+    model : AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest
+        The fitted model
+        
+    Returns:
+    --------
+    dict : Dictionary containing model parameters in numpy format
+    """
+    with torch.no_grad():
+        # Get basic parameters
+        lambda_ik = model.lambda_.detach().cpu().numpy()
+        psi = model.psi.detach().cpu().numpy()
+        
+        # Compute theta (state proportions)
+        theta = torch.softmax(model.lambda_, dim=1).detach().cpu().numpy()
+        
+        # Get clusters
+        clusters = torch.argmax(model.psi, dim=0).detach().cpu().numpy()
+        
+        # Compute pi (event probabilities)
+        # Handle case where forward returns a tuple
+        forward_output = model.forward()
+        if isinstance(forward_output, tuple):
+            pi = forward_output[0].detach().cpu().numpy()  # Assume pi is first element
+        else:
+            pi = forward_output.detach().cpu().numpy()
+        
+        # Extract other parameters if they exist
+        params = {
+            'lambda': lambda_ik,
+            'psi': psi,
+            'theta': theta,
+            'clusters': clusters,
+            'pi': pi
+        }
+        
+        # Add optional parameters if they exist
+        if hasattr(model, 'logit_prev_t'):
+            params['logit_prev_t'] = model.logit_prev_t.detach().cpu().numpy()
+            
+    return params
+
+# Now you can use it like:
+# model_dict = extract_model_dict(model)
+# fig, row_ind, col_ind = compare_fit_to_truth(sim_data, model_dict, K)
+
+def print_model_params(model):
+    """
+    Print key parameters from the model for diagnostics
+    """
+    print("\nModel Parameter Diagnostics:")
+    print("-" * 30)
+    
+    with torch.no_grad():
+        # Check lambda
+        if hasattr(model, 'lambda_'):
+            lambda_param = model.lambda_
+        elif hasattr(model, 'lambda_ik'):
+            lambda_param = model.lambda_ik
+        else:
+            lambda_param = None
+            
+        if lambda_param is not None:
+            print(f"\nLambda shape: {lambda_param.shape}")
+            print(f"Lambda range: [{lambda_param.min().item():.3f}, {lambda_param.max().item():.3f}]")
+            print(f"Lambda mean: {lambda_param.mean().item():.3f}")
+            print(f"Lambda std: {lambda_param.std().item():.3f}")
+        
+        # Check psi
+        if hasattr(model, 'psi'):
+            print(f"\nPsi shape: {model.psi.shape}")
+            print(f"Psi range: [{model.psi.min().item():.3f}, {model.psi.max().item():.3f}]")
+            print(f"Psi mean: {model.psi.mean().item():.3f}")
+            print(f"Psi std: {model.psi.std().item():.3f}")
+        
+        # Check if model can compute pi
+        try:
+            pi = model.forward()
+            if isinstance(pi, tuple):
+                pi = pi[0]
+            print(f"\nPi shape: {pi.shape}")
+            print(f"Pi range: [{pi.min().item():.3f}, {pi.max().item():.3f}]")
+            print(f"Pi mean: {pi.mean().item():.3f}")
+            print(f"Pi std: {pi.std().item():.3f}")
+        except:
+            print("\nCouldn't compute pi")
+            
+        # Print model attributes
+        print("\nModel attributes:")
+        for attr in dir(model):
+            if not attr.startswith('_') and not callable(getattr(model, attr)):
+                try:
+                    val = getattr(model, attr)
+                    if isinstance(val, torch.Tensor):
+                        print(f"{attr}: Tensor of shape {val.shape}")
+                    else:
+                        print(f"{attr}: {type(val)}")
+                except:
+                    pass
+
+# Usage:
+# print_model_params(model_with_refs)
+
+def compare_phi_patterns(sim_data, model_fit, K, n_states_to_show=5):
+    """
+    Compare phi patterns between simulation and fitted model
+    
+    Parameters:
+    -----------
+    sim_data : dict
+        Dictionary containing simulation parameters including:
+        - disease_state_weights
+        - base_trajectories or logit_prev_t
+    model_fit : dict
+        Dictionary containing fitted parameters including:
+        - psi
+        - phi
+        - logit_prev_t
+    K : int
+        Number of clusters
+    n_states_to_show : int
+        Number of states to show in comparison
+    """
+    import numpy as np
+    from scipy.optimize import linear_sum_assignment
+    import matplotlib.pyplot as plt
+    
+    # First match states using disease-state weight patterns
+    true_weights = sim_data['disease_state_weights']
+    fit_weights = model_fit['psi']
+    similarity_matrix = np.zeros((K, K))
+    
+    for i in range(K):
+        for j in range(K):
+            similarity_matrix[i,j] = np.corrcoef(true_weights[i,:], fit_weights[j,:])[0,1]
+    
+    # Use Hungarian algorithm to find best matching
+    row_ind, col_ind = linear_sum_assignment(-similarity_matrix)
+    
+    # Get base patterns
+    if 'base_trajectories' in sim_data:
+        true_base = sim_data['base_trajectories']
+    else:
+        true_base = sim_data['logit_prev_t']
+    
+    fit_base = model_fit['logit_prev_t']
+    
+    # Reconstruct true phi
+    D = true_weights.shape[1]
+    T = true_base.shape[1] if len(true_base.shape) > 1 else len(true_base)
+    true_phi = np.zeros((K, D, T))
+    
+    for k in range(K):
+        for d in range(D):
+            true_phi[k,d,:] = true_base[d] + true_weights[k,d]
+    
+    # Get fitted phi
+    fit_phi = model_fit['phi']
+    
+    # Create visualization
+    fig = plt.figure(figsize=(20, 12))
+    gs = plt.GridSpec(2, 2)
+    
+    # 1. Plot correlation matrix
+    ax = fig.add_subplot(gs[0, 0])
+    im = ax.imshow(similarity_matrix, cmap='RdBu_r', vmin=-1, vmax=1)
+    ax.set_title('State Correlation Matrix', fontsize=12)
+    ax.set_xlabel('Fitted States', fontsize=10)
+    ax.set_ylabel('True States', fontsize=10)
+    plt.colorbar(im, ax=ax)
+    
+    # 2. Plot base patterns for a few diseases
+    ax = fig.add_subplot(gs[0, 1])
+    n_diseases = 5
+    diseases = np.random.choice(D, n_diseases)
+    for d in diseases:
+        ax.plot(true_base[d], '-', label=f'True Base D{d}', alpha=0.7)
+        ax.plot(fit_base[d], '--', label=f'Fitted Base D{d}', alpha=0.7)
+    ax.set_title('Base Disease Patterns\n(Before State Effects)', fontsize=12)
+    ax.set_xlabel('Time', fontsize=10)
+    ax.set_ylabel('Logit Probability', fontsize=10)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    
+    # 3. Plot phi patterns for top correlating states
+    ax = fig.add_subplot(gs[1, :])
+    correlations = [similarity_matrix[i,col_ind[i]] for i in range(K)]
+    top_states = np.argsort(correlations)[-n_states_to_show:]
+    
+    # For each top state, plot phi for its most associated diseases
+    for k in top_states:
+        k_fit = col_ind[k]
+        # Find most associated diseases for this state
+        top_diseases = np.argsort(true_weights[k])[-3:]  # Top 3 diseases
+        
+        for d in top_diseases:
+            # Plot true phi
+            ax.plot(true_phi[k,d,:], '-', 
+                   label=f'True S{k}D{d}', alpha=0.7)
+            # Plot fitted phi
+            ax.plot(fit_phi[k_fit,d,:], '--',
+                   label=f'Fitted S{k_fit}D{d}', alpha=0.7)
+    
+    ax.set_title('φ Patterns (Base + State Effects)\nTop States with Their Most Associated Diseases', 
+                 fontsize=12)
+    ax.set_xlabel('Time', fontsize=10)
+    ax.set_ylabel('Logit Probability', fontsize=10)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    
+    # Add summary statistics
+    matched_corrs = [similarity_matrix[i,col_ind[i]] for i in range(K)]
+    stats_text = (
+        f"Average State Correlation: {np.mean(matched_corrs):.3f}\n"
+        f"Min Correlation: {np.min(matched_corrs):.3f}\n"
+        f"Max Correlation: {np.max(matched_corrs):.3f}"
+    )
+    plt.figtext(0.02, 0.02, stats_text, fontsize=10, 
+                bbox=dict(facecolor='white', alpha=0.8))
+    
+    plt.tight_layout()
+    return fig, row_ind, col_ind
+
+# Usage:
+# fig, row_ind, col_ind = compare_phi_patterns(sim_data, model_dict, K=20)
+# plt.show()
+
+def plot_smoothed_prevalence_check(smoothed_prev, base_trajectories, sample_diseases=None):
+    """
+    Plot smoothed prevalence against base trajectories for comparison
+    
+    Args:
+        smoothed_prev: D x T tensor of smoothed prevalence
+        base_trajectories: D x T tensor of base trajectories
+        sample_diseases: list of disease indices to plot (default: first 3)
+    """
+    if sample_diseases is None:
+        sample_diseases = [0, 1, 2]
+    
+    plt.figure(figsize=(12, 6))
+    
+    # Plot both on logit scale for fair comparison
+    epsilon = 1e-8
+    logit_prev = np.log(smoothed_prev / (1 - smoothed_prev + epsilon))
+    
+    for d in sample_diseases:
+        plt.plot(logit_prev[d], '--', label=f'Smoothed Prev (Disease {d})')
+        plt.plot(base_trajectories[d], '-', label=f'Base Trajectory (Disease {d})')
+    
+    plt.title('Smoothed Prevalence vs Base Trajectories (Logit Scale)')
+    plt.xlabel('Time')
+    plt.ylabel('Logit Probability')
+    plt.legend()
+    plt.grid(True)
+
+def plot_event_distribution(Y, n_diseases=5):
+    """
+    Plot the distribution of events over time for selected diseases
+    
+    Args:
+        Y: N x D x T array of events
+        n_diseases: number of diseases to plot
+    """
+    N, D, T = Y.shape
+    
+    # Get total events per disease
+    total_events = Y.sum(axis=0).sum(axis=1)  # Sum over individuals and time
+    # Select top diseases by event count
+    top_diseases = np.argsort(-total_events)[:n_diseases]
+    
+    plt.figure(figsize=(15, 8))
+    
+    # Plot event counts over time
+    for d in top_diseases:
+        events_over_time = Y[:, d, :].sum(axis=0)  # Sum over individuals
+        plt.plot(events_over_time, label=f'Disease {d} (total={total_events[d]:.0f})')
+    
+    plt.title('Event Distribution Over Time')
+    plt.xlabel('Time')
+    plt.ylabel('Number of Events')
+    plt.legend()
+    plt.grid(True)
+    
+    # Add summary statistics
+    stats_text = (
+        f"Total events: {Y.sum():.0f}\n"
+        f"Average events per disease: {total_events.mean():.1f}\n"
+        f"Max events per disease: {total_events.max():.0f}\n"
+        f"Diseases with no events: {(total_events == 0).sum()}"
+    )
+    plt.figtext(0.02, 0.02, stats_text, fontsize=10,
+                bbox=dict(facecolor='white', alpha=0.8))
+    
+    plt.show()
+    
+    # Also show cumulative distribution
+    plt.figure(figsize=(15, 8))
+    for d in top_diseases:
+        events_over_time = Y[:, d, :].sum(axis=0)
+        cumulative = np.cumsum(events_over_time)
+        plt.plot(cumulative / cumulative[-1], label=f'Disease {d}')
+    
+    plt.title('Cumulative Event Distribution (Normalized)')
+    plt.xlabel('Time')
+    plt.ylabel('Fraction of Total Events')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_raw_events(Y, n_diseases=5):
+    """
+    Plot raw event counts without any smoothing
+    
+    Args:
+        Y: N x D x T array of events
+        n_diseases: number of diseases to plot
+    """
+    N, D, T = Y.shape
+    
+    # Get total events per disease
+    total_events = Y.sum(axis=0).sum(axis=1)  # Sum over individuals and time
+    # Select top diseases by event count
+    top_diseases = np.argsort(-total_events)[:n_diseases]
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 12))
+    
+    # Plot 1: Raw event counts
+    for d in top_diseases:
+        events = Y[:, d, :].sum(axis=0)  # Sum over individuals
+        ax1.scatter(np.arange(T), events, alpha=0.5, label=f'Disease {d}')
+        ax1.plot(events, alpha=0.3)  # Line to connect points
+    
+    ax1.set_title('Raw Event Counts (No Smoothing)')
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Number of Events')
+    ax1.legend()
+    ax1.grid(True)
+    
+    # Plot 2: Event timing distribution
+    event_times = []
+    disease_ids = []
+    for d in top_diseases:
+        # Get times where events occurred
+        times = np.where(Y[:, d, :].sum(axis=0) > 0)[0]
+        event_times.extend(times)
+        disease_ids.extend([d] * len(times))
+    
+    ax2.hist(event_times, bins=T//2, alpha=0.5)
+    ax2.set_title('Distribution of Event Timing (All Selected Diseases)')
+    ax2.set_xlabel('Time')
+    ax2.set_ylabel('Number of Time Points with Events')
+    ax2.grid(True)
+    
+    # Add summary stats
+    stats_text = (
+        f"Total events in dataset: {Y.sum():.0f}\n"
+        f"Diseases shown: {n_diseases} most common\n"
+        f"Max events at any timepoint: {max(Y.sum(axis=(0,1))):.0f}\n"
+        f"Percent timepoints with no events: {100 * (Y.sum(axis=(0,1)) == 0).mean():.1f}%"
+    )
+    plt.figtext(0.02, 0.02, stats_text, fontsize=10,
+                bbox=dict(facecolor='white', alpha=0.8))
+    
+    plt.tight_layout()
+    plt.show()
+
+def plot_diseases_per_timepoint(Y):
+    """
+    Plot number of diseases that have events at each time point
+    
+    Args:
+        Y: N x D x T array of events
+    """
+    N, D, T = Y.shape
+    
+    # For each time point, count how many diseases had at least one event
+    diseases_per_time = (Y.sum(axis=0) > 0).sum(axis=0)  # First sum over N (patients), then count diseases
+    
+    plt.figure(figsize=(12, 6))
+    plt.bar(np.arange(T), diseases_per_time, alpha=0.6)
+    plt.title('Number of Diseases with Events at Each Time Point')
+    plt.xlabel('Time')
+    plt.ylabel('Number of Diseases with Events')
+    
+    # Add summary stats
+    stats_text = (
+        f"Average diseases per timepoint: {diseases_per_time.mean():.1f}\n"
+        f"Max diseases at one time: {diseases_per_time.max():.0f}\n"
+        f"Time points with no events: {(diseases_per_time == 0).sum()}"
+    )
+    plt.figtext(0.02, 0.98, stats_text, fontsize=10,
+                bbox=dict(facecolor='white', alpha=0.8),
+                verticalalignment='top')
+    
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+def plot_events_comparison(Y):
+    """
+    Compare first events vs total events at each time point
+    
+    Args:
+        Y: N x D x T array of events
+    """
+    N, D, T = Y.shape
+    
+    # Get first events (current plot)
+    first_events = (Y.sum(axis=0) > 0).sum(axis=0)  # Number of diseases with first event
+    
+    # Get total events
+    total_events = Y.sum(axis=(0,1))  # Sum over both N and D for total events at each time
+    
+    # Create two subplots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    
+    # Plot first events
+    ax1.bar(np.arange(T), first_events, alpha=0.6, color='skyblue')
+    ax1.set_title('Number of Diseases with First Events at Each Time Point')
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Number of Diseases')
+    ax1.grid(True, alpha=0.3)
+    
+    # Add stats for first events
+    stats_text1 = (
+        f"Average diseases with first events per timepoint: {first_events.mean():.1f}\n"
+        f"Max diseases with first events at one time: {first_events.max():.0f}"
+    )
+    ax1.text(0.02, 0.98, stats_text1, transform=ax1.transAxes, fontsize=10,
+             bbox=dict(facecolor='white', alpha=0.8), verticalalignment='top')
+    
+    # Plot total events
+    ax2.bar(np.arange(T), total_events, alpha=0.6, color='lightgreen')
+    ax2.set_title('Total Number of Events at Each Time Point')
+    ax2.set_xlabel('Time')
+    ax2.set_ylabel('Number of Events')
+    ax2.grid(True, alpha=0.3)
+    
+    # Add stats for total events
+    stats_text2 = (
+        f"Average total events per timepoint: {total_events.mean():.1f}\n"
+        f"Max total events at one time: {total_events.max():.0f}\n"
+        f"Total events in dataset: {total_events.sum():.0f}"
+    )
+    ax2.text(0.02, 0.98, stats_text2, transform=ax2.transAxes, fontsize=10,
+             bbox=dict(facecolor='white', alpha=0.8), verticalalignment='top')
+    
+    plt.tight_layout()
+    plt.show()
+
+def evaluate_survival_predictions(Y, pi_pred):
+    """
+    Evaluate model predictions accounting for survival structure
+    
+    Args:
+        Y: N x D x T array of observed events
+        pi_pred: N x D x T array of predicted hazards
+    """
+    import numpy as np
+    from sklearn.metrics import roc_curve, auc
+    import matplotlib.pyplot as plt
+    
+    N, D, T = Y.shape
+    
+    # Create at_risk mask (1 if no event has occurred yet)
+    at_risk = np.ones_like(Y)
+    for n in range(N):
+        for d in range(D):
+            # Find first event
+            event_times = np.where(Y[n,d,:])[0]
+            if len(event_times) > 0:
+                first_event = event_times[0]
+                # Mask out all times after first event
+                at_risk[n,d,(first_event+1):] = 0
+    
+    # Flatten arrays and keep only at-risk predictions
+    y_true = Y[at_risk == 1]
+    y_pred = pi_pred[at_risk == 1]
+    
+    # Create plots
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
+    
+    # 1. ROC curve
+    fpr, tpr, _ = roc_curve(y_true, y_pred)
+    roc_auc = auc(fpr, tpr)
+    
+    ax1.plot(fpr, tpr, label=f'AUC = {roc_auc:.3f}')
+    ax1.plot([0, 1], [0, 1], 'k--')
+    ax1.set_xlabel('False Positive Rate')
+    ax1.set_ylabel('True Positive Rate')
+    ax1.set_title('Model Predictions ROC Curve\n(Only At-Risk Times)')
+    ax1.legend()
+    
+    # 2. Discrimination plot
+    ax2.hist(y_pred[y_true == 0], bins=50, alpha=0.5, density=True, label='No Event')
+    ax2.hist(y_pred[y_true == 1], bins=50, alpha=0.5, density=True, label='Event')
+    ax2.set_xlabel('Predicted Hazard')
+    ax2.set_ylabel('Density')
+    ax2.set_title('Hazard Distribution by Event Status\n(Only At-Risk Times)')
+    ax2.legend()
+    
+    # 3. Time-specific ROC AUCs
+    aucs = []
+    times = []
+    for t in range(T):
+        mask_t = at_risk[:,:,t].flatten() == 1
+        if mask_t.sum() > 0:  # If anyone still at risk
+            y_true_t = Y[:,:,t].flatten()[mask_t]
+            y_pred_t = pi_pred[:,:,t].flatten()[mask_t]
+            if len(np.unique(y_true_t)) > 1:  # Need both classes for ROC
+                fpr, tpr, _ = roc_curve(y_true_t, y_pred_t)
+                aucs.append(auc(fpr, tpr))
+                times.append(t)
+    
+    ax3.plot(times, aucs)
+    ax3.set_xlabel('Time')
+    ax3.set_ylabel('AUC')
+    ax3.set_title('AUC Over Time\n(Only At-Risk Individuals)')
+    
+    # 4. Calibration plot with risk groups
+    n_groups = 10
+    pred_probs = np.linspace(0, y_pred.max(), n_groups+1)
+    obs_props = []
+    mean_preds = []
+    
+    for i in range(n_groups):
+        mask = (y_pred >= pred_probs[i]) & (y_pred < pred_probs[i+1])
+        if mask.sum() > 0:
+            obs_props.append(y_true[mask].mean())
+            mean_preds.append(y_pred[mask].mean())
+    
+    ax4.scatter(mean_preds, obs_props)
+    ax4.plot([0, max(mean_preds)], [0, max(mean_preds)], 'k--')
+    ax4.set_xlabel('Predicted Hazard')
+    ax4.set_ylabel('Observed Event Proportion')
+    ax4.set_title('Calibration Plot\n(Only At-Risk Times)')
+    
+    plt.tight_layout()
+    
+    # Print summary statistics
+    print(f"\nSummary Statistics (Only At-Risk Times):")
+    print(f"Overall AUC: {roc_auc:.3f}")
+    print(f"Mean predicted hazard for non-events: {y_pred[y_true == 0].mean():.4f}")
+    print(f"Mean predicted hazard for events: {y_pred[y_true == 1].mean():.4f}")
+    print(f"Number of valid predictions: {len(y_true)}")
+    print(f"Event rate in valid predictions: {y_true.mean():.4f}")
+    
     return fig
