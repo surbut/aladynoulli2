@@ -1,0 +1,358 @@
+% LaTeX template for Science journal paper
+% Based on science_template.tex with adaptations for research content
+
+%%%%%%%%%%%%%%%% START OF PREAMBLE %%%%%%%%%%%%%%%
+
+% Basic setup. Authors shouldn't need to adjust these commands.
+% They need to be included in this .tex for Science's production software to work.
+
+% Use the basic LaTeX article class, 12pt text
+\documentclass[12pt]{article}
+
+% Science uses Times font. If you don't have this installed, comment out the following line
+\usepackage{newtxtext,newtxmath}
+% Depending on your LaTeX fonts installation, you might get better results with one of these:
+%\usepackage{mathptmx}
+%\usepackage{txfonts}
+
+% Allow external graphics files
+\usepackage{graphicx}
+
+% Use US letter sized paper with 1 inch margins
+\usepackage[letterpaper,margin=1in]{geometry}
+
+% Double line spacing, including in captions
+\linespread{1.5} % For some reason double spacing is 1.5, not 2.0!
+
+% One space after each sentence
+\frenchspacing
+
+% Abstract formatting and spacing - no heading
+\renewenvironment{abstract}
+	{\quotation}
+	{\endquotation}
+
+% No date in the title section
+\date{}
+
+% Reference section heading
+\renewcommand\refname{References and Notes}
+
+% Figure and Table labels in bold
+\makeatletter
+\renewcommand{\fnum@figure}{\textbf{Figure \thefigure}}
+\renewcommand{\fnum@table}{\textbf{Table \thetable}}
+\makeatother
+
+% Call the accompanying scicite.sty package.
+% This formats citation numbers in Science style.
+\usepackage{scicite}
+
+% Provides the \url command, and fixes a crash if URLs or DOIs contain underscores
+\usepackage{url}
+
+%%%%%%%%%%%% CUSTOM COMMANDS AND PACKAGES %%%%%%%%%%%%
+
+% Authors can define simple custom commands e.g. as shortcuts to save on typing
+% Use \newcommand (not \def) to avoid overwriting existing commands.
+\newcommand{\aladyn}{\texttt{ALADYNOULLI}}
+
+%%%%%%%%%%%%%%%% TITLE AND AUTHORS %%%%%%%%%%%%%%%%
+
+% Title of the paper.
+% Keep it short and understandable by any reader of Science.
+% Avoid acronyms or jargon. Use sentence case.
+\def\scititle{
+	\aladyn: A Bayesian approach to disease progression modeling for genomic discovery and clinical prediction
+}
+% Store the title in a variable for reuse in the supplement (otherwise \maketitle deletes it)
+\title{\bfseries \boldmath \scititle}
+
+% Author and institution list.
+% Institution numbers etc. should be hard-coded, do *not* use the \footnote command.
+\author{
+    Sarah M. Urbut$^{1,2\ast}$,
+    Yi Ding$^{3}$,
+    Tet Nakao,
+    Anika Misra,\and
+    Whitney Hornsby$^{1,2}$,
+    Xilian Jiang$^{4}$,
+    Jordan Smoller$^{1,2}$,\and
+    Alexander Gusev$^{5,6}$,
+    Giovanni Parmigiani$^{3,5\dagger}$,
+    Pradeep Natarajan$^{1,2,7\dagger}$\and
+    % Institution list, in a slightly smaller font
+    \small$^{1}$Division of Cardiology, Department of Medicine, Massachusetts General Hospital, Boston, MA 02114, USA\and
+    \small$^{2}$Cardiovascular Research Center, Massachusetts General Hospital, Boston, MA 02114, USA\and
+    \small$^{3}$Department of Data Sciences, Dana-Farber Cancer Institute, Boston, MA 02215, USA\and
+    \small$^{4}$Big Data Institute, Li Ka Shing Centre for Health Information and Discovery, University of Oxford, Oxford OX3 7LF, UK\and
+    \small$^{5}$Department of Biostatistics, Harvard TH Chan School of Public Health, Boston, MA 02115, USA\and
+    \small$^{6}$Department of Medical Oncology, Dana-Farber Cancer Institute, Boston, MA 02215, USA\and
+    \small$^{7}$Broad Institute of Harvard and MIT, Cambridge, MA 02142, USA\and
+    % Identify at least one corresponding author, with contact email address
+    \small$^\ast$Corresponding author. Email: surbut@mgh.harvard.edu\and
+    % Joint contributions can be indicated like this
+    \small$^\dagger$These authors jointly supervised this work.
+}
+%%%%%%%%%%%%%%%%% END OF PREAMBLE %%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%% START OF MAIN TEXT %%%%%%%%%%%%%%%
+\begin{document} 
+
+% Insert the title and author list
+\maketitle
+
+% Abstract, in bold
+\begin{abstract} \bfseries \boldmath
+% Start with one or two sentences of background
+Understanding how disease patterns evolve over a lifetime remains a key challenge in medicine. While electronic health records provide rich longitudinal data, existing models typically handle each disease in isolation, missing the complex interplay between multiple conditions and genetic factors.
+% Then summarize the results
+Here we present \aladyn, a Bayesian framework that identifies latent disease signatures from longitudinal health records while modeling individual-specific trajectories. Applied to over 400,000 individuals across three biobanks with up to 50 years of follow-up, our model discovers 20 clinically interpretable disease signatures that demonstrate remarkable consistency across diverse populations. These signatures reveal distinct progression patterns and show strong genetic correlations that enable both prediction of patient risk and discovery of novel genetic associations. 
+% End with main conclusions and implications
+By integrating genetics with time-varying disease patterns, \aladyn provides a unified approach to understand disease comorbidity, supports identification of individuals at heightened risk, and offers new avenues for precision medicine through its ability to dynamically update risk assessments as new clinical information becomes available.
+\end{abstract}
+
+
+% The first paragraph does NOT have a heading
+\noindent
+Disease risk varies substantially across individuals and throughout the life course, with complex interactions between genetic predisposition, environmental factors, and accumulated comorbidities. Understanding these dynamic patterns of risk could transform early detection, prevention, and personalized treatment strategies \cite{berry2006bayesian, angus2021heterogeneity}. The increasing availability of large-scale electronic health records (EHRs) linked to genetic data provides unprecedented opportunities to model these complex disease trajectories at population scale \cite{sudlow2015biobank, pedersen2023adult}. However, extracting meaningful patterns from these rich, longitudinal datasets remains challenging due to patient population heterogeneity, the temporal nature of disease progression, and intricate relationships between diverse conditions.
+
+Traditional approaches to analyzing EHR data often focus on isolated diseases or simple pairwise associations, failing to capture how multiple conditions evolve together over time \cite{wang2021empirical}. Recent unsupervised methods have attempted to identify disease clusters or trajectories \cite{jiang_age-dependent_2023}, but typically do not account for temporal dynamics of disease risk or individual-level heterogeneity, particularly the influence of genetic factors on disease progression rates \cite{urbut_dynamic_2023, hyttinen_genetic_2003}. Furthermore, many models assume conditional independence of diseases, missing the opportunity to leverage information across related conditions for both prediction and discovery \cite{blei2003latent, blei2006dynamic}.
+
+We present \aladyn, a probabilistic model that integrates genetic data with longitudinal EHRs to identify latent disease signatures while modeling individual-specific health trajectories over time. Our approach combines Gaussian processes with a mixture model framework to capture the temporal dynamics of disease risk, learning shared patterns of disease co-occurrence while allowing for individual variation. By jointly modeling multiple diseases and their genetic determinants, \aladyn enables both improved prediction of future disease risk and enhanced discovery of genetic architecture underlying these complex phenotypes.
+
+% Research Articles split the text into sections using descriptive headings
+\subsection*{Model framework captures temporal disease signatures and individual trajectories}
+
+Disease patterns among individuals vary by onset, progression speed, and composition, reflecting different underlying biological mechanisms. In contrast to topic models that conditionally allocate observed diseases to categories \cite{jiang_age-dependent_2023, blei2006dynamic}, \aladyn models the probability of each disease for an individual by integrating across multiple latent signatures (Fig. 1A).
+
+For each individual $i$, disease $d$, and time point $t$, we model the probability of disease occurrence $\pi_{idt}$ as:
+
+\begin{equation}
+\pi_{idt} = \kappa \cdot \sum_{k=1}^{K} \theta_{ikt} \cdot \text{sigmoid}(\phi_{kdt})
+\end{equation}
+
+\noindent where $\kappa$ is a global calibration parameter, $\theta_{ikt}$ represents individual $i$'s time-varying association with signature $k$ at time $t$, and $\phi_{kdt}$ captures the relationship between signature $k$ and disease $d$ over time.
+
+The individual-signature associations $\theta_{ikt}$ are derived from latent variables $\lambda_{ikt}$ through a softmax transformation:
+
+\begin{equation}
+\theta_{ikt} = \frac{\exp(\lambda_{ikt})}{\sum_{k'=1}^{K} \exp(\lambda_{ik't})}
+\end{equation}
+
+These latent variables follow a Gaussian process prior with a mean function informed by genetic factors:
+
+\begin{equation}
+\lambda_{ik} \sim \mathcal{GP}(r_k + \mathbf{g}_i^{\top}\Gamma_k, K_{\lambda})
+\end{equation}
+
+\noindent where $r_k$ is a signature-specific reference level, $\Gamma_k$ captures genetic effects on signature affinity, $\mathbf{g}_i$ represents individual genetic factors, and $K_{\lambda}$ is a temporal covariance kernel ensuring smooth trajectories.
+
+Similarly, the disease-signature associations follow a Gaussian process prior:
+
+\begin{equation}
+\phi_{kd} \sim \mathcal{GP}(\mu_d + \psi_{kd}, K_{\phi})
+\end{equation}
+
+\noindent where $\mu_d$ is a disease-specific baseline reflecting population prevalence, $\psi_{kd}$ represents the overall strength of association between signature $k$ and disease $d$, and $K_{\phi}$ allows for temporal variation in these associations.
+
+Our model has several key innovations compared to existing approaches. First, we employ a Bernoulli discrete-time survival likelihood rather than an allocation framework, enabling direct prediction of disease risk instead of modeling conditional probabilities given disease occurrence. Second, our mixture formulation allows multiple signatures to simultaneously contribute to disease risk, reflecting the reality that diseases often arise from multiple underlying biological processes. Third, by modeling both individual trajectories and signature-disease associations as Gaussian processes, we capture smooth temporal variations in risk. Finally, our incorporation of genetic factors allows these signatures to have biological interpretations informed by genetic architecture.
+
+
+A key innovation of our approach lies in its formulation as a mixture of probabilities rather than a probability of a mixture. Unlike allocation-based topic models that conditionally assign diseases to topics after they've occurred [citation to ATM paper], ALADYNOULLI directly models the probability of disease occurrence as a weighted combination of signature-specific probabilities.
+
+This crucial distinction allows our model to: (1) predict future disease onset rather than merely explain observed diagnoses; (2) accommodate multiple contributing disease processes simultaneously rather than forcing competitive allocation to a single signature; and (3) accurately model chronic conditions that persist over time rather than treating each diagnosis as an independent event. The combination of softmax-transformed individual loadings ($\theta$) and sigmoid-transformed disease probabilities ($\phi$) ensures proper probability scaling while maintaining model identifiability without arbitrary constraints.
+
+To evaluate predictive performance, we employed a rigorous temporal validation framework that prevents data leakage. While the full model was trained using complete patient histories, predictions were generated using only information available up to an enrollment time point. This approach simulates real-world clinical scenarios where physicians must predict future risk based solely on a patient's history to date, ensuring our performance metrics reflect true predictive capability rather than retrospective explanation.
+
+% Next heading
+\subsection*{Applying \aladyn identifies consistent signature patterns across diverse populations}
+
+We applied \aladyn to three independent cohorts: UK Biobank (UKB, n=407,878), Mass General Brigham (MGB, n=47,327), and All of Us (AoU, n=94,158). Despite differences in population characteristics, healthcare systems, and data collection methodologies, our model identified remarkably consistent signature patterns across these cohorts (Supplementary Table XX for comparison).
+
+\begin{table}
+\centering
+\caption{\textbf{Selected Disease Signatures Identified by \aladyn.} The model identified 20 distinct disease signatures, each representing patterns of related conditions that tend to co-occur. This table highlights 6 representative signatures showing the top diseases associated with each.}
+\begin{tabular}{ll}
+\hline
+\textbf{Signature} & \textbf{Top Associated Diseases} \\
+\hline
+Cardiovascular & Atrial fibrillation, Heart failure, Cardiomegaly, \\
+ & Aortic valve disease, Mitral valve disease \\
+\hline
+Coronary & Coronary atherosclerosis, Hypercholesterolemia, \\
+ & Angina pectoris, Myocardial infarction \\
+\hline
+Pulmonary & Chronic airway obstruction, Emphysema, Tobacco use disorder, \\
+ & Respiratory failure, Pneumonia \\
+\hline
+Metabolic & Type 2 diabetes, Hypoglycemia, Diabetic retinopathy, \\
+ & Type 1 diabetes, Sleep disorders \\
+\hline
+Psychiatric & Major depressive disorder, Anxiety disorder, \\
+ & Fibromyalgia, Migraine, Sleep disorders \\
+\hline
+Malignancy & Secondary malignancy of lymph nodes, Secondary \\
+ & malignancy of bone, Lung cancer, Liver metastases \\
+\hline
+\end{tabular}
+\end{table}
+
+Our model identified 20 distinct signatures, each corresponding to recognized disease processes. Table 1 highlights six representative signatures that capture diverse disease domains. Each signature demonstrates characteristic temporal patterns, with disease probabilities evolving dynamically with age (Fig. \ref{fig:signature-dynamics}A). For example, the cardiovascular signature (Signature 0) shows steadily increasing probabilities for conditions like atrial fibrillation and heart failure after age 55, while the malignancy signature (Signature 6) displays a sharp rise in metastatic disease probabilities between ages 60-75.
+
+Impressively, these signature patterns show strong consistency across the three independent cohorts. When comparing the membership of diseases within signatures between any two biobanks, we observed high concordance (mean Jaccard index = 0.78 across all pairwise comparisons). Figure \ref{fig:signature-dynamics}E illustrates this consistency for two key signatures: cardiovascular disease and malignancy. Despite differences in healthcare systems and coding practices, the temporal patterns of key diseases within these signatures remain remarkably consistent, supporting the biological validity of the discovered patterns.
+
+The model also captures disease-specific temporal dynamics that match clinical expectations. For instance, Type 1 diabetes peaks earlier in life compared to Type 2 diabetes within the metabolic signature, while primary malignancies precede metastatic disease within the cancer signature. These nuanced temporal relationships emerge directly from the model without explicit encoding, demonstrating \aladyn's ability to learn clinically meaningful disease trajectories.
+
+\subsection*{Personalized trajectories reveal heterogeneity within disease categories}
+
+Beyond population-level signatures, \aladyn provides individual-specific trajectory information through the time-varying $\lambda_{ikt}$ parameters. These parameters capture each person's evolving association with different disease signatures throughout their life course, influenced by both genetic factors and accumulated clinical history.
+
+To demonstrate this capability, we examined signature distributions among individuals sharing a common diagnosis but with potentially different underlying disease mechanisms. Figure \ref{fig:individual-trajectories}D shows the distribution of signature loadings for patients diagnosed with major depressive disorder (MDD). While all share the same clinical diagnosis, the model identifies three distinct subgroups with different signature profiles: one dominated by psychiatric/fibromyalgia signatures, another with stronger musculoskeletal and gastrointestinal components, and a third showing significant cardiovascular comorbidity.
+
+Similarly, we observed heterogeneity among breast cancer patients (Fig. \ref{fig:individual-trajectories}D), with distinct subgroups showing varying degrees of association with inflammatory, hormonal, and metabolism-related signatures. This heterogeneity in signature profiles may reflect different underlying disease mechanisms or risk factors that could inform personalized screening or treatment approaches.
+
+For coronary atherosclerosis (Fig. \ref{fig:individual-trajectories}C), we identified subgroups with varying temporal signature patterns. Some patients showed early, steep increases in cardiovascular signature loadings, while others demonstrated more gradual progression or significant contributions from metabolic signatures. When stratifying by age of onset, individuals with early coronary disease (<50 years) showed distinct signature trajectories compared to those with late onset (>70 years), with early-onset cases demonstrating sharper increases in cardiovascular signature loadings and stronger genetic associations (Fig. \ref{fig:individual-trajectories}C).
+
+These personalized trajectories demonstrate \aladyn's ability to capture heterogeneity within disease categories and identify distinct subgroups that may benefit from different prevention or treatment strategies. The model's time-varying nature also allows detection of changing risk profiles as individuals accumulate new diagnoses (Fig. 3A).
+
+\subsection*{Genetic factors influence signature trajectories}
+
+A key innovation of \aladyn is its integration of genetic information directly into the model, allowing us to quantify how genetic factors influence disease signature associations. We examined both the direct genetic effects on signature loadings through the $\Gamma_k$ parameters and the association between polygenic risk scores (PRS) and signature trajectories.
+
+The $\Gamma_k$ parameters reveal signature-specific genetic influences, with stronger effects for signatures with known heritable components. For example, coronary, metabolic, and psychiatric signatures show the strongest genetic influences, consistent with the high heritability of these disease categories.
+
+To quantify genetic associations with signature trajectories, we computed the area under each individual's signature curve (lifetime signature exposure) and performed genome-wide association studies (GWAS). This approach identified significant genetic loci associated with signature loadings, including both known disease-associated variants and novel loci that appear specific to certain signature patterns.
+
+Figure \ref{fig:genetics}A illustrates this approach, showing how we condense time-varying signature loadings into a single quantitative phenotype for genetic association testing. Figure \ref{fig:genetics}B presents a heatmap of associations between 36 validated polygenic risk scores and different disease signatures. We observe strong associations between cardiovascular-related PRS and the coronary signature, diabetes PRS and the metabolic signature, and psychiatric PRS with the psychological/fibromyalgia signature.
+
+Interestingly, we identified genetic variants that associate more strongly with signature loadings than with any individual component disease, suggesting these loci may influence shared biological processes underlying multiple related conditions. For example, variants in the FTO region associate more strongly with the combined metabolic-cardiovascular signature than with either diabetes or coronary disease alone.
+
+When examining genetic associations among patient subgroups with the same clinical diagnosis but different signature profiles, we found distinct genetic patterns. For example, early-onset coronary atherosclerosis patients with high cardiovascular signature loadings showed significantly stronger associations with CAD polygenic risk scores than those with more metabolic signature contributions (p = $3.2\times10^{-5}$ for difference in PRS effect size).
+
+These findings demonstrate that \aladyn can effectively leverage genetic information to improve both prediction and biological understanding of disease trajectories, potentially informing more targeted prevention strategies based on an individual's genetic risk profile and signature associations.
+
+\subsection*{Dynamic risk assessment improves disease prediction}
+
+A primary motivation for modeling longitudinal disease patterns is to improve prediction of future disease events. We evaluated \aladyn's predictive performance using a temporal validation framework, where we predicted disease onset within one year following a defined enrollment time point, using only data available up to enrollment.
+
+We compared \aladyn to a strong baseline Cox proportional hazards model that included age, sex, and family history covariates. Figure \ref{fig:performance}A shows the area under the receiver operating characteristic curve (AUC) for 1-year and 10-year prediction across 28 major disease categories. For 1-year prediction, \aladyn demonstrated significantly improved performance compared to the baseline model for most conditions, with particularly large improvements for conditions including rheumatoid arthritis (+0.39), colorectal cancer (+0.33), breast cancer (+0.29), Parkinson's disease (+0.27), and anxiety disorders (+0.24).
+
+The model also showed excellent calibration for 1-year risk predictions (Fig. \ref{fig:performance}C), with predicted probabilities closely matching observed event rates across the risk spectrum. This calibration is crucial for clinical applications, ensuring that predicted risk levels accurately reflect patients' true likelihood of experiencing disease events.
+
+To demonstrate \aladyn's ability to capture changing risk dynamics, we examined how signature activations evolve preceding disease onset. Figure \ref{fig:performance}B shows examples of signature loading trajectories for patients diagnosed with myocardial infarction, revealing increases in cardiovascular signature activation beginning approximately 2-3 years before the clinical event. Importantly, these patterns emerge even when the target disease itself is censored from the input data, indicating the model captures informative signals from related comorbidities.
+
+These results highlight \aladyn's strength in providing dynamically updated risk assessments that incorporate both individual history and population-level patterns. The model's ability to identify subtle shifts in signature activations before clinical manifestations offers potential for earlier intervention in high-risk individuals.
+
+\subsection*{Applications to precision medicine and therapeutic targeting}
+
+Beyond risk prediction, \aladyn's identification of disease signatures and individual trajectories has important implications for precision medicine and therapeutic development. By revealing distinct patient subgroups with shared biological mechanisms, the model can inform more targeted therapeutic strategies.
+
+First, signature profiles can help identify patients likely to respond to specific interventions. For example, individuals with strong metabolic signature contributions to their coronary disease may benefit more from intensive glucose management, while those with inflammatory signature patterns might respond better to anti-inflammatory approaches.
+
+Second, the model can detect changing risk profiles in real-time as patients accumulate new diagnoses, allowing for dynamic adjustment of preventive strategies. Figure \ref{fig:individual-trajectories}A-B demonstrates this capability, showing how a patient's risk trajectory updates following new clinical information, potentially triggering changes in monitoring or intervention intensity.
+
+Finally, signature-based patient stratification could enhance clinical trial efficiency by identifying more homogeneous patient populations. By enrolling patients with similar signature profiles rather than simply shared diagnoses, trials might demonstrate greater treatment effects and identify responder subgroups more effectively.
+
+\section*{Discussion}
+
+We have presented \aladyn, a novel Bayesian framework for modeling dynamic disease signatures and individual health trajectories from longitudinal health records. By integrating genetic information with time-varying disease patterns, our approach provides a unified framework for understanding disease comorbidity, predicting future disease events, and discovering genetic architecture underlying complex phenotypes.
+
+Our model's identification of consistent disease signatures across three independent cohorts supports their biological validity and clinical relevance. These signatures capture meaningful disease relationships that align with known pathophysiological processes while revealing novel connections between conditions that may share underlying mechanisms. The temporal dynamics of these signatures further enhance our understanding of how disease risk evolves throughout the life course.
+
+The integration of genetic information represents a significant advance over existing approaches. By directly modeling genetic influences on signature associations, \aladyn provides biological interpretability while improving predictive performance. The identification of genetic variants that associate more strongly with signature loadings than individual diseases suggests our approach may uncover shared genetic architecture that traditional single-disease GWAS might miss.
+
+Several limitations should be acknowledged. First, our model relies on EHR data, which may contain biases related to healthcare access, diagnostic coding practices, and incomplete capture of disease history. Second, while we incorporate genetic factors, we do not explicitly model environmental exposures or lifestyle factors that significantly influence disease risk. Future work could integrate these additional data sources to further enhance predictive performance and biological insights.
+
+Despite these limitations, \aladyn represents a significant advance in longitudinal health modeling with important implications for precision medicine. By capturing the complex interplay between genetic predisposition and time-varying disease patterns, our approach provides a framework for more personalized risk assessment and potential therapeutic targeting. As healthcare increasingly moves toward data-driven precision approaches, methods like \aladyn that can integrate diverse data sources and model complex temporal relationships will become increasingly valuable for improving patient outcomes.
+
+%%%%%%%%%%%%%%%% MAIN TEXT FIGURES %%%%%%%%%%%%%%%
+
+\begin{figure} % Do NOT use \begin{figure*}
+	\centering
+	\includegraphics[width=1\textwidth]{figures/fig1.pdf} % Model diagram
+	% Pick an appropriate width
+
+	% Captions go below figures
+	\caption{\textbf{ALADYNOULLI model overview and probabilistic framework.}
+		(\textbf{A}) Schematic representation of the model showing how latent disease signatures and individual trajectories interact over time. Disease probabilities ($\pi_{idt}$) are generated as a mixture of signature-specific contributions, with each signature's importance to an individual ($\lambda_{ikt}$) evolving over time based on genetic factors and accumulated diagnoses. (\textbf{B}) Probabilistic graphical model showing relationships between observed diagnoses ($Y_{idt}$), disease probabilities ($\pi_{idt}$), individual signature loadings ($\theta_{ikt}$), and latent variables ($\lambda_{ik}$, $\phi_{kd}$). (\textbf{C}) Comparison with traditional allocation models, illustrating how \aladyn allows multiple signatures to simultaneously contribute to disease risk rather than forcing competitive allocation. (\textbf{D}) Example of temporal evolution of individual risk incorporating new diagnostic information over the life course.}
+	\label{fig:model_overview}
+\end{figure}
+
+\begin{figure} % Do NOT use \begin{figure*}
+	\centering
+	\includegraphics[width=1\textwidth]{figures/Fig2.pdf} % Population-level signatures
+	% Pick an appropriate width
+
+	% Captions go below figures
+	\caption{\textbf{Population-level disease signatures and temporal patterns.}
+		(\textbf{A}) Temporal patterns of signature-disease associations for four representative signatures (cardiovascular, cancer, pulmonary, and colorectal), showing disease-specific probabilities evolving with age. Each line represents a different disease within the signature. (\textbf{B}) Heatmap of signature-disease specificity ($\psi_{kd}$ parameters), with darker colors indicating stronger positive (red) or negative (blue) associations between diseases and signatures. (\textbf{C}) Disease probabilities over time across all modeled conditions, showing age-specific patterns of disease emergence. (\textbf{D}) Cluster correspondence matrices showing consistency of disease groupings between UK Biobank and other cohorts (MGB, left; AoU, right). (\textbf{E}) Signature patterns for cardiovascular and malignancy signatures across three independent biobanks (MGB, AoU, UKB), demonstrating consistent temporal trajectories despite cohort differences.}
+	\label{fig:signature-dynamics}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{figures/fig3.pdf} % Updated figure name
+	\caption{\textbf{Individual-level trajectories and dynamic risk profiles.}
+		(\textbf{A}) Patient-specific signature loadings ($\theta$) over time for a representative patient, showing evolving signature contributions as the patient acquires new diagnoses (indicated by stars). Right panel shows the static model summary of average signature proportions. (\textbf{B}) Probability breakdown for myocardial infarction, showing signature-specific contributions to overall disease risk and how different biological processes interact to determine total disease probability. (\textbf{C}) Comparison of early-onset versus late-onset trajectories for different diseases, revealing distinct signature patterns and velocities associated with timing of disease manifestation. (\textbf{D}) Multiple panels showing signature proportion deviations from population average for different disease subtypes, demonstrating how patients with the same clinical diagnosis can have diverse underlying signature profiles.}
+	\label{fig:individual-trajectories}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{figures/fig4.pdf} % Updated figure name
+	\caption{\textbf{Genetic associations with disease signatures.}
+		(\textbf{A}) Methodological approach for genetic association testing, showing how time-varying signature loadings ($\lambda$) are converted to a quantitative phenotype (area under curve = lifetime signature exposure) for genomic discovery. (\textbf{B}) Heatmap showing associations between polygenic risk scores and different disease signatures or phenotypes, with asterisks indicating statistical significance ($^{*}p < 0.05$, $^{**}p < 0.01$). (\textbf{C-D}) Multiple panels showing genetic correlations between signatures and diseases, SNP-signature associations, and Manhattan plots for genetic loci associated with specific signatures. Note that some SNPs show stronger associations with signatures than with any individual component disease, highlighting the value of signature-based genetic discovery.}
+	\label{fig:genetics}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{figures/fig5.pdf} % Updated figure name
+	\caption{\textbf{Predictive performance and risk dynamics.}
+		(\textbf{A}) Bar chart comparing 10-year prediction performance (AUC) between \aladyn and other established models (Cox, PCE, PREVENT, Gail) across 28 disease categories, demonstrating improved or comparable performance for most conditions. (\textbf{B}) Two panels showing lambda trajectory patterns: upper panel compares population-level lambda values for signature 5 (cardiovascular) between MI cases and controls; lower panel shows individual patient trajectories with diagnosis times (blue) and censoring times (red). (\textbf{C}) Calibration plot for model predictions at enrollment, showing excellent agreement between predicted probabilities and observed event rates across multiple orders of magnitude. (\textbf{D}) Comparison of 10-year risk predictions with prevalence-based estimates for ASCVD, showing model predictions (blue line) with confidence intervals (dotted green/orange) against empirical prevalence (red line).}
+	\label{fig:performance}
+\end{figure}
+
+
+
+%%%%%%%%%%%%%%%% REFERENCES %%%%%%%%%%%%%%%
+
+\clearpage % Clear all remaining figures and tables then start a new page
+
+% The list of references goes after the main text and before the acknowledgements
+% When preparing an initial submission, we recommend you use BibTeX, like this:
+%
+\bibliography{science_template} % for a file named science_template.bib
+\bibliographystyle{sciencemag}
+
+% After the paper has completed peer review and been revised ready for acceptance,
+% you should comment out the lines above and copy-paste the contents of your .bbl
+% file here instead. This will help ensure that our conversion software works correctly.
+
+%%%%%%%%%%%%%%%% ACKNOWLEDGEMENTS %%%%%%%%%%%%%%%
+
+\section*{Acknowledgments}
+\paragraph*{Funding:}
+This work was supported by National Institutes of Health grants (R01HL155915, R01HL157635, R35HL144758) to P.N., American Heart Association grants (19SFRN34800000, 19SFRN34850009) to P.N.
+\paragraph*{Author contributions:}
+S.M.U., PN and GP conceptualized the study, developed the methodology, implemented the software, and wrote the original draft. Y.D. and XJ contributed to methodology development and formal analysis. W.H. assisted with data curation and visualization. A.G., P.N., and G.P. provided supervision, resources, and critical review. All authors contributed to manuscript review and editing.
+\paragraph*{Competing interests:}
+The authors declare no competing interests.
+\paragraph*{Data and materials availability:}
+The code for implementing \aladyn is available at https://github.com/surbut/aladynoulli2. Access to individual-level UK Biobank data requires approval from the UK Biobank (https://www.ukbiobank.ac.uk/). Access to Mass General Brigham data requires approval from the Mass General Brigham Institutional Review Board. Access to All of Us data requires approval through the All of Us Researcher Workbench (https://www.researchallofus.org/).
+
+%%%%%%%%%%%%%%%% SUPPLEMENT LIST %%%%%%%%%%%%%%%
+
+\subsection*{Supplementary materials}
+Materials and Methods\\
+Supplementary Text\\
+Figs. S1 to S10\\
+Tables S1 to S4\\
+References \textit{(30-42)}\\
+Data S1
+
+%%%%%%%%%%%%%%%% END OF MAIN TEXT %%%%%%%%%%%%%%%
+
+\end{document}
