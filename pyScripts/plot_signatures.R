@@ -87,7 +87,7 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
     # Create data frame for this signature's phi values
     signature_data <- data.frame(
       age = 1:52,  # assuming 52 age points
-      sigmoid(t(param$phi[signature_idx, , ]))  # transpose to get diseases as columns
+      sigmoid(t(param$phi[signature_idx, , ]))#-param$logit_prev))  # transpose to get diseases as columns
     )
     colnames(signature_data)[-1] <- disease_names
     
@@ -122,7 +122,7 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
     # Create data frame for this signature's phi values
     signature_data <- data.frame(
       age = 1:52,  # assuming 52 age points
-      t(param$phi[signature_idx, , ])  # transpose to get diseases as columns
+      t(param$phi[signature_idx, , ])#-param$logit_prev)  # transpose to get diseases as columns
     )
     colnames(signature_data)[-1] <- disease_names
     
@@ -161,9 +161,9 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
 
 #### Plot sig 6
 
-plot_signature(signature_idx = 6,"",ukb_parms,disease_names,log = FALSE)
+plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = FALSE)
 
-plot_signature(signature_idx = 6,"",ukb_parms,disease_names,log = TRUE)
+plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = TRUE)
 
 
 
