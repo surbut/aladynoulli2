@@ -2445,3 +2445,152 @@ def create_combined_mi_plots(model, Y_test, censored_indices, original_event_tim
     
     plt.tight_layout()
     return fig
+
+
+
+
+def create_proper_calibration_plots(checkpoint_path, cov_df, n_bins=10, use_log_scale=True, min_bin_count=1000, save_path=None):
+    """Create calibration plots comparing predicted vs observed event rates for at-risk individuals.
+    
+    Args:
+        checkpoint_path: Path to model checkpoint
+        cov_df: DataFrame containing enrollment ages
+        n_bins: Number of bins for calibration
+        use_log_scale: Whether to use log-scale binning (recommended for rare events)
+        min_bin_count: Minimum number of samples per bin
+        save_path: Path to save plot
+    """
+    # Load checkpoint
+    checkpoint = torch.load(checkpoint_path)
+    state_dict = checkpoint['model_state_dict']
+    
+    # Get parameters from state dict
+    lambda_ = state_dict['lambda_']  # Shape: (N, K, T)
+    phi = state_dict['phi']  # Shape: (K, D, T)
+    kappa = state_dict['kappa']  # Shape: scalar
+    Y = checkpoint['Y']  # Shape: (N, D, T)
+    
+    # Calculate theta (normalized lambda)
+    theta = torch.softmax(lambda_, dim=1)
+    
+    # Calculate phi probabilities (sigmoid)
+    phi_prob = torch.sigmoid(phi)
+    
+    # Calculate pi (disease probabilities)
+    pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * kappa
+    
+    # Convert to numpy
+    pi_np = pi.detach().numpy()
+    Y_np = Y.detach().numpy()
+    
+    N, D, T = Y_np.shape
+    
+    # Create at_risk mask
+    at_risk = np.ones_like(Y_np, dtype=bool)
+    for n in range(N):
+        for d in range(D):
+            event_times = np.where(Y_np[n,d,:])[0]
+            if len(event_times) > 0:
+                at_risk[n,d,(event_times[0]+1):] = False
+    
+    # Create two sets of predictions/observations
+    
+    # 1. Enrollment only
+    enroll_pred = []
+    enroll_obs = []
+    
+    for d in range(D):
+        for i, row in enumerate(cov_df.itertuples()):
+            enroll_age = row.age
+            enroll_time = int(enroll_age - 30)  # Convert age to time index
+            
+            if enroll_time < 0 or enroll_time >= T:
+                continue
+                
+            if at_risk[i,d,enroll_time]:
+                enroll_pred.append(pi_np[i,d,enroll_time])
+                enroll_obs.append(Y_np[i,d,enroll_time])
+    
+    # 2. All follow-up
+    all_pred = []
+    all_obs = []
+    
+    for t in range(T):
+        mask_t = at_risk[:,:,t]
+        if mask_t.sum() > 0:
+            all_pred.extend(pi_np[:,:,t][mask_t])
+            all_obs.extend(Y_np[:,:,t][mask_t])
+    
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), dpi=300)
+    
+    def plot_calibration(pred, obs, ax, title):
+        # Create bins in log or linear space
+        if use_log_scale:
+            bin_edges = np.logspace(np.log10(max(1e-7, min(pred))), 
+                                  np.log10(max(pred)), 
+                                  n_bins + 1)
+        else:
+            bin_edges = np.linspace(min(pred), max(pred), n_bins + 1)
+        
+        # Calculate statistics for each bin
+        bin_means = []
+        obs_means = []
+        counts = []
+        
+        for i in range(n_bins):
+            mask = (pred >= bin_edges[i]) & (pred < bin_edges[i + 1])
+            if np.sum(mask) >= min_bin_count:
+                bin_means.append(np.mean(pred[mask]))
+                obs_means.append(np.mean(obs[mask]))
+                counts.append(np.sum(mask))
+        
+        # Plot
+        if use_log_scale:
+            ax.plot([1e-7, 1], [1e-7, 1], '--', color='gray', alpha=0.5, label='Perfect calibration')
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+        else:
+            ax.plot([0, max(pred)], [0, max(pred)], '--', color='gray', alpha=0.5, label='Perfect calibration')
+        
+        ax.plot(bin_means, obs_means, 'o-', color='#1f77b4', 
+                markersize=8, linewidth=2, label='Observed rates')
+        
+        # Add counts as annotations
+        for i, (x, y, c) in enumerate(zip(bin_means, obs_means, counts)):
+            ax.annotate(f'n={c:,}', (x, y), xytext=(0, 10), 
+                       textcoords='offset points', ha='center', fontsize=8)
+        
+        # Add summary statistics
+        mse = np.mean((np.array(bin_means) - np.array(obs_means))**2)
+        mean_pred = np.mean(pred)
+        mean_obs = np.mean(obs)
+        
+        stats_text = f'MSE: {mse:.2e}\n'
+        stats_text += f'Mean Predicted: {mean_pred:.2e}\n'
+        stats_text += f'Mean Observed: {mean_obs:.2e}\n'
+        stats_text += f'N total: {sum(counts):,}'
+        
+        ax.text(0.05, 0.95, stats_text,
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        ax.grid(True, which='both', linestyle='--', alpha=0.3)
+        ax.set_xlabel('Predicted Event Rate', fontsize=12)
+        ax.set_ylabel('Observed Event Rate', fontsize=12)
+        ax.set_title(title, fontsize=14, pad=20)
+        ax.legend(loc='lower right')
+    
+    # Create both plots
+    plot_calibration(np.array(enroll_pred), np.array(enroll_obs), 
+                    ax1, 'Calibration at Enrollment\n(At-Risk Only)')
+    plot_calibration(np.array(all_pred), np.array(all_obs), 
+                    ax2, 'Calibration Across All Follow-up\n(At-Risk Only)')
+    
+    plt.tight_layout()
+    
+    if save_path is not None:
+        plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
+    
+    return fig
