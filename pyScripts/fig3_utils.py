@@ -21,6 +21,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Optional, Any 
 
+
+def get_signature_colors(K):
+    """
+    Get a consistent color palette for K signatures.
+    Returns a list of K colors that will be used consistently across all plots.
+    """
+    # Use a perceptually uniform colormap for better distinction
+    # 'husl' is good for categorical data and provides distinct colors
+    colors = sns.color_palette("husl", K)
+    return colors
+
+
+
 # Helper Function to Find Batch Dirs
 def find_batch_dirs(base_dir):
     dirs = []
