@@ -220,7 +220,7 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
 
     def forward(self):
         theta = torch.softmax(self.lambda_, dim=1)
-        epsilon=1e-8
+        epsilon=1e-6
         phi_prob = torch.sigmoid(self.phi)
         # Apply fixed kappa
         pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * self.kappa
