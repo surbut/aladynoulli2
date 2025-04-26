@@ -9,6 +9,7 @@ import seaborn as sns
 import random
 import glob
 import traceback
+from matplotlib.legend_handler import HandlerTuple
 
 from sklearn.metrics import roc_auc_score, roc_curve
 import numpy as np
@@ -26,11 +27,33 @@ def get_signature_colors(K):
     """
     Get a consistent color palette for K signatures.
     Returns a list of K colors that will be used consistently across all plots.
+    Uses a carefully curated scientific color palette that is colorblind-friendly.
     """
-    # Use a perceptually uniform colormap for better distinction
-    # 'husl' is good for categorical data and provides distinct colors
-    colors = sns.color_palette("husl", K)
-    return colors
+    # Define a carefully curated scientific color palette
+    # These colors are chosen to be distinct, professional, and colorblind-friendly
+    base_colors = [
+        '#4C72B0',  # Strong blue
+        '#DD8452',  # Orange
+        '#55A868',  # Green
+        '#C44E52',  # Red
+        '#8172B3',  # Purple
+        '#937860',  # Brown
+        '#DA8BC3',  # Pink
+        '#8C8C8C',  # Gray
+        '#CCB974',  # Light brown
+        '#64B5CD',  # Light blue
+        '#4C3B4D',  # Dark purple
+        '#B47C80',  # Dusty rose
+        '#7C9FB0',  # Steel blue
+        '#A5A449',  # Olive
+        '#BE9C8E',  # Taupe
+    ]
+    
+    if K <= len(base_colors):
+        return base_colors[:K]
+    else:
+        # If we need more colors, use seaborn's colorblind palette
+        return sns.color_palette("colorblind", K)
 
 
 
@@ -116,27 +139,25 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                                             min_conditions=2,
                                             n_patients_to_plot=3,
                                             random_seed=42,
-                                            figsize_per_patient=(14, 7)):
+                                            figsize_per_patient=(14, 7),
+                                            require_all_targets=False):  # New parameter
     """
     Loads reference signature trajectories from signature_refs_path.
     Scans model batches (*.pt files in output_* dirs) to find multi-morbid
-    patients (that have at least one target disease and multiple conditions).
+    patients (that have target diseases and multiple conditions).
     Maps ALL patient conditions to signatures using the full psi matrix.
     Plots their signature dynamics (theta) relative to diagnoses and 
     the loaded reference signature trajectories.
 
     Args:
         results_base_dir: Directory containing output_* subdirectories with model.pt files
-        target_disease_indices: List of disease indices to search for (patients must have ≥1)
+        target_disease_indices: List of disease indices to search for
         signature_refs_path: Path to .pt file containing {'signature_refs': tensor/array of shape K x T}
         min_conditions: Minimum number of total diseases a patient must have
         n_patients_to_plot: Number of randomly selected patients to plot
         random_seed: For reproducibility
         figsize_per_patient: Figure size for each patient plot
-
-    Returns:
-        essentials: Dictionary containing reference data
-        patient_figures: List of matplotlib figure objects
+        require_all_targets: If True, patients must have ALL target diseases (not just one)
     """
     random.seed(random_seed)
     np.random.seed(random_seed)
@@ -340,15 +361,21 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                     if len(diag_times_idx) > 0:
                         first_diag_idx = diag_times_idx[0]  # First diagnosis time
                         all_conditions.append((d_idx, first_diag_idx))
-                        # Check if this is one of our target diseases
-                        if d_idx in target_disease_indices:
-                            has_target_disease = True
                 
-                # If no target diseases or not enough conditions, skip this patient
-                if not has_target_disease or len(all_conditions) < min_conditions:
-                    continue
+                # Check target disease requirements
+                target_diseases_found = set(d_idx for d_idx, _ in all_conditions if d_idx in target_disease_indices)
+                
+                if require_all_targets:
+                    # Must have ALL target diseases
+                    has_all_targets = len(target_diseases_found) == len(target_disease_indices)
+                    if not has_all_targets or len(all_conditions) < min_conditions:
+                        continue
+                else:
+                    # Original behavior: must have at least one target disease
+                    if not target_diseases_found or len(all_conditions) < min_conditions:
+                        continue
                     
-                # If patient has enough total conditions AND at least one target, add to the pool
+                # If we get here, the patient meets all criteria
                 # Sort conditions by diagnosis time index
                 all_conditions.sort(key=lambda x: x[1])
                 global_idx = batch_info['start'] + i  # Calculate global patient index
@@ -358,10 +385,17 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
             print(f"  Error processing batch {batch_info['name']}: {e_batch}")
 
     if not found_patients_pool:
-        print(f"\nScan complete. No patients found across {total_patients_scanned} scanned patients meeting the criteria (>= {min_conditions} total conditions AND at least 1 target disease).")
+        message = "No patients found meeting criteria:\n"
+        message += f"- {'All' if require_all_targets else 'At least one of'} target diseases {target_disease_indices}\n"
+        message += f"- At least {min_conditions} total conditions\n"
+        message += f"Scanned {total_patients_scanned:,} patients total."
+        print(f"\n{message}")
         return essentials, []
 
-    print(f"\nScan complete. Found {len(found_patients_pool)} suitable patients across {total_patients_scanned} scanned patients.")   
+    print(f"\nScan complete. Found {len(found_patients_pool)} patients meeting criteria:")
+    print(f"- {'All' if require_all_targets else 'At least one of'} target diseases {target_disease_indices}")
+    print(f"- At least {min_conditions} total conditions")
+    print(f"Out of {total_patients_scanned:,} total patients scanned.")
     
     # --- Step 3: Select Patients and Generate Plots ---
     n_to_select = min(n_patients_to_plot, len(found_patients_pool))
@@ -397,7 +431,7 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
 
             # --- Create the 2-panel plot side by side ---
             fig = plt.figure(figsize=(figsize_per_patient[0] * 1.3, figsize_per_patient[1]))  # Wider to accommodate side panel
-            gs = GridSpec(2, 2, height_ratios=[2.5, 1], width_ratios=[3, 1], hspace=0.05)  # 2x2 grid
+            gs = GridSpec(2, 2, height_ratios=[2.5, 1], width_ratios=[4, 0.8], hspace=0.05)  # Make right panel skinnier
             ax1 = fig.add_subplot(gs[0, 0])  # Top left: temporal theta
             ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)  # Bottom left: timeline
             ax3 = fig.add_subplot(gs[:, 1])  # Right side: stacked bar
@@ -415,10 +449,8 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                 print(f"  Warning: None of the {len(conditions)} conditions could be mapped to signatures. Skipping patient.")
                 continue
 
-            # Use a distinct colormap
-            num_conditions = len(valid_conditions)
-            cmap_name = 'viridis' if num_conditions > 10 else 'tab10'
-            colors = plt.cm.get_cmap(cmap_name, max(10, num_conditions))
+            # Get our consistent colors
+            colors = get_signature_colors(K_model)  # Use K_model to get colors for all possible signatures
 
             # Prepare condition details and collect signatures
             condition_details = []
@@ -428,7 +460,7 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                 signatures_to_plot.add(sig_idx)
                 disease_name = disease_names_list[d_idx] if 0 <= d_idx < len(disease_names_list) else f"Disease {d_idx}"
                 diag_time = time_points[diag_time_idx]
-                color = colors(i / max(1, num_conditions - 1)) if num_conditions > 1 else colors(0)
+                color = colors[sig_idx]  # Use the signature's consistent color
                 condition_details.append({
                     'name': disease_name,
                     'time': diag_time,
@@ -439,6 +471,10 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                 })
 
             # --- Left Panels: Original temporal plot ---
+            # Create a single legend handler for all plots
+            legend_handles = []
+            legend_labels = []
+            
             for i, detail in enumerate(condition_details):
                 d_idx = detail['d_idx']
                 sig_idx = detail['sig_idx']
@@ -450,45 +486,40 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
                 label_patient = f"Sig {sig_idx} ({label_text_short})"
                 
                 # Plot trajectory
-                ax1.plot(time_points, theta_patient[sig_idx, :],
+                line = ax1.plot(time_points, theta_patient[sig_idx, :],
                         color=color, linewidth=2.5, alpha=0.95, 
-                        zorder=3, label=label_patient)
+                        zorder=3)[0]
                 
-                # Mark diagnosis time
-                ax1.axvline(x=diag_time, color=color, linestyle=':', 
-                          alpha=0.7, linewidth=1.5, zorder=2)
+                # Mark diagnosis time with skinnier line
+                ax1.axvline(x=diag_time, color=color, linestyle=':',
+                          alpha=0.5, linewidth=0.8, zorder=2)
                 
-                # Mark peak
-                peak_idx = np.argmax(theta_patient[sig_idx, :])
-                peak_time = time_points[peak_idx]
-                peak_value = theta_patient[sig_idx, peak_idx]
-                ax1.scatter(peak_time, peak_value, marker='*', s=120, 
-                          color=color, edgecolor='black', linewidth=1, 
-                          zorder=4, label=None)
+                # Add to legend handlers
+                legend_handles.append(line)
+                legend_labels.append(label_patient)
 
             # Configure top panel
             ax1.set_title(f'Signature Loadings ($\\Theta$) Over Time\nPatient {global_patient_idx}', 
                          fontsize=14, pad=10)
             ax1.set_ylabel('Signature Loading ($\\Theta$)', fontsize=12)
             ax1.grid(True, axis='y', linestyle='--', alpha=0.5)
-            ax1.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
             ax1.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
             ax1.set_ylim(bottom=0)
 
             # --- Panel 2: Disease Timeline ---
-            ax2.set_yticks(range(num_conditions))
+            ax2.set_yticks(range(len(valid_conditions)))
             ax2.set_yticklabels([d['name'] for d in condition_details], fontsize='small')
-            ax2.set_ylim(-0.5, num_conditions - 0.5)
+            ax2.set_ylim(-0.5, len(valid_conditions) - 0.5)
             ax2.invert_yaxis()
 
             for detail in condition_details:
-                # Mark diagnosis point
-                ax2.scatter(detail['time'], detail['y_pos'], marker='o', s=80, 
+                # Mark diagnosis point with smaller marker
+                ax2.scatter(detail['time'], detail['y_pos'], marker='o', s=40, 
                           color=detail['color'], zorder=5, label=None, 
                           edgecolors='black', linewidth=0.5)
-                # Draw line up to diagnosis
+                # Draw thinner line up to diagnosis
                 ax2.hlines(detail['y_pos'], time_points[0], detail['time'], 
-                         colors=detail['color'], linestyles='-', alpha=0.6, linewidth=1.5)
+                         colors=detail['color'], linestyles='-', alpha=0.4, linewidth=1.0)
 
             ax2.set_xlabel('Age (years)', fontsize=12)
             ax2.set_ylabel('Diagnosed Condition', fontsize=12)
@@ -501,24 +532,27 @@ def plot_multi_morbid_dynamics_from_batches(results_base_dir,
             bottom = 0
             sig_indices = sorted(list(signatures_to_plot))
 
-            # Create stacked bar
+            # Create stacked bar without individual legend
             for sig_idx in sig_indices:
                 matching_detail = next(detail for detail in condition_details if detail['sig_idx'] == sig_idx)
                 color = matching_detail['color']
-                label = f"Sig {sig_idx} ({matching_detail['name'][:20]}{'...' if len(matching_detail['name'])>20 else ''})"
                 ax3.bar([0], [theta_avg[sig_idx]], bottom=bottom, color=color, 
-                        alpha=0.7, label=label, width=0.5)
+                        alpha=0.7, width=0.3)  # Make bars skinnier too
                 bottom += theta_avg[sig_idx]
 
             ax3.set_title('Static Model\nSummary', pad=15)
             ax3.set_ylabel('Average Loading (θ)')
-            ax3.set_xlim(-0.5, 0.5)
+            ax3.set_xlim(-0.3, 0.3)  # Adjust xlim to match skinnier bars
             ax3.set_xticks([])
             ax3.grid(True, axis='y', linestyle='--', alpha=0.5)
-            ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
 
-            # Adjust layout
-            plt.tight_layout(rect=[0, 0, 0.85, 0.97])  # Make room for legend
+            # Create single legend for all panels
+            fig.legend(legend_handles, legend_labels,
+                      loc='center right', bbox_to_anchor=(0.98, 0.5),
+                      fontsize='small')
+
+            # Adjust layout with more space for the single legend
+            plt.tight_layout(rect=[0, 0, 0.82, 0.97])  # Slightly more space for legend
             
             patient_figures.append(fig)
 
@@ -858,18 +892,11 @@ def visualize_individual_vs_population(
     """
     Visualize how an individual's signature loadings compare to population,
     and how this affects their disease probabilities.
-    
-    Args:
-        lambda_values_np: Individual signature loadings (N, K, T)
-        phi_values_np: Signature-disease associations (K, D, T)
-        individual_idx: Index of individual to visualize
-        cv_diseases: Names of cardiovascular diseases
-        disease_indices: Indices of these diseases in the data
-        time_points: Array of time points
-        kappa: Calibration parameter
-        output_path: Where to save the plot
     """
     N, K, T = lambda_values_np.shape
+    
+    # Get our consistent color palette
+    signature_colors = get_signature_colors(K)
     
     # Calculate population average thetas
     print("Calculating population theta...")
@@ -896,26 +923,33 @@ def visualize_individual_vs_population(
     
     # --- Panel 1: Signature Loadings Comparison ---
     ax1 = fig.add_subplot(gs[0])
-    # Plot population mean ± std for Signature 5
-    ax1.fill_between(time_points, 
-                    theta_pop_mean[5] - theta_pop_std[5],
-                    theta_pop_mean[5] + theta_pop_std[5],
-                    alpha=0.2, color='gray', label='Population θ₅ ± SD')
-    ax1.plot(time_points, theta_pop_mean[5], 'k--', label='Population Mean θ₅')
-    ax1.plot(time_points, theta_individual[5], 'r-', linewidth=2, label='Individual θ₅')
-    ax1.set_title('Signature 5 (Cardiovascular) Loading Over Time')
+    # Plot population mean ± std for each signature
+    for k in range(K):
+        color = signature_colors[k]
+        ax1.fill_between(time_points, 
+                        theta_pop_mean[k] - theta_pop_std[k],
+                        theta_pop_mean[k] + theta_pop_std[k],
+                        alpha=0.2, color=color, label=f'Population θ_{k} ± SD')
+        ax1.plot(time_points, theta_pop_mean[k], '--', color=color, label=f'Population Mean θ_{k}')
+        ax1.plot(time_points, theta_individual[k], '-', color=color, linewidth=2, label=f'Individual θ_{k}')
+    
+    ax1.set_title('Signature Loadings Over Time')
     ax1.set_ylabel('Loading (θ)')
-    ax1.legend()
+    ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
     ax1.grid(True, alpha=0.3)
     
     # --- Panel 2: Phi Values for CV Diseases ---
     ax2 = fig.add_subplot(gs[1])
-    colors = plt.cm.tab10(np.linspace(0, 1, len(cv_diseases)))
-    for i, (disease, idx, color) in enumerate(zip(cv_diseases, disease_indices, colors)):
-        ax2.plot(time_points, phi_probs[5, idx], color=color, label=disease)
-    ax2.set_title('Signature 5 Disease Associations (φ)')
-    ax2.set_ylabel('P(Disease | Signature 5)')
-    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    for i, (disease, idx) in enumerate(zip(cv_diseases, disease_indices)):
+        # For each disease, plot its relationship with each signature
+        for k in range(K):
+            color = signature_colors[k]
+            ax2.plot(time_points, phi_probs[k, idx], color=color, 
+                    label=f'Sig {k} - {disease}', alpha=0.7)
+    
+    ax2.set_title('Signature-Disease Associations (φ)')
+    ax2.set_ylabel('P(Disease | Signature)')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
     ax2.grid(True, alpha=0.3)
     
     # --- Panel 3: Individual vs Population Disease Probabilities ---
@@ -937,23 +971,27 @@ def visualize_individual_vs_population(
         contribution = np.sum(theta_individual * phi_probs[:, disease_idx], axis=0)
         ind_probs[d_idx] = kappa * contribution
     
-    # Plot for each disease
-    for i, (disease, color) in enumerate(zip(cv_diseases, colors)):
+    # Plot for each disease using signature colors
+    for i, (disease, disease_idx) in enumerate(zip(cv_diseases, disease_indices)):
+        # Find primary signature for this disease
+        primary_sig = np.argmax(np.mean(phi_probs[:, disease_idx, :], axis=1))
+        color = signature_colors[primary_sig]
+        
         # Population
         ax3.fill_between(time_points,
                         pop_mean[i] - pop_std[i],
                         pop_mean[i] + pop_std[i],
                         alpha=0.2, color=color)
         ax3.plot(time_points, pop_mean[i], '--', color=color, 
-                label=f'{disease} (Population)')
+                label=f'{disease} (Pop, Sig {primary_sig})')
         # Individual
         ax3.plot(time_points, ind_probs[i], '-', color=color, linewidth=2,
-                label=f'{disease} (Individual)')
+                label=f'{disease} (Ind, Sig {primary_sig})')
     
     ax3.set_title('Disease Probabilities: Individual vs Population')
     ax3.set_xlabel('Age')
     ax3.set_ylabel('Probability')
-    ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
     ax3.grid(True, alpha=0.3)
     
     plt.tight_layout()
@@ -964,7 +1002,6 @@ def visualize_individual_vs_population(
     else:
         plt.show()
 
-# Example usage:
 def visualize_disease_contribution_breakdown(
     lambda_values_np: np.ndarray,  # (N, K, T)
     phi_values_np: np.ndarray,     # (K, D, T)
@@ -1025,7 +1062,8 @@ def visualize_disease_contribution_breakdown(
 
     fig = plt.figure(figsize=(12, 15))
     gs = gridspec.GridSpec(3, 1, height_ratios=[1.5, 1.2, 2])
-    palette = sns.color_palette("husl", K)
+    # Use our consistent color palette
+    palette = get_signature_colors(K)
 
     # --- Panel 1: Population and Individual Signature Loadings (theta) ---
     ax1 = fig.add_subplot(gs[0])
@@ -1053,6 +1091,7 @@ def visualize_disease_contribution_breakdown(
         index=signature_names,
         columns=time_points
     )
+    # Use a consistent colormap for the heatmap that works well with our color scheme
     sns.heatmap(df_heatmap, 
                 cmap='RdBu_r',
                 ax=ax2,
@@ -1064,140 +1103,20 @@ def visualize_disease_contribution_breakdown(
 
     # --- Panel 3: Stacked Contribution to Disease Probability ---
     ax3 = fig.add_subplot(gs[2], sharex=ax1)
-    ax3.stackplot(time_points, scaled_contributions, labels=signature_names, 
-                 colors=palette, alpha=0.7)
+    # Sort contributions by their maximum value to ensure consistent stacking order
+    max_contribs = np.max(scaled_contributions, axis=1)
+    sorted_indices = np.argsort(max_contribs)
+    sorted_contributions = scaled_contributions[sorted_indices]
+    sorted_names = [signature_names[i] for i in sorted_indices]
+    sorted_colors = [palette[i] for i in sorted_indices]
+    
+    ax3.stackplot(time_points, sorted_contributions, labels=sorted_names, 
+                 colors=sorted_colors, alpha=0.7)
     ax3.plot(time_points, total_prob_disease, 'k--', linewidth=2, 
              label='Total Risk ($\pi_{idt}$)')
     ax3.set_title(f'Signature Contributions to Risk of "{disease_name}"', pad=15)
     ax3.set_xlabel('Age')
     ax3.set_ylabel('Risk ($\pi$)')
-    ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
-    ax3.grid(True, alpha=0.3)
-    
-    plot_max_y = (np.max(total_prob_disease) * 1.1) if np.any(total_prob_disease > 0) else 0.1
-    ax3.set_ylim(0, plot_max_y)
-
-    plt.suptitle(f"Probability Breakdown for '{disease_name}' - Individual {individual_idx}", 
-                fontsize=16, y=0.99)
-    plt.tight_layout(rect=[0, 0, 0.88, 0.97])
-
-    if output_path:
-        plt.savefig(output_path, bbox_inches='tight', dpi=300)
-        print(f"Saved figure to {output_path}")
-        plt.close(fig)
-    else:
-        plt.show()
-
-
-
-
-import torch
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import seaborn as sns
-from typing import Dict, List, Optional
-def visualize_disease_contribution_breakdown_two(
-    lambda_values_np: np.ndarray,  # (N, K, T)
-    phi_values_np: np.ndarray,     # (K, D, T)
-    individual_idx: int,
-    disease_idx: int,              
-    disease_name: str,             
-    time_points: np.ndarray,       
-    signature_names: Optional[List[str]] = None,
-    kappa: float = 1.0,
-    output_path: Optional[str] = None
-):
-    """
-    Visualize how all signatures contribute to a specific disease's probability,
-    including population-level signature loadings for comparison.
-    """
-    N, K, T = lambda_values_np.shape
-
-    # --- Calculations ---
-    # Calculate theta for all individuals and the population average
-    theta_all = np.zeros((N, K, T))
-    for i in range(N):
-        exp_lambda = np.exp(lambda_values_np[i, :, :])
-        theta_all[i, :, :] = exp_lambda / np.sum(exp_lambda, axis=0, keepdims=True)
-    
-    # Population statistics
-    theta_pop_mean = np.mean(theta_all, axis=0)  # (K, T)
-    theta_pop_std = np.std(theta_all, axis=0)    # (K, T)
-
-    # Individual theta
-    theta_individual = theta_all[individual_idx]  # (K, T)
-
-    # Calculate phi probabilities for the target disease
-    phi_probs_disease = 1 / (1 + np.exp(-phi_values_np[:, disease_idx, :])) # (K, T)
-
-    # Calculate contributions
-    contributions = theta_individual * phi_probs_disease
-    total_latent_risk = np.sum(contributions, axis=0)
-    total_prob_disease = kappa * total_latent_risk
-    total_prob_disease = np.minimum(1.0, np.maximum(0.0, total_prob_disease))
-
-    # Scale contributions
-    scaled_contributions = contributions.copy()
-    with np.errstate(divide='ignore', invalid='ignore'):
-        scaling_factor = np.divide(total_prob_disease, total_latent_risk)
-        scaling_factor[~np.isfinite(scaling_factor)] = 0
-    scaled_contributions *= scaling_factor[np.newaxis, :]
-
-    # --- Plotting ---
-    if signature_names is None:
-        signature_names = [f"Sig {k}" for k in range(K)]
-
-    fig = plt.figure(figsize=(12, 15))
-    gs = gridspec.GridSpec(3, 1, height_ratios=[1.5, 1, 2])
-    palette = sns.color_palette("husl", K)
-
-    # --- Panel 1: Population and Individual Signature Loadings (theta) ---
-    ax1 = fig.add_subplot(gs[0])
-    
-    # Plot population means and confidence intervals
-    for k in range(K):
-        # Plot population mean
-        ax1.plot(time_points, theta_pop_mean[k], '--', color=palette[k], 
-                 alpha=0.5, label=f'Pop. Mean {signature_names[k]}')
-        
-        # Plot confidence interval
-        ci = theta_pop_std[k]
-        ax1.fill_between(time_points, 
-                        theta_pop_mean[k] - ci,
-                        theta_pop_mean[k] + ci,
-                        color=palette[k], alpha=0.1)
-        
-        # Plot individual's loading
-        ax1.plot(time_points, theta_individual[k], '-', color=palette[k],
-                 linewidth=2, label=f'Individual {signature_names[k]}')
-
-    ax1.set_title(f'Signature Loadings (θ): Individual {individual_idx} vs Population', pad=15)
-    ax1.set_ylabel('Loading (θ)')
-    ax1.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
-    ax1.grid(True, alpha=0.3)
-    ax1.tick_params(labelbottom=False)
-
-    # --- Panel 2: Signature-Disease Association (phi probability) ---
-    ax2 = fig.add_subplot(gs[1], sharex=ax1)
-    for k in range(K):
-        ax2.plot(time_points, phi_probs_disease[k, :], '-', color=palette[k],
-                 linewidth=1.5, label=signature_names[k])
-    ax2.set_title(f'Signature Associations for "{disease_name}" (P(Disease | Sig k))', pad=15)
-    ax2.set_ylabel('P(Dis | Sig k)')
-    ax2.grid(True, alpha=0.3)
-    ax2.tick_params(labelbottom=False)
-
-    # --- Panel 3: Stacked Contribution to Disease Probability ---
-    ax3 = fig.add_subplot(gs[2], sharex=ax1)
-    ax3.stackplot(time_points, scaled_contributions, labels=signature_names, 
-                 colors=palette, alpha=0.7)
-    ax3.plot(time_points, total_prob_disease, 'k--', linewidth=2, 
-             label='Total Calculated Risk ($\pi_{idt}$)')
-    ax3.set_title(f'Signature Contributions to Risk of "{disease_name}"', pad=15)
-    ax3.set_xlabel('Age')
-    ax3.set_ylabel('Calculated Risk ($\pi$)')
     ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
     ax3.grid(True, alpha=0.3)
     
@@ -1315,6 +1234,9 @@ def analyze_age_onset_patterns_across_batches(
     def plot_group_patterns(theta_values, mean_age, axes, title_prefix):
         ax_prop, ax_vel = axes
         
+        # Get consistent colors
+        colors = get_signature_colors(K)
+        
         # Calculate mean and SEM
         mean_theta = np.mean(theta_values, axis=0)
         sem_theta = np.std(theta_values, axis=0) / np.sqrt(len(theta_values))
@@ -1325,7 +1247,7 @@ def analyze_age_onset_patterns_across_batches(
         
         # Plot proportions
         for k in range(K):
-            color = f'C{k}'
+            color = colors[k]
             ax_prop.plot(time_points, mean_theta[k], label=f'Signature {k}', color=color)
             ax_prop.fill_between(time_points, 
                                mean_theta[k] - sem_theta[k],
@@ -1334,7 +1256,7 @@ def analyze_age_onset_patterns_across_batches(
         
         # Plot velocities
         for k in range(K):
-            color = f'C{k}'
+            color = colors[k]
             ax_vel.plot(time_points, velocities[k], label=f'Signature {k}', color=color)
             ax_vel.fill_between(time_points,
                               velocities[k] - vel_sem[k],
@@ -1522,7 +1444,7 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
         # Create stacked area plot
         bottom_pos = np.zeros(time_points.shape)
         bottom_neg = np.zeros(time_points.shape)
-        colors = plt.cm.tab20(np.linspace(0, 1, n_top_sigs))
+        colors = get_signature_colors(n_top_sigs)  # Use our consistent color scheme
         
         for i, sig in enumerate(top_sig_idx):
             values = avg_theta[sig]
@@ -1574,3 +1496,154 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
         plt.show()
     
     return fig
+
+
+
+def plot_single_patient_dynamics(
+    model_path: str,
+    patient_idx: int,
+    sig_refs_path: str,
+    figsize=(14, 7)
+):
+    """
+    Plot dynamics for a single patient, similar to plot_multi_morbid_dynamics_from_batches
+    but simplified for one patient.
+    
+    Args:
+        model_path: Path to the model.pt file containing the patient
+        patient_idx: Local index of patient in the batch
+        sig_refs_path: Path to signature references
+        figsize: Figure size
+    """
+    # Load patient data
+    model_data = torch.load(model_path, map_location='cpu')
+    Y_batch = model_data['Y']
+    lambda_batch = model_data['model_state_dict']['lambda_']
+    psi = model_data['model_state_dict']['psi']
+    
+    # Get patient's data
+    patient_Y = Y_batch[patient_idx]
+    patient_lambda = lambda_batch[patient_idx]
+    
+    # Convert to numpy if needed
+    if torch.is_tensor(patient_Y):
+        patient_Y = patient_Y.detach().cpu().numpy()
+    if torch.is_tensor(patient_lambda):
+        patient_lambda = patient_lambda.detach().cpu().numpy()
+    if torch.is_tensor(psi):
+        psi = psi.detach().cpu().numpy()
+    
+    # Calculate theta
+    exp_lambda = np.exp(patient_lambda)
+    theta_patient = exp_lambda / np.sum(exp_lambda, axis=0)
+    
+    # Get disease names if available
+    disease_names = model_data.get('disease_names', None)
+    if disease_names is not None and torch.is_tensor(disease_names):
+        disease_names = disease_names.tolist()
+    if disease_names is None:
+        disease_names = [f"Disease {i}" for i in range(patient_Y.shape[0])]
+    
+    # Find patient's conditions
+    conditions = []
+    for d_idx in range(patient_Y.shape[0]):
+        diag_times = np.where(patient_Y[d_idx, :] > 0.5)[0]
+        if len(diag_times) > 0:
+            conditions.append((d_idx, diag_times[0]))
+    
+    # Create plot
+    fig = plt.figure(figsize=(figsize[0] * 1.3, figsize[1]))
+    gs = GridSpec(2, 2, height_ratios=[2.5, 1], width_ratios=[4, 0.8], hspace=0.05)
+    
+    ax1 = fig.add_subplot(gs[0, 0])  # Top left: temporal theta
+    ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)  # Bottom left: timeline
+    ax3 = fig.add_subplot(gs[:, 1])  # Right side: stacked bar
+    
+    # Get colors
+    K = theta_patient.shape[0]
+    colors = get_signature_colors(K)
+    
+    # Map diseases to primary signatures
+    disease_primary_sig = {}
+    for d_idx in range(psi.shape[1]):
+        primary_sig = np.argmax(psi[:, d_idx])
+        disease_primary_sig[d_idx] = primary_sig
+    
+    # Plot trajectories
+    legend_handles = []
+    legend_labels = []
+    signatures_to_plot = set()
+    
+    for d_idx, diag_time_idx in conditions:
+        sig_idx = disease_primary_sig[d_idx]
+        signatures_to_plot.add(sig_idx)
+        disease_name = disease_names[d_idx]
+        color = colors[sig_idx]
+        
+        # Plot trajectory
+        line = ax1.plot(np.arange(theta_patient.shape[1]), 
+                       theta_patient[sig_idx, :],
+                       color=color, linewidth=2.5, alpha=0.95,
+                       zorder=3)[0]
+        
+        # Mark diagnosis
+        ax1.axvline(x=diag_time_idx, color=color, linestyle=':',
+                   alpha=0.5, linewidth=0.8, zorder=2)
+        
+        legend_handles.append(line)
+        legend_labels.append(f"Sig {sig_idx} ({disease_name[:20]}{'...' if len(disease_name)>20 else ''})")
+    
+    # Configure plots
+    ax1.set_title(f'Signature Loadings (Θ) Over Time\nPatient {patient_idx}', fontsize=14, pad=10)
+    ax1.set_ylabel('Signature Loading (Θ)', fontsize=12)
+    ax1.grid(True, axis='y', linestyle='--', alpha=0.5)
+    ax1.set_ylim(bottom=0)
+    
+    # Timeline
+    ax2.set_yticks(range(len(conditions)))
+    ax2.set_yticklabels([disease_names[d_idx] for d_idx, _ in conditions], fontsize='small')
+    ax2.set_ylim(-0.5, len(conditions) - 0.5)
+    ax2.invert_yaxis()
+    
+    for i, (d_idx, diag_time) in enumerate(conditions):
+        sig_idx = disease_primary_sig[d_idx]
+        color = colors[sig_idx]
+        ax2.scatter(diag_time, i, marker='o', s=40,
+                   color=color, zorder=5,
+                   edgecolors='black', linewidth=0.5)
+        ax2.hlines(i, 0, diag_time,
+                  colors=color, linestyles='-',
+                  alpha=0.4, linewidth=1.0)
+    
+    ax2.set_xlabel('Age (years)', fontsize=12)
+    ax2.set_ylabel('Diagnosed Condition', fontsize=12)
+    ax2.grid(True, axis='x', linestyle='--', alpha=0.5)
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    
+    # Static summary
+    theta_avg = np.mean(theta_patient, axis=1)
+    bottom = 0
+    sig_indices = sorted(list(signatures_to_plot))
+    
+    for sig_idx in sig_indices:
+        color = colors[sig_idx]
+        ax3.bar([0], [theta_avg[sig_idx]], bottom=bottom,
+                color=color, alpha=0.7, width=0.3)
+        bottom += theta_avg[sig_idx]
+    
+    ax3.set_title('Static Model\nSummary', pad=15)
+    ax3.set_ylabel('Average Loading (θ)')
+    ax3.set_xlim(-0.3, 0.3)
+    ax3.set_xticks([])
+    ax3.grid(True, axis='y', linestyle='--', alpha=0.5)
+    
+    # Legend
+    fig.legend(legend_handles, legend_labels,
+              loc='center right', bbox_to_anchor=(0.98, 0.5),
+              fontsize='small')
+    
+    plt.tight_layout(rect=[0, 0, 0.82, 0.97])
+    
+    return fig
+
