@@ -160,15 +160,20 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
 
 
 #### Plot sig 6
+library(ggsci)
+disease_names=ukb_checkpoint$disease_names[,1]
 
-plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = FALSE)
-
-plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = TRUE)
-
-
-
+p1=plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = TRUE)+scale_color_nejm()
+p2=plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = TRUE)+scale_color_jama()
+p3=plot_signature(signature_idx = 12,"",ukb_params,disease_names,log = TRUE)+scale_color_npg()
+p4=plot_signature(signature_idx = 15,"",ukb_params,disease_names,log = TRUE)+scale_color_aaas()
 
 
+combined <- (p1 + p2) / (p3 + p4)
+plot_layout(guides = "collect") &
+theme(legend.position = "bottom")
+
+ggsave(combined,file="~/Dropbox/aladynoulli_illustrator/combined_sigs.pdf",dpi = 300,width = 20)
 
 
 
@@ -247,6 +252,11 @@ selected_diseases <- c(
   "Rheumatoid arthritis"
 )
 
+
+# Calculate pi predictions
+pi_pred <- calculate_pi_pred(param$lambda, param$phi, param$kappa)
+
+
 plot_disease_probabilities(pi_pred,selected_diseases,ukb_checkpoint$disease_names[,1])
 
 
@@ -254,10 +264,6 @@ plot_disease_probabilities(pi_pred,selected_diseases,ukb_checkpoint$disease_name
 
 # Create all plots
 disease_names <- ukb_checkpoint$disease_names[,1]
-
-# Calculate pi predictions
-pi_pred <- calculate_pi_pred(param$lambda, param$phi, param$kappa)
-
 
 
 # Plot disease probabilities heatmap with pointers
@@ -511,3 +517,43 @@ ggsave("figure2_temporal.pdf", p1 + p2 + plot_layout(guides = "collect"), width 
 ggsave("figure2_probabilities.pdf", p3, width = 8, height = 10)
 ggsave("figure2_clusters.pdf", p4, width = 6, height = 6)
 ggsave("figure2_biobank.pdf", p5, width = 12, height = 8)
+
+
+a=array(data = NA,dim = c(21,348,52));for(i in c(1:21)){a[i,,]=ukb_params$phi[i,,]-ukb_params$logit_prev}
+lapply(seq(1:21),function(x){image(as.matrix(t(a[x,,])),main=paste0("Sig",x-1))})
+
+library(gridExtra) # or library(patchwork)
+
+# Create a list of plots
+# Create a list of plots
+plot_list <- lapply(c(1,25,51), function(x) {
+  m <- melt(a[,,x])
+  colnames(m) <- c("Sig", "Disease", "OR")
+  
+  # For the first two plots, don't show legend
+  if (x != 51) {
+    p <- ggplot(m, aes(x=Sig, y=Disease, fill=OR)) +
+      geom_tile() +
+      scale_fill_gradient2(limits=c(-5,3), 
+                           low="#000C80", mid="white", high="#E64B35",
+                           midpoint=0) +
+      labs(y="Disease", x="Signature", title=paste0("OR at Age ", 29+x)) +
+      theme(legend.position = "none")
+  } else {
+    # For the last plot, show legend
+    p <- ggplot(m, aes(x=Sig, y=Disease, fill=OR)) +
+      geom_tile() +
+      scale_fill_gradient2(limits=c(-5,3), 
+                           low="#000C80", mid="white", high="#E64B35",
+                           midpoint=0) +
+      labs(y="Disease", x="Signature", title=paste0("OR at Age ", 29+x), 
+           fill="Log Odds Ratio (psi)") +
+      theme(legend.position = "right")
+  }
+  return(p)
+})
+
+# Arrange plots in a 1x3 grid
+ggsave(plot = grid.arrange(grobs = plot_list, ncol = 3),
+       filename = "~/Dropbox/aladynoulli_illustrator/combinedphi.pdf", 
+       dpi=300, width = 15)

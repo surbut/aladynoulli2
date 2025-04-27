@@ -1133,6 +1133,8 @@ def visualize_disease_contribution_breakdown(
         plt.close(fig)
     else:
         plt.show()
+    
+    return fig
 
 def analyze_age_onset_patterns_across_batches(
     results_base_dir: str,
@@ -1304,200 +1306,129 @@ def analyze_age_onset_patterns_across_batches(
     
     return [idx for idx, _, _ in all_early_onset], [idx for idx, _, _ in all_late_onset]
 
-def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, output_path=None):
+def plot_disease_signature_clusters_all_batches_ax(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, axes=None):
     """
-    Plot signature proportion deviations by cluster for a specific disease across all batches
-    
-    Args:
-        disease_idx: Index of the disease to analyze
-        batch_size: Number of patients per batch
-        n_batches: Number of batches to process
-        n_clusters: Number of clusters to use
-        n_top_sigs: Number of top signatures to show
-        subtract_reference: Whether to subtract reference trajectories
-        output_path: Path to save the PDF file. If None, plot is shown but not saved.
+    Same as plot_disease_signature_clusters_all_batches, but plots into provided axes if given.
     """
     import torch
     import numpy as np
     import matplotlib.pyplot as plt
     from sklearn.cluster import KMeans
     import traceback
-    
     print(f"Starting analysis for disease {disease_idx} across all batches...")
-    
-    # Load batch 1 model to get disease names and signature information
     model_path = '/Users/sarahurbut/Dropbox/resultshighamp/results/output_0_10000/model.pt'
     print("\nLoading batch 1 model for reference...")
-    
     try:
         model1 = torch.load(model_path)
         disease_names = model1['disease_names'][0].tolist()
-        K_total = model1['model_state_dict']['lambda_'].shape[1]  # Number of signatures
-        time_points = model1['Y'].shape[2]  # Number of time points
-        
+        K_total = model1['model_state_dict']['lambda_'].shape[1]
+        time_points = model1['Y'].shape[2]
         disease_name = disease_names[disease_idx] if disease_idx < len(disease_names) else f"Disease {disease_idx}"
         print(f"Analyzing {disease_name}")
-        
-        # Get reference trajectories from first batch
         if 'signature_refs' in model1:
             if model1.get('healthy_ref') is not None:
-                # Create full reference including healthy state
                 reference_lambda = torch.zeros((K_total, time_points))
-                reference_lambda[:-1] = model1['signature_refs']  # Disease signatures
-                reference_lambda[-1] = model1['healthy_ref']  # Healthy reference
-                # Convert to proportions using softmax
+                reference_lambda[:-1] = model1['signature_refs']
+                reference_lambda[-1] = model1['healthy_ref']
                 reference_theta = torch.softmax(reference_lambda, dim=0).detach().numpy()
             else:
                 reference_theta = torch.softmax(model1['signature_refs'], dim=0).detach().numpy()
         else:
-            # If no reference, we'll calculate population average later
             reference_theta = None
     except Exception as e:
         print(f"ERROR loading model: {str(e)}")
         traceback.print_exc()
         return None
-    
-    # Collect patients with this disease across all batches
-    all_patients = []  # Will store (batch_idx, patient_idx) tuples
-    all_features = []  # Will store signature proportions
-    all_thetas = []    # Will store full theta matrices
-    
-    # Process each batch
+    all_patients = []
+    all_features = []
+    all_thetas = []
     for batch in range(n_batches):
         start_idx = batch * batch_size
         end_idx = (batch + 1) * batch_size
-        
         model_path = f'/Users/sarahurbut/Dropbox/resultshighamp/results/output_{start_idx}_{end_idx}/model.pt'
         print(f"\nProcessing batch {batch+1}/{n_batches} (patients {start_idx}-{end_idx})")
-        
         try:
             model = torch.load(model_path)
             lambda_values = model['model_state_dict']['lambda_']
             Y_batch = model['Y'].numpy()
-            
-            # Find patients with this disease
             for i in range(Y_batch.shape[0]):
                 if np.any(Y_batch[i, disease_idx]):
-                    # Get signature proportions
                     theta = torch.softmax(lambda_values[i], dim=0).detach().numpy()
                     mean_props = theta.mean(axis=1)
-                    
-                    # Store patient data
                     all_patients.append((batch, i))
                     all_features.append(mean_props)
                     all_thetas.append(theta)
-            
             print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
-            
         except FileNotFoundError:
             print(f"Warning: Could not find model file for batch {batch}")
-            break  # Assume we've reached the end of batches
+            break
         except Exception as e:
             print(f"Error processing batch {batch}: {str(e)}")
             traceback.print_exc()
             continue
-    
     if len(all_patients) == 0:
         print(f"No patients found with disease {disease_idx}")
         return None
-    
     print(f"\nTotal patients with {disease_name}: {len(all_patients)}")
-    
-    # If no reference theta, use population average
     if reference_theta is None:
         reference_theta = np.mean(all_thetas, axis=0)
         print("Using population average as reference")
-    
-    # Convert to numpy arrays
     all_features = np.array(all_features)
-    
-    # Perform clustering
-    print(f"\nPerforming clustering with {n_clusters} clusters...")
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     patient_clusters = kmeans.fit_predict(all_features)
-    
-    # Create figure and axes
-    fig, axes = plt.subplots(n_clusters, 1, figsize=(12, 5*n_clusters))
-    if n_clusters == 1:
-        axes = [axes]  # Make axes iterable if only one cluster
-    
+    if axes is None:
+        fig, axes = plt.subplots(n_clusters, 1, figsize=(12, 5*n_clusters))
+        if n_clusters == 1:
+            axes = [axes]
     time_points = np.arange(time_points)
-    
     for cluster_idx in range(n_clusters):
-        # Get patients in this cluster
         cluster_indices = np.where(patient_clusters == cluster_idx)[0]
         cluster_thetas = [all_thetas[i] for i in cluster_indices]
-        
-        # Calculate average theta for this cluster
         avg_theta = np.mean(cluster_thetas, axis=0)
-        
         if subtract_reference:
-            # Subtract reference from average
             avg_theta = avg_theta - reference_theta
-        
-        # Calculate mean deviation for each signature
         mean_props = np.abs(avg_theta).mean(axis=1)
-        
-        # Get top signatures by absolute mean deviation
         top_sig_idx = np.argsort(mean_props)[-n_top_sigs:][::-1]
-        
-        # Create stacked area plot
         bottom_pos = np.zeros(time_points.shape)
         bottom_neg = np.zeros(time_points.shape)
-        colors = get_signature_colors(n_top_sigs)  # Use our consistent color scheme
-        
+        colors = get_signature_colors(n_top_sigs)
+        ax = axes[cluster_idx]
         for i, sig in enumerate(top_sig_idx):
             values = avg_theta[sig]
             if subtract_reference:
-                # For deviations, split positive and negative
                 pos_values = np.maximum(values, 0)
                 neg_values = np.minimum(values, 0)
-                
-                axes[cluster_idx].fill_between(time_points, bottom_pos, bottom_pos + pos_values,
+                ax.fill_between(time_points, bottom_pos, bottom_pos + pos_values,
                                              label=f'Sig {sig} (Δθ={mean_props[sig]:.3f})',
                                              color=colors[i])
-                axes[cluster_idx].fill_between(time_points, bottom_neg, bottom_neg + neg_values,
+                ax.fill_between(time_points, bottom_neg, bottom_neg + neg_values,
                                              color=colors[i], alpha=0.5)
-                
                 bottom_pos += pos_values
                 bottom_neg += neg_values
             else:
-                axes[cluster_idx].fill_between(time_points, bottom_pos, bottom_pos + values,
+                ax.fill_between(time_points, bottom_pos, bottom_pos + values,
                                              label=f'Sig {sig} (θ={mean_props[sig]:.3f})',
                                              color=colors[i])
                 bottom_pos += values
-        
         title = f'Cluster {cluster_idx}: '
         title += 'Signature Proportion Deviations from Population Average' if subtract_reference else 'Average Signature Proportions'
         title += f'\n({len(cluster_indices)} patients)'
-        
-        axes[cluster_idx].set_title(title)
-        axes[cluster_idx].set_xlabel('Time (Age 30-81)')
-        axes[cluster_idx].set_ylabel('Δ Proportion (θ)' if subtract_reference else 'Proportion (θ)')
-        axes[cluster_idx].legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        
+        ax.set_title(title)
+        ax.set_xlabel('Time (Age 30-81)')
+        ax.set_ylabel('Δ Proportion (θ)' if subtract_reference else 'Proportion (θ)')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         if subtract_reference:
-            # Center y-axis around 0 for deviations
             max_dev = max(abs(bottom_pos.max()), abs(bottom_neg.min()))
-            axes[cluster_idx].set_ylim(-max_dev, max_dev)
-            axes[cluster_idx].axhline(y=0, color='k', linestyle='-', alpha=0.2)
+            ax.set_ylim(-max_dev, max_dev)
+            ax.axhline(y=0, color='k', linestyle='-', alpha=0.2)
         else:
-            axes[cluster_idx].set_ylim(0, 1.05)
-    
-    plt.suptitle(f'{"Signature Proportion Deviations" if subtract_reference else "Average Signature Proportions"}\n'
-                f'by Cluster for {disease_name}')
-    plt.tight_layout()
-    
-    if output_path:
-        plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=300)
-        print(f"Saved figure to {output_path}")
-        plt.close(fig)
+            ax.set_ylim(0, 1.05)
+    if axes is None:
+        plt.suptitle(f'{"Signature Proportion Deviations" if subtract_reference else "Average Signature Proportions"}\nby Cluster for {disease_name}')
+        plt.tight_layout()
+        return fig
     else:
-        plt.show()
-    
-    return fig
-
-
+        return None
 
 def plot_single_patient_dynamics(
     model_path: str,
@@ -1539,11 +1470,23 @@ def plot_single_patient_dynamics(
     
     # Get disease names if available
     disease_names = model_data.get('disease_names', None)
-    if disease_names is not None and torch.is_tensor(disease_names):
-        disease_names = disease_names.tolist()
-    if disease_names is None:
+    # Convert to flat list of strings regardless of type
+    if disease_names is not None:
+        if torch.is_tensor(disease_names):
+            disease_names = disease_names.flatten().tolist()
+        elif isinstance(disease_names, pd.DataFrame):
+            # Use first column if DataFrame
+            disease_names = disease_names.iloc[:, 0].astype(str).tolist()
+        elif isinstance(disease_names, (np.ndarray, pd.Series, pd.Index)):
+            disease_names = disease_names.tolist()
+        elif isinstance(disease_names, (list, tuple)):
+            disease_names = [str(x) for x in disease_names]
+        else:
+            # fallback
+            disease_names = [str(x) for x in list(disease_names)]
+    else:
         disease_names = [f"Disease {i}" for i in range(patient_Y.shape[0])]
-    
+ 
     # Find patient's conditions
     conditions = []
     for d_idx in range(patient_Y.shape[0]):
@@ -1646,4 +1589,224 @@ def plot_single_patient_dynamics(
     plt.tight_layout(rect=[0, 0, 0.82, 0.97])
     
     return fig
+
+def plot_single_patient_dynamics_ax(
+    model_path: str,
+    patient_idx: int,
+    sig_refs_path: str,
+    figsize=(14, 7),
+    ax1=None,
+    ax2=None,
+    ax3=None
+):
+    """
+    Same as plot_single_patient_dynamics, but plots into provided axes if given.
+    """
+    model_data = torch.load(model_path, map_location='cpu')
+    Y_batch = model_data['Y']
+    lambda_batch = model_data['model_state_dict']['lambda_']
+    psi = model_data['model_state_dict']['psi']
+    patient_Y = Y_batch[patient_idx]
+    patient_lambda = lambda_batch[patient_idx]
+    if torch.is_tensor(patient_Y):
+        patient_Y = patient_Y.detach().cpu().numpy()
+    if torch.is_tensor(patient_lambda):
+        patient_lambda = patient_lambda.detach().cpu().numpy()
+    if torch.is_tensor(psi):
+        psi = psi.detach().cpu().numpy()
+    exp_lambda = np.exp(patient_lambda)
+    theta_patient = exp_lambda / np.sum(exp_lambda, axis=0)
+    disease_names = model_data.get('disease_names', None)
+    if disease_names is not None:
+        if torch.is_tensor(disease_names):
+            disease_names = disease_names.flatten().tolist()
+        elif isinstance(disease_names, pd.DataFrame):
+            disease_names = disease_names.iloc[:, 0].astype(str).tolist()
+        elif isinstance(disease_names, (np.ndarray, pd.Series, pd.Index)):
+            disease_names = disease_names.tolist()
+        elif isinstance(disease_names, (list, tuple)):
+            disease_names = [str(x) for x in disease_names]
+        else:
+            disease_names = [str(x) for x in list(disease_names)]
+    else:
+        disease_names = [f"Disease {i}" for i in range(patient_Y.shape[0])]
+    conditions = []
+    for d_idx in range(patient_Y.shape[0]):
+        diag_times = np.where(patient_Y[d_idx, :] > 0.5)[0]
+        if len(diag_times) > 0:
+            conditions.append((d_idx, diag_times[0]))
+    if ax1 is None or ax2 is None or ax3 is None:
+        fig = plt.figure(figsize=(figsize[0] * 1.3, figsize[1]))
+        gs = GridSpec(2, 2, height_ratios=[2.5, 1], width_ratios=[4, 0.8], hspace=0.05)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)
+        ax3 = fig.add_subplot(gs[:, 1])
+    K = theta_patient.shape[0]
+    colors = get_signature_colors(K)
+    disease_primary_sig = {}
+    for d_idx in range(psi.shape[1]):
+        primary_sig = np.argmax(psi[:, d_idx])
+        disease_primary_sig[d_idx] = primary_sig
+    legend_handles = []
+    legend_labels = []
+    signatures_to_plot = set()
+    for d_idx, diag_time_idx in conditions:
+        sig_idx = disease_primary_sig[d_idx]
+        signatures_to_plot.add(sig_idx)
+        disease_name = disease_names[d_idx]
+        color = colors[sig_idx]
+        line = ax1.plot(np.arange(theta_patient.shape[1]), 
+                       theta_patient[sig_idx, :],
+                       color=color, linewidth=2.5, alpha=0.95,
+                       zorder=3)[0]
+        ax1.axvline(x=diag_time_idx, color=color, linestyle=':',
+                   alpha=0.5, linewidth=0.8, zorder=2)
+        legend_handles.append(line)
+        legend_labels.append(f"Sig {sig_idx} ({disease_name[:20]}{'...' if len(disease_name)>20 else ''})")
+    ax1.set_title(f'Signature Loadings (Θ) Over Time\nPatient {patient_idx}', fontsize=14, pad=10)
+    ax1.set_ylabel('Signature Loading (Θ)', fontsize=12)
+    ax1.grid(True, axis='y', linestyle='--', alpha=0.5)
+    ax1.set_ylim(bottom=0)
+    ax2.set_yticks(range(len(conditions)))
+    ax2.set_yticklabels([disease_names[d_idx] for d_idx, _ in conditions], fontsize='small')
+    ax2.set_ylim(-0.5, len(conditions) - 0.5)
+    ax2.invert_yaxis()
+    for i, (d_idx, diag_time) in enumerate(conditions):
+        sig_idx = disease_primary_sig[d_idx]
+        color = colors[sig_idx]
+        ax2.scatter(diag_time, i, marker='o', s=40,
+                   color=color, zorder=5,
+                   edgecolors='black', linewidth=0.5)
+        ax2.hlines(i, 0, diag_time,
+                  colors=color, linestyles='-',
+                  alpha=0.4, linewidth=1.0)
+    ax2.set_xlabel('Age (years)', fontsize=12)
+    ax2.set_ylabel('Diagnosed Condition', fontsize=12)
+    ax2.grid(True, axis='x', linestyle='--', alpha=0.5)
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    theta_avg = np.mean(theta_patient, axis=1)
+    bottom = 0
+    sig_indices = sorted(list(signatures_to_plot))
+    for sig_idx in sig_indices:
+        color = colors[sig_idx]
+        ax3.bar([0], [theta_avg[sig_idx]], bottom=bottom,
+                color=color, alpha=0.7, width=0.3)
+        bottom += theta_avg[sig_idx]
+    ax3.set_title('Static Model\nSummary', pad=15)
+    ax3.set_ylabel('Average Loading (θ)')
+    ax3.set_xlim(-0.3, 0.3)
+    ax3.set_xticks([])
+    ax3.grid(True, axis='y', linestyle='--', alpha=0.5)
+    if ax1 is None or ax2 is None or ax3 is None:
+        fig.legend(legend_handles, legend_labels,
+                  loc='center right', bbox_to_anchor=(0.98, 0.5),
+                  fontsize='small')
+        plt.tight_layout(rect=[0, 0, 0.82, 0.97])
+        return fig
+    else:
+        ax1.legend(legend_handles, legend_labels, loc='best', fontsize='small')
+        return None
+
+def visualize_disease_contribution_breakdown_ax(
+    lambda_values_np: np.ndarray,  # (N, K, T)
+    phi_values_np: np.ndarray,     # (K, D, T)
+    individual_idx: int,
+    disease_idx: int,              
+    disease_name: str,             
+    time_points: np.ndarray,       
+    signature_names: Optional[List[str]] = None,
+    kappa: float = 1.0,
+    ax1=None,
+    ax2=None,
+    ax3=None
+):
+    """
+    Same as visualize_disease_contribution_breakdown, but plots into provided axes if given.
+    """
+    if torch.is_tensor(lambda_values_np):
+        lambda_values_np = lambda_values_np.detach().cpu().numpy()
+    if torch.is_tensor(phi_values_np):
+        phi_values_np = phi_values_np.detach().cpu().numpy()
+    if torch.is_tensor(kappa):
+        kappa = kappa.item()
+    N, K, T = lambda_values_np.shape
+    theta_all = np.zeros((N, K, T))
+    for i in range(N):
+        exp_lambda = np.exp(lambda_values_np[i, :, :])
+        theta_all[i, :, :] = exp_lambda / np.sum(exp_lambda, axis=0, keepdims=True)
+    theta_pop_mean = np.mean(theta_all, axis=0)
+    theta_pop_std = np.std(theta_all, axis=0)
+    theta_individual = theta_all[individual_idx]
+    phi_disease = phi_values_np[:, disease_idx, :]
+    phi_probs_disease = 1 / (1 + np.exp(-phi_disease))
+    contributions = theta_individual * phi_probs_disease
+    total_latent_risk = np.sum(contributions, axis=0)
+    total_prob_disease = kappa * total_latent_risk
+    total_prob_disease = np.minimum(1.0, np.maximum(0.0, total_prob_disease))
+    scaled_contributions = contributions.copy()
+    with np.errstate(divide='ignore', invalid='ignore'):
+        scaling_factor = np.divide(total_prob_disease, total_latent_risk)
+        scaling_factor = np.where(np.isfinite(scaling_factor), scaling_factor, 0.0)
+        scaled_contributions = scaled_contributions * scaling_factor[None, :]
+    if signature_names is None:
+        signature_names = [f"Signature {k}" for k in range(K)]
+    if ax1 is None or ax2 is None or ax3 is None:
+        fig = plt.figure(figsize=(12, 15))
+        gs = GridSpec(3, 1, height_ratios=[1.5, 1.2, 2])
+        ax1 = fig.add_subplot(gs[0])
+        ax2 = fig.add_subplot(gs[1])
+        ax3 = fig.add_subplot(gs[2], sharex=ax1)
+    palette = get_signature_colors(K)
+    for k in range(K):
+        ax1.plot(time_points, theta_pop_mean[k], '--', color=palette[k], 
+                 alpha=0.5, label=f'Pop. Mean {signature_names[k]}')
+        ci = theta_pop_std[k]
+        ax1.fill_between(time_points, 
+                        theta_pop_mean[k] - ci,
+                        theta_pop_mean[k] + ci,
+                        color=palette[k], alpha=0.1)
+        ax1.plot(time_points, theta_individual[k], '-', color=palette[k],
+                 linewidth=2, label=f'Individual {signature_names[k]}')
+    ax1.set_title(f'Signature Loadings (θ): Individual {individual_idx} vs Population', pad=15)
+    ax1.set_ylabel('Loading (θ)')
+    ax1.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+    ax1.grid(True, alpha=0.3)
+    ax1.tick_params(labelbottom=False)
+    df_heatmap = pd.DataFrame(
+        phi_disease,
+        index=signature_names,
+        columns=time_points
+    )
+    sns.heatmap(df_heatmap, 
+                cmap='RdBu_r',
+                ax=ax2,
+                cbar_kws={'label': 'log-odds(Disease | Signature k, Age t)'})
+    ax2.set_title(f'Temporal Signature Associations for {disease_name}', pad=15)
+    ax2.set_xlabel('')
+    ax2.set_ylabel('Signature')
+    ax2.tick_params(rotation=0)
+    max_contribs = np.max(scaled_contributions, axis=1)
+    sorted_indices = np.argsort(max_contribs)
+    sorted_contributions = scaled_contributions[sorted_indices]
+    sorted_names = [signature_names[i] for i in sorted_indices]
+    sorted_colors = [palette[i] for i in sorted_indices]
+    ax3.stackplot(time_points, sorted_contributions, labels=sorted_names, 
+                 colors=sorted_colors, alpha=0.7)
+    ax3.plot(time_points, total_prob_disease, 'k--', linewidth=2, 
+             label='Total Risk ($\pi_{idt}$)')
+    ax3.set_title(f'Signature Contributions to Risk of "{disease_name}"', pad=15)
+    ax3.set_xlabel('Age')
+    ax3.set_ylabel('Risk ($\pi$)')
+    ax3.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize='small')
+    ax3.grid(True, alpha=0.3)
+    plot_max_y = (np.max(total_prob_disease) * 1.1) if np.any(total_prob_disease > 0) else 0.1
+    ax3.set_ylim(0, plot_max_y)
+    if ax1 is None or ax2 is None or ax3 is None:
+        plt.suptitle(f"Probability Breakdown for '{disease_name}' - Individual {individual_idx}", 
+                    fontsize=16, y=0.99)
+        plt.tight_layout(rect=[0, 0, 0.88, 0.97])
+        return fig
+    else:
+        return None
 
