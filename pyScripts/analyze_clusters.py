@@ -95,6 +95,8 @@ def plot_confusion_matrix(true_clusters, pred_clusters, K):
     print(f"Adjusted Rand Index: {ari:.3f}")
     print(f"Normalized Mutual Information: {nmi:.3f}")
     
+    plt.savefig('confusion_matrix.pdf',dpi=300,bbox_inches='tight')
+    plt.close()
     plt.show()
     
     return col_ind  # Return the optimal ordering

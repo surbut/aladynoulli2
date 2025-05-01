@@ -200,6 +200,27 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
     # Add significance indicator
     genetic_df['Significant'] = genetic_df['P_Value_Corrected'] < 0.05
     
+    # Save cluster scores by PRS to CSV
+    # Create a pivot table to organize data by PRS and cluster
+    cluster_scores = genetic_df.pivot(
+        index='Factor',
+        columns='Cluster',
+        values=['Mean_Value', 'Effect_Size', 'P_Value_Corrected', 'Significant']
+    )
+    
+    # Flatten the multi-level columns
+    cluster_scores.columns = [f'{col[0]}_Cluster{col[1]}' for col in cluster_scores.columns]
+    
+    # Add cluster sizes
+    cluster_sizes = {f'Cluster_Size_{c}': np.sum(patient_clusters == c) for c in range(n_clusters)}
+    for col, size in cluster_sizes.items():
+        cluster_scores[col] = size
+    
+    # Save to CSV
+    output_csv_path = f'cluster_scores_disease_{disease_idx}.csv'
+    cluster_scores.to_csv(output_csv_path)
+    print(f"\nSaved cluster scores to {output_csv_path}")
+    
     # Create heatmap of mean genetic values
     plt.figure(figsize=(16, 20))  # Increased figure size
     
@@ -348,7 +369,8 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
         'genetic_factor_names': genetic_factor_names,
         'patient_clusters': patient_clusters,
         'genetic_df': genetic_df,
-        'all_patients': all_patients
+        'all_patients': all_patients,
+        'cluster_scores': cluster_scores  # Add the cluster scores to the return dict
     }
 
 

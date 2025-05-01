@@ -200,6 +200,110 @@ def analyze_primary_secondary_cancer(model_path, Y, R, W, disease_names, window_
     
     return results
 
+
+def analyze_disease_relationships(model, Y, disease_names, window_size=5):
+    """
+    Analyze pairwise disease relationships using model predictions
+    
+    Args:
+    model: trained model with forward() returning pi, theta, phi_prob
+    Y: observed outcomes tensor (N, D, T)
+    disease_names: list of disease names
+    window_size: window to look for subsequent conditions
+    """
+    # Get model predictions
+    with torch.no_grad():
+        pi, theta, phi_prob = model.forward()
+    
+    N, D, T = Y.shape
+    results = {}
+    
+    # For each disease pair
+    for disease_a in range(D):
+        results[disease_names[disease_a]] = {}
+        
+        for disease_b in range(D):
+            if disease_a != disease_b:
+                # Initialize counters
+                n_primary = 0
+                n_secondary_after_primary = 0
+                n_secondary_without_primary = 0
+                n_no_primary = 0
+                
+                cum_pred_prob_with = []
+                cum_pred_prob_without = []
+                
+                # For each timepoint
+                for t in range(T - window_size):
+                    # Get patients who got disease A at time t
+                    new_primary = Y[:, disease_a, t] == 1
+                    
+                    if new_primary.any():
+                        # Look at disease B outcomes in next window_size years
+                        future_outcomes = Y[:, disease_b, t:t+window_size].any(dim=1)
+                        
+                        # Get cumulative predicted probability in window
+                        future_preds = 1 - (1 - pi[:, disease_b, t:t+window_size]).prod(dim=1)
+                        
+                        # Update counters
+                        n_primary += new_primary.sum().item()
+                        n_secondary_after_primary += (new_primary & future_outcomes).sum().item()
+                        
+                        # For those without disease A
+                        no_primary = ~new_primary
+                        n_no_primary += no_primary.sum().item()
+                        n_secondary_without_primary += (no_primary & future_outcomes).sum().item()
+                        
+                        # Store predictions
+                        cum_pred_prob_with.append(future_preds[new_primary].mean().item())
+                        cum_pred_prob_without.append(future_preds[~new_primary].mean().item())
+                
+                # Calculate statistics
+                p_b_given_a = n_secondary_after_primary / n_primary if n_primary > 0 else 0
+                p_b_no_a = n_secondary_without_primary / n_no_primary if n_no_primary > 0 else 0
+                risk_ratio = p_b_given_a / p_b_no_a if p_b_no_a > 0 else 0
+                
+                # Average predictions
+                mean_pred_with = np.mean(cum_pred_prob_with) if cum_pred_prob_with else 0
+                mean_pred_without = np.mean(cum_pred_prob_without) if cum_pred_prob_without else 0
+                
+                results[disease_names[disease_a]][disease_names[disease_b]] = {
+                    'p_b_given_a': p_b_given_a,
+                    'p_b_no_a': p_b_no_a,
+                    'risk_ratio': risk_ratio,
+                    'pred_prob_with': mean_pred_with,
+                    'pred_prob_without': mean_pred_without,
+                    'pred_ratio': (mean_pred_with / mean_pred_without if mean_pred_without > 0 else 1.0)
+                }
+    
+    # Print top relationships
+    print(f"\nTop Disease Relationships ({window_size}-year window):")
+    print("-" * 80)
+    
+    # Flatten results for sorting
+    flat_results = []
+    for disease_a in results:
+        for disease_b in results[disease_a]:
+            stats = results[disease_a][disease_b]
+            flat_results.append({
+                'Disease A': disease_a,
+                'Disease B': disease_b,
+                'Risk Ratio': stats['risk_ratio'],
+                'P(B|A)': stats['p_b_given_a'],
+                'P(B|no A)': stats['p_b_no_a']
+            })
+    
+    # Sort by risk ratio and print top relationships
+    flat_results.sort(key=lambda x: x['Risk Ratio'], reverse=True)
+    for rel in flat_results[:20]:  # top 20
+        print(f"\n{rel['Disease A']} → {rel['Disease B']}:")
+        print(f"Risk Ratio: {rel['Risk Ratio']:.2f}x")
+        print(f"P(B|A): {rel['P(B|A)']:.3f}")
+        print(f"P(B|no A): {rel['P(B|no A)']:.3f}")
+    
+    return results
+
+
 if __name__ == "__main__":
     # Load data
     Y = torch.load("/Users/sarahurbut/Dropbox/data_for_running/Y_tensor.pt")
@@ -232,3 +336,8 @@ if __name__ == "__main__":
     
     # Create visualization
     plot_cancer_analysis(results) 
+
+
+
+
+

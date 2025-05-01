@@ -1306,6 +1306,200 @@ def analyze_age_onset_patterns_across_batches(
     
     return [idx for idx, _, _ in all_early_onset], [idx for idx, _, _ in all_late_onset]
 
+def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, output_path=None):
+    """
+    Plot signature proportion deviations by cluster for a specific disease across all batches
+    
+    Args:
+        disease_idx: Index of the disease to analyze
+        batch_size: Number of patients per batch
+        n_batches: Number of batches to process
+        n_clusters: Number of clusters to use
+        n_top_sigs: Number of top signatures to show
+        subtract_reference: Whether to subtract reference trajectories
+        output_path: Path to save the PDF file. If None, plot is shown but not saved.
+    """
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.cluster import KMeans
+    import traceback
+    
+    print(f"Starting analysis for disease {disease_idx} across all batches...")
+    
+    # Load batch 1 model to get disease names and signature information
+    model_path = '/Users/sarahurbut/Dropbox/resultshighamp/results/output_0_10000/model.pt'
+    print("\nLoading batch 1 model for reference...")
+    
+    try:
+        model1 = torch.load(model_path)
+        disease_names = model1['disease_names'][0].tolist()
+        K_total = model1['model_state_dict']['lambda_'].shape[1]  # Number of signatures
+        time_points = model1['Y'].shape[2]  # Number of time points
+        
+        disease_name = disease_names[disease_idx] if disease_idx < len(disease_names) else f"Disease {disease_idx}"
+        print(f"Analyzing {disease_name}")
+        
+        # Get reference trajectories from first batch
+        if 'signature_refs' in model1:
+            if model1.get('healthy_ref') is not None:
+                # Create full reference including healthy state
+                reference_lambda = torch.zeros((K_total, time_points))
+                reference_lambda[:-1] = model1['signature_refs']  # Disease signatures
+                reference_lambda[-1] = model1['healthy_ref']  # Healthy reference
+                # Convert to proportions using softmax
+                reference_theta = torch.softmax(reference_lambda, dim=0).detach().numpy()
+            else:
+                reference_theta = torch.softmax(model1['signature_refs'], dim=0).detach().numpy()
+        else:
+            # If no reference, we'll calculate population average later
+            reference_theta = None
+    except Exception as e:
+        print(f"ERROR loading model: {str(e)}")
+        traceback.print_exc()
+        return None
+    
+    # Collect patients with this disease across all batches
+    all_patients = []  # Will store (batch_idx, patient_idx) tuples
+    all_features = []  # Will store signature proportions
+    all_thetas = []    # Will store full theta matrices
+    
+    # Process each batch
+    for batch in range(n_batches):
+        start_idx = batch * batch_size
+        end_idx = (batch + 1) * batch_size
+        
+        model_path = f'/Users/sarahurbut/Dropbox/resultshighamp/results/output_{start_idx}_{end_idx}/model.pt'
+        print(f"\nProcessing batch {batch+1}/{n_batches} (patients {start_idx}-{end_idx})")
+        
+        try:
+            model = torch.load(model_path)
+            lambda_values = model['model_state_dict']['lambda_']
+            Y_batch = model['Y'].numpy()
+            
+            # Find patients with this disease
+            for i in range(Y_batch.shape[0]):
+                if np.any(Y_batch[i, disease_idx]):
+                    # Get signature proportions
+                    theta = torch.softmax(lambda_values[i], dim=0).detach().numpy()
+                    mean_props = theta.mean(axis=1)
+                    
+                    # Store patient data
+                    all_patients.append((batch, i))
+                    all_features.append(mean_props)
+                    all_thetas.append(theta)
+            
+            print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
+            
+        except FileNotFoundError:
+            print(f"Warning: Could not find model file for batch {batch}")
+            break  # Assume we've reached the end of batches
+        except Exception as e:
+            print(f"Error processing batch {batch}: {str(e)}")
+            traceback.print_exc()
+            continue
+    
+    if len(all_patients) == 0:
+        print(f"No patients found with disease {disease_idx}")
+        return None
+    
+    print(f"\nTotal patients with {disease_name}: {len(all_patients)}")
+    
+    # If no reference theta, use population average
+    if reference_theta is None:
+        reference_theta = np.mean(all_thetas, axis=0)
+        print("Using population average as reference")
+    
+    # Convert to numpy arrays
+    all_features = np.array(all_features)
+    
+    # Perform clustering
+    print(f"\nPerforming clustering with {n_clusters} clusters...")
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    patient_clusters = kmeans.fit_predict(all_features)
+    
+    # Create figure and axes
+    fig, axes = plt.subplots(n_clusters, 1, figsize=(12, 5*n_clusters))
+    if n_clusters == 1:
+        axes = [axes]  # Make axes iterable if only one cluster
+    
+    time_points = np.arange(time_points)
+    
+    for cluster_idx in range(n_clusters):
+        # Get patients in this cluster
+        cluster_indices = np.where(patient_clusters == cluster_idx)[0]
+        cluster_thetas = [all_thetas[i] for i in cluster_indices]
+        
+        # Calculate average theta for this cluster
+        avg_theta = np.mean(cluster_thetas, axis=0)
+        
+        if subtract_reference:
+            # Subtract reference from average
+            avg_theta = avg_theta - reference_theta
+        
+        # Calculate mean deviation for each signature
+        mean_props = np.abs(avg_theta).mean(axis=1)
+        
+        # Get top signatures by absolute mean deviation
+        top_sig_idx = np.argsort(mean_props)[-n_top_sigs:][::-1]
+        
+        # Create stacked area plot
+        bottom_pos = np.zeros(time_points.shape)
+        bottom_neg = np.zeros(time_points.shape)
+        colors = plt.cm.tab20(np.linspace(0, 1, n_top_sigs))
+        
+        for i, sig in enumerate(top_sig_idx):
+            values = avg_theta[sig]
+            if subtract_reference:
+                # For deviations, split positive and negative
+                pos_values = np.maximum(values, 0)
+                neg_values = np.minimum(values, 0)
+                
+                axes[cluster_idx].fill_between(time_points, bottom_pos, bottom_pos + pos_values,
+                                             label=f'Sig {sig} (Δθ={mean_props[sig]:.3f})',
+                                             color=colors[i])
+                axes[cluster_idx].fill_between(time_points, bottom_neg, bottom_neg + neg_values,
+                                             color=colors[i], alpha=0.5)
+                
+                bottom_pos += pos_values
+                bottom_neg += neg_values
+            else:
+                axes[cluster_idx].fill_between(time_points, bottom_pos, bottom_pos + values,
+                                             label=f'Sig {sig} (θ={mean_props[sig]:.3f})',
+                                             color=colors[i])
+                bottom_pos += values
+        
+        title = f'Cluster {cluster_idx}: '
+        title += 'Signature Proportion Deviations from Population Average' if subtract_reference else 'Average Signature Proportions'
+        title += f'\n({len(cluster_indices)} patients)'
+        
+        axes[cluster_idx].set_title(title)
+        axes[cluster_idx].set_xlabel('Time (Age 30-81)')
+        axes[cluster_idx].set_ylabel('Δ Proportion (θ)' if subtract_reference else 'Proportion (θ)')
+        axes[cluster_idx].legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        if subtract_reference:
+            # Center y-axis around 0 for deviations
+            max_dev = max(abs(bottom_pos.max()), abs(bottom_neg.min()))
+            axes[cluster_idx].set_ylim(-max_dev, max_dev)
+            axes[cluster_idx].axhline(y=0, color='k', linestyle='-', alpha=0.2)
+        else:
+            axes[cluster_idx].set_ylim(0, 1.05)
+    
+    plt.suptitle(f'{"Signature Proportion Deviations" if subtract_reference else "Average Signature Proportions"}\n'
+                f'by Cluster for {disease_name}')
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+        plt.close(fig)
+    else:
+        plt.show()
+    
+    return fig
+
+
 def plot_disease_signature_clusters_all_batches_ax(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, axes=None):
     """
     Same as plot_disease_signature_clusters_all_batches, but plots into provided axes if given.

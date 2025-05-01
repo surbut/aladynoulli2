@@ -17,6 +17,32 @@ mgb_params=readRDS("~/Dropbox/mgb_params.rds")
 aou_params=readRDS("~/Dropbox/aou_params.rds")
 param=ukb_params=readRDS("~/Dropbox/ukb_params.rds")
 
+a=array(data = NA,dim = c(21,348,52));for(i in c(1:21))
+{a[i,,]=ukb_params$phi[i,,]-ukb_params$logit_prev}
+library(reshape2)
+
+# Convert difference array directly to a 3-column long format
+delta <- a[,,50] - a[,,1]  # 21 x 348 matrix
+
+#delta <- ukb_params$phi[,,50] - ukb_params$phi[,,1]  # 21 x 348 matrix
+m <- melt(delta)
+colnames(m) <- c("Sig", "Disease", "OR")
+
+# Optionally, convert to factors if you want to control ordering or labeling
+m$Sig <- factor(m$Sig)
+m$Disease <- factor(m$Disease)
+
+
+
+p <- ggplot(m, aes(x=Sig, y=Disease, fill=OR)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    low="#000C80", mid="white", high="#E64B35",
+    midpoint=0) +
+  labs(y="Disease", x="Signature", 
+       title=paste0("Difference in Disease-Signature Deviation from Mean between time 50 and 0"))
+
+
 # Helper functions
 sigmoid <- function(x) {
   1/(1 + exp(-x))
@@ -51,7 +77,7 @@ calculate_pi_pred <- function(lambda_params, phi, kappa) {
   # Calculate pi_pred using matrix multiplication for each time point
   pi_pred <- array(0, dim = c(N, D, T))
   for(t in 1:T) {
-    pi_pred[,,t] <- theta[,,t] %*% phi_prob[,,t] * as.numeric(model_params$kappa)
+    pi_pred[,,t] <- theta[,,t] %*% phi_prob[,,t] * as.numeric(kappa)
   }
   
   return(pi_pred)
@@ -87,7 +113,7 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
     # Create data frame for this signature's phi values
     signature_data <- data.frame(
       age = 1:52,  # assuming 52 age points
-      sigmoid(t(param$phi[signature_idx, , ]))#-param$logit_prev))  # transpose to get diseases as columns
+      sigmoid(t(param$phi[signature_idx, , ]-param$logit_prev))  # transpose to get diseases as columns
     )
     colnames(signature_data)[-1] <- disease_names
     
@@ -122,7 +148,7 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
     # Create data frame for this signature's phi values
     signature_data <- data.frame(
       age = 1:52,  # assuming 52 age points
-      t(param$phi[signature_idx, , ])#-param$logit_prev)  # transpose to get diseases as columns
+      t(param$phi[signature_idx, , ]-param$logit_prev)  # transpose to get diseases as columns
     )
     colnames(signature_data)[-1] <- disease_names
     
@@ -164,9 +190,11 @@ library(ggsci)
 disease_names=ukb_checkpoint$disease_names[,1]
 
 p1=plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = TRUE)+scale_color_nejm()
-p2=plot_signature(signature_idx = 6,"",ukb_params,disease_names,log = TRUE)+scale_color_jama()
+p2=plot_signature(signature_idx = 7,"",ukb_params,disease_names,log = TRUE)+scale_color_jama()
 p3=plot_signature(signature_idx = 12,"",ukb_params,disease_names,log = TRUE)+scale_color_npg()
 p4=plot_signature(signature_idx = 15,"",ukb_params,disease_names,log = TRUE)+scale_color_aaas()
+
+
 
 
 combined <- (p1 + p2) / (p3 + p4)
@@ -176,6 +204,22 @@ theme(legend.position = "bottom")
 ggsave(combined,file="~/Dropbox/aladynoulli_illustrator/combined_sigs.pdf",dpi = 300,width = 20)
 
 
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Reshape: pivot to wide format for time 1 and 50
+devs_wide <- devs %>%
+  filter(Time %in% c(1, 50)) %>%
+  pivot_wider(names_from = Time, values_from = value, names_prefix = "Time_")
+
+# Now plot
+ggplot(devs_wide, aes(x = Time_1, y = Time_50)) +
+  geom_point(aes(color = factor(Disease)), alpha = 0.7) +
+  facet_wrap(~ Sigs, scales = "free") +
+  labs(x = "Value at Time 1", y = "Value at Time 50",
+       title = "Disease Deviations: Time 1 vs Time 50 by Signature") +
+  theme_minimal()
 
 
 
@@ -249,11 +293,18 @@ selected_diseases <- c(
   "Myocardial infarction",
   "Alzheimer's disease",
   "Breast cancer",
-  "Rheumatoid arthritis"
+  "Rheumatoid arthritis",
+  "Infertility, female",
+  "Dysmenorrhea",
+  "Parkinson's disease",   
+  "Macular degeneration (senile) of retina NOS",
+  "Major depressive disorder",
+  "Type 2 diabetes"   
 )
 
 
 # Calculate pi predictions
+param=ukb_params
 pi_pred <- calculate_pi_pred(param$lambda, param$phi, param$kappa)
 
 
@@ -557,3 +608,302 @@ plot_list <- lapply(c(1,25,51), function(x) {
 ggsave(plot = grid.arrange(grobs = plot_list, ncol = 3),
        filename = "~/Dropbox/aladynoulli_illustrator/combinedphi.pdf", 
        dpi=300, width = 15)
+
+
+
+m <- melt(a[,,50]-a[,,1])
+colnames(m) <- c("Sig", "Disease", "OR")
+
+p <- ggplot(m, aes(x=Sig, y=Disease, fill=OR)) +
+    geom_tile() +
+    scale_fill_gradient2( 
+                         low="#000C80", mid="white", high="#E64B35",
+                         midpoint=0) +
+    labs(y="Disease", x="Signature", title=paste0("Difference in Disease-Signature Deviation from Mean between time 50 and 0"), 
+         fill="Log Odds Ratio (psi)") +
+    theme(legend.position = "right")
+  
+
+####
+
+
+MI=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_112.csv")
+MI$trait="MI"
+MDD=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_66.csv")
+MDD$trait="MDD"
+AF=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_127.csv")
+AF$trait="AF"
+PD=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_76.csv")
+PD$trait="PD"
+AMD=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_85.csv")
+AMD$trait="AMD"
+BC=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_17.csv")
+BC$trait="BC"
+CBV=fread("~/aladynoulli2/pyScripts/cluster_scores_disease_132.csv")
+CBV$trait="CBV"
+
+df=rbind(BC,rbind(AMD,rbind(PD,rbind(AF,rbind(MI,MDD)))))
+
+effects=df[,c("Factor","Mean_Value_Cluster0","Mean_Value_Cluster1",
+"Mean_Value_Cluster2","trait")]
+
+m=melt(effects)
+library(ggplot2)
+library(ggsci)
+ggsave(plot=ggplot(m,aes(x=as.factor(Factor),y=value,fill=as.factor(variable)))+
+  geom_bar(stat = "identity",position = "dodge")+
+scale_fill_nejm()+labs(x="PRS",y="Mean Effect",Fill="Cluster")+
+  facet_wrap(~trait,ncol=1)+theme_classic(),file="clusterplot.pdf")
+
+
+###
+
+# Load required libraries
+library(tidyverse)
+
+# Read the data (assuming it's in a file called "ldsc_data.tsv")
+# If your data is already in an R environment, you can skip this step
+# and just use the data frame directly
+ldsc_data <- fread("~/Downloads/99-ldsc-for-plot (2).tsv")
+
+# Filter for positive genetic correlations and non-NA values
+positive_correlations <- ldsc_data %>%
+  filter(rg > 0, !is.na(rg))
+
+# Create a factor for signature to maintain order
+positive_correlations$sig=positive_correlations$p1
+positive_correlations$sig <- factor(positive_correlations$sig)
+
+# Create a new column for significance (typically p < 0.05 is considered significant)
+positive_correlations <- positive_correlations %>%
+  mutate(significant = ifelse(p < 0.05, "*", ""))
+
+# Get unique traits for better labeling
+unique_traits <- positive_correlations %>%
+  select(p2,trait) %>%
+  distinct()
+
+# Create the heatmap with light red to dark red color scale
+pos_cor=ggplot(positive_correlations, aes(x = sig, y = trait, fill = rg)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "#FFCCCC", high = "#990000") +
+  geom_text(aes(label = significant), color = "black", size = 5) +
+  theme_minimal() +
+  labs(
+    title = "Positive Genetic Correlations Heatmap",
+    x = "Signature",
+    y = "Trait",
+    fill = "Genetic Correlation (rg)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 8)
+  )
+
+
+ggsave(plot = pos_cor,file="~/Dropbox/aladynoulli_illustrator/component_pdfs/figure4/ldsc.pdf",dpi = 300)
+# For a more detailed visualization, we could also create a heatmap 
+# that shows both color intensity and the actual rg values
+ggplot(positive_correlations, aes(x = signature, y = trait, fill = rg)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "#FFCCCC", high = "#990000") +
+  geom_text(aes(label = ifelse(significant == "*", 
+                               paste0(round(rg, 2), "*"), 
+                               round(rg, 2))), 
+            color = "black", size = 3) +
+  theme_minimal() +
+  labs(
+    title = "Positive Genetic Correlations with Values",
+    x = "Signature",
+    y = "Trait",
+    fill = "Genetic Correlation (rg)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 8)
+  )
+
+
+
+###
+
+# Load necessary packages
+library(data.table)
+library(ggplot2)
+library(dplyr)
+
+# Read in your files
+sig5 <- fread("~/Dropbox/result326/10_loci/SIG5_AUC_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+setwd("~/Dropbox/tetgwas/result/10_loci/")
+trait_files <- list.files(pattern="_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+trait_files <- setdiff(trait_files, "SIG5_AUC_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+trait_list <- lapply(trait_files, fread)
+
+
+# Extract RSIDs
+sig5$rsid <- as.character(sig5$rsid)
+trait_rsids <- unique(unlist(lapply(trait_list, function(x) as.character(x$rsid))))
+
+# Annotate Signature 5 SNPs
+sig5 <- sig5 %>%
+  mutate(
+    Category = case_when(
+      !(rsid %in% trait_rsids) ~ "Signature5 Specific",
+      rsid %in% trait_rsids ~ "Shared with Trait"
+    )
+  )
+
+# Get Trait-specific SNPs
+trait_snps <- bind_rows(trait_list) %>%
+  filter(!(rsid %in% sig5$rsid)) %>%
+  mutate(Category = "Trait Specific") %>%
+  select(CHR = `#CHR`, POS, rsid, LOG10P, Category)
+
+# Prepare Signature5 SNPs
+sig5_plot <- sig5 %>%
+  select(CHR = `#CHR`, POS, rsid, LOG10P, Category)
+
+# Combine all SNPs
+all_snps <- bind_rows(sig5_plot, trait_snps)
+
+# Make sure chromosome is numeric
+all_snps$CHR <- as.numeric(all_snps$CHR)
+
+# Compute cumulative positions
+all_snps <- all_snps %>% arrange(CHR, POS)
+chr_offsets <- all_snps %>%
+  group_by(CHR) %>%
+  summarize(chr_len = max(POS)) %>%
+  mutate(cum_len = cumsum(lag(chr_len, default = 0)))
+
+all_snps <- all_snps %>%
+  left_join(chr_offsets, by = "CHR") %>%
+  mutate(pos_cum = POS + cum_len)
+
+# Set colors
+colors <- c(
+  "Signature5 Specific" = "red",
+  "Trait Specific" = "orange",
+  "Shared with Trait" = "darkgreen"
+)
+
+# Plot
+ggplot(all_snps, aes(x = pos_cum, y = LOG10P, color = Category)) +
+  geom_point(alpha = 0.8, size = 1.2) +
+  scale_color_manual(values = colors) +
+  scale_x_continuous(
+    label = unique(all_snps$CHR),
+    breaks = chr_offsets$cum_len + chr_offsets$chr_len / 2
+  ) +
+  labs(x = "Chromosome", y = expression(-log[10](p)), title = "Signature 5 vs Component Traits") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+
+### 500k selectiveity
+
+
+library(data.table)
+library(dplyr)
+library(ggplot2)
+
+# Load SIG5
+sig5 <- fread("~/Dropbox/result326/10_loci/SIG5_AUC_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+setwd("~/Dropbox/tetgwas/result/10_loci/")
+trait_files <- list.files(pattern = "_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+trait_files <- setdiff(trait_files, "SIG5_AUC_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+trait_list <- lapply(trait_files, fread)
+
+# Combine all traits into a single data.frame
+traits_combined <- bind_rows(trait_list)
+
+# Make sure CHR and POS are numeric
+sig5$`#CHR` <- as.numeric(sig5$`#CHR`)
+sig5$POS <- as.numeric(sig5$POS)
+traits_combined$`#CHR` <- as.numeric(traits_combined$`#CHR`)
+traits_combined$POS <- as.numeric(traits_combined$POS)
+
+# Find shared SNPs by ±500kb matching
+sig5 <- sig5 %>%
+  rowwise() %>%
+  mutate(
+    Shared_with_Trait = any(
+      (traits_combined$`#CHR` == `#CHR`) &
+        (abs(traits_combined$POS - POS) <= 500000)
+    )
+  )
+
+# Annotate Signature 5 SNPs
+sig5 <- sig5 %>%
+  mutate(
+    Category = case_when(
+      Shared_with_Trait ~ "Shared with Trait",
+      TRUE ~ "Signature5 Specific"
+    )
+  )
+
+# Now annotate trait SNPs: find which ones are >500kb from all sig5 SNPs
+traits_combined <- traits_combined %>%
+  rowwise() %>%
+  mutate(
+    Shared_with_Sig5 = any(
+      (sig5$`#CHR` == `#CHR`) &
+        (abs(sig5$POS - POS) <= 500000)
+    )
+  )
+
+# Keep trait-specific only
+trait_snps <- traits_combined %>%
+  filter(!Shared_with_Sig5) %>%
+  mutate(Category = "Trait Specific") %>%
+  select(`#CHR`, POS, rsid, LOG10P, Category)
+
+# Prepare Signature5 SNPs
+sig5_plot <- sig5 %>%
+  select(`#CHR`, POS, rsid, LOG10P, Category)
+
+# Combine all SNPs
+all_snps <- bind_rows(sig5_plot, trait_snps)
+
+# Make sure chromosome is numeric
+all_snps$`#CHR` <- as.numeric(all_snps$`#CHR`)
+
+# Compute cumulative positions
+all_snps <- all_snps %>% arrange(`#CHR`, POS)
+chr_offsets <- all_snps %>%
+  group_by(`#CHR`) %>%
+  summarize(chr_len = max(POS)) %>%
+  mutate(cum_len = cumsum(lag(chr_len, default = 0)))
+
+all_snps <- all_snps %>%
+  left_join(chr_offsets, by = "#CHR") %>%
+  mutate(pos_cum = POS + cum_len)
+
+# Set colors
+colors <- c(
+  "Signature5 Specific" = "red",
+  "Trait Specific" = "orange",
+  "Shared with Trait" = "darkgreen"
+)
+
+# Plot
+ggplot(all_snps, aes(x = pos_cum, y = LOG10P, color = Category)) +
+  geom_point(alpha = 0.8, size = 1.2) +
+  scale_color_manual(values = colors) +
+  scale_x_continuous(
+    label = unique(all_snps$`#CHR`),
+    breaks = chr_offsets$cum_len + chr_offsets$chr_len / 2
+  ) +
+  labs(x = "Chromosome", y = expression(-log[10](p)), title = "Signature 5 vs Component Traits (±500kb Matching)") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+

@@ -8,6 +8,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Optional, Any 
+import matplotlib.gridspec as gridspec  
+import os
 
 import pandas as pd
 
@@ -482,6 +484,8 @@ def calculate_pi_pred(lambda_params, phi, kappa):
     pi_pred = torch.einsum('nkt,kdt->ndt', all_thetas, phi_prob) * kappa
 
     return pi_pred
+
+
 
 
 def plot_all_disease_probabilities_heatmap(
@@ -975,7 +979,6 @@ def sigmoid(x):
     x = np.clip(x, -500, 500)
     return 1 / (1 + np.exp(-x))
 
-
 def plot_signature_temporal_patterns_assigned(
     phi_log_odds: torch.Tensor,
     disease_names: List[str],
@@ -1153,7 +1156,6 @@ def plot_signature_temporal_patterns_assigned(
     # rect=[left, bottom, right, top]
     # Increase 'right' closer to 1 to give less space to legend
     plt.tight_layout(rect=[0, 0, 0.92, 1])
-
 
 
 def plot_signature_temporal_patterns(model, disease_names, n_top=10, selected_signatures=None):
@@ -1631,9 +1633,9 @@ def plot_signature_patterns_by_clusters(
 
     # Cardiovascular
     other_cv_sigs = [cv_signatures['mgb'], cv_signatures['aou'], cv_signatures['ukb']]
-    cv_handles_labels[0] = plot_biobank_patterns(mgb_diseases, mgb_cv, cv_shared, cv_signatures['mgb'], mgb_checkpoint, ax1_mgb, 'MGB Cardiovascular (Sig 5)', cv_colors, min_time_points, all_checkpoints_list, other_cv_sigs)
-    cv_handles_labels[1] = plot_biobank_patterns(aou_diseases, aou_cv, cv_shared, cv_signatures['aou'], aou_checkpoint, ax1_aou, 'AoU Cardiovascular (Sig 16)', cv_colors, min_time_points, all_checkpoints_list, other_cv_sigs)
-    cv_handles_labels[2] = plot_biobank_patterns(ukb_diseases, ukb_cv, cv_shared, cv_signatures['ukb'], ukb_checkpoint, ax1_ukb, 'UKB Cardiovascular (Sig 5)', cv_colors, min_time_points, all_checkpoints_list, other_cv_sigs)
+    cv_handles_labels[0] = plot_biobank_patterns(mgb_diseases, mgb_cv, cv_shared, cv_signatures['mgb'], mgb_checkpoint, ax1_mgb, 'MGB Cardiovascular (Sig 5)', min_time_points, all_checkpoints_list, other_cv_sigs)
+    cv_handles_labels[1] = plot_biobank_patterns(aou_diseases, aou_cv, cv_shared, cv_signatures['aou'], aou_checkpoint, ax1_aou, 'AoU Cardiovascular (Sig 16)', min_time_points, all_checkpoints_list, other_cv_sigs)
+    cv_handles_labels[2] = plot_biobank_patterns(ukb_diseases, ukb_cv, cv_shared, cv_signatures['ukb'], ukb_checkpoint, ax1_ukb, 'UKB Cardiovascular (Sig 5)', min_time_points, all_checkpoints_list, other_cv_sigs)
 
     # Malignancy
     other_malig_sigs = [malig_signatures['mgb'], malig_signatures['aou'], malig_signatures['ukb']]
@@ -2451,3 +2453,1230 @@ def plot_psi_heatmap_with_zoom(psi, disease_names, n_clusters_to_show=5):
 # 
 # fig1.savefig('selective_labels.pdf', bbox_inches='tight', dpi=300)
 # fig2.savefig('cluster_groups.pdf', bbox_inches='tight', dpi=300)
+
+def plot_all_diseases_heatmap(
+    pi_pred: Union[np.ndarray, torch.Tensor],
+    psi: Union[np.ndarray, torch.Tensor],
+    disease_names: List[str],
+    age_offset: int = 30,
+    figsize: tuple = (20, 12),
+    output_path: Optional[str] = None,
+    plot_title: str = "All Disease Probabilities Over Time",
+    cmap: str = "RdBu_r",
+    scale_type: str = 'log',
+    epsilon: float = 1e-10,
+    quantile_clip: Optional[float] = 0.99,
+    robust_scaling: bool = True
+):
+    """
+    Creates a heatmap of all disease probabilities over time, clustered by signature.
+    Shows all diseases in a single heatmap with their names on the y-axis.
+
+    Args:
+        pi_pred: Predicted probabilities array/tensor [N, D, T] or [D, T].
+        psi: Static associations array/tensor [K, D] used for clustering.
+        disease_names: List of all disease names [D].
+        age_offset: Value to add to time index for Age axis.
+        figsize: Figure size.
+        output_path: Path to save the plot. If None, displays plot.
+        plot_title: Base title for the plot (scale type will be appended).
+        cmap: Colormap for probabilities.
+        scale_type: How to scale probabilities for color ('linear' or 'log').
+        epsilon: Small value for log scale stability log(p + epsilon).
+        quantile_clip: Max color value quantile for linear scale if robust_scaling=False.
+        robust_scaling: Whether to use seaborn's robust=True for color scale limits.
+    """
+    # --- Data Conversions and Checks ---
+    if isinstance(pi_pred, torch.Tensor): pi_pred_np = pi_pred.detach().cpu().numpy()
+    elif isinstance(pi_pred, np.ndarray): pi_pred_np = pi_pred
+    else: raise TypeError(f"pi_pred type {type(pi_pred)} not supported.")
+
+    if isinstance(psi, torch.Tensor): psi_np = psi.detach().cpu().numpy()
+    elif isinstance(psi, np.ndarray): psi_np = psi
+    else: raise TypeError(f"psi type {type(psi)} not supported.")
+
+    if not isinstance(disease_names, list):
+        try: disease_names = list(disease_names)
+        except TypeError: raise TypeError("disease_names must be a list or convertible to one.")
+
+    if pi_pred_np.ndim == 3: pi_pred_avg = np.mean(pi_pred_np, axis=0)
+    elif pi_pred_np.ndim == 2: pi_pred_avg = pi_pred_np
+    else: raise ValueError(f"pi_pred shape {pi_pred_np.shape} not supported.")
+
+    n_diseases, n_time_points = pi_pred_avg.shape
+    if psi_np.shape[1] != n_diseases: raise ValueError("psi D dim != pi_pred D dim")
+    if len(disease_names) != n_diseases: raise ValueError("disease_names length != pi_pred D dim")
+
+    # --- Sort diseases based on psi ---
+    primary_sigs = psi_np.argmax(axis=0)
+    max_psi_values = psi_np.max(axis=0)
+    sorted_indices = np.lexsort((-max_psi_values, primary_sigs))
+    pi_pred_avg_sorted = pi_pred_avg[sorted_indices, :]
+    primary_sigs_sorted = primary_sigs[sorted_indices]
+    sorted_disease_names = [disease_names[i] for i in sorted_indices]
+
+    # --- Prepare data and labels based on scale_type ---
+    vmin, vmax = None, None
+    if scale_type.lower() == 'log':
+        plot_data = np.log10(pi_pred_avg_sorted + epsilon)
+        cbar_label = 'log10(Average Probability)'
+        final_plot_title = f"{plot_title} (Log Scale)"
+        if not robust_scaling:
+             vmin, vmax = np.percentile(plot_data[np.isfinite(plot_data)], [1, 99])
+    elif scale_type.lower() == 'linear':
+        plot_data = pi_pred_avg_sorted
+        cbar_label = 'Average Probability'
+        final_plot_title = f"{plot_title} (Linear Scale)"
+        vmin = 0
+        if not robust_scaling and quantile_clip is not None:
+            vmax = np.quantile(plot_data[np.isfinite(plot_data)], quantile_clip)
+    else:
+        raise ValueError(f"Unknown scale_type: '{scale_type}'. Choose 'log' or 'linear'.")
+
+    # --- Plotting ---
+    fig = plt.figure(figsize=figsize)
+    ax_heat = fig.add_subplot(111)
+
+    # Define colorbar axes
+    cbar_ax = fig.add_axes([0.92, 0.25, 0.02, 0.5])
+
+    sns.heatmap(
+        plot_data,
+        cmap=cmap,
+        cbar_ax=cbar_ax,
+        cbar_kws={'label': cbar_label},
+        xticklabels=5,
+        yticklabels=sorted_disease_names,  # Show all disease names
+        vmin=vmin,
+        vmax=vmax,
+        robust=robust_scaling,
+        linewidths=0.2,
+        linecolor='lightgrey',
+        ax=ax_heat
+    )
+
+    ax_heat.set_title(final_plot_title, pad=20, fontsize=14)
+    ax_heat.set_xlabel(f"Age (t + {age_offset})", fontsize=12)
+    ax_heat.set_ylabel("Diseases (Clustered by Signature)", fontsize=12)
+
+    tick_positions = np.arange(0, n_time_points, 5) + 0.5
+    tick_labels = np.arange(0, n_time_points, 5) + age_offset
+    ax_heat.set_xticks(tick_positions)
+    ax_heat.set_xticklabels(tick_labels, rotation=0)
+
+    # --- Add white lines between signatures ---
+    prev_sig = -1
+    line_positions = []
+    for i, sig in enumerate(primary_sigs_sorted):
+        if sig != prev_sig and i > 0:
+            line_positions.append(i)
+        prev_sig = sig
+    ax_heat.hlines(line_positions, *ax_heat.get_xlim(), color='white', linewidth=1.5)
+
+    # Adjust layout
+    plt.subplots_adjust(left=0.2, right=0.9, bottom=0.1, top=0.9)
+
+    # Save or show plot
+    if output_path:
+        try:
+            import os
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir): os.makedirs(output_dir)
+            plt.savefig(output_path, bbox_inches='tight', dpi=300, facecolor='white')
+            print(f"Plot saved to {output_path}")
+        except Exception as e: print(f"Error saving plot to {output_path}: {e}")
+    else:
+        plt.show()
+
+    plt.close(fig)
+
+def plot_all_diseases_heatmap_simple(
+    pi_pred: Union[np.ndarray, torch.Tensor],
+    psi: Union[np.ndarray, torch.Tensor],
+    disease_names: List[str],
+    age_offset: int = 30,
+    figsize: tuple = (20, 12),
+    output_path: Optional[str] = None,
+    plot_title: str = "Disease Probabilities Over Time",
+    cmap: str = "RdBu_r",
+    scale_type: str = 'log',
+    epsilon: float = 1e-10,
+    quantile_clip: Optional[float] = 0.99,
+    robust_scaling: bool = True
+):
+    """
+    Creates a simple heatmap of all disease probabilities over time, clustered by signature.
+    Shows all diseases with their names on the y-axis.
+
+    Args:
+        pi_pred: Predicted probabilities array/tensor [N, D, T] or [D, T].
+        psi: Static associations array/tensor [K, D] used for clustering.
+        disease_names: List of all disease names [D].
+        age_offset: Value to add to time index for Age axis.
+        figsize: Figure size.
+        output_path: Path to save the plot. If None, displays plot.
+        plot_title: Title for the plot.
+        cmap: Colormap for probabilities.
+        scale_type: How to scale probabilities for color ('linear' or 'log').
+        epsilon: Small value for log scale stability log(p + epsilon).
+        quantile_clip: Max color value quantile for linear scale if robust_scaling=False.
+        robust_scaling: Whether to use seaborn's robust=True for color scale limits.
+    """
+    # Convert inputs to numpy
+    if isinstance(pi_pred, torch.Tensor):
+        pi_pred_np = pi_pred.detach().cpu().numpy()
+    else:
+        pi_pred_np = pi_pred
+
+    if isinstance(psi, torch.Tensor):
+        psi_np = psi.detach().cpu().numpy()
+    else:
+        psi_np = psi
+
+    # Calculate average probabilities if needed
+    if pi_pred_np.ndim == 3:
+        pi_pred_avg = np.mean(pi_pred_np, axis=0)
+    else:
+        pi_pred_avg = pi_pred_np
+
+    # Sort diseases by signature
+    primary_sigs = psi_np.argmax(axis=0)
+    max_psi_values = psi_np.max(axis=0)
+    sorted_indices = np.lexsort((-max_psi_values, primary_sigs))
+    
+    # Sort the data and names
+    pi_pred_avg_sorted = pi_pred_avg[sorted_indices, :]
+    primary_sigs_sorted = primary_sigs[sorted_indices]
+    sorted_disease_names = [disease_names[i] for i in sorted_indices]
+
+    # Prepare plot data and color scale limits
+    vmin, vmax = None, None
+    if scale_type.lower() == 'log':
+        plot_data = np.log10(pi_pred_avg_sorted + epsilon)
+        cbar_label = 'log10(Average Probability)'
+        if not robust_scaling:
+            vmin, vmax = np.percentile(plot_data[np.isfinite(plot_data)], [1, 99])
+    else:
+        plot_data = pi_pred_avg_sorted
+        cbar_label = 'Average Probability'
+        vmin = 0
+        if not robust_scaling and quantile_clip is not None:
+            vmax = np.quantile(plot_data[np.isfinite(plot_data)], quantile_clip)
+
+    # Create figure
+    plt.figure(figsize=figsize)
+    
+    # Create heatmap with robust color scaling
+    sns.heatmap(
+        plot_data,
+        cmap=cmap,
+        xticklabels=5,
+        yticklabels=sorted_disease_names,
+        cbar_kws={'label': cbar_label},
+        linewidths=0.2,
+        linecolor='lightgrey',
+        vmin=vmin,
+        vmax=vmax,
+        robust=robust_scaling
+    )
+
+    # Add white lines between signatures
+    prev_sig = -1
+    for i, sig in enumerate(primary_sigs_sorted):
+        if sig != prev_sig and i > 0:
+            plt.axhline(y=i, color='white', linewidth=1.5)
+        prev_sig = sig
+
+    # Customize plot
+    plt.title(plot_title, pad=20, fontsize=14)
+    plt.xlabel(f"Age (t + {age_offset})", fontsize=12)
+    plt.ylabel("Diseases (Clustered by Signature)", fontsize=12)
+
+    # Set x-axis ticks to show ages
+    n_time_points = plot_data.shape[1]
+    tick_positions = np.arange(0, n_time_points, 5) + 0.5
+    tick_labels = np.arange(0, n_time_points, 5) + age_offset
+    plt.xticks(tick_positions, tick_labels, rotation=0)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Save or show plot
+    if output_path:
+        try:
+            import os
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            plt.savefig(output_path, bbox_inches='tight', dpi=300, facecolor='white')
+            print(f"Plot saved to {output_path}")
+        except Exception as e:
+            print(f"Error saving plot to {output_path}: {e}")
+    else:
+        plt.show()
+
+    plt.close()
+
+
+
+def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, prs_names_file=None, heatmap_output_path=None):
+    """
+    Analyze genetic/demographic data (G matrix/X data) across patient clusters
+    for a specific disease
+    
+    Parameters:
+    - disease_idx: Index of the disease to analyze
+    - batch_size: Number of patients per batch
+    - n_batches: Number of batches to process
+    - n_clusters: Number of clusters to create
+    - prs_names_file: Path to CSV file containing PRS names
+    - heatmap_output_path: Path to save the heatmap PDF. If None, heatmap is shown but not saved.
+    """
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.cluster import KMeans
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+    
+    print(f"Starting genetic data analysis for disease {disease_idx}...")
+    
+    # Load PRS names if file is provided
+    if prs_names_file:
+        try:
+            prs_df = pd.read_csv(prs_names_file)
+            print(f"Loaded {len(prs_df)} PRS names from {prs_names_file}")
+            # Create a dictionary to map indices to names
+            prs_names_dict = {i: name for i, name in enumerate(prs_df.iloc[:, 0])} if len(prs_df.columns) > 0 else {}
+        except Exception as e:
+            print(f"Error loading PRS names: {str(e)}")
+            prs_names_dict = {}
+    else:
+        prs_names_dict = {}
+    
+    # Load batch 1 model to get disease names and signature information
+    model_path = '/Users/sarahurbut/Dropbox/resultshighamp/results/output_0_10000/model.pt'
+    print("\nLoading batch 1 model for reference...")
+    
+    try:
+        model1 = torch.load(model_path)
+        disease_names = model1['disease_names'][0].tolist()
+        K_total = model1['model_state_dict']['lambda_'].shape[1]  # Number of signatures
+        time_points = model1['Y'].shape[2]  # Number of time points
+        
+        # Get X dimensions
+        if 'G' in model1:
+            X_dim = model1['G'].shape[1]
+            # Use PRS names if available, otherwise use generic names
+            genetic_factor_names = [prs_names_dict.get(i, f"G_{i}") for i in range(X_dim)]
+        else:
+            print("Warning: G matrix not found in first batch. Will try to determine dimensions from later batches.")
+            genetic_factor_names = None
+        
+        disease_name = disease_names[disease_idx] if disease_idx < len(disease_names) else f"Disease {disease_idx}"
+        print(f"Analyzing {disease_name}")
+        
+    except Exception as e:
+        print(f"ERROR loading model: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+    
+    # Collect patients with this disease across all batches
+    all_patients = []  # Will store (batch_idx, patient_idx) tuples
+    all_features = []  # Will store signature proportions
+    all_genetic_data = []  # Will store genetic/demographic data (X/G matrix)
+    
+    # Process each batch
+    for batch in range(n_batches):
+        start_idx = batch * batch_size
+        end_idx = (batch + 1) * batch_size
+        
+        model_path = f'/Users/sarahurbut/Dropbox/resultshighamp/results/output_{start_idx}_{end_idx}/model.pt'
+        print(f"\nProcessing batch {batch+1}/{n_batches} (patients {start_idx}-{end_idx})")
+        
+        try:
+            model = torch.load(model_path)
+            lambda_values = model['model_state_dict']['lambda_']
+            Y_batch = model['Y'].numpy()
+            
+            # Get genetic data (X/G matrix) for this batch
+            if 'G' in model:
+                X_batch = model['G'].numpy()  # Patient genetic/demographic data
+                
+                # If we don't have factor names yet, create them
+                if genetic_factor_names is None:
+                    X_dim = X_batch.shape[1]
+                    genetic_factor_names = [prs_names_dict.get(i, f"G_{i}") for i in range(X_dim)]
+            else:
+                print(f"Warning: G matrix not found in batch {batch}")
+                continue
+            
+            # Find patients with this disease
+            for i in range(Y_batch.shape[0]):
+                if np.any(Y_batch[i, disease_idx]):
+                    # Get signature proportions
+                    theta = torch.softmax(lambda_values[i], dim=0).detach().numpy()
+                    mean_props = theta.mean(axis=1)
+                    
+                    # Store patient data
+                    all_patients.append((batch, i))
+                    all_features.append(mean_props)
+                    all_genetic_data.append(X_batch[i])
+            
+            print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
+            
+        except FileNotFoundError:
+            print(f"Warning: Could not find model file for batch {batch}")
+            break  # Assume we've reached the end of batches
+        except Exception as e:
+            print(f"Error processing batch {batch}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    if len(all_patients) == 0:
+        print(f"No patients found with disease {disease_idx}")
+        return None
+    
+    print(f"\nTotal patients with {disease_name}: {len(all_patients)}")
+    
+    # Convert to numpy arrays
+    all_features = np.array(all_features)
+    all_genetic_data = np.array(all_genetic_data)
+    
+    # Perform clustering based on signature profiles
+    print(f"\nPerforming clustering with {n_clusters} clusters...")
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    patient_clusters = kmeans.fit_predict(all_features)
+    
+    # Analyze genetic data by cluster
+    genetic_by_cluster = {}
+    for cluster in range(n_clusters):
+        cluster_mask = patient_clusters == cluster
+        genetic_by_cluster[cluster] = all_genetic_data[cluster_mask]
+    
+    # Calculate mean genetic values for each cluster
+    mean_genetic = {cluster: np.mean(values, axis=0) for cluster, values in genetic_by_cluster.items()}
+    
+    # Perform statistical testing
+    p_values = np.ones((len(genetic_factor_names), n_clusters))
+    effect_sizes = np.zeros((len(genetic_factor_names), n_clusters))
+    
+    for factor_idx in range(len(genetic_factor_names)):
+        for cluster in range(n_clusters):
+            # Compare this cluster to all others for this factor
+            cluster_values = all_genetic_data[patient_clusters == cluster, factor_idx]
+            other_values = all_genetic_data[patient_clusters != cluster, factor_idx]
+            
+            # t-test
+            t_stat, p_val = stats.ttest_ind(cluster_values, other_values)
+            p_values[factor_idx, cluster] = p_val
+            
+            # Effect size (Cohen's d)
+            mean_diff = np.mean(cluster_values) - np.mean(other_values)
+            pooled_std = np.sqrt(((len(cluster_values) - 1) * np.var(cluster_values) + 
+                                 (len(other_values) - 1) * np.var(other_values)) / 
+                                (len(cluster_values) + len(other_values) - 2))
+            effect_sizes[factor_idx, cluster] = mean_diff / pooled_std if pooled_std > 0 else 0
+    
+    # Apply multiple testing correction
+    from statsmodels.stats.multitest import multipletests
+    _, p_values_corrected, _, _ = multipletests(p_values.flatten(), method='fdr_bh')
+    p_values_corrected = p_values_corrected.reshape(p_values.shape)
+    
+    # Create dataframe for visualization
+    genetic_df = pd.DataFrame({
+        'Factor': np.repeat(genetic_factor_names, n_clusters),
+        'Cluster': np.tile(np.arange(n_clusters), len(genetic_factor_names)),
+        'Mean_Value': np.concatenate([mean_genetic[c] for c in range(n_clusters)]),
+        'P_Value': p_values.flatten(),
+        'P_Value_Corrected': p_values_corrected.flatten(),
+        'Effect_Size': effect_sizes.flatten()
+    })
+    
+    # Add significance indicator
+    genetic_df['Significant'] = genetic_df['P_Value_Corrected'] < 0.05
+    
+    # Save cluster scores by PRS to CSV
+    # Create a pivot table to organize data by PRS and cluster
+    cluster_scores = genetic_df.pivot(
+        index='Factor',
+        columns='Cluster',
+        values=['Mean_Value', 'Effect_Size', 'P_Value_Corrected', 'Significant']
+    )
+    
+    # Flatten the multi-level columns
+    cluster_scores.columns = [f'{col[0]}_Cluster{col[1]}' for col in cluster_scores.columns]
+    
+    # Add cluster sizes
+    cluster_sizes = {f'Cluster_Size_{c}': np.sum(patient_clusters == c) for c in range(n_clusters)}
+    for col, size in cluster_sizes.items():
+        cluster_scores[col] = size
+    
+    # Save to CSV
+    output_csv_path = f'cluster_scores_disease_{disease_idx}.csv'
+    cluster_scores.to_csv(output_csv_path)
+    print(f"\nSaved cluster scores to {output_csv_path}")
+    
+    # Create heatmap of mean genetic values
+    plt.figure(figsize=(16, 20))  # Increased figure size
+    
+    # Find top differentiating factors
+    factor_variance = np.var([mean_genetic[c] for c in range(n_clusters)], axis=0)
+    top_factors = np.argsort(factor_variance)[-20:]  # Top 20 factors with highest variance across clusters
+    
+    # Reshape data for heatmap (using only top factors)
+    heatmap_data = np.zeros((len(top_factors), n_clusters))
+    p_value_annotations = np.empty((len(top_factors), n_clusters), dtype=object)
+    
+    # Calculate Bonferroni threshold
+    bonferroni_threshold = 0.05 / (36 * 21)  # Adjust for total number of tests
+    print(f"Using Bonferroni threshold: {bonferroni_threshold:.2e}")
+    
+    for i, f in enumerate(top_factors):
+        for c in range(n_clusters):
+            heatmap_data[i, c] = mean_genetic[c][f]
+            p_val = p_values[f, c]  # Use uncorrected p-values and apply Bonferroni threshold
+            
+            # Format the mean value with appropriate precision
+            mean_str = f"{heatmap_data[i, c]:.3f}"
+            
+            # Add effect size if significant
+            if p_val < bonferroni_threshold:
+                d = effect_sizes[f, c]
+                d_str = f"\nd={d:.2f}"
+            else:
+                d_str = ""
+            
+            # Add significance stars
+            if p_val < bonferroni_threshold:
+                stars = "***"
+                mean_str = f"\\mathbf{{{mean_str}}}"  # Bold significant values
+            else:
+                stars = ""
+            
+            p_value_annotations[i, c] = f"${mean_str}${d_str}{stars}"
+    
+    # Create heatmap with custom annotations
+    ax = sns.heatmap(heatmap_data, 
+                    annot=p_value_annotations, 
+                    fmt="",  # Use empty string since we're providing formatted annotations
+                    xticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
+                    yticklabels=[genetic_factor_names[i] for i in top_factors],
+                    cmap="RdBu_r", 
+                    center=0,
+                    linewidths=1.0,  # Increased line width
+                    linecolor='black',  # Darker lines
+                    cbar_kws={'label': 'Mean Value'},
+                    annot_kws={'size': 10})  # Increased annotation size
+    
+    # Rotate y-axis labels for better readability
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    
+    # Increase tick label sizes
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    
+    # Add grid lines
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0, ha='center')
+    
+    plt.title(f"Top Genetic Factors by Cluster for {disease_name}\n"
+              f"*** p < {bonferroni_threshold:.2e} (Bonferroni)", 
+              pad=20,
+              size=14)
+    
+    # Adjust layout to prevent label cutoff
+    plt.tight_layout()
+    
+    # Save heatmap if output path is provided
+    if heatmap_output_path:
+        plt.savefig(heatmap_output_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved heatmap to {heatmap_output_path}")
+        plt.close()
+    else:
+        plt.show()
+    
+    # Create bar plot for top significant factors
+    plt.figure(figsize=(14, 12))
+    
+    # Find top significant factors
+    significant_factors = np.where(np.any(p_values_corrected < 0.05, axis=1))[0]
+    if len(significant_factors) > 0:
+        # Sort by maximum effect size
+        max_effect_sizes = np.max(np.abs(effect_sizes[significant_factors]), axis=1)
+        top_sig_factors = significant_factors[np.argsort(max_effect_sizes)[-min(10, len(significant_factors)):]]
+        
+        # Create subplot for each top factor
+        for i, factor_idx in enumerate(top_sig_factors):
+            plt.subplot(5, 2, i+1)
+            
+            # Get values for this factor across clusters
+            factor_values = [mean_genetic[c][factor_idx] for c in range(n_clusters)]
+            
+            # Create bar plot with error bars (standard error)
+            cluster_sizes = [np.sum(patient_clusters == c) for c in range(n_clusters)]
+            std_errors = [np.std(all_genetic_data[patient_clusters == c, factor_idx]) / np.sqrt(cluster_sizes[c]) 
+                         for c in range(n_clusters)]
+            
+            bars = plt.bar(range(n_clusters), factor_values, 
+                         yerr=std_errors,
+                         capsize=5,
+                         color=['red' if p_values_corrected[factor_idx, c] < 0.05 else 'gray' 
+                               for c in range(n_clusters)])
+            
+            # Add significance stars and p-values
+            for c in range(n_clusters):
+                y_pos = factor_values[c] + std_errors[c] + 0.1
+                if p_values_corrected[factor_idx, c] < 0.001:
+                    plt.text(c, y_pos, '***', ha='center', fontsize=10)
+                elif p_values_corrected[factor_idx, c] < 0.01:
+                    plt.text(c, y_pos, '**', ha='center', fontsize=10)
+                elif p_values_corrected[factor_idx, c] < 0.05:
+                    plt.text(c, y_pos, '*', ha='center', fontsize=10)
+                
+                # Add effect size below the bar
+                plt.text(c, -0.1, f"d={effect_sizes[factor_idx, c]:.2f}", 
+                        ha='center', va='top', fontsize=8)
+            
+            plt.title(f"{genetic_factor_names[factor_idx]}", pad=10)
+            plt.xticks(range(n_clusters), [f"Cluster {i}\n(n={cluster_sizes[i]})" for i in range(n_clusters)])
+            plt.axhline(y=0, color='k', linestyle='-', alpha=0.2)
+            
+            # Adjust y-axis to accommodate error bars and annotations
+            y_min = min(0, min(factor_values) - max(std_errors) - 0.2)
+            y_max = max(factor_values) + max(std_errors) + 0.3
+            plt.ylim(y_min, y_max)
+        
+        plt.suptitle(f"Top Significant Genetic Factors for {disease_name} Clusters\n"
+                    f"*** p < 0.001, ** p < 0.01, * p < 0.05", 
+                    y=0.95)
+        plt.tight_layout()
+        plt.subplots_adjust(top=0.9)
+    else:
+        plt.text(0.5, 0.5, "No significant factors found after correction", 
+                ha='center', va='center', fontsize=14)
+        plt.axis('off')
+    
+    # Return results for further analysis
+    return {
+        'genetic_by_cluster': genetic_by_cluster,
+        'mean_genetic': mean_genetic,
+        'p_values': p_values,
+        'p_values_corrected': p_values_corrected,
+        'effect_sizes': effect_sizes,
+        'genetic_factor_names': genetic_factor_names,
+        'patient_clusters': patient_clusters,
+        'genetic_df': genetic_df,
+        'all_patients': all_patients,
+        'cluster_scores': cluster_scores,
+        'all_features': all_features,  # Add this line
+        'all_genetic_data': all_genetic_data  # Add this line too for completeness
+    }
+
+
+def analyze_genetic_data_by_signature(batch_size=10000, n_batches=10, n_clusters=3, prs_names_file=None, heatmap_output_path=None):
+    """
+    Analyze genetic/demographic data (G matrix) associations with signature loadings
+    across all individuals, regardless of disease status. Clusters individuals based
+    on their average signature loadings.
+    
+    Parameters:
+    - batch_size: Number of patients per batch
+    - n_batches: Number of batches to process
+    - n_clusters: Number of clusters to create based on signature loadings
+    - prs_names_file: Path to CSV file containing PRS names
+    - heatmap_output_path: Path to save the heatmap PDF. If None, heatmap is shown but not saved.
+    """
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.cluster import KMeans
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+    from statsmodels.stats.multitest import multipletests
+    
+    print("Starting genetic data analysis for all signatures...")
+    
+    # Load PRS names if file is provided
+    if prs_names_file:
+        try:
+            prs_df = pd.read_csv(prs_names_file)
+            print(f"Loaded {len(prs_df)} PRS names from {prs_names_file}")
+            prs_names_dict = {i: name for i, name in enumerate(prs_df.iloc[:, 0])} if len(prs_df.columns) > 0 else {}
+        except Exception as e:
+            print(f"Error loading PRS names: {str(e)}")
+            prs_names_dict = {}
+    else:
+        prs_names_dict = {}
+    
+    # Load batch 1 model to get signature information
+    model_path = '/Users/sarahurbut/Dropbox/resultshighamp/results/output_0_10000/model.pt'
+    print("\nLoading batch 1 model for reference...")
+    
+    try:
+        model1 = torch.load(model_path)
+        K_total = model1['model_state_dict']['lambda_'].shape[1]  # Number of signatures
+        
+        # Get X dimensions
+        if 'G' in model1:
+            X_dim = model1['G'].shape[1]
+            genetic_factor_names = [prs_names_dict.get(i, f"G_{i}") for i in range(X_dim)]
+        else:
+            print("Warning: G matrix not found in first batch. Will try to determine dimensions from later batches.")
+            genetic_factor_names = None
+            
+    except Exception as e:
+        print(f"ERROR loading model: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+    
+    # Collect data across all batches
+    all_features = []  # Will store signature proportions
+    all_genetic_data = []
+    
+    # Process each batch
+    for batch in range(n_batches):
+        start_idx = batch * batch_size
+        end_idx = (batch + 1) * batch_size
+        
+        model_path = f'/Users/sarahurbut/Dropbox/resultshighamp/results/output_{start_idx}_{end_idx}/model.pt'
+        print(f"\nProcessing batch {batch+1}/{n_batches} (patients {start_idx}-{end_idx})")
+        
+        try:
+            model = torch.load(model_path)
+            lambda_values = model['model_state_dict']['lambda_']
+            
+            # Get genetic data (X/G matrix) for this batch
+            if 'G' in model:
+                X_batch = model['G'].numpy()  # Patient genetic/demographic data
+                
+                # If we don't have factor names yet, create them
+                if genetic_factor_names is None:
+                    X_dim = X_batch.shape[1]
+                    genetic_factor_names = [prs_names_dict.get(i, f"G_{i}") for i in range(X_dim)]
+            else:
+                print(f"Warning: G matrix not found in batch {batch}")
+                continue
+            
+            # Get signature proportions for all patients
+            theta = torch.softmax(lambda_values, dim=1).detach().numpy()
+            mean_props = theta.mean(axis=2)  # Average over time
+            
+            # Store data
+            all_features.extend(mean_props)
+            all_genetic_data.extend(X_batch)
+            
+            print(f"Processed {len(mean_props)} patients in batch {batch+1}")
+            
+        except FileNotFoundError:
+            print(f"Warning: Could not find model file for batch {batch}")
+            break
+        except Exception as e:
+            print(f"Error processing batch {batch}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    if len(all_features) == 0:
+        print("No data collected")
+        return None
+    
+    # Convert to numpy arrays
+    all_features = np.array(all_features)
+    all_genetic_data = np.array(all_genetic_data)
+    
+    print(f"\nTotal patients processed: {len(all_features)}")
+    
+    # Perform clustering based on signature profiles
+    print(f"\nPerforming clustering with {n_clusters} clusters...")
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    patient_clusters = kmeans.fit_predict(all_features)
+    
+    # Print cluster sizes
+    print("\nCluster sizes:")
+    for c in range(n_clusters):
+        size = np.sum(patient_clusters == c)
+        print(f"Cluster {c}: {size} patients")
+    
+    # Analyze genetic data by cluster
+    genetic_by_cluster = {}
+    for cluster in range(n_clusters):
+        cluster_mask = patient_clusters == cluster
+        genetic_by_cluster[cluster] = all_genetic_data[cluster_mask]
+    
+    # Calculate mean genetic values for each cluster
+    mean_genetic = {cluster: np.mean(values, axis=0) for cluster, values in genetic_by_cluster.items()}
+    
+    # Perform statistical testing
+    p_values = np.ones((len(genetic_factor_names), n_clusters))
+    effect_sizes = np.zeros((len(genetic_factor_names), n_clusters))
+    
+    for factor_idx in range(len(genetic_factor_names)):
+        for cluster in range(n_clusters):
+            # Compare this cluster to all others for this factor
+            cluster_values = all_genetic_data[patient_clusters == cluster, factor_idx]
+            other_values = all_genetic_data[patient_clusters != cluster, factor_idx]
+            
+            # t-test
+            t_stat, p_val = stats.ttest_ind(cluster_values, other_values)
+            p_values[factor_idx, cluster] = p_val
+            
+            # Effect size (Cohen's d)
+            mean_diff = np.mean(cluster_values) - np.mean(other_values)
+            pooled_std = np.sqrt(((len(cluster_values) - 1) * np.var(cluster_values) + 
+                                 (len(other_values) - 1) * np.var(other_values)) / 
+                                (len(cluster_values) + len(other_values) - 2))
+            effect_sizes[factor_idx, cluster] = mean_diff / pooled_std if pooled_std > 0 else 0
+    
+    # Apply multiple testing correction
+    _, p_values_corrected, _, _ = multipletests(p_values.flatten(), method='fdr_bh')
+    p_values_corrected = p_values_corrected.reshape(p_values.shape)
+    
+    # Create heatmap
+    plt.figure(figsize=(16, 20))
+    
+    # Find top differentiating factors
+    factor_variance = np.var([mean_genetic[c] for c in range(n_clusters)], axis=0)
+    top_factors = np.argsort(factor_variance)[-20:]  # Top 20 factors with highest variance across clusters
+    
+    # Prepare heatmap data
+    heatmap_data = np.zeros((len(top_factors), n_clusters))
+    p_value_annotations = np.empty((len(top_factors), n_clusters), dtype=object)
+    
+    # Calculate Bonferroni threshold
+    bonferroni_threshold = 0.05 / (len(genetic_factor_names) * n_clusters)
+    print(f"Using Bonferroni threshold: {bonferroni_threshold:.2e}")
+    
+    for i, f in enumerate(top_factors):
+        for c in range(n_clusters):
+            heatmap_data[i, c] = mean_genetic[c][f]
+            p_val = p_values[f, c]
+            
+            # Format mean value with appropriate precision
+            mean_str = f"{heatmap_data[i, c]:.3f}"
+            
+            # Add effect size if significant
+            if p_val < bonferroni_threshold:
+                d = effect_sizes[f, c]
+                d_str = f"\nd={d:.2f}"
+            else:
+                d_str = ""
+            
+            # Add significance stars
+            if p_val < bonferroni_threshold:
+                stars = "***"
+                mean_str = f"\\mathbf{{{mean_str}}}"  # Bold significant values
+            else:
+                stars = ""
+            
+            p_value_annotations[i, c] = f"${mean_str}${d_str}{stars}"
+    
+    # Create heatmap
+    ax = sns.heatmap(
+        heatmap_data,
+        annot=p_value_annotations,
+        fmt="",
+        xticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
+        yticklabels=[genetic_factor_names[i] for i in top_factors],
+        cmap="RdBu_r",
+        center=0,
+        linewidths=1.0,
+        linecolor='black',
+        cbar_kws={'label': 'Mean Value'},
+        annot_kws={'size': 10}
+    )
+    
+    # Customize plot
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    plt.title(f"Genetic Factors by Signature-Based Patient Clusters\n"
+              f"*** p < {bonferroni_threshold:.2e} (Bonferroni)",
+              pad=20, size=14)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save or show plot
+    if heatmap_output_path:
+        plt.savefig(heatmap_output_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved heatmap to {heatmap_output_path}")
+        plt.close()
+    else:
+        plt.show()
+    
+    # Plot average signature loadings for each cluster
+    plt.figure(figsize=(15, 8))
+    cluster_means = np.array([np.mean(all_features[patient_clusters == c], axis=0) 
+                            for c in range(n_clusters)])
+    
+    sns.heatmap(
+        cluster_means,
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Signature {i}" for i in range(K_total)],
+        yticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
+        cmap="RdBu_r",
+        center=0,
+        linewidths=1.0,
+        linecolor='black',
+        cbar_kws={'label': 'Average Signature Loading'}
+    )
+    plt.title("Average Signature Loadings by Patient Cluster", pad=20, size=14)
+    plt.tight_layout()
+    plt.show()
+    
+    # Create summary DataFrame
+    results_df = pd.DataFrame({
+        'Genetic_Factor': np.repeat(genetic_factor_names, n_clusters),
+        'Cluster': np.tile(range(n_clusters), len(genetic_factor_names)),
+        'Mean_Value': np.concatenate([mean_genetic[c] for c in range(n_clusters)]),
+        'P_Value': p_values.flatten(),
+        'P_Value_Corrected': p_values_corrected.flatten(),
+        'Effect_Size': effect_sizes.flatten()
+    })
+    
+    # Add significance indicator
+    results_df['Significant'] = results_df['P_Value_Corrected'] < 0.05
+    
+    # After clustering and before creating visualizations, calculate cluster means
+    cluster_means = np.array([np.mean(all_features[patient_clusters == c], axis=0) 
+                            for c in range(n_clusters)])
+    
+    # 1. First plot: Signature loading patterns for each cluster
+    plt.figure(figsize=(15, 8))
+    sns.heatmap(
+        cluster_means,
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Signature {i}" for i in range(K_total)],
+        yticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
+        cmap="RdBu_r",
+        center=0,
+        linewidths=1.0,
+        linecolor='black',
+        cbar_kws={'label': 'Average Signature Loading'}
+    )
+    plt.title("Average Signature Loadings by Patient Cluster", pad=20, size=14)
+    plt.tight_layout()
+    plt.show()
+    
+    # 2. Second plot: PRS differences between clusters
+    plt.figure(figsize=(16, 20))
+    
+    # Reshape data to show PRS as rows and clusters as columns
+    prs_by_cluster = np.zeros((len(genetic_factor_names), n_clusters))
+    for c in range(n_clusters):
+        prs_by_cluster[:, c] = mean_genetic[c]
+    
+    # Find top differentiating PRS
+    prs_variance = np.var(prs_by_cluster, axis=1)
+    top_prs = np.argsort(prs_variance)[-20:]  # Top 20 PRS with highest variance across clusters
+    
+    # Prepare heatmap data
+    heatmap_data = prs_by_cluster[top_prs]
+    p_value_annotations = np.empty((len(top_prs), n_clusters), dtype=object)
+    
+    # Calculate Bonferroni threshold
+    bonferroni_threshold = 0.05 / (len(genetic_factor_names) * n_clusters)
+    print(f"Using Bonferroni threshold: {bonferroni_threshold:.2e}")
+    
+    for i, prs_idx in enumerate(top_prs):
+        for c in range(n_clusters):
+            mean_val = prs_by_cluster[prs_idx, c]
+            p_val = p_values[prs_idx, c]
+            
+            # Format mean value
+            mean_str = f"{mean_val:.3f}"
+            
+            # Add effect size if significant
+            if p_val < bonferroni_threshold:
+                d = effect_sizes[prs_idx, c]
+                d_str = f"\nd={d:.2f}"
+            else:
+                d_str = ""
+            
+            # Add significance stars
+            if p_val < bonferroni_threshold:
+                stars = "***"
+                mean_str = f"\\mathbf{{{mean_str}}}"  # Bold significant values
+            else:
+                stars = ""
+            
+            p_value_annotations[i, c] = f"${mean_str}${d_str}{stars}"
+    
+    # Create heatmap
+    ax = sns.heatmap(
+        heatmap_data,
+        annot=p_value_annotations,
+        fmt="",
+        xticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
+        yticklabels=[genetic_factor_names[i] for i in top_prs],
+        cmap="RdBu_r",
+        center=0,
+        linewidths=1.0,
+        linecolor='black',
+        cbar_kws={'label': 'Mean PRS Value'},
+        annot_kws={'size': 10}
+    )
+    
+    # Customize plot
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    plt.title(f"PRS Values by Signature-Based Patient Clusters\n"
+              f"*** p < {bonferroni_threshold:.2e} (Bonferroni)",
+              pad=20, size=14)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save or show plot
+    if heatmap_output_path:
+        plt.savefig(heatmap_output_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved heatmap to {heatmap_output_path}")
+        plt.close()
+    else:
+        plt.show()
+    
+    # Create summary DataFrame
+    results_df = pd.DataFrame({
+        'PRS': np.repeat(genetic_factor_names, n_clusters),
+        'Cluster': np.tile(range(n_clusters), len(genetic_factor_names)),
+        'Mean_Value': prs_by_cluster.flatten(),
+        'P_Value': p_values.flatten(),
+        'P_Value_Corrected': p_values_corrected.flatten(),
+        'Effect_Size': effect_sizes.flatten()
+    })
+    
+    # Add significance indicator
+    results_df['Significant'] = results_df['P_Value_Corrected'] < 0.05
+    
+    return {
+        'genetic_by_cluster': genetic_by_cluster,
+        'mean_genetic': mean_genetic,
+        'p_values': p_values,
+        'p_values_corrected': p_values_corrected,
+        'effect_sizes': effect_sizes,
+        'genetic_factor_names': genetic_factor_names,
+        'patient_clusters': patient_clusters,
+        'results_df': results_df,
+        'cluster_means': cluster_means,
+        'all_features': all_features,
+        'all_genetic_data': all_genetic_data,
+        'prs_by_cluster': prs_by_cluster
+    }
+
+def compare_disease_vs_population_clusters(
+    disease_idx: int,
+    batch_size: int = 10000,
+    n_batches: int = 10,
+    n_clusters: int = 3,
+    prs_names_file: Optional[str] = None,
+    heatmap_output_path: Optional[str] = None
+):
+    """
+    Compare signature loading patterns between disease-specific clusters and general population clusters.
+    Shows how disease-specific patterns deviate from the general population patterns.
+    
+    Parameters:
+    - disease_idx: Index of the disease to analyze
+    - batch_size: Number of patients per batch
+    - n_batches: Number of batches to process
+    - n_clusters: Number of clusters to create
+    - prs_names_file: Path to CSV file containing PRS names
+    - heatmap_output_path: Path to save the heatmap PDF
+    """
+    print("Step 1: Getting general population clusters...")
+    # Get general population clusters
+    pop_results = analyze_genetic_data_by_signature(
+        batch_size=batch_size,
+        n_batches=n_batches,
+        n_clusters=n_clusters,
+        prs_names_file=prs_names_file
+    )
+    
+    print("\nStep 2: Getting disease-specific clusters...")
+    # Get disease-specific clusters
+    disease_results = analyze_genetic_data_by_cluster(
+        disease_idx=disease_idx,
+        batch_size=batch_size,
+        n_batches=n_batches,
+        n_clusters=n_clusters,
+        prs_names_file=prs_names_file
+    )
+    
+    if disease_results is None:
+        print(f"No patients found with disease {disease_idx}")
+        return None
+    
+    # Get cluster means for both analyses
+    pop_cluster_means = pop_results['cluster_means']  # [n_clusters, n_signatures]
+    disease_cluster_means = np.array([
+        np.mean(disease_results['all_features'][disease_results['patient_clusters'] == c], axis=0)
+        for c in range(n_clusters)
+    ])  # [n_clusters, n_signatures]
+    
+    # Calculate deviations from population patterns
+    # For each disease cluster, find the most similar population cluster
+    cluster_mapping = {}  # Maps disease cluster to most similar population cluster
+    for d_cluster in range(n_clusters):
+        similarities = np.array([
+            np.corrcoef(disease_cluster_means[d_cluster], pop_cluster_means[p_cluster])[0,1]
+            for p_cluster in range(n_clusters)
+        ])
+        closest_pop_cluster = np.argmax(similarities)
+        cluster_mapping[d_cluster] = closest_pop_cluster
+    
+    # Calculate deviations
+    deviations = np.zeros_like(disease_cluster_means)
+    for d_cluster in range(n_clusters):
+        p_cluster = cluster_mapping[d_cluster]
+        deviations[d_cluster] = disease_cluster_means[d_cluster] - pop_cluster_means[p_cluster]
+    
+    # Create visualization
+    fig, axes = plt.subplots(3, 1, figsize=(15, 24))
+    
+    # 1. Population cluster patterns
+    sns.heatmap(
+        pop_cluster_means,
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Signature {i}" for i in range(pop_cluster_means.shape[1])],
+        yticklabels=[f"Pop Cluster {i}\n(n={np.sum(pop_results['patient_clusters'] == i)})" 
+                     for i in range(n_clusters)],
+        cmap="RdBu_r",
+        center=0,
+        ax=axes[0],
+        cbar_kws={'label': 'Average Signature Loading'}
+    )
+    axes[0].set_title("General Population Signature Patterns", pad=20)
+    
+    # 2. Disease-specific cluster patterns
+    sns.heatmap(
+        disease_cluster_means,
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Signature {i}" for i in range(disease_cluster_means.shape[1])],
+        yticklabels=[f"Disease Cluster {i}\n(n={np.sum(disease_results['patient_clusters'] == i)})" 
+                     for i in range(n_clusters)],
+        cmap="RdBu_r",
+        center=0,
+        ax=axes[1],
+        cbar_kws={'label': 'Average Signature Loading'}
+    )
+    axes[1].set_title(f"Disease-Specific Signature Patterns (Disease {disease_idx})", pad=20)
+    
+    # 3. Deviations from population patterns
+    deviation_plot = sns.heatmap(
+        deviations,
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Signature {i}" for i in range(deviations.shape[1])],
+        yticklabels=[f"Disease Cluster {i} vs Pop Cluster {cluster_mapping[i]}\n" +
+                     f"(n={np.sum(disease_results['patient_clusters'] == i)})" 
+                     for i in range(n_clusters)],
+        cmap="RdBu_r",
+        center=0,
+        ax=axes[2],
+        cbar_kws={'label': 'Deviation from Population Pattern'}
+    )
+    axes[2].set_title("Deviations from Population Patterns", pad=20)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save or show plot
+    if heatmap_output_path:
+        plt.savefig(heatmap_output_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved comparison plot to {heatmap_output_path}")
+        plt.close()
+    else:
+        plt.show()
+    
+    # Also compare PRS patterns
+    pop_prs = pop_results['prs_by_cluster']  # [n_prs, n_clusters]
+    disease_prs = disease_results['prs_by_cluster'] if 'prs_by_cluster' in disease_results else np.array([
+        disease_results['mean_genetic'][c] for c in range(n_clusters)
+    ]).T  # [n_prs, n_clusters]
+    
+    # Calculate PRS deviations
+    prs_deviations = np.zeros_like(disease_prs)
+    for d_cluster in range(n_clusters):
+        p_cluster = cluster_mapping[d_cluster]
+        prs_deviations[:, d_cluster] = disease_prs[:, d_cluster] - pop_prs[:, p_cluster]
+    
+    # Create PRS comparison plot
+    fig, axes = plt.subplots(3, 1, figsize=(15, 24))
+    
+    # Find top differentiating PRS based on deviations
+    prs_variance = np.var(prs_deviations, axis=1)
+    top_prs = np.argsort(prs_variance)[-20:]  # Top 20 PRS
+    
+    # 1. Population PRS patterns
+    sns.heatmap(
+        pop_prs[top_prs],
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Pop Cluster {i}\n(n={np.sum(pop_results['patient_clusters'] == i)})" 
+                     for i in range(n_clusters)],
+        yticklabels=[pop_results['genetic_factor_names'][i] for i in top_prs],
+        cmap="RdBu_r",
+        center=0,
+        ax=axes[0],
+        cbar_kws={'label': 'Average PRS Value'}
+    )
+    axes[0].set_title("General Population PRS Patterns", pad=20)
+    
+    # 2. Disease-specific PRS patterns
+    sns.heatmap(
+        disease_prs[top_prs],
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Disease Cluster {i}\n(n={np.sum(disease_results['patient_clusters'] == i)})" 
+                     for i in range(n_clusters)],
+        yticklabels=[disease_results['genetic_factor_names'][i] for i in top_prs],
+        cmap="RdBu_r",
+        center=0,
+        ax=axes[1],
+        cbar_kws={'label': 'Average PRS Value'}
+    )
+    axes[1].set_title(f"Disease-Specific PRS Patterns (Disease {disease_idx})", pad=20)
+    
+    # 3. PRS deviations
+    sns.heatmap(
+        prs_deviations[top_prs],
+        annot=True,
+        fmt='.3f',
+        xticklabels=[f"Disease Cluster {i} vs Pop Cluster {cluster_mapping[i]}\n" +
+                     f"(n={np.sum(disease_results['patient_clusters'] == i)})" 
+                     for i in range(n_clusters)],
+        yticklabels=[disease_results['genetic_factor_names'][i] for i in top_prs],
+        cmap="RdBu_r",
+        center=0,
+        ax=axes[2],
+        cbar_kws={'label': 'PRS Deviation from Population Pattern'}
+    )
+    axes[2].set_title("PRS Deviations from Population Patterns", pad=20)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save or show plot
+    if heatmap_output_path:
+        base, ext = os.path.splitext(heatmap_output_path)
+        prs_path = f"{base}_prs{ext}"
+        plt.savefig(prs_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Saved PRS comparison plot to {prs_path}")
+        plt.close()
+    else:
+        plt.show()
+    
+    return {
+        'population_results': pop_results,
+        'disease_results': disease_results,
+        'cluster_mapping': cluster_mapping,
+        'signature_deviations': deviations,
+        'prs_deviations': prs_deviations
+    }
