@@ -224,54 +224,64 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
     # Create heatmap of mean genetic values
     plt.figure(figsize=(16, 20))  # Increased figure size
     
-    # Find top differentiating factors
-    factor_variance = np.var([mean_genetic[c] for c in range(n_clusters)], axis=0)
-    top_factors = np.argsort(factor_variance)[-20:]  # Top 20 factors with highest variance across clusters
+    # Use all factors, in PRS CSV order
+    top_factors = np.arange(len(genetic_factor_names))
     
-    # Reshape data for heatmap (using only top factors)
+    # Before creating the heatmap, get the data from the cluster_scores DataFrame
     heatmap_data = np.zeros((len(top_factors), n_clusters))
     p_value_annotations = np.empty((len(top_factors), n_clusters), dtype=object)
     
     # Calculate Bonferroni threshold
-    bonferroni_threshold = 0.05 / (36 * 21)  # Adjust for total number of tests
-    print(f"Using Bonferroni threshold: {bonferroni_threshold:.2e}")
+    bonferroni_threshold = 0.05 / (len(genetic_factor_names) * n_clusters)
     
-    for i, f in enumerate(top_factors):
+    for i, factor in enumerate(genetic_factor_names):
         for c in range(n_clusters):
-            heatmap_data[i, c] = mean_genetic[c][f]
-            p_val = p_values[f, c]  # Use uncorrected p-values and apply Bonferroni threshold
+            mean_val = cluster_scores[f'Mean_Value_Cluster{c}'][factor]
+            effect_size = cluster_scores[f'Effect_Size_Cluster{c}'][factor]
+            p_val = cluster_scores[f'P_Value_Corrected_Cluster{c}'][factor]
             
-            # Format the mean value with appropriate precision
-            mean_str = f"{heatmap_data[i, c]:.3f}"
+            heatmap_data[i, c] = mean_val
             
-            # Add effect size if significant
+            # Format annotation with mean value and effect size if significant
+            mean_str = f"{mean_val:.3f}"
             if p_val < bonferroni_threshold:
-                d = effect_sizes[f, c]
-                d_str = f"\nd={d:.2f}"
+                d_str = f"\nd={effect_size:.2f}"
+                stars = "***"
+                mean_str = f"\\mathbf{{{mean_str}}}"
             else:
                 d_str = ""
-            
-            # Add significance stars
-            if p_val < bonferroni_threshold:
-                stars = "***"
-                mean_str = f"\\mathbf{{{mean_str}}}"  # Bold significant values
-            else:
                 stars = ""
-            
             p_value_annotations[i, c] = f"${mean_str}${d_str}{stars}"
     
+    # Add these debug prints right before creating the heatmap
+    print("\nVerifying CSV and heatmap values match:")
+    print("\nFirst few values from cluster_scores (CSV):")
+    for factor in genetic_factor_names[:3]:  # Show first 3 factors
+        print(f"\n{factor}:")
+        for c in range(n_clusters):
+            mean_val = cluster_scores[f'Mean_Value_Cluster{c}'][factor]
+            print(f"Cluster {c}: {mean_val:.3f}")
+
+    print("\nFirst few values from heatmap_data:")
+    for i in range(3):  # Show first 3 factors
+        print(f"\n{genetic_factor_names[i]}:")
+        for c in range(n_clusters):
+            print(f"Cluster {c}: {heatmap_data[i,c]:.3f}")
+    
     # Create heatmap with custom annotations
-    ax = sns.heatmap(heatmap_data, 
-                    annot=p_value_annotations, 
-                    fmt="",  # Use empty string since we're providing formatted annotations
-                    xticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
-                    yticklabels=[genetic_factor_names[i] for i in top_factors],
-                    cmap="RdBu_r", 
-                    center=0,
-                    linewidths=1.0,  # Increased line width
-                    linecolor='black',  # Darker lines
-                    cbar_kws={'label': 'Mean Value'},
-                    annot_kws={'size': 10})  # Increased annotation size
+    ax = sns.heatmap(
+        heatmap_data,
+        annot=p_value_annotations,  # Use our custom annotations
+        fmt="",
+        xticklabels=[f"Cluster {i}\n(n={np.sum(patient_clusters == i)})" for i in range(n_clusters)],
+        yticklabels=genetic_factor_names,
+        cmap="RdBu_r",
+        center=0,
+        linewidths=1.0,
+        linecolor='black',
+        cbar_kws={'label': 'Mean Value'},
+        annot_kws={'size': 10}
+    )
     
     # Rotate y-axis labels for better readability
     ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
@@ -283,7 +293,7 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
     ax.set_xticklabels(ax.get_xticklabels(), rotation=0, ha='center')
     
     plt.title(f"Top Genetic Factors by Cluster for {disease_name}\n"
-              f"*** p < {bonferroni_threshold:.2e} (Bonferroni)", 
+              f"*** p < 0.05 (Bonferroni)", 
               pad=20,
               size=14)
     
@@ -301,46 +311,63 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
     # Create bar plot for top significant factors
     plt.figure(figsize=(14, 12))
     
-    # Find top significant factors
-    significant_factors = np.where(np.any(p_values_corrected < 0.05, axis=1))[0]
+    # Find top significant factors using cluster_scores
+    significant_factors = []
+    for factor in genetic_factor_names:
+        # Check if any cluster is significant for this factor
+        is_significant = any(cluster_scores[f'P_Value_Corrected_Cluster{c}'][factor] < 0.05 
+                            for c in range(n_clusters))
+        if is_significant:
+            significant_factors.append(factor)
+
     if len(significant_factors) > 0:
-        # Sort by maximum effect size
-        max_effect_sizes = np.max(np.abs(effect_sizes[significant_factors]), axis=1)
-        top_sig_factors = significant_factors[np.argsort(max_effect_sizes)[-min(10, len(significant_factors)):]]
+        # Sort by maximum absolute effect size
+        max_effect_sizes = []
+        for factor in significant_factors:
+            effect_sizes_factor = [abs(cluster_scores[f'Effect_Size_Cluster{c}'][factor]) 
+                                 for c in range(n_clusters)]
+            max_effect_sizes.append(max(effect_sizes_factor))
+        
+        # Get top factors
+        top_sig_factors = [f for _, f in sorted(zip(max_effect_sizes, significant_factors), 
+                                              reverse=True)][:10]
         
         # Create subplot for each top factor
-        for i, factor_idx in enumerate(top_sig_factors):
+        for i, factor in enumerate(top_sig_factors):
             plt.subplot(5, 2, i+1)
             
-            # Get values for this factor across clusters
-            factor_values = [mean_genetic[c][factor_idx] for c in range(n_clusters)]
+            # Get values and errors for this factor
+            factor_values = [cluster_scores[f'Mean_Value_Cluster{c}'][factor] 
+                            for c in range(n_clusters)]
             
-            # Create bar plot with error bars (standard error)
+            # Calculate standard errors using original data
             cluster_sizes = [np.sum(patient_clusters == c) for c in range(n_clusters)]
-            std_errors = [np.std(all_genetic_data[patient_clusters == c, factor_idx]) / np.sqrt(cluster_sizes[c]) 
-                         for c in range(n_clusters)]
+            std_errors = [np.std(all_genetic_data[patient_clusters == c, 
+                                                genetic_factor_names.index(factor)]) / 
+                         np.sqrt(cluster_sizes[c]) for c in range(n_clusters)]
             
+            # Create bar plot
             bars = plt.bar(range(n_clusters), factor_values, 
                          yerr=std_errors,
                          capsize=5,
-                         color=['red' if p_values_corrected[factor_idx, c] < 0.05 else 'gray' 
-                               for c in range(n_clusters)])
+                         color=['red' if cluster_scores[f'P_Value_Corrected_Cluster{c}'][factor] < 0.05 
+                               else 'gray' for c in range(n_clusters)])
             
             # Add significance stars and p-values
             for c in range(n_clusters):
                 y_pos = factor_values[c] + std_errors[c] + 0.1
-                if p_values_corrected[factor_idx, c] < 0.001:
+                if p_values_corrected[genetic_factor_names.index(factor), c] < 0.001:
                     plt.text(c, y_pos, '***', ha='center', fontsize=10)
-                elif p_values_corrected[factor_idx, c] < 0.01:
+                elif p_values_corrected[genetic_factor_names.index(factor), c] < 0.01:
                     plt.text(c, y_pos, '**', ha='center', fontsize=10)
-                elif p_values_corrected[factor_idx, c] < 0.05:
+                elif p_values_corrected[genetic_factor_names.index(factor), c] < 0.05:
                     plt.text(c, y_pos, '*', ha='center', fontsize=10)
                 
                 # Add effect size below the bar
-                plt.text(c, -0.1, f"d={effect_sizes[factor_idx, c]:.2f}", 
+                plt.text(c, -0.1, f"d={effect_sizes[genetic_factor_names.index(factor), c]:.2f}", 
                         ha='center', va='top', fontsize=8)
             
-            plt.title(f"{genetic_factor_names[factor_idx]}", pad=10)
+            plt.title(f"{factor}", pad=10)
             plt.xticks(range(n_clusters), [f"Cluster {i}\n(n={cluster_sizes[i]})" for i in range(n_clusters)])
             plt.axhline(y=0, color='k', linestyle='-', alpha=0.2)
             

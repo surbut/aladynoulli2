@@ -213,13 +213,23 @@ devs_wide <- devs %>%
   filter(Time %in% c(1, 50)) %>%
   pivot_wider(names_from = Time, values_from = value, names_prefix = "Time_")
 
+devs_wide$DiseaseName <- disease_names[devs_wide$Disease]
+
 # Now plot
-ggplot(devs_wide, aes(x = Time_1, y = Time_50)) +
-  geom_point(aes(color = factor(Disease)), alpha = 0.7) +
-  facet_wrap(~ Sigs, scales = "free") +
-  labs(x = "Value at Time 1", y = "Value at Time 50",
-       title = "Disease Deviations: Time 1 vs Time 50 by Signature") +
-  theme_minimal()
+
+devs_wide=devs_wide[devs_wide$Sigs%in%c(1:20),]
+devs_wide$Sigs=devs_wide$Sigs-1
+ggplotly(
+  ggplot(devs_wide, aes(x = exp(Time_1), y = exp(Time_50))) +
+    geom_point(aes(color = DiseaseName), alpha = 0.7) +
+    facet_wrap(~ Sigs, scales = "free") +
+    labs(x = "OR at Time 1", y = "OR at Time 50",
+         title = "Disease Deviations from Population: Time 1 vs Time 50 by Signature") +
+    theme_minimal() +
+    theme(legend.position = "none")  # legend removed, but DiseaseName still used for hover
+)
+
+
 
 
 

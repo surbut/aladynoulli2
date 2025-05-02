@@ -1248,8 +1248,14 @@ def evaluate_major_diseases_wsex(model, Y_100k, E_100k, disease_names, pce_df, f
                  risks_np = risks_auc[processed_indices_auc_final].cpu().numpy()
                  outcomes_np = outcomes_auc[processed_indices_auc_final].cpu().numpy()
                  n_processed = len(outcomes_np)
-                 
-                 # Calculate AUC
+                 if disease_group in ["Bipolar_Disorder", "Depression"]:
+                    df = pd.DataFrame({
+                        "risk": risks_np,
+                        "outcome": outcomes_np
+                    })
+                    df.to_csv(f"debug_{disease_group}.csv", index=False)
+                    
+                    # Calculate AUC
                  if len(np.unique(outcomes_np)) > 1:
                       fpr, tpr, _ = roc_curve(outcomes_np, risks_np)
                       auc_score = auc(fpr, tpr)
