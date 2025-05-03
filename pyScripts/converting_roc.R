@@ -222,3 +222,45 @@ ukb_results <- evaluate_major_diseases_wsex(
   pce_df = pce_df,
   follow_up_duration_years = 10
 )
+
+
+
+
+library(ggplot2)
+library(patchwork)
+library(viridis)
+library(dplyr)
+
+
+# Install if needed
+## restart R, only need to do once
+library(reticulate)
+
+library(pals)
+## convert ro R
+#use_condaenv("r-tensornoulli")
+use_condaenv("/opt/miniconda3/envs/new_env_pyro2", required = TRUE)
+torch <- import("torch")
+tensor_to_r <- function(tensor) {
+  as.array(tensor$detach()$cpu()$numpy())
+}
+
+
+
+library(reticulate)
+torch <- import("torch")
+
+# Load the tensor
+Y_train_tensor <- torch$load("big_stuff/Y_train_tensor.pt")
+
+# Convert to R array
+Y_train_array <- as.array(Y_train_tensor$detach()$cpu()$numpy())
+
+# Save as RDS
+saveRDS(Y_train_array, "Y_train_tensor.rds")
+
+E_full_tensor=torch$load("E_full_tensor.pt")
+E=tensor_to_r(E_full_tensor)
+dim(E)
+saveRDS(E,"E_full_tensor.rds")
+
