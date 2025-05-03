@@ -3479,26 +3479,16 @@ def compare_disease_vs_population_clusters(
     """
     Compare signature loading patterns between disease-specific clusters and general population clusters.
     Shows how disease-specific patterns deviate from the general population patterns.
-    
-    Parameters:
-    - disease_idx: Index of the disease to analyze
-    - batch_size: Number of patients per batch
-    - n_batches: Number of batches to process
-    - n_clusters: Number of clusters to create
-    - prs_names_file: Path to CSV file containing PRS names
-    - heatmap_output_path: Path to save the heatmap PDF
+    Ensures cluster and PRS ordering are aligned for correct interpretation.
     """
     print("Step 1: Getting general population clusters...")
-    # Get general population clusters
     pop_results = analyze_genetic_data_by_signature(
         batch_size=batch_size,
         n_batches=n_batches,
         n_clusters=n_clusters,
         prs_names_file=prs_names_file
     )
-    
     print("\nStep 2: Getting disease-specific clusters...")
-    # Get disease-specific clusters
     disease_results = analyze_genetic_data_by_cluster(
         disease_idx=disease_idx,
         batch_size=batch_size,
@@ -3506,21 +3496,18 @@ def compare_disease_vs_population_clusters(
         n_clusters=n_clusters,
         prs_names_file=prs_names_file
     )
-    
     if disease_results is None:
         print(f"No patients found with disease {disease_idx}")
         return None
-    
-    # Get cluster means for both analyses
+
+    # --- CLUSTER REORDERING ---
     pop_cluster_means = pop_results['cluster_means']  # [n_clusters, n_signatures]
     disease_cluster_means = np.array([
         np.mean(disease_results['all_features'][disease_results['patient_clusters'] == c], axis=0)
         for c in range(n_clusters)
     ])  # [n_clusters, n_signatures]
-    
-    # Calculate deviations from population patterns
-    # For each disease cluster, find the most similar population cluster
-    cluster_mapping = {}  # Maps disease cluster to most similar population cluster
+    # Map each disease cluster to its most similar population cluster
+    cluster_mapping = {}
     for d_cluster in range(n_clusters):
         similarities = np.array([
             np.corrcoef(disease_cluster_means[d_cluster], pop_cluster_means[p_cluster])[0,1]
@@ -3528,99 +3515,99 @@ def compare_disease_vs_population_clusters(
         ])
         closest_pop_cluster = np.argmax(similarities)
         cluster_mapping[d_cluster] = closest_pop_cluster
-    
-    # Calculate deviations
-    deviations = np.zeros_like(disease_cluster_means)
-    for d_cluster in range(n_clusters):
-        p_cluster = cluster_mapping[d_cluster]
-        deviations[d_cluster] = disease_cluster_means[d_cluster] - pop_cluster_means[p_cluster]
-    
-    # Create visualization
+    # Build reverse mapping: for each pop cluster, which disease cluster matches it?
+    reverse_mapping = {}
+    for d_cluster, p_cluster in cluster_mapping.items():
+        reverse_mapping[p_cluster] = d_cluster
+    ordered_pop_clusters = list(range(n_clusters))
+    ordered_disease_clusters = [reverse_mapping.get(p, None) for p in ordered_pop_clusters]
+    # Reorder arrays for plotting
+    pop_cluster_means_ordered = pop_cluster_means[ordered_pop_clusters]
+    disease_cluster_means_ordered = np.array([
+        disease_cluster_means[d] if d is not None else np.full(disease_cluster_means.shape[1], np.nan)
+        for d in ordered_disease_clusters
+    ])
+    deviations_ordered = np.array([
+        (disease_cluster_means[d] - pop_cluster_means[p]) if d is not None else np.full(disease_cluster_means.shape[1], np.nan)
+        for p, d in zip(ordered_pop_clusters, ordered_disease_clusters)
+    ])
+    # --- SIGNATURE HEATMAPS ---
     fig, axes = plt.subplots(3, 1, figsize=(15, 24))
-    
-    # 1. Population cluster patterns
     sns.heatmap(
-        pop_cluster_means,
+        pop_cluster_means_ordered,
         annot=True,
         fmt='.3f',
         xticklabels=[f"Signature {i}" for i in range(pop_cluster_means.shape[1])],
-        yticklabels=[f"Pop Cluster {i}\n(n={np.sum(pop_results['patient_clusters'] == i)})" 
-                     for i in range(n_clusters)],
+        yticklabels=[f"Pop Cluster {i}\n(n={np.sum(pop_results['patient_clusters'] == i)})" for i in ordered_pop_clusters],
         cmap="RdBu_r",
         center=0,
         ax=axes[0],
         cbar_kws={'label': 'Average Signature Loading'}
     )
     axes[0].set_title("General Population Signature Patterns", pad=20)
-    
-    # 2. Disease-specific cluster patterns
     sns.heatmap(
-        disease_cluster_means,
+        disease_cluster_means_ordered,
         annot=True,
         fmt='.3f',
         xticklabels=[f"Signature {i}" for i in range(disease_cluster_means.shape[1])],
-        yticklabels=[f"Disease Cluster {i}\n(n={np.sum(disease_results['patient_clusters'] == i)})" 
-                     for i in range(n_clusters)],
+        yticklabels=[
+            f"Disease Cluster {d if d is not None else 'NA'} (matches Pop {p})\n(n={np.sum(disease_results['patient_clusters'] == d) if d is not None else 0})"
+            for p, d in zip(ordered_pop_clusters, ordered_disease_clusters)
+        ],
         cmap="RdBu_r",
         center=0,
         ax=axes[1],
         cbar_kws={'label': 'Average Signature Loading'}
     )
     axes[1].set_title(f"Disease-Specific Signature Patterns (Disease {disease_idx})", pad=20)
-    
-    # 3. Deviations from population patterns
-    deviation_plot = sns.heatmap(
-        deviations,
+    sns.heatmap(
+        deviations_ordered,
         annot=True,
         fmt='.3f',
-        xticklabels=[f"Signature {i}" for i in range(deviations.shape[1])],
-        yticklabels=[f"Disease Cluster {i} vs Pop Cluster {cluster_mapping[i]}\n" +
-                     f"(n={np.sum(disease_results['patient_clusters'] == i)})" 
-                     for i in range(n_clusters)],
+        xticklabels=[f"Signature {i}" for i in range(deviations_ordered.shape[1])],
+        yticklabels=[
+            f"Disease Cluster {d if d is not None else 'NA'} (matches Pop {p})\n(n={np.sum(disease_results['patient_clusters'] == d) if d is not None else 0})"
+            for p, d in zip(ordered_pop_clusters, ordered_disease_clusters)
+        ],
         cmap="RdBu_r",
         center=0,
         ax=axes[2],
         cbar_kws={'label': 'Deviation from Population Pattern'}
     )
     axes[2].set_title("Deviations from Population Patterns", pad=20)
-    
-    # Adjust layout
     plt.tight_layout()
-    
-    # Save or show plot
     if heatmap_output_path:
         plt.savefig(heatmap_output_path, format='pdf', bbox_inches='tight', dpi=300)
         print(f"Saved comparison plot to {heatmap_output_path}")
         plt.close()
     else:
         plt.show()
-    
-    # Also compare PRS patterns
+
+    # --- PRS/GENETIC FACTOR REORDERING ---
     pop_prs = pop_results['prs_by_cluster']  # [n_prs, n_clusters]
     disease_prs = disease_results['prs_by_cluster'] if 'prs_by_cluster' in disease_results else np.array([
         disease_results['mean_genetic'][c] for c in range(n_clusters)
     ]).T  # [n_prs, n_clusters]
-    
-    # Calculate PRS deviations
-    prs_deviations = np.zeros_like(disease_prs)
-    for d_cluster in range(n_clusters):
-        p_cluster = cluster_mapping[d_cluster]
-        prs_deviations[:, d_cluster] = disease_prs[:, d_cluster] - pop_prs[:, p_cluster]
-    
-    # Create PRS comparison plot
-    fig, axes = plt.subplots(3, 1, figsize=(15, 24))
-    
+    # Reorder PRS arrays for plotting
+    pop_prs_ordered = pop_prs[:, ordered_pop_clusters]
+    disease_prs_ordered = np.array([
+        disease_prs[:, d] if d is not None else np.full(disease_prs.shape[0], np.nan)
+        for d in ordered_disease_clusters
+    ]).T  # shape: [n_prs, n_clusters]
+    prs_deviations_ordered = np.array([
+        (disease_prs[:, d] - pop_prs[:, p]) if d is not None else np.full(disease_prs.shape[0], np.nan)
+        for p, d in zip(ordered_pop_clusters, ordered_disease_clusters)
+    ]).T  # shape: [n_prs, n_clusters]
     # Find top differentiating PRS based on deviations
-    prs_variance = np.var(prs_deviations, axis=1)
+    prs_variance = np.var(prs_deviations_ordered, axis=1)
     top_prs = np.argsort(prs_variance)[-20:]  # Top 20 PRS
-    
-    # 1. Population PRS patterns
+    # --- PRS HEATMAPS ---
+    fig, axes = plt.subplots(3, 1, figsize=(15, 24))
     sns.heatmap(
-        pop_prs[top_prs],
+        pop_prs_ordered[top_prs],
         annot=True,
         fmt='.3f',
-        xticklabels=[f"Pop Cluster {i}\n(n={np.sum(pop_results['patient_clusters'] == i)})" 
-                     for i in range(n_clusters)],
+        xticklabels=[f"Pop Cluster {i}" for i in ordered_pop_clusters],
         yticklabels=[pop_results['genetic_factor_names'][i] for i in top_prs],
         cmap="RdBu_r",
         center=0,
@@ -3628,14 +3615,14 @@ def compare_disease_vs_population_clusters(
         cbar_kws={'label': 'Average PRS Value'}
     )
     axes[0].set_title("General Population PRS Patterns", pad=20)
-    
-    # 2. Disease-specific PRS patterns
     sns.heatmap(
-        disease_prs[top_prs],
+        disease_prs_ordered[top_prs],
         annot=True,
         fmt='.3f',
-        xticklabels=[f"Disease Cluster {i}\n(n={np.sum(disease_results['patient_clusters'] == i)})" 
-                     for i in range(n_clusters)],
+        xticklabels=[
+            f"Disease Cluster {d if d is not None else 'NA'} (matches Pop {p})"
+            for p, d in zip(ordered_pop_clusters, ordered_disease_clusters)
+        ],
         yticklabels=[disease_results['genetic_factor_names'][i] for i in top_prs],
         cmap="RdBu_r",
         center=0,
@@ -3643,15 +3630,14 @@ def compare_disease_vs_population_clusters(
         cbar_kws={'label': 'Average PRS Value'}
     )
     axes[1].set_title(f"Disease-Specific PRS Patterns (Disease {disease_idx})", pad=20)
-    
-    # 3. PRS deviations
     sns.heatmap(
-        prs_deviations[top_prs],
+        prs_deviations_ordered[top_prs],
         annot=True,
         fmt='.3f',
-        xticklabels=[f"Disease Cluster {i} vs Pop Cluster {cluster_mapping[i]}\n" +
-                     f"(n={np.sum(disease_results['patient_clusters'] == i)})" 
-                     for i in range(n_clusters)],
+        xticklabels=[
+            f"Disease Cluster {d if d is not None else 'NA'} (matches Pop {p})"
+            for p, d in zip(ordered_pop_clusters, ordered_disease_clusters)
+        ],
         yticklabels=[disease_results['genetic_factor_names'][i] for i in top_prs],
         cmap="RdBu_r",
         center=0,
@@ -3659,11 +3645,7 @@ def compare_disease_vs_population_clusters(
         cbar_kws={'label': 'PRS Deviation from Population Pattern'}
     )
     axes[2].set_title("PRS Deviations from Population Patterns", pad=20)
-    
-    # Adjust layout
     plt.tight_layout()
-    
-    # Save or show plot
     if heatmap_output_path:
         base, ext = os.path.splitext(heatmap_output_path)
         prs_path = f"{base}_prs{ext}"
@@ -3672,11 +3654,11 @@ def compare_disease_vs_population_clusters(
         plt.close()
     else:
         plt.show()
-    
+
     return {
         'population_results': pop_results,
         'disease_results': disease_results,
         'cluster_mapping': cluster_mapping,
-        'signature_deviations': deviations,
-        'prs_deviations': prs_deviations
+        'signature_deviations': deviations_ordered,
+        'prs_deviations': prs_deviations_ordered
     }

@@ -1,3 +1,6 @@
+sigmoid <- function(x) {
+  1/(1 + exp(-x))
+}
 evaluate_major_diseases_wsex <- function(params, Y, disease_names, pce_df, follow_up_duration_years=10) {
   # Define disease groups
   major_diseases <- list(
@@ -156,7 +159,7 @@ evaluate_major_diseases_wsex <- function(params, Y, disease_names, pce_df, follo
 
       if(length(unique(outcomes_processed)) > 1) {
         require(pROC)
-        auc_score <- auc(outcomes_processed, risks_processed)
+        auc_score <- auc(outcomes_processed, risks_processed,direction="<")
       } else {
         auc_score <- NA
         cat("Warning: Only one class present for AUC.\n")

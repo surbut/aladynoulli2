@@ -20,6 +20,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Optional, Any 
+
 def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, prs_names_file=None, heatmap_output_path=None):
     """
     Analyze genetic/demographic data (G matrix/X data) across patient clusters
@@ -127,7 +128,8 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
                     all_genetic_data.append(X_batch[i])
             
             print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
-            
+            print("genetic_factor_names:", genetic_factor_names)
+            print("First row of all_genetic_data:", all_genetic_data[0])
         except FileNotFoundError:
             print(f"Warning: Could not find model file for batch {batch}")
             break  # Assume we've reached the end of batches
@@ -140,6 +142,241 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
     if len(all_patients) == 0:
         print(f"No patients found with disease {disease_idx}")
         return None
+    
+    print(f"\nTotal patients with {disease_name}: {len(all_patients)}")
+
+
+    # --- Add debug print here ---
+    bc_idx = None
+    if 'BC' in genetic_factor_names:
+        bc_idx = genetic_factor_names.index('BC')
+        bc_prs = [x[bc_idx] for x in all_genetic_data]
+        print(f"\n[DEBUG] Number of patients with {disease_name}: {len(all_patients)}")
+        print(f"[DEBUG] Mean BC PRS for patients with {disease_name}: {np.mean(bc_prs):.4f}")
+        print(f"[DEBUG] Min/Max BC PRS: {np.min(bc_prs):.4f} / {np.max(bc_prs):.4f}")
+    else:
+        print("[DEBUG] 'BC' not found in genetic_factor_names")
+
+    print("PRS name and value for first patient:")
+    for i, name in enumerate(genetic_factor_names):
+        print(f"{name}: {all_genetic_data[0][i]}")
+    
+    # Convert to numpy arrays
+    all_features = np.array(all_features)
+    all_genetic_data = np.array(all_genetic_data)
+    
+    # Perform clustering based on signature profiles
+    print(f"\nPerforming clustering with {n_clusters} clusters...")
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    patient_clusters = kmeans.fit_predict(all_features)
+    bc_idx = genetic_factor_names.index('BC')
+    overall_mean = np.mean(all_genetic_data[:, bc_idx])
+    print(f"Overall mean BC PRS: {overall_mean:.4f}")
+    for cluster in range(n_clusters):
+        mask = patient_clusters == cluster
+        mean_bc = np.mean(all_genetic_data[mask, bc_idx])
+        print(f"Cluster {cluster}: mean BC PRS = {mean_bc:.4f} (n={np.sum(mask)})")
+    means = []
+    sizes = []
+    for cluster in range(n_clusters):
+        mask = patient_clusters == cluster
+        mean_bc = np.mean(all_genetic_data[mask, bc_idx])
+        size = np.sum(mask)
+        means.append(mean_bc)
+        sizes.append(size)
+    weighted_mean = np.average(means, weights=sizes)
+    print(f"Weighted mean of cluster means: {weighted_mean:.4f}")
+    # Analyze genetic data by cluster
+    genetic_by_cluster = {}
+    for cluster in range(n_clusters):
+        cluster_mask = patient_clusters == cluster
+        genetic_by_cluster[cluster] = all_genetic_data[cluster_mask]
+
+    # Calculate mean genetic values for each cluster
+    mean_genetic = {cluster: np.mean(values, axis=0) for cluster, values in genetic_by_cluster.items()}
+
+    print("\n[DEBUG] Per-cluster means for BC (in memory):")
+    bc_idx = genetic_factor_names.index('BC')
+    for c in range(n_clusters):
+        print(f"Cluster {c}: {mean_genetic[c][bc_idx]:.6f}")
+    # Create dataframe for visualization
+    genetic_df = pd.DataFrame({
+        'Factor': np.repeat(genetic_factor_names, n_clusters),
+        'Cluster': np.tile(np.arange(n_clusters), len(genetic_factor_names)),
+        'Mean_Value': np.concatenate([mean_genetic[c] for c in range(n_clusters)]),
+        #'P_Value': p_values.flatten(),
+        #'P_Value_Corrected': p_values_corrected.flatten(),
+        #'Effect_Size': effect_sizes.flatten()
+    })
+
+    # Add significance indicator
+    #genetic_df['Significant'] = genetic_df['P_Value_Corrected'] < 0.05
+
+    # Save cluster scores by PRS to CSV
+    # Create a pivot table to organize data by PRS and cluster
+    pivot_table = genetic_df.pivot(
+        index='Factor',
+        columns='Cluster',
+        values=['Mean_Value']
+    )
+
+    # Create a new DataFrame with properly named columns
+    cluster_scores = pd.DataFrame(index=genetic_factor_names)
+
+    # Manually create the columns with the desired naming format
+    for c in range(n_clusters):
+        for metric in ['Mean_Value']:#$, 'Effect_Size', 'P_Value_Corrected', 'Significant']:
+            column_name = f"{metric}_Cluster{c}"
+            cluster_scores[column_name] = pivot_table.loc[:, (metric, c)]
+
+    # Add cluster sizes
+    for c in range(n_clusters):
+        cluster_scores[f'Cluster_Size_{c}'] = np.sum(patient_clusters == c)
+
+    # Ensure all factors are included, in the correct order
+    cluster_scores = cluster_scores.reindex(index=genetic_factor_names)
+
+    # Set index name so reset_index creates 'Factor' column
+    cluster_scores.index.name = 'Factor'
+    cluster_scores = cluster_scores.reset_index()
+    output_csv_path = f'cluster_scores_disease_{disease_idx}.csv'
+    cluster_scores.to_csv(output_csv_path, index=False)
+    print(f"\nSaved cluster scores to {output_csv_path}")
+
+    # Debug check
+    df = pd.read_csv(output_csv_path)
+    print("\n[DEBUG] BC row from CSV:")
+    print(df[df['Factor'] == 'BC'])
+
+    
+
+
+
+
+
+
+
+
+
+def analyze_genetic_data_by_population(batch_size=10000, n_batches=10, n_clusters=3, prs_names_file=None, heatmap_output_path=None):
+    """
+    Analyze genetic/demographic data (G matrix/X data) across patient clusters
+    for a specific disease
+    
+    Parameters:
+    - disease_idx: Index of the disease to analyze
+    - batch_size: Number of patients per batch
+    - n_batches: Number of batches to process
+    - n_clusters: Number of clusters to create
+    - prs_names_file: Path to CSV file containing PRS names
+    - heatmap_output_path: Path to save the heatmap PDF. If None, heatmap is shown but not saved.
+    """
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.cluster import KMeans
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+    
+    print(f"Starting genetic data analysis for poulation")
+    
+    # Load PRS names if file is provided
+    if prs_names_file:
+        try:
+            prs_df = pd.read_csv(prs_names_file)
+            print(f"Loaded {len(prs_df)} PRS names from {prs_names_file}")
+            # Create a dictionary to map indices to names
+            prs_names_dict = {i: name for i, name in enumerate(prs_df.iloc[:, 0])} if len(prs_df.columns) > 0 else {}
+        except Exception as e:
+            print(f"Error loading PRS names: {str(e)}")
+            prs_names_dict = {}
+    else:
+        prs_names_dict = {}
+    
+    # Load batch 1 model to get disease names and signature information
+    model_path = '/Users/sarahurbut/Dropbox/resultshighamp/results/output_0_10000/model.pt'
+    print("\nLoading batch 1 model for reference...")
+    
+    try:
+        model1 = torch.load(model_path)
+        disease_names = model1['disease_names'][0].tolist()
+        K_total = model1['model_state_dict']['lambda_'].shape[1]  # Number of signatures
+        time_points = model1['Y'].shape[2]  # Number of time points
+        
+        # Get X dimensions
+        if 'G' in model1:
+            X_dim = model1['G'].shape[1]
+            # Use PRS names if available, otherwise use generic names
+            genetic_factor_names = [prs_names_dict.get(i, f"G_{i}") for i in range(X_dim)]
+        else:
+            print("Warning: G matrix not found in first batch. Will try to determine dimensions from later batches.")
+            genetic_factor_names = None
+        
+        disease_name = "Population"
+        print(f"Analyzing {disease_name}")
+        
+    except Exception as e:
+        print(f"ERROR loading model: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+    
+    # Collect patients with this disease across all batches
+    all_patients = []  # Will store (batch_idx, patient_idx) tuples
+    all_features = []  # Will store signature proportions
+    all_genetic_data = []  # Will store genetic/demographic data (X/G matrix)
+    
+    # Process each batch
+    for batch in range(n_batches):
+        start_idx = batch * batch_size
+        end_idx = (batch + 1) * batch_size
+        
+        model_path = f'/Users/sarahurbut/Dropbox/resultshighamp/results/output_{start_idx}_{end_idx}/model.pt'
+        print(f"\nProcessing batch {batch+1}/{n_batches} (patients {start_idx}-{end_idx})")
+        
+        try:
+            model = torch.load(model_path)
+            lambda_values = model['model_state_dict']['lambda_']
+            Y_batch = model['Y'].numpy()
+            
+            # Get genetic data (X/G matrix) for this batch
+            if 'G' in model:
+                X_batch = model['G'].numpy()  # Patient genetic/demographic data
+                
+                # If we don't have factor names yet, create them
+                if genetic_factor_names is None:
+                    X_dim = X_batch.shape[1]
+                    genetic_factor_names = [prs_names_dict.get(i, f"G_{i}") for i in range(X_dim)]
+            else:
+                print(f"Warning: G matrix not found in batch {batch}")
+                continue
+            
+            # Find patients with this disease
+            for i in range(Y_batch.shape[0]):
+                #if np.any(Y_batch[i, disease_idx]):
+                if True:
+                    # Get signature proportions
+                    theta = torch.softmax(lambda_values[i], dim=0).detach().numpy()
+                    mean_props = theta.mean(axis=1)
+                    
+                    # Store patient data
+                    all_patients.append((batch, i))
+                    all_features.append(mean_props)
+                    all_genetic_data.append(X_batch[i])
+            
+            print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
+            
+        except FileNotFoundError:
+            print(f"Warning: Could not find model file for batch {batch}")
+            break  # Assume we've reached the end of batches
+        except Exception as e:
+            print(f"Error processing batch {batch}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+  
     
     print(f"\nTotal patients with {disease_name}: {len(all_patients)}")
     
@@ -217,7 +454,8 @@ def analyze_genetic_data_by_cluster(disease_idx, batch_size=10000, n_batches=10,
         cluster_scores[col] = size
     
     # Save to CSV
-    output_csv_path = f'cluster_scores_disease_{disease_idx}.csv'
+    output_csv_path = f'cluster_scores_disease_population.csv'
+    cluster_scores = cluster_scores.reset_index()
     cluster_scores.to_csv(output_csv_path)
     print(f"\nSaved cluster scores to {output_csv_path}")
     
