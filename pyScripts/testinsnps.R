@@ -1,5 +1,7 @@
 
   genotype_file_default="/Users/sarahurbut/Dropbox/genotype_raw/genotype_dosage_20250416.raw";
+  library(data.table)
+  
   genotype_file_sig5="/Users/sarahurbut/Dropbox/genotype_raw/genotype_dosage_20250415.raw";
   covariate_file="/Users/sarahurbut/Dropbox/for_regenie/ukbb_covariates_400k.txt";
   snp_list_dir="/Users/sarahurbut/Dropbox/snp_lists";
@@ -8,7 +10,7 @@
 
 
 
-
+library(broom)
 
 signatures_to_analyze=c(0,5,7,14,15,18)
 sigs_list=vector("list", length(signatures_to_analyze))
@@ -107,7 +109,90 @@ for (snp in snps_present) {
 sigs_list[[as.character(sig)]]=results_list
 }
 
-list_final=()
+
 list_final=lapply(1:length(sigs_list),function(x){
   r=do.call(rbind,sigs_list[[x]])
+  r$sig=names(sigs_list)[x]
   return(r)})
+
+
+
+  r=do.call(rbind,list_final)
+  
+
+  
+  library(data.table)
+  
+  # Directory containing your case_control files
+  phenotype_dir <- "~/Dropbox/for_regenie/case_control_phenotypes"
+  
+  # List all files
+  case_files <- list.files(phenotype_dir, pattern = "^case_control_sig\\d+\\.tsv$", full.names = TRUE)
+  
+  # Create a named list mapping signature number to phenotype names
+  sig_to_phenos <- setNames(vector("list", length(case_files)), nm = gsub(".*sig(\\d+)\\.tsv$", "\\1", case_files))
+  
+  for (f in case_files) {
+    sig_num <- gsub(".*sig(\\d+)\\.tsv$", "\\1", f)
+    dt <- fread(f, nrows = 0) # Only read header
+    phenos <- setdiff(colnames(dt), "FID")
+    sig_to_phenos[[sig_num]] <- phenos
+  }
+  
+  library(dplyr)
+  
+  
+  library(ggplot2)
+  library(dplyr)
+  
+  # Add signature log10P column
+  r$Signature_log10P <- r$sig_snp_p
+  
+
+  # Shorten phenotype names (optional)
+  r$Phenotype_short <- gsub("_", " ", r$Phenotype) # or use a mapping for even shorter names
+  
+  
+  # For each signature, add a row for the signature p-value
+  signature_rows <- r %>%
+    group_by(sig, SNP) %>%
+    summarise(
+      Phenotype = "Signature",
+      P_value = 10^(-unique(sig_snp_p)),  # Convert log10P to P
+      sig = unique(sig)
+    ) %>%
+    ungroup()
+  
+
+  
+  # Combine with the original data
+  r_augmented <- bind_rows(r, signature_rows)
+  
+  r_augmented <- r_augmented %>%
+    mutate(Significant = P_value < 5e-8)
+  
+  library(ggplot2)
+  
+  
+  saveRDS(r_augmented,"r_augmented.rds")
+p=ggplot(r_augmented, aes(x = Phenotype, y = SNP, fill = -log10(P_value))) +
+    geom_tile(color = "white") +
+    geom_tile(data = subset(r_augmented, Significant), fill = NA, color = "black", size = 1.2) + # bold border for sig
+    geom_text(aes(label = ifelse(Significant, "*", "")), color = "black", size = 5, vjust = 0.5) +
+    facet_wrap(~as.factor(sig), scales = "free", ncol = 2) +
+    scale_fill_gradient(low = "#eeeeee", high = "#2c3e50", name = "-log10(p)") +
+    theme_minimal(base_size = 5) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 5),
+      axis.text.y = element_text(size = 5)
+    ) +
+    labs(
+      title = "SNP-Phenotype Association Heatmap by Signature",
+      x = "Phenotype",
+      y = "SNP"
+    )
+
+ggsave(plot = p,filename = "SNP-Phenotype Association Heatmap by Signature.pdf",dpi=300,width = 10,height = 10)
+  
+  
+
