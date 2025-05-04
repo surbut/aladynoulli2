@@ -109,6 +109,7 @@ fit_cox_baseline_models <- function(Y_train, FH_processed, train_indices,
  
   FH_train <- FH_processed[train_indices, ]
   
+  # disease_group="ASCVD"
   for (disease_group in names(major_diseases)) {
     fh_cols <- disease_mapping[[disease_group]]
     if (is.null(fh_cols)) fh_cols <- character(0)
@@ -169,7 +170,7 @@ fit_cox_baseline_models <- function(Y_train, FH_processed, train_indices,
           sex = current_FH_train$sex[i]
         )
         if (length(fh_cols) > 0 && all(fh_cols %in% colnames(current_FH_train))) {
-          row$fh <- any(current_FH_train[i, fh_cols, drop=TRUE])
+          row$fh <- any(current_FH_train[i, fh_cols])
         }
         cox_data <- rbind(cox_data, row)
       }
@@ -241,7 +242,7 @@ evaluate_cox_baseline_models <- function(fitted_models, Y_test, FH_test, disease
     eval_data <- data.frame()
     for (i in seq_len(nrow(current_FH_test))) {
       age_at_enrollment <- current_FH_test$age[i]
-      t_enroll <- as.integer(age_at_enrollment - 30)
+      t_enroll <- as.integer(age_at_enrollment - 29)
       if (t_enroll < 0 || t_enroll >= dim(current_Y_test)[3]) next
       end_time <- min(t_enroll + follow_up_duration_years, dim(current_Y_test)[3])
       if (end_time <= t_enroll) next
@@ -249,10 +250,10 @@ evaluate_cox_baseline_models <- function(fitted_models, Y_test, FH_test, disease
         Y_slice <- current_Y_test[i, d_idx, t_enroll:end_time, drop=TRUE]
         if (any(Y_slice > 0, na.rm=TRUE)) {
           event_time <- which(Y_slice > 0)[1] + t_enroll - 1
-          age_at_event <- 30 + event_time
+          age_at_event <- 29 + event_time
           event <- 1
         } else {
-          age_at_event <- 30 + end_time - 1
+          age_at_event <- 29 + end_time - 1
           event <- 0
         }
         row <- data.frame(
@@ -261,7 +262,7 @@ evaluate_cox_baseline_models <- function(fitted_models, Y_test, FH_test, disease
           sex = current_FH_test$sex[i]
         )
         if (length(fh_cols) > 0 && all(fh_cols %in% colnames(current_FH_test))) {
-          row$fh <- any(current_FH_test[i, fh_cols, drop=TRUE])
+          row$fh <- any(data.frame(current_FH_test[i, fh_cols]))
         }
         eval_data <- rbind(eval_data, row)
       }
@@ -273,16 +274,17 @@ evaluate_cox_baseline_models <- function(fitted_models, Y_test, FH_test, disease
     }
     # Get predicted risk scores
     risk_scores <- predict(model, newdata=eval_data, type="risk")
+    eval_data$risk_scores=risk_scores
     # Calculate concordance index
-    c_index <- concordance.index(-risk_scores, surv.time=eval_data$age, surv.event=eval_data$event)$c.index
+    c_index <- survConcordance(Surv(age,event) ~ -1*risk_scores, data=eval_data)$concordance
     # Bootstrap confidence interval
-    n_bootstraps <- 100
+    n_bootstraps <- 10
     c_indices <- numeric(n_bootstraps)
     for (b in 1:n_bootstraps) {
       idx <- sample(seq_len(nrow(eval_data)), replace=TRUE)
       boot_eval <- eval_data[idx, ]
       boot_risk <- predict(model, newdata=boot_eval, type="risk")
-      c_indices[b] <- concordance.index(-boot_risk, surv.time=boot_eval$age, surv.event=boot_eval$event)$c.index
+      c_indices[b] <- survConcordance(Surv(age,event) ~ -1*boot_risk, data=boot_eval)$concordance
     }
     ci_lower <- quantile(c_indices, 0.025, na.rm=TRUE)
     ci_upper <- quantile(c_indices, 0.975, na.rm=TRUE)
@@ -300,3 +302,16 @@ evaluate_cox_baseline_models <- function(fitted_models, Y_test, FH_test, disease
   cat("Finished evaluating Cox models.\n")
   return(test_results)
 }
+
+cb=fit_cox_baseline_models(Y_train = Y_train,FH_processed = FH_processed,
+                        
+            train_indices = 20001:30000,disease_mapping = disease_mapping,
+            major_diseases = major_diseases,disease_names = disease_names,follow_up_duration_years = 10)
+
+
+Y_test=readRDS("big_stuff/ukb_params.rds")$Y
+
+e=evaluate_cox_baseline_models(cb,Y_test,FH_processed[1:10000,],
+                             disease_mapping=disease_mapping, major_diseases=major_diseases, disease_names=disease_names,
+                             follow_up_duration_years = 10)
+  

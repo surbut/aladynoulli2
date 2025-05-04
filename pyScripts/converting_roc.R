@@ -214,7 +214,7 @@ evaluate_major_diseases_wsex <- function(params, Y, disease_names, pce_df, follo
 # Use the function
 
 pce_df = readRDS('/Users/sarahurbut/Dropbox/pce_df_prevent.rds')
-ukb_params=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/ukb_params_enrollment.rds")
+ukb_params=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/ukb_params_enrollment.rds")
 ukb_results <- evaluate_major_diseases_wsex(
   params = ukb_params,
   Y = ukb_params$Y,
@@ -224,7 +224,69 @@ ukb_results <- evaluate_major_diseases_wsex(
 )
 
 
+###
 
+df=read.csv("model_comparison_results.csv")
+
+
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(readr)
+
+
+
+df <- df %>%
+  mutate(
+    aladyn_auc = as.numeric(str_extract(Aladynoulli_AUC, "^[0-9.]+")),
+    aladyn_low = as.numeric(str_extract(Aladynoulli_AUC, "(?<=\\()[0-9.]+")),
+    aladyn_high = as.numeric(str_extract(Aladynoulli_AUC, "(?<=-)[0-9.]+(?=\\))")),
+    cox_auc = as.numeric(str_extract(Cox_AUC, "^[0-9.]+")),
+    cox_low = as.numeric(str_extract(Cox_AUC, "(?<=\\()[0-9.]+")),
+    cox_high = as.numeric(str_extract(Cox_AUC, "(?<=-)[0-9.]+(?=\\))")),
+    Rate_num = as.numeric(str_remove(Rate, "%")),
+    aladyn_se = (aladyn_high - aladyn_low) / (2 * 1.96),
+    cox_se = (cox_high - cox_low) / (2 * 1.96),
+    z = (aladyn_auc - cox_auc) / sqrt(aladyn_se^2 + cox_se^2),
+    p = 2 * (1 - pnorm(abs(z))),
+    significance = case_when(
+      p < 0.001 ~ "***",
+      p < 0.01 ~ "**",
+      p < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    model_better = case_when(
+      aladyn_auc > cox_auc ~ "Aladynoulli",
+      cox_auc > aladyn_auc ~ "Cox",
+      TRUE ~ "Equal"
+    )
+  )
+
+# Sort by event rate
+df <- df %>% arrange((Rate_num))
+df$Disease <- factor(df$Disease, levels = df$Disease)
+df=df[df$Disease%in%c("ASCVD","Diabetes","Anemia","All_Cancers","Prostate_Cancer","Depression","COPD","Atrial_Fib",
+                   "Breast_Cancer","Anxiety","Osteoporosis","Heart Failure","CKD","Stroke","Rheumatoid_Arthritis","Colorectal_Cacner","Lung_Cancer","Bladder_Cancer",
+                   "Ulcerative_Colitis","Parkinsons"),]
+# Plot
+pauc=ggplot(df, aes(x = Disease)) +
+  geom_segment(aes(y = cox_auc, yend = aladyn_auc, xend = Disease,
+                   color = model_better), size = 1.2, alpha = 0.5) +
+  geom_point(aes(y = aladyn_auc, shape = "Aladynoulli"), color = "#1f77b4", size = 3) +
+  geom_point(aes(y = cox_auc, shape = "Cox"), color = "#d62728", size = 3) +
+  geom_text(aes(y = pmax(aladyn_auc, cox_auc) + 0.015, label = significance), size = 4) +
+  scale_shape_manual(values = c("Aladynoulli" = 16, "Cox" = 17)) +
+  scale_color_manual(values = c("Aladynoulli" = "#1f77b4", "Cox" = "#d62728", "Equal" = "gray")) +
+  labs(title = "AUC Comparison Across Diseases",
+       subtitle = "Sorted by Event Rate; Significance Based on AUC Difference",
+       y = "AUC", x = NULL, shape = "Model", color = "Better Model") +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", size = 16),
+        axis.text.y = element_text(size = 11))
+
+ggsave(plot = pauc,filename = "paucplot.pdf")
 
 library(ggplot2)
 library(patchwork)

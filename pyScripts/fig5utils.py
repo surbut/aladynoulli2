@@ -1291,7 +1291,205 @@ def evaluate_major_diseases_wsex(model, Y_100k, E_100k, disease_names, pce_df, f
 
     return results
 
+def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_names, pce_df, n_bootstraps=100, follow_up_duration_years=10):
+    """
+    Same as evaluate_major_diseases_wsex but adds bootstrap CIs for AUC.
+    Uses exact same time logic and event counting as original.
 
+
+    """
+
+    major_diseases = {
+        'ASCVD': ['Myocardial infarction', 'Coronary atherosclerosis', 'Other acute and subacute forms of ischemic heart disease', 
+                  'Unstable angina (intermediate coronary syndrome)', 'Angina pectoris', 'Other chronic ischemic heart disease, unspecified'],
+        'Diabetes': ['Type 2 diabetes'],
+        'Atrial_Fib': ['Atrial fibrillation and flutter'],
+        'CKD': ['Chronic renal failure [CKD]', 'Chronic Kidney Disease, Stage III'],
+        'All_Cancers': ['Colon cancer', 'Cancer of bronchus; lung', 'Cancer of prostate', 'Malignant neoplasm of bladder', 'Secondary malignant neoplasm','Secondary malignant neoplasm of digestive systems', 'Secondary malignant neoplasm of liver'],
+        'Stroke': ['Cerebral artery occlusion, with cerebral infarction', 'Cerebral ischemia'],
+        'Heart_Failure': ['Congestive heart failure (CHF) NOS', 'Heart failure NOS'],
+        'Pneumonia': ['Pneumonia', 'Bacterial pneumonia', 'Pneumococcal pneumonia'],
+        'COPD': ['Chronic airway obstruction', 'Emphysema', 'Obstructive chronic bronchitis'],
+        'Osteoporosis': ['Osteoporosis NOS'],
+        'Anemia': ['Iron deficiency anemias, unspecified or not due to blood loss', 'Other anemias'],
+        'Colorectal_Cancer': ['Colon cancer', 'Malignant neoplasm of rectum, rectosigmoid junction, and anus'],
+        'Breast_Cancer': ['Malignant neoplasm of female breast'], # Sex-specific
+        'Prostate_Cancer': ['Cancer of prostate'], # Sex-specific
+        'Lung_Cancer': ['Cancer of bronchus; lung'],
+        'Bladder_Cancer': ['Malignant neoplasm of bladder'],
+        'Secondary_Cancer': ['Secondary malignant neoplasm', 'Secondary malignancy of lymph nodes', 'Secondary malignancy of respiratory organs', 'Secondary malignant neoplasm of digestive systems'],
+        'Depression': ['Major depressive disorder'],
+        'Anxiety': ['Anxiety disorder'],
+        'Bipolar_Disorder': ['Bipolar'],
+        'Rheumatoid_Arthritis': ['Rheumatoid arthritis'],
+        'Psoriasis': ['Psoriasis vulgaris'],
+        'Ulcerative_Colitis': ['Ulcerative colitis'],
+        'Crohns_Disease': ['Regional enteritis'],
+        'Asthma': ['Asthma'],
+        'Parkinsons': ["Parkinson's disease"],
+        'Multiple_Sclerosis': ['Multiple sclerosis'],
+        'Thyroid_Disorders': ['Thyrotoxicosis with or without goiter', 'Secondary hypothyroidism', 'Hypothyroidism NOS']
+    }
+
+    results = {}
+    
+    if 'Sex' not in pce_df.columns: raise ValueError("'Sex' column not found in pce_df")
+    if 'age' not in pce_df.columns: raise ValueError("'age' column not found in pce_df")
+    
+    with torch.no_grad():
+        pi, _, _ = model.forward()
+        
+    N_pi = pi.shape[0]
+    N_pce = len(pce_df)
+    N_y100k = Y_100k.shape[0]
+    
+    if not (N_pi == N_pce == N_y100k):
+        print(f"Warning: Size mismatch for evaluation cohort. pi: {N_pi}, pce_df: {N_pce}, Y_100k: {N_y100k}. Using minimum size.")
+        min_N = min(N_pi, N_pce, N_y100k)
+        pi = pi[:min_N]
+        pce_df = pce_df.iloc[:min_N]
+        Y_100k = Y_100k[:min_N]
+    pce_df = pce_df.reset_index(drop=True) 
+
+    for disease_group, disease_list in major_diseases.items():
+        print(f"\nEvaluating {disease_group} ({follow_up_duration_years}-Year Outcome, 1-Year Score)...")
+        
+        disease_indices = []
+        unique_indices = set()
+        for disease in disease_list:
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                 if idx not in unique_indices:
+                      disease_indices.append(idx)
+                      unique_indices.add(idx)
+        max_model_disease_idx = pi.shape[1] - 1
+        disease_indices = [idx for idx in disease_indices if idx <= max_model_disease_idx]
+        if not disease_indices:
+             print(f"No valid matching disease indices found for {disease_group}.")
+             results[disease_group] = {'auc': np.nan, 'n_events': 0, 'event_rate': 0.0, 
+                                     'ci_lower': np.nan, 'ci_upper': np.nan}
+             continue
+
+        target_sex = None
+        if disease_group == 'Breast_Cancer': target_sex = 'Female'
+        elif disease_group == 'Prostate_Cancer': target_sex = 'Male'
+
+        mask_pce = (pce_df['Sex'] == target_sex) if target_sex else pd.Series(True, index=pce_df.index)
+        int_indices_pce = np.where(mask_pce)[0]
+
+        if target_sex:
+            print(f"Filtering for {target_sex}: Found {len(int_indices_pce)} individuals in cohort")
+            if len(int_indices_pce) == 0:
+                 print(f"Warning: No individuals found for target sex '{target_sex}'. Skipping.")
+                 results[disease_group] = {'auc': np.nan, 'n_events': 0, 'event_rate': 0.0,
+                                         'ci_lower': np.nan, 'ci_upper': np.nan}
+                 continue
+        
+        if len(int_indices_pce) == 0: 
+            auc_score = np.nan; n_events = 0; event_rate = 0.0; n_processed = 0
+            ci_lower = np.nan; ci_upper = np.nan
+        else:
+            current_pi_auc = pi[int_indices_pce]
+            current_Y_100k_auc = Y_100k[int_indices_pce]
+            current_pce_df_auc = pce_df.iloc[int_indices_pce] 
+            current_N_auc = len(int_indices_pce)
+
+            # Pre-allocate tensors for ALL patients
+            risks_auc = torch.zeros(current_N_auc, device=pi.device)
+            outcomes_auc = torch.zeros(current_N_auc, device=pi.device)
+            processed_indices_auc_final = [] 
+
+            for i in range(current_N_auc): 
+                age = current_pce_df_auc.iloc[i]['age'] 
+                t_enroll = int(age - 30)
+                if t_enroll < 0 or t_enroll >= current_pi_auc.shape[2]: continue
+
+                # Store risk for ALL valid enrollment times
+                pi_diseases = current_pi_auc[i, disease_indices, t_enroll]
+                yearly_risk = 1 - torch.prod(1 - pi_diseases)
+                risks_auc[i] = yearly_risk
+
+                end_time = min(t_enroll + follow_up_duration_years, current_Y_100k_auc.shape[2]) 
+                if end_time <= t_enroll: continue
+                
+                # Check for events and store outcome
+                event_found_auc = False
+                for d_idx in disease_indices:
+                    if d_idx >= current_Y_100k_auc.shape[1]: continue
+                    if torch.any(current_Y_100k_auc[i, d_idx, t_enroll:end_time] > 0): 
+                        outcomes_auc[i] = 1
+                        event_found_auc = True
+                        break
+                
+                # Only add to processed indices if we'll use for AUC
+                processed_indices_auc_final.append(i) 
+
+            if not processed_indices_auc_final:
+                 auc_score = np.nan; n_events = 0; event_rate = 0.0; n_processed = 0
+                 ci_lower = np.nan; ci_upper = np.nan
+            else:
+                 # Get risks/outcomes only for AUC calculation
+                 risks_np = risks_auc[processed_indices_auc_final].cpu().numpy()
+                 outcomes_np = outcomes_auc[processed_indices_auc_final].cpu().numpy()
+                 n_processed = len(outcomes_np)
+                 
+                 if disease_group in ["Bipolar_Disorder", "Depression"]:
+                    df = pd.DataFrame({
+                        "risk": risks_np,
+                        "outcome": outcomes_np
+                    })
+                    df.to_csv(f"debug_{disease_group}.csv", index=False)
+                 
+                 # Calculate AUC using roc_curve + auc consistently
+                 if len(np.unique(outcomes_np)) > 1:
+                      fpr, tpr, _ = roc_curve(outcomes_np, risks_np)
+                      auc_score = auc(fpr, tpr)
+                      
+                      # Bootstrap CI calculation using same method
+                      aucs = []
+                      for _ in range(n_bootstraps):
+                          indices = np.random.choice(len(risks_np), size=len(risks_np), replace=True)
+                          if len(np.unique(outcomes_np[indices])) > 1:
+                              fpr_boot, tpr_boot, _ = roc_curve(outcomes_np[indices], risks_np[indices])
+                              bootstrap_auc = auc(fpr_boot, tpr_boot)
+                              aucs.append(bootstrap_auc)
+                      
+                      if aucs:
+                          ci_lower = np.percentile(aucs, 2.5)
+                          ci_upper = np.percentile(aucs, 97.5)
+                      else:
+                          ci_lower = ci_upper = np.nan
+                 else:
+                      auc_score = np.nan
+                      ci_lower = ci_upper = np.nan
+                      print(f"Warning: Only one class present ({np.unique(outcomes_np)}) for AUC.")
+                 
+                 # Calculate events using ALL outcomes
+                 n_events = int(torch.sum(outcomes_auc).item())
+                 event_rate = (n_events / current_N_auc * 100)
+        
+        results[disease_group] = {
+            'auc': auc_score,
+            'n_events': n_events,
+            'event_rate': event_rate,
+            'ci_lower': ci_lower,
+            'ci_upper': ci_upper
+        }
+        
+        print(f"AUC: {auc_score:.3f} ({ci_lower:.3f}-{ci_upper:.3f}) (calculated on {n_processed} individuals)") 
+        print(f"Events ({follow_up_duration_years}-Year in Eval Cohort): {n_events} ({event_rate:.1f}%) (from {current_N_auc} individuals)") 
+
+    print(f"\nSummary of Results (Prospective {follow_up_duration_years}-Year Outcome, 1-Year Score, Sex-Adjusted):") 
+    print("-" * 80)
+    print(f"{'Disease Group':<20} {'AUC':<25} {'Events':<10} {'Rate (%)':<10}")
+    print("-" * 80)
+    for group, res in results.items():
+        auc_str = f"{res['auc']:.3f} ({res['ci_lower']:.3f}-{res['ci_upper']:.3f})" if not np.isnan(res['auc']) else "N/A"
+        rate_str = f"{res['event_rate']:.1f}" if res['event_rate'] is not None else "N/A"
+        print(f"{group:<20} {auc_str:<25} {res['n_events']:<10d} {rate_str}")
+    print("-" * 80)
+
+    return results
 
 # --- Function to Fit Cox Models on Training Slice ---
 def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10):

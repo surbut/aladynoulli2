@@ -1499,7 +1499,7 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
     
     return fig
 
-
+## converted this to R
 def plot_disease_signature_clusters_all_batches_ax(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, axes=None):
     """
     Same as plot_disease_signature_clusters_all_batches, but plots into provided axes if given.
