@@ -344,6 +344,26 @@ set_labels <- paste0(
   " (", set_sizes, ")"
 )
 
+
+
+upset_plot <- upset(
+  upset_matrix,
+  nsets = 7,
+  order.by = "freq",
+  sets = names(upset_matrix),
+  keep.order = TRUE,
+  mainbar.y.label = "Intersection Size",
+  sets.x.label = "Variants Per Phenotype",
+  text.scale = 1.2,
+  point.size = 3,
+  line.size = 1,
+  mb.ratio = c(0.6, 0.4),
+  main.bar.color = "steelblue",
+  sets.bar.color = "gray40"
+)
+print(upset_plot)
+
+
 # Plot upset plot with UpSetR
 upset_plot <- upset(
   upset_matrix,

@@ -234,8 +234,6 @@ library(dplyr)
 library(stringr)
 library(readr)
 
-
-
 df <- df %>%
   mutate(
     aladyn_auc = as.numeric(str_extract(Aladynoulli_AUC, "^[0-9.]+")),
@@ -261,6 +259,40 @@ df <- df %>%
       TRUE ~ "Equal"
     )
   )
+
+# Sort by event rate
+# Sort by event rate
+df <- df %>% arrange((Rate_num))
+df$event_label <- paste0(df$Rate, " (", df$Events*39, ")")
+df$Disease <- factor(df$Disease, levels = df$Disease)
+df=df[df$Disease%in%c("ASCVD","Diabetes","Anemia","All_Cancers","Prostate_Cancer","Depression","COPD","Atrial_Fib",
+                      "Breast_Cancer","Anxiety","Osteoporosis","Heart Failure","CKD","Stroke","Rheumatoid_Arthritis","Colorectal_Cacner","Lung_Cancer","Bladder_Cancer",
+                      "Ulcerative_Colitis","Parkinsons"),]
+# Plot
+pauc2=ggplot(df, aes(x = Disease))+lims(y=c(0.35,1))+
+  geom_segment(aes(y = cox_auc, yend = aladyn_auc, xend = Disease,
+                   color = model_better), size = 1.2, alpha = 0.5) +
+  geom_errorbar(aes(ymin = aladyn_low, ymax = aladyn_high), width = 0.15,
+                color = "#d62728", size = 0.6) +
+  geom_errorbar(aes(ymin = cox_low, ymax = cox_high), width = 0.15,
+                color = "#1f77b4", size = 0.6) +
+  geom_point(aes(y = aladyn_auc, shape = "Aladynoulli"), color =  "#d62728", size = 3) +
+  geom_text(aes(y = 0.85, label = event_label), hjust = 0, size = 4, color = "black") +
+  geom_point(aes(y = cox_auc, shape = "Cox"), color ="#1f77b4", size = 3) +
+  geom_text(aes(y = pmax(aladyn_auc, cox_auc) + 0.02, label = significance), size = 4) +
+  scale_shape_manual(values = c("Aladynoulli" = 16, "Cox" = 17)) +
+  scale_color_manual(values = c("Aladynoulli" ="#d62728", "Cox" = "#1f77b4",  "Equal" = "gray")) +
+  labs(title = "AUC Comparison Across Diseases",
+       subtitle = "Sorted by Event Rate with 95% Confidence Intervals",
+       y = "AUC", x = NULL, shape = "Model", color = "Better Model") +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", size = 16),
+        axis.text.y = element_text(size = 11))
+
+
+ggsave(plot = pauc2,filename = "paucplot.pdf",width=15)
 
 # Sort by event rate
 df <- df %>% arrange((Rate_num))
