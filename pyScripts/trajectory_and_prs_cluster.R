@@ -24,16 +24,49 @@ all_patient_diseases = data.frame(read.csv("~/aladynoulli2/pyScripts/all_patient
 Y = data.frame(read.csv("~/aladynoulli2/pyScripts/big_stuff/Y_summed_400k.csv"))
 sig_refs = read.csv("~/aladynoulli2/pyScripts/reference_thetas.csv", header = T)
 
-all_thetas_tensor <- torch$load("big_stuff/all_patient_thetas_alltime.pt", weights_only =
-                                  FALSE)
+#all_thetas_tensor <- torch$load("big_stuff/all_patient_thetas_alltime.pt", weights_only =
+                                  #FALSE)
 ## do not load data.table()
 # Convert to an R array
-all_thetas_array <- tensor_to_r(all_thetas_tensor)
+all_thetas_array <- readRDS("all_thetas_array_time.rds")
 rm(all_thetas_tensor)
 mean_thetas = apply(all_thetas_array, c(1, 2), mean) ## should give you time averaged mean
 E=readRDS("E_full_tensor.rds")
 library(reshape2)
+library(microViz)
+kelly<- distinct_palette(pal = "kelly")
+kelly2=kelly
+kelly2[6]=kelly[5]
+kelly2[5]=kelly[6]
 
+brewerPlus <- distinct_palette()
+scales::show_col(brewerPlus)
+
+c25 <- c(
+  "dodgerblue2", "#E31A1C", # red
+  "green4",
+  "#6A3D9A", # purple
+  "#FF7F00", # orange
+  "black", "gold1",
+  "skyblue2", "#FB9A99", # lt pink
+  "palegreen2",
+  "#CAB2D6", # lt purple
+  "#FDBF6F", # lt orange
+  "gray70", "khaki2",
+  "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
+  "darkturquoise", "green1", "yellow4", "yellow3",
+  "darkorange4", "brown"
+)
+
+tab21_colors <- c(
+  "#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78",
+  "#2ca02c", "#98df8a", "#d62728", "#ff9896",
+  "#9467bd", "#c5b0d5", "#8c564b", "#c49c94",
+  "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7",
+  "#bcbd22", "#dbdb8d", "#17becf", "#9edae5",
+  "#000000" # black for 21st signature
+)
+python_clusters=read.csv("python_clusters.csv")
 traj_func = function(disease_ix) {
   name = all_patient_diseases[disease_ix, 1]
   print(all_patient_diseases[disease_ix, 1])
@@ -70,11 +103,13 @@ traj_func = function(disease_ix) {
   print(table(clust$cluster))
   ### time center
   time_diff_by_cluster = array(NA, dim = c(3, K, T))
+  time_means_by_cluster_array = array(NA, dim = c(3, K, T))
   for (t in 1:T) {
     time_spec_theta = data.frame(time_theta[, , t]) #Nd x K for a given T
-    time_spec_theta$cluster = clust$cluster #which cluster each person in
+    #time_spec_theta$cluster = clust$cluster #which cluster each person in
+    time_spec_theta$cluster = python_clusters$cluster #which cluster each person in
     time_means_by_cluster <- aggregate(. ~ cluster, data = time_spec_theta, FUN = mean) #get the time averaged theta for that cluster across singatures
-    
+    time_means_by_cluster_array[, , t] = as.matrix(time_means_by_cluster[,-1])
     time_diff_by_cluster[, , t] <- sweep(as.matrix(time_means_by_cluster[, -1]), 2, sig_refs[, t], "-")
     
     
@@ -90,7 +125,8 @@ traj_func = function(disease_ix) {
   library(ggsci)
   # Option 1: Stacked area plot (all deviations)
   p1 = ggplot(m, aes(x = Time, y = Value, fill = as.factor(Sig))) +
-    geom_area(position = "stack") + scale_fill_manual(values = unname(glasbey())) +
+    geom_area(position = "stack") + #scale_fill_manual(values = unname(glasbey())) +
+    scale_fill_manual(values = brewerPlus)+
     facet_wrap( ~ Cluster, ncol = 1, scales = "free") +
     theme_classic() +
     labs(
@@ -99,10 +135,33 @@ traj_func = function(disease_ix) {
       x = "Time"
     )
   
+  
+  library(ggplot2)
+  library(viridis)
+  
+  # Option 1: Stacked area plot (all deviations)
+  # p1 <- ggplot(m, aes(x = Time, y = Value, fill = as.factor(Sig))) +
+  #   geom_area(position = "stack", alpha = 0.9) +
+  #   scale_fill_viridis_d(option = "C", name = "Signature") +
+  #   facet_wrap(~ Cluster, ncol = 1, scales = "free_y", 
+  #              labeller = labeller(Cluster = function(x) paste0("Cluster ", x, " (n=", table(clust$cluster)[as.numeric(x)], ")"))) +
+  #   theme_classic(base_size = 14) +
+  #   labs(
+  #     y = paste0("Theta Deviation from Reference (", name, ")"),
+  #     x = "Time (e.g., Age)"
+  #   ) +
+  #   theme(
+  #     strip.text = element_text(face = "bold", size = 13),
+  #     plot.title = element_text(face = "bold", hjust = 0.5)
+  #   )
+  # 
+  # print(p1)
+  
+  ggsave(plot = p1, filename = paste0("stackedtraj_", name, ".pdf"), dpi = 300, width = 8, height = 6)
   ggsave(
-    plot = p1,
-    filename = paste0("stackedtraj", name, ".pdf"),
-    dpi = 300
+  plot = p1,
+  filename = paste0("stackedtraj", name, ".pdf"),
+   dpi = 300
   )
   
   # If goodgen is a data.table, convert to data.frame for easier manipulation
@@ -116,7 +175,7 @@ traj_func = function(disease_ix) {
   
   # Add cluster assignment as a column
   goodgen_df$cluster <- clust$cluster
-  
+  #goodgen_df$cluster = python_clusters$cluster #
   # Compute mean PRS for each cluster
   prs_means_by_cluster <- aggregate(. ~ cluster, data = goodgen_df, FUN = mean)
   
@@ -216,19 +275,115 @@ traj_func = function(disease_ix) {
   )
   
   
-  return(clust)
+  return(list(clusters=clust,tat=time_averaged_theta))
 }
 
 
 
 
-traj_func(18)
+c=traj_func(18)
 traj_func(113)
 traj_func(67)
 
+####
+ukb_param=readRDS("~/aladynoulli2/pyScripts/big_stuff/ukb_params.rds")
+E=sapply(seq(1:nrow(ukb_param$Y)),function(x)
+  {
+  ifelse(sum(ukb_param$Y[x,113,])==1,which(ukb_param$Y[x,113,]==1)+29,81)
+})
 
 
-mean_func = function(disease_ix) {
+# Suppose idxs is your vector of patient indices
+idxs <- head(which(E != 81))
+
+
+# Plot the lines and capture the colors used
+matplot(t(all_thetas[idxs, 6, ]), type = "l", lty = 1, xlab = "Age", ylab = "Theta (K=5)", main = "Softmax Trajectories for K=5")
+mat_colors <- 1:length(idxs)  # Default: matplot uses 1,2,3,... as colors, or you can specify col= explicitly
+
+# Add vertical lines at event times, matching the color of each line
+for (i in seq_along(idxs)) {
+  abline(v = E[idxs[i]] - 29, col = mat_colors[i], lty = 2, lwd = 2)
+}
+
+legend("topright", legend = paste("Patient", idxs), col = mat_colors, lty = 1)
+
+
+### case_thetas
+
+case_thetas=colMeans(all_thetas[which(E!=81), 6, ])
+
+control_thetas=colMeans(all_thetas[, 6, ])
+
+r=rbind(case_thetas,control_thetas)
+matplot(t(r), type = "l", lty = 1, xlab = "Age", ylab = "Theta (K=5)", main = "Softmax Trajectories for K=5",col = c("red","blue"))
+mat_colors <- c("red","blue")  # Default: matplot uses 1,2,3,... as colors, or you can specify col= explicitly
+legend("topright", legend = c("case","control"), col = mat_colors, lty = 1)
+
+
+##
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(patchwork)
+
+ages <- 30:81
+k_idx <- 6  # or your K of interest
+
+# --- Panel 1: Individual patients ---
+idxs <- head(which(E != 81))
+df_indiv <- data.frame(
+  Age = rep(ages, length(idxs)),
+  Theta = as.vector(t(all_thetas[idxs, k_idx, ])),
+  Patient = factor(rep(idxs, each = length(ages))),
+  Event = rep(E[idxs], each = length(ages))
+)
+
+p1 <- ggplot(df_indiv, aes(x = Age, y = Theta, color = Patient, group = Patient)) +
+  geom_line(size = 1.1) +
+  geom_vline(aes(xintercept = Event, color = Patient), linetype = "dashed", size = 1) +
+  labs(title = "Softmax Trajectories (Individual Patients)", y = paste0("Theta (K=", k_idx, ")"), x = "Age") +
+  theme_minimal(base_size = 15) +
+  theme(legend.position = "bottom")
+
+# --- Panel 2: Case vs Control means ---
+case_thetas = colMeans(all_thetas[which(E != 81), k_idx, ])
+control_thetas = colMeans(all_thetas[, k_idx, ])
+df_mean <- data.frame(
+  Age = rep(ages, 2),
+  Theta = c(case_thetas, control_thetas),
+  Group = rep(c("Case", "Control"), each = length(ages))
+)
+
+p2 <- ggplot(df_mean, aes(x = Age, y = Theta, color = Group)) +
+  geom_line(size = 1.2) +
+  labs(title = "Mean Softmax Trajectories", y = paste0("Theta (K=", k_idx, ")"), x = "Age") +
+  scale_color_manual(values = c("Case" = "red", "Control" = "blue")) +
+  theme_minimal(base_size = 15) +
+  theme(legend.position = "bottom")
+
+# --- Combine panels ---
+g=p1 + p2 + plot_layout(ncol = 1)
+ggsave(plot =g,filename = "sofmaxtraj.pdf",width=10,height = 20 )
+
+
+#### early late
+
+early_thetas = data.frame(colMeans(all_thetas[which(E <= 55), , ]))
+late_thetas = data.frame(colMeans(all_thetas[which(E > 65&E!=81), , ]))
+colnames(early_thetas)=colnames(late_thetas)=c(30:81)
+early_thetas$group="young"
+early_thetas$sig=c(0:20)
+late_thetas$group="old"
+late_thetas$sig=c(0:20)
+
+library(reshape2)
+m=melt(rbind(early_thetas,late_thetas),id.vars=c("group","sig"))
+ggplot(m,aes(x=variable,y=value,col=as.factor(sig),group=as.factor(sig)))+geom_smooth()+facet_wrap(~as.factor(group))
+
+
+mean_func = funclasction(disease_ix) {
   name = all_patient_diseases[disease_ix, 1]
   print(all_patient_diseases[disease_ix, 1])
   diseased = which(Y[, disease_ix] == 1)
