@@ -1136,6 +1136,172 @@ def visualize_disease_contribution_breakdown(
     
     return fig
 
+
+def visualize_disease_contribution_breakdown_new(
+    lambda_values_np: np.ndarray,  # (N, K, T)
+    phi_values_np: np.ndarray,     # (K, D, T)
+    individual_idx: int,
+    disease_idx: int,              
+    disease_name: str,             
+    time_points: np.ndarray,       
+    signature_names: Optional[List[str]] = None,
+    kappa: float = 1.0,
+    output_path: Optional[str] = None
+):
+    """
+    Visualize how all signatures contribute to a specific disease's probability,
+    with a heatmap showing signature-disease associations over time.
+    Uses consistent color scheme and a single legend for all signatures.
+    """
+    # Convert inputs to numpy if they're torch tensors
+    if torch.is_tensor(lambda_values_np):
+        lambda_values_np = lambda_values_np.detach().cpu().numpy()
+    if torch.is_tensor(phi_values_np):
+        phi_values_np = phi_values_np.detach().cpu().numpy()
+    if torch.is_tensor(kappa):
+        kappa = kappa.item()
+
+    N, K, T = lambda_values_np.shape
+
+    # --- Calculations ---
+    # Calculate theta for all individuals and the population average
+    theta_all = np.zeros((N, K, T))
+    for i in range(N):
+        exp_lambda = np.exp(lambda_values_np[i, :, :])
+        theta_all[i, :, :] = exp_lambda / np.sum(exp_lambda, axis=0, keepdims=True)
+    
+    # Population statistics
+    theta_pop_mean = np.mean(theta_all, axis=0)  # (K, T)
+    theta_pop_std = np.std(theta_all, axis=0)    # (K, T)
+
+    # Individual theta
+    theta_individual = theta_all[individual_idx]  # (K, T)
+
+    # Get raw phi values for the target disease
+    phi_disease = phi_values_np[:, disease_idx, :]  # (K, T)
+    
+    # Calculate contributions using sigmoid of phi
+    phi_probs_disease = 1 / (1 + np.exp(-phi_disease))
+    contributions = theta_individual * phi_probs_disease
+    total_latent_risk = np.sum(contributions, axis=0)  # (T,)
+    total_prob_disease = kappa * total_latent_risk     # (T,)
+    total_prob_disease = np.minimum(1.0, np.maximum(0.0, total_prob_disease))
+
+    # Scale contributions
+    scaled_contributions = contributions.copy()  # (K, T)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        scaling_factor = np.divide(total_prob_disease, total_latent_risk)  # (T,)
+        scaling_factor = np.where(np.isfinite(scaling_factor), scaling_factor, 0.0)  # (T,)
+        scaled_contributions = scaled_contributions * scaling_factor[None, :]  # Broadcasting (T,) to (K, T)
+    if signature_names is None:
+        signature_names = [f"Signature {k}" for k in range(K)]
+
+    # Create consistent color palette
+    palette = get_signature_colors(K)
+
+    # Create the figure with the shared legend at the bottom
+    fig = plt.figure(figsize=(12, 16))
+    gs = gridspec.GridSpec(4, 1, height_ratios=[1.5, 1.2, 2, 0.3])
+
+    # --- Panel 1: Population and Individual Signature Loadings (theta) ---
+    ax1 = fig.add_subplot(gs[0])
+    
+    # Create line objects for legend (but don't add them to the plot yet)
+    pop_lines = []
+    ind_lines = []
+    
+    for k in range(K):
+        # Population mean
+        ax1.plot(time_points, theta_pop_mean[k], '--', color=palette[k], alpha=0.5)
+        ci = theta_pop_std[k]
+        ax1.fill_between(time_points, 
+                        theta_pop_mean[k] - ci,
+                        theta_pop_mean[k] + ci,
+                        color=palette[k], alpha=0.1)
+        
+        # Individual
+        ax1.plot(time_points, theta_individual[k], '-', color=palette[k], linewidth=2)
+        
+        # Create dummy lines for legend
+        pop_lines.append(Line2D([0], [0], linestyle='--', color=palette[k], alpha=0.7))
+        ind_lines.append(Line2D([0], [0], linestyle='-', color=palette[k], linewidth=2))
+
+    ax1.set_title(f'Signature Loadings (θ): Individual {individual_idx} vs Population', pad=15)
+    ax1.set_ylabel('Loading (θ)')
+    ax1.grid(True, alpha=0.3)
+    ax1.tick_params(labelbottom=False)
+
+    # --- Panel 2: Signature-Disease Association Heatmap ---
+    ax2 = fig.add_subplot(gs[1])
+    df_heatmap = pd.DataFrame(
+        phi_disease,
+        index=signature_names,
+        columns=time_points
+    )
+    # Use a consistent colormap for the heatmap that works well with our color scheme
+    sns.heatmap(df_heatmap, 
+                cmap='RdBu_r',
+                ax=ax2,
+                cbar_kws={'label': 'log-odds(Disease | Signature k, Age t)'})
+    ax2.set_title(f'Temporal Signature Associations for {disease_name}', pad=15)
+    ax2.set_xlabel('')  # Remove x-label since it's shared
+    ax2.set_ylabel('Signature')
+    ax2.tick_params(rotation=0)
+
+    # --- Panel 3: Stacked Contribution to Disease Probability ---
+    ax3 = fig.add_subplot(gs[2], sharex=ax1)
+    
+    # Preserve original signature order for consistent visualization
+    ax3.stackplot(time_points, scaled_contributions, colors=palette, alpha=0.7)
+    ax3.plot(time_points, total_prob_disease, 'k--', linewidth=2, 
+             label='Total Risk ($\pi_{idt}$)')
+    
+    ax3.set_title(f'Signature Contributions to Risk of "{disease_name}"', pad=15)
+    ax3.set_xlabel('Age')
+    ax3.set_ylabel('Risk ($\pi$)')
+    ax3.grid(True, alpha=0.3)
+    
+    plot_max_y = (np.max(total_prob_disease) * 1.1) if np.any(total_prob_disease > 0) else 0.1
+    ax3.set_ylim(0, plot_max_y)
+
+    # Create a common legend in a separate subplot
+    ax4 = fig.add_subplot(gs[3])
+    
+    # First set of legend elements: Population vs Individual
+    legend_elements_style = [
+        Line2D([0], [0], color='gray', linestyle='--', alpha=0.7, label='Population Mean'),
+        Line2D([0], [0], color='gray', linestyle='-', linewidth=2, label='Individual')
+    ]
+    
+    # Second set of legend elements: Signature colors
+    legend_elements_sig = [Line2D([0], [0], color=palette[k], marker='s', linestyle='-', 
+                                 label=signature_names[k]) for k in range(K)]
+    
+    # Third element: Total risk
+    legend_element_risk = [Line2D([0], [0], color='black', linestyle='--', linewidth=2, 
+                                 label='Total Risk ($\pi_{idt}$)')]
+    
+    # Combine all legend elements
+    all_legend_elements = legend_elements_style + legend_elements_sig + legend_element_risk
+    
+    # Create legend
+    ax4.legend(handles=all_legend_elements, loc='center', ncol=min(K+1, 4), 
+              mode="expand", borderaxespad=0., frameon=True)
+    ax4.axis('off')  # Hide the axes for the legend subplot
+
+    plt.suptitle(f"Probability Breakdown for '{disease_name}' - Individual {individual_idx}", 
+                fontsize=16, y=0.99)
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Saved figure to {output_path}")
+        plt.close(fig)
+    else:
+        plt.show()
+    
+    return fig
+
 def analyze_age_onset_patterns_across_batches(
     results_base_dir: str,
     disease_index: int = 114,
@@ -1339,26 +1505,41 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
         
         disease_name = disease_names[disease_idx] if disease_idx < len(disease_names) else f"Disease {disease_idx}"
         print(f"Analyzing {disease_name}")
-        
-        # Get reference trajectories from first batch
-        if 'signature_refs' in model1:
-            if model1.get('healthy_ref') is not None:
-                # Create full reference including healthy state
-                reference_lambda = torch.zeros((K_total, time_points))
-                reference_lambda[:-1] = model1['signature_refs']  # Disease signatures
-                reference_lambda[-1] = model1['healthy_ref']  # Healthy reference
-                # Convert to proportions using softmax
-                reference_theta = torch.softmax(reference_lambda, dim=0).detach().numpy()
-            else:
-                reference_theta = torch.softmax(model1['signature_refs'], dim=0).detach().numpy()
-        else:
-            # If no reference, we'll calculate population average later
-            reference_theta = None
     except Exception as e:
         print(f"ERROR loading model: {str(e)}")
         traceback.print_exc()
         return None
     
+    reference_theta = None
+    try:
+        # Preferred: Load from CSV for consistency with R
+        if os.path.exists("reference_thetas.csv"):
+            reference_theta = pd.read_csv("reference_thetas.csv", header=0).values  # header=0 skips the first row as header
+            print("Loaded reference_theta from reference_thetas.csv:", reference_theta.shape)
+        else:
+        
+            # Get reference trajectories from first batch
+            if 'signature_refs' in model1:
+                if model1.get('healthy_ref') is not None:
+                    # Create full reference including healthy state
+                    reference_lambda = torch.zeros((K_total, time_points))
+                    reference_lambda[:-1] = model1['signature_refs']  # Disease signatures
+                    reference_lambda[-1] = model1['healthy_ref']  # Healthy reference
+                    # Convert to proportions using softmax
+                    reference_theta = torch.softmax(reference_lambda, dim=0).detach().numpy()
+                else:
+                    reference_theta = torch.softmax(model1['signature_refs'], dim=0).detach().numpy()
+            else:
+                # If no reference, we'll calculate population average later
+                reference_theta = None
+            print("Constructed reference_theta from model:", reference_theta.shape if reference_theta is not None else None)
+    except Exception as e:
+        print(f"ERROR loading or constructing reference_theta: {str(e)}")
+        traceback.print_exc()
+        return None
+
+
+        
     # Collect patients with this disease across all batches
     all_patients = []  # Will store (batch_idx, patient_idx) tuples
     all_features = []  # Will store signature proportions
@@ -1390,7 +1571,8 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
                     all_thetas.append(theta)
             
             print(f"Found {len(all_patients) - (0 if batch == 0 else sum(1 for p in all_patients if p[0] < batch))} patients in batch {batch+1}")
-            
+            pd.DataFrame(all_features).to_csv("all_features_python.csv", index=False)
+
         except FileNotFoundError:
             print(f"Warning: Could not find model file for batch {batch}")
             break  # Assume we've reached the end of batches
@@ -1417,6 +1599,10 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
     print(f"\nPerforming clustering with {n_clusters} clusters...")
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     patient_clusters = kmeans.fit_predict(all_features)
+    pd.DataFrame({
+    "patient_index": np.arange(len(patient_clusters)),
+    "cluster": patient_clusters + 1  # +1 for R-style cluster numbering
+    }).to_csv("python_clusters.csv", index=False)
     
     # Create figure and axes
     fig, axes = plt.subplots(n_clusters, 1, figsize=(12, 5*n_clusters))
@@ -1426,16 +1612,24 @@ def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n
     time_points = np.arange(time_points)
     
     for cluster_idx in range(n_clusters):
-        # Get patients in this cluster
-        cluster_indices = np.where(patient_clusters == cluster_idx)[0]
-        cluster_thetas = [all_thetas[i] for i in cluster_indices]
-        
-        # Calculate average theta for this cluster
-        avg_theta = np.mean(cluster_thetas, axis=0)
-        
-        if subtract_reference:
-            # Subtract reference from average
-            avg_theta = avg_theta - reference_theta
+        try:
+            print(f"Processing cluster {cluster_idx}", flush=True)
+            cluster_indices = np.where(patient_clusters == cluster_idx)[0]
+            print(f"Number of patients in cluster: {len(cluster_indices)}", flush=True)
+            cluster_thetas = [all_thetas[i] for i in cluster_indices]
+            avg_theta = np.mean(cluster_thetas, axis=0)
+            save_path = f"avg_theta_before_ref_{cluster_idx}.csv"
+            pd.DataFrame(avg_theta).to_csv(save_path, index=False)
+            if subtract_reference:
+                avg_theta = avg_theta - reference_theta
+                save_path = f"reference_theta_{cluster_idx}.csv"
+                pd.DataFrame(reference_theta).to_csv(save_path, index=False)
+            save_path = f"avg_theta_{cluster_idx}.csv"
+            pd.DataFrame(avg_theta).to_csv(save_path, index=False)
+            print(f"Saved {save_path}", flush=True)
+        except Exception as e:
+            print(f"Error in cluster {cluster_idx}: {e}", flush=True)
+
         
         # Calculate mean deviation for each signature
         mean_props = np.abs(avg_theta).mean(axis=1)

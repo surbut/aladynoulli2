@@ -113,7 +113,7 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
     # Create data frame for this signature's phi values
     signature_data <- data.frame(
       age = 1:52,  # assuming 52 age points
-      sigmoid(t(param$phi[signature_idx, , ]-param$logit_prev))  # transpose to get diseases as columns
+      sigmoid(t(param$phi[signature_idx, , ]))#-param$logit_prev))  # transpose to get diseases as columns
     )
     colnames(signature_data)[-1] <- disease_names
     
@@ -148,7 +148,7 @@ plot_signature <- function(signature_idx, title = NULL, param=param, disease_nam
     # Create data frame for this signature's phi values
     signature_data <- data.frame(
       age = 1:52,  # assuming 52 age points
-      t(param$phi[signature_idx, , ]-param$logit_prev)  # transpose to get diseases as columns
+      t(param$phi[signature_idx, , ])#-param$logit_prev)  # transpose to get diseases as columns
     )
     colnames(signature_data)[-1] <- disease_names
     
@@ -208,6 +208,10 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
+devs=melt(a)
+
+names(devs)=c("Sigs","Disease","Time","value")
+
 # Reshape: pivot to wide format for time 1 and 50
 devs_wide <- devs %>%
   filter(Time %in% c(1, 50)) %>%
@@ -220,7 +224,7 @@ devs_wide$DiseaseName <- disease_names[devs_wide$Disease]
 devs_wide=devs_wide[devs_wide$Sigs%in%c(1:20),]
 devs_wide$Sigs=devs_wide$Sigs-1
 ggplotly(
-  ggplot(devs_wide, aes(x = exp(Time_1), y = exp(Time_50))) +
+  ggplot(devs_wide, aes(x = (Time_1), y = (Time_50))) +
     geom_point(aes(color = DiseaseName), alpha = 0.7) +
     facet_wrap(~ Sigs, scales = "free") +
     labs(x = "OR at Time 1", y = "OR at Time 50",
@@ -694,7 +698,7 @@ unique_traits <- positive_correlations %>%
   distinct()
 
 # Create the heatmap with light red to dark red color scale
-pos_cor=ggplot(positive_correlations, aes(x = sig, y = trait, fill = rg)) +
+pos_cor=ggplot(positive_correlations, aes(x = signature, y = trait, fill = rg)) +
   geom_tile(color = "white") +
   scale_fill_gradient(low = "#FFCCCC", high = "#990000") +
   geom_text(aes(label = significant), color = "black", size = 5) +

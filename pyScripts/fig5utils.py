@@ -1313,7 +1313,7 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
         'Osteoporosis': ['Osteoporosis NOS'],
         'Anemia': ['Iron deficiency anemias, unspecified or not due to blood loss', 'Other anemias'],
         'Colorectal_Cancer': ['Colon cancer', 'Malignant neoplasm of rectum, rectosigmoid junction, and anus'],
-        'Breast_Cancer': ['Malignant neoplasm of female breast'], # Sex-specific
+        'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast'],# Sex-specific
         'Prostate_Cancer': ['Cancer of prostate'], # Sex-specific
         'Lung_Cancer': ['Cancer of bronchus; lung'],
         'Bladder_Cancer': ['Malignant neoplasm of bladder'],

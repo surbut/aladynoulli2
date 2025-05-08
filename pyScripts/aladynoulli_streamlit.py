@@ -6,6 +6,7 @@ import seaborn as sns
 from scipy.special import softmax, expit
 import gdown  # Add this to requirements.txt
 import os
+from sklearn.metrics import roc_curve, auc
 
 class ModelVisualizer:
     def __init__(self, model_state_dict, G=None, disease_names=None):
@@ -525,6 +526,168 @@ class ModelVisualizer:
         plt.tight_layout()
         return fig
 
+    def plot_diagnosis_impact(self, person_idx, disease_idx):
+        """Analyze how trajectories change around disease diagnoses"""
+        if not hasattr(self, 'Y'):
+            return None
+            
+        # Get diagnosis times for this person and disease
+        diagnoses = self.Y[person_idx, disease_idx, :]
+        diagnosis_times = np.where(diagnoses)[0]
+        
+        if len(diagnosis_times) == 0:
+            return None
+            
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+        
+        # Plot 1: Signature trajectories around diagnosis
+        window = 10  # Time points before/after diagnosis
+        for k in range(self.K):
+            # Get trajectory for this signature
+            traj = self.theta[person_idx, k, :]
+            
+            # Plot full trajectory
+            ax1.plot(range(self.T), traj, alpha=0.3, color=f'C{k}')
+            
+            # Highlight window around each diagnosis
+            for t in diagnosis_times:
+                start = max(0, t - window)
+                end = min(self.T, t + window)
+                ax1.plot(range(start, end), traj[start:end], 
+                        color=f'C{k}', linewidth=2)
+                ax1.axvline(x=t, color='red', alpha=0.3, linestyle='--')
+        
+        ax1.set_title(f'Signature Trajectories Around Diagnosis\nDisease: {self.disease_names[disease_idx]}')
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('Signature Proportion')
+        ax1.legend([f'Signature {k}' for k in range(self.K)])
+        
+        # Plot 2: Disease probability changes
+        pi_t = self.compute_disease_probabilities(person_idx)
+        
+        # Get related diseases (same cluster)
+        disease_cluster = self.clusters[disease_idx]
+        related_diseases = np.where(self.clusters == disease_cluster)[0]
+        
+        for d in related_diseases:
+            ax2.plot(range(self.T), pi_t[:, d], 
+                    label=self.disease_names[d], alpha=0.5)
+            
+            # Highlight window around diagnosis
+            for t in diagnosis_times:
+                start = max(0, t - window)
+                end = min(self.T, t + window)
+                ax2.plot(range(start, end), pi_t[start:end, d], 
+                        linewidth=2)
+                ax2.axvline(x=t, color='red', alpha=0.3, linestyle='--')
+        
+        ax2.set_title('Disease Probability Changes Around Diagnosis')
+        ax2.set_xlabel('Time')
+        ax2.set_ylabel('Probability')
+        ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        plt.tight_layout()
+        return fig
+
+    def plot_genetic_trajectory_impact(self, person_idx):
+        """Analyze how genetic factors influence trajectory changes"""
+        if self.G is None or self.gamma is None:
+            return None
+            
+        # Calculate genetic effects
+        genetic_effects = np.dot(self.G[person_idx], self.gamma)  # Shape (K,)
+        
+        # Get top and bottom affected signatures
+        top_sigs = np.argsort(genetic_effects)[-3:]  # Top 3
+        bottom_sigs = np.argsort(genetic_effects)[:3]  # Bottom 3
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+        
+        # Plot 1: Trajectories for most affected signatures
+        for k in top_sigs:
+            ax1.plot(range(self.T), self.theta[person_idx, k, :],
+                    label=f'Signature {k} (Effect: {genetic_effects[k]:.2f})')
+        ax1.set_title('Most Positively Affected Signatures')
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('Proportion')
+        ax1.legend()
+        
+        # Plot 2: Trajectories for least affected signatures
+        for k in bottom_sigs:
+            ax2.plot(range(self.T), self.theta[person_idx, k, :],
+                    label=f'Signature {k} (Effect: {genetic_effects[k]:.2f})')
+        ax2.set_title('Most Negatively Affected Signatures')
+        ax2.set_xlabel('Time')
+        ax2.set_ylabel('Proportion')
+        ax2.legend()
+        
+        plt.tight_layout()
+        return fig
+
+    def analyze_prediction_accuracy(self, person_idx, disease_idx):
+        """Analyze how well the model predicts future diagnoses"""
+        if not hasattr(self, 'Y'):
+            return None
+            
+        # Get actual diagnosis time
+        diagnoses = self.Y[person_idx, disease_idx, :]
+        diagnosis_time = np.where(diagnoses)[0]
+        
+        if len(diagnosis_time) == 0:
+            return None
+            
+        diagnosis_time = diagnosis_time[0]
+        
+        # Get predicted probabilities
+        pi_t = self.compute_disease_probabilities(person_idx)
+        pred_probs = pi_t[:, disease_idx]
+        
+        # Calculate ROC curve for different prediction windows
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+        
+        # Plot 1: Prediction trajectory
+        ax1.plot(range(self.T), pred_probs, label='Predicted Probability')
+        ax1.axvline(x=diagnosis_time, color='red', linestyle='--', 
+                   label='Actual Diagnosis')
+        
+        # Add prediction windows
+        windows = [5, 10, 15]
+        for window in windows:
+            if diagnosis_time - window >= 0:
+                ax1.axvspan(diagnosis_time - window, diagnosis_time, 
+                          alpha=0.2, color='gray',
+                          label=f'{window}-timepoint window')
+        
+        ax1.set_title(f'Prediction Trajectory for {self.disease_names[disease_idx]}')
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('Predicted Probability')
+        ax1.legend()
+        
+        # Plot 2: ROC curves for different windows
+        for window in windows:
+            if diagnosis_time - window >= 0:
+                # Get predictions in window
+                pred_window = pred_probs[diagnosis_time - window:diagnosis_time]
+                # Create binary labels (1 for diagnosis time, 0 for others)
+                labels = np.zeros_like(pred_window)
+                labels[-1] = 1
+                
+                # Calculate ROC curve
+                fpr, tpr, _ = roc_curve(labels, pred_window)
+                roc_auc = auc(fpr, tpr)
+                
+                ax2.plot(fpr, tpr, 
+                        label=f'{window}-timepoint window (AUC = {roc_auc:.2f})')
+        
+        ax2.plot([0, 1], [0, 1], 'k--')
+        ax2.set_title('ROC Curves for Different Prediction Windows')
+        ax2.set_xlabel('False Positive Rate')
+        ax2.set_ylabel('True Positive Rate')
+        ax2.legend()
+        
+        plt.tight_layout()
+        return fig
+
 def plot_phi_evolution(phi, clusters=None, disease_names=None):
     """Plot the evolution of phi values over time for each signature."""
     K, D, T = phi.shape
@@ -617,14 +780,15 @@ def main():
     time_idx = st.sidebar.slider("Select Time Point", 0, visualizer.T-1, 0)
     
     # Create tabs
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "Individual Trajectories", 
         "Phi Evolution", 
         "Trajectory Comparison",
         "Genetic Effects",
         "Predictions Analysis",
         "Disease Correlations",
-        "Onset Analysis"  # New tab
+        "Onset Analysis",
+        "Predictive Analytics"  # New tab
     ])
     
     with tab1:
@@ -791,6 +955,40 @@ def main():
         st.markdown("### Signature Enrichment Analysis")
         enrichment_fig = visualizer.plot_signature_enrichments(disease_idx, first_model['Y'])
         st.pyplot(enrichment_fig)
+
+        st.markdown("### Diagnosis Impact Analysis")
+        diagnosis_fig = visualizer.plot_diagnosis_impact(person_idx, disease_idx)
+        st.pyplot(diagnosis_fig)
+
+        st.markdown("### Genetic Trajectory Impact Analysis")
+        genetic_impact_fig = visualizer.plot_genetic_trajectory_impact(person_idx)
+        st.pyplot(genetic_impact_fig)
+
+    with tab8:
+        st.markdown("### Predictive Analytics")
+        
+        # Disease selection
+        disease_idx = st.selectbox(
+            "Select Disease for Prediction Analysis",
+            options=range(len(visualizer.disease_names)),
+            format_func=lambda x: visualizer.disease_names[x]
+        )
+        
+        # Show prediction accuracy analysis
+        pred_accuracy_fig = visualizer.analyze_prediction_accuracy(person_idx, disease_idx)
+        if pred_accuracy_fig is not None:
+            st.pyplot(pred_accuracy_fig)
+            
+            st.markdown("""
+            ### How to interpret:
+            - Left plot shows the predicted probability trajectory over time
+            - Vertical red line indicates actual diagnosis time
+            - Gray shaded areas show different prediction windows
+            - Right plot shows ROC curves for different prediction windows
+            - Higher AUC indicates better prediction accuracy
+            """)
+        else:
+            st.info("No diagnosis data available for this person/disease combination")
 
 if __name__ == "__main__":
     main()
