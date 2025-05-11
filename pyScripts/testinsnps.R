@@ -192,7 +192,46 @@ p=ggplot(r_augmented, aes(x = Phenotype, y = SNP, fill = -log10(P_value))) +
       y = "SNP"
     )
 
+
+p = ggplot(r_augmented, aes(x = Phenotype, y = SNP, fill = -log10(P_value))) +
+  geom_tile(color = "white") +
+  geom_tile(data = subset(r_augmented, Significant), fill = NA, color = "black", size = 1.2) + # bold border for sig
+  geom_text(aes(label = ifelse(Significant, "*", "")), color = "black", size = 5, vjust = 0.5) +
+  facet_grid(rows = vars(sig), scales = "free_y", space = "free_y") +
+  scale_fill_gradient(low = "#eeeeee", high = "#2c3e50", name = "-log10(p)") +
+  theme_minimal(base_size = 5) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 5),
+    axis.text.y = element_text(size = 5),
+    strip.text.y = element_text(angle = 0, size = 7)
+  ) +
+  labs(
+    title = "SNP-Phenotype Association Heatmap by Signature",
+    x = "Phenotype",
+    y = "SNP"
+  )
+
 ggsave(plot = p,filename = "SNP-Phenotype Association Heatmap by Signature.pdf",dpi=300,width = 10,height = 10)
   
   
-
+p = ggplot(r_augmented, aes(x = Phenotype, y = SNP, fill = as.factor(sig))) +
+  geom_tile(color = "white") +
+  geom_tile(
+    data = subset(r_augmented, Significant),
+    color = "black", fill = NA, size = 0.8
+  ) +
+  geom_text(aes(label = ifelse(Significant, "*", "")), color = "black", size = 5, vjust = 0.5) +
+  facet_grid(rows = vars(sig), scales = "free_y", space = "free_y") +
+  scale_fill_brewer(palette = "Set1", name = "Signature") +
+  theme_minimal(base_size = 5) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 5),
+    axis.text.y = element_text(size = 5),
+    strip.text.y = element_text(angle = 0, size = 7),
+    legend.position = "right"
+  ) +
+  labs(
+    title = "SNP-Phenotype Association Heatmap by Signature",
+    x = "Phenotype",
+    y = "SNP"
+  )

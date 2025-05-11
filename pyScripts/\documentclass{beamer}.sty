@@ -1,0 +1,973 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{pgfpages}
+%\setbeameroption{show notes on second screen=bottom}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{xcolor}
+\usepackage{comment}
+\usepackage[inkscapelatex=false]{svg}
+\usepackage{adjustbox}  
+\title{Aladynoulli: A Bayesian Approach to\\Disease Progression Modeling}
+\subtitle{Dynamic Individual Comorbidity Modeling\\for Genomic Discovery and Clinical Prediction}
+\author{Sarah Urbut, MD PhD}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+
+
+
+\begin{frame}{The call}
+    
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9 \linewidth]{figures/pager.pdf}
+    \caption{Antiquated Torture Device}
+    \label{fig:pager}
+\end{figure}
+
+\note{
+- An early shift on the consult pager as a first-year cardiology fellow and I was startled by this call
+- 40 year old gentleman, classic inferior ST elevations, crushing substernal chest pain, and markedly elevated biomarkers. 
+- Perhaps not a diagnostic dilemma, but as a budding cardiologist and trained statistician, I was struck by the irony:
+- Sound clinical reasoning would alarm urgent coronary angio, but the day prior to his presentation he wouldn’t have even qualified for primary prevention due to our reliance on short term risk. 
+- To address this concern, some have suggested a longer interval focus, however this still fails to capture the dynamic trajectory of an individuals’ changing risk profile, time varying effects, or the primordial power of genomics.
+}
+
+\end{frame}
+
+
+
+
+\begin{frame}{The Challenge: Modeling Disease Progression}
+\begin{itemize}
+    \item Patients develop multiple diseases over their lifetime
+    \item Disease comorbidities follow patterns, but these vary by individual
+    \item Genetics influences these patterns, but is not destiny
+    \item Standard approaches miss the dynamic nature of these relationships
+\end{itemize}
+
+\begin{columns}
+    \column{0.4\textwidth}
+    \begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/mgh2.pdf}
+    \caption{My new digs}
+    \label{fig:pager}
+\end{figure}
+
+\column{0.4\textwidth}
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/allcaausediags.pdf}
+    \caption{Too many charts}
+    \label{fig:Diag Density}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+\note{
+In order to to both understand and predict, we need to look globally and, paradoxically, consider both the past and the future.
+Our patients can be seen by multiple other floors in our hospital before and after their diagnoses, giving us insight into their future trajectory across many diseases. 
+Not unlike Chicago voting, coming early can also mean coming often; patients with early disease are enriched for total all-cause lifetime diagnoses.
+We would be shortsighted if we ignored underlying genomics in combination with this longiduijnal information when seeking to understand trajectories.’
+}
+
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+
+\begin{comment}
+
+\section{Motivation}
+
+\begin{frame}{Clinical Motivation}
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+    \item Early disease is enriched for all-cause lifetime diagnoses
+    \item Diseases don't occur in isolation
+    \item Traditional risk models focus on short-term risk
+    \item Missing critical information:
+    \begin{itemize}
+        \item Long-term trajectories
+        \item Comorbidity patterns
+        \item Time-varying effects
+        \item Underlying genetic factors
+    \end{itemize}
+\end{itemize}
+
+\column{0.4\textwidth}
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/allcaausediags.pdf}
+    \caption{Too many charts}
+    \label{fig:Diag Density}
+\end{figure}
+\end{columns}
+\end{frame}
+    
+\end{comment}
+
+
+\section{Motivation}
+\begin{frame}{Patient Timelines Reveal Diverse Patterns}
+\begin{itemize}
+    \item No single characteristic pattern of disease co-occurrence
+    \item Temporal dimension adds complexity
+    \item Different patients with the same disease may follow different pathways:
+\end{itemize}
+
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/timelines.pdf}
+    \caption{No two zebras...}
+    \label{fig:timelines}
+\end{figure}
+
+\begin{itemize}
+    \item To discover patterns, we need to ask both \emph{what} and \emph{when}
+\end{itemize}
+
+\note{When looking at patient timelines, no one characteristic pattern of disease co-occurrence emerges, and the temporal dimension adds a degree of complexity.
+For example, here I display four patient timelines, all for patients with CAD in red but whose disease coexisted at different times and with different comorbid ‘partners’:
+upper left following a more traditional metabolic cascade, lower left without any clear precipitating RF,
+ upper right, following an inflammatory cascade, and finally following environmental insults. 
+}
+\end{frame}
+
+\begin{frame}{What are "Signatures"?}
+\begin{center}
+\large{Signatures: patterns of disease co-occurrence that vary in time}
+\end{center}
+
+\vspace{0.3cm}
+\begin{itemize}
+    \item Signatures capture which comorbidities tend to occur together and when
+    \item Disease prevalence generally increases with time
+    \item Peak age of onset varies by condition within a signature
+\end{itemize}
+
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/sigs.pdf}
+    \caption{Time Varying Signatures}
+    \label{fig:timelines}
+\end{figure}
+
+\note{If we’re seeking to find summary ‘patterns’ of disease co-occurrence in the overall data, we need to ask not only what but when. 
+We can define Signatures as: Patterns of disease co-occurrence that vary in time.
+A signature asks with which comorbidities and WHEN a given diagnosis tends to occur, rather than just its presence or absence. 
+For example, in the toy plots featured here, if we observed a cardiovascular and neoplastic signature, we might note that disease prevalence generally tends to increase with time, but that the peak age of onset varies for each condition within the signature. This aligns well with the heterogeneity in onset and prevalence we observe in real population incidence data.
+}
+\end{frame}
+
+\begin{frame}{Time-Varying Individual Trajectories}
+\begin{itemize}
+    \item An individual's signature profile changes dynamically over time
+    \item Characterizing a patient as "cardiovascular" or "neoplastic" depends on when you ask
+\end{itemize}
+
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/sigenrich.pdf}
+    \caption{Folks Move}
+    \label{fig:timelines}
+\end{figure}
+\note{
+Similarly, the signature or profile an individual predominantly exhibits varies dynamically over time: characterizing a patient as  ‘vascular or ‘‘neoplastic’ depends on when the question is asked, rather than being neatly summarized at a single snapshot.
+Here, we show three unique sequences of progression through distinct disease signatures as indicated by the colors which connote disease processe.
+
+}
+\end{frame}
+
+\begin{frame}{The Role of Genetics}
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+    \item Genetic factors influence signature enrichment
+    \item Polygenic risk scores show stronger effects at younger ages
+    \item Early disease onset is enriched in high polygenic risk
+    \item But genetics alone tells only part of the story
+\end{itemize}
+
+\column{0.5\textwidth}
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/genetics.pdf}
+    \caption{Genetics matter}
+    \label{fig:timelines}
+\end{figure}
+\end{columns}
+\note{So, where does genomics come in? An individual’s relative enrichment in any one of these signatures evolves as it is influenced by genetics, environment, and previous diagnostic history.
+Genetics tells much of this story.
+ If we examine the effect size of Afib PRS, for example, on age of onset as stratified by age of prediction at left, we see that the effects are more negatively predictive when considered among younger individuals. 
+Furhtermore, early CAD is enriched in high polygenic risk, but it tells only part of the story: as an isolated biomarker, PRS leaves much to be desired.
+So how can population-level tendencies, underlying genetic predisposition, and new diagnostic data inform our ability to transition between signatures over time? 
+}
+\end{frame}
+
+\begin{frame}{An Identity Crisis}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/bayeslide.pdf}
+    \caption{Personal hero}
+    \label{fig:enter-label}
+\end{figure}
+
+\note{
+While the statistician inside might jump to any number of clustering algorithms, the careful clinician begs to consider the data more closely in a model-based approach. 
+The power of an unsupervised analysis can also be its peril, and a black box, strictly machine-learning-based analyses would miss the generative story.
+Enter our dear friend and personal hero, Thomas Bayes 
+}
+\end{frame}
+
+\section{Model Structure}
+
+\begin{frame}{A Model-Based Approach}
+\begin{itemize}
+    \item Unsupervised clustering can miss the generative story
+    \item Need to incorporate:
+    \begin{itemize}
+        \item Population-level patterns
+        \item Individual predilection due to genetics
+        \item New specific data (diagnoses from EHR)
+    \end{itemize}
+    \item Bayes theorem provides the foundation:
+    \begin{align*}
+    P(\Pi | \text{data}) \propto P(\text{data} | \Pi) \cdot P(\Pi)
+    \end{align*}
+\end{itemize}
+
+\note{The crux of Bayes theorem is to combine new specific data with the prior belief based on universal patterns.
+In this case, our ‘new’ data is the streaming set of updated diagnoses acquired from the EHR for a given patient
+The prior here combines population-level patterns of disease occurrence over time with our naive estimation of an individual’s underlying signature predilection centered around germline genetic variation.To accomplish all these goals, we adopted a model-based approach in building our new method, Aladynoulli. It’s beauty is the ability to describe the generative story in math that we can then approach computationally. The Greeks help us follow biology to inference, and so it's worth taking a moment to understand the intricacy that we have created
+}
+
+\end{frame}
+
+\begin{comment}
+
+\begin{frame}{Paradigm Shift in Disease Prediction}
+    \begin{columns}
+        \column{0.45\textwidth}
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth]{block title}
+            \centering \large{\textbf{Before Aladynoulli}}
+        \end{beamercolorbox}
+        
+        \vspace{0.5cm}
+        
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth]{block body}
+            \centering
+            \textbf{Isolated Disease Prediction}\\
+            Single disease focus\\
+            Ignoring comorbidities
+        \end{beamercolorbox}
+        
+        \vspace{0.5cm}
+        
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth]{block body}
+            \centering
+            \textbf{Static Risk Assessment}\\
+            Fixed point-in-time evaluation\\
+            Short-term focus
+        \end{beamercolorbox}
+        
+        \vspace{0.5cm}
+        
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth]{block body}
+            \centering
+            \textbf{Limited Data Integration}\\
+            Genetics OR clinical data\\
+            Rarely combined effectively
+        \end{beamercolorbox}
+        
+        \column{0.06\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \draw[->, very thick, color=blue] (0,0) -- (0.6,0);
+            \draw[->, very thick, color=blue] (0,-2) -- (0.6,-2);
+            \draw[->, very thick, color=blue] (0,-4) -- (0.6,-4);
+        \end{tikzpicture}
+        
+        \column{0.45\textwidth}
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth,colframe=blue!50!black]{block title}
+            \centering \large{\textbf{With Aladynoulli}}
+        \end{beamercolorbox}
+        
+        \vspace{0.5cm}
+        
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth,colframe=blue!50!black,colback=blue!10]{block body}
+            \centering
+            \textbf{Comprehensive Disease Modeling}\\
+            Patterns of disease co-occurrence\\
+            Signature-based approach
+        \end{beamercolorbox}
+        
+        \vspace{0.5cm}
+        
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth,colframe=blue!50!black,colback=blue!10]{block body}
+            \centering
+            \textbf{Dynamic Trajectories}\\
+            Time-varying signature enrichment\\
+            Lifetime risk perspective
+        \end{beamercolorbox}
+        
+        \vspace{0.5cm}
+        
+        \begin{beamercolorbox}[rounded=true,shadow=true,wd=\textwidth,colframe=blue!50!black,colback=blue!10]{block body}
+            \centering
+            \textbf{Bayesian Integration}\\
+            Genetics + Clinical Data + Time\\
+            Unified probabilistic framework
+        \end{beamercolorbox}
+    \end{columns}
+\end{frame}
+    
+\end{comment}
+
+
+\begin{frame}{Notation}
+\begin{itemize}
+    \item \textbf{Dimensions:}
+    \begin{itemize}
+        \item $N$ individuals, $D$ diseases, $T$ time points, $K$ signatures, $P$ genetic variants
+    \end{itemize}
+    
+    \item \textbf{Data:}
+    \begin{itemize}
+        \item $Y_{idt} \in \{0,1\}$ - Disease diagnosis for individual $i$, disease $d$, time $t$
+        \item $g_{ip}$ - Genetic covariate $p$ for individual $i$ (PRS)
+    \end{itemize}
+    
+    \item \textbf{Model Parameters:}
+    \begin{itemize}
+        \item $\lambda_{ikt}$ - Logit of signature membership (individual $i$, signature $k$, time $t$)
+        \item $\theta_{ikt}$ - signature membership probability ($\theta_{ikt} = \text{softmax}_k(\lambda_{i\cdot t})$)
+        \item $\phi_{kdt}$ - Logit of disease probability (signature $k$, disease $d$, time $t$)
+        \item $\psi_{kd}$ - signature-disease association strength
+    \end{itemize}
+    
+    \item \textbf{Prediction:}
+    \begin{itemize}
+        \item $\pi_{idt} = \kappa \cdot \sum_k \theta_{ikt} \cdot \sigma(\phi_{kdt})$ - Disease probability
+    \end{itemize}
+\end{itemize}
+\note{
+We have N individuals, D diseases, T time points, K latent signatures, and P genetic variants or PRS scores. For Y_idt is a binary indicator showing whether individual i has been diagnosed with disease d at time t. The genetic covariate g_ip represents the polygenic risk score for variant p in individual i.
+lambda_ikt is the logit of signature membership - essentially how strongly individual i belongs to signature k at time t logit is transformed via softmax to get theta_ikt, which gives us actual membership probabilities that sum to one across signatures.
+Phi_kdt represents the logit of disease probability for signature k, disease d, at time t, while psi_kd captures the strength of association between signatures and diseases.
+Finally, our prediction equation shows how we calculate pi_idt - the probability of disease d for individual i at time t - by combining signature memberships with disease probabilities through a sigmoid transformation.
+This notation forms the foundation for understanding how our model connects genetic information to disease outcomes through latent signatures
+}
+\end{frame}
+
+
+\begin{frame}{Individual Risk Profiles ($\lambda$)}
+\begin{itemize}
+    \item For each individual $i$, signature $k$, and time $t$:
+    \begin{align*}
+    \lambda_{ik}(t) \sim \mathcal{GP}(\Gamma_k^T g_i, K_k)
+    \end{align*}
+    
+    \item Components:
+    \begin{itemize}
+        \item $g_i$: Genetic covariates (PRS)
+        \item $\Gamma_k$: Genetic effects
+        \item $K_k$: Temporal covariance matrix
+    \end{itemize}
+    
+    \item Clinical meaning:
+    \begin{itemize}
+        \item Personal trajectories
+        \item Genetic influence
+        \item Smooth evolution over time
+    \end{itemize}
+\end{itemize}
+
+\note{We allow for a set of latent or  underlying signatures, each representing a pattern of disease cooccurrence over time.  Individuals are indexed by i, signatures by k, and time by t.
+We can think of Lambda, or a signature’s relative importance to a given individual, as a draw from a a stochastic  process centered around the underlying genetic influence, her conveyed by polygenic risk scores in blue. We learn the importance of each genetic score through the set of effects encoded in gamma. 
+Where does time come in?
+}
+\end{frame}
+
+\begin{frame}{Gaussian Process for Temporal Modeling}
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+    \item Gaussian processes help with smoothing across time
+    \item The kernel determines how quickly individual predilection can change
+    \item Length scale parameters control the temporal patterns:
+    \begin{itemize}
+        \item Long-term (length-scale = 50)
+        \item Medium-term (length-scale = 20)
+        \item Short-term (length-scale = 5)
+    \end{itemize}
+\end{itemize}
+
+\column{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{gp.pdf}
+\end{center}
+\end{columns}
+\note{
+To help us accomplish this goal, We take advantage of Gaussian processes: these are simply distributions that help us with smoothing by using a special covariance matrix to capture time.
+This covariance matrix is called a kernel, and it reflects how quickly or slowly individual predilection towards a signature can change
+}
+\end{frame}
+
+\begin{frame}{Signature Proportions ($\theta$)}
+\begin{itemize}
+    \item Convert $\lambda$ to relative weights via softmax transformation:
+    \begin{align*}
+    \theta_{ikt} = \frac{\exp(\lambda_{ikt})}{\sum_{j=1}^K \exp(\lambda_{ijt})}
+    \end{align*}
+    
+    \item Properties:
+    \begin{itemize}
+        \item $\theta_{ikt} \in (0, 1)$
+        \item $\sum_k \theta_{ikt} = 1$
+        \item Smooth changes over time
+    \end{itemize}
+    
+    \item Interpretation:
+    \begin{itemize}
+        \item Relative risk weights
+        \item Competing factors 
+        \item Dynamic profiles
+    \end{itemize}
+\end{itemize}
+\note{
+These relative individual-weights and disease loadings combine across signatures to generate an individual probability, piidt: This reflects the individual, disease, and time-specific probability of occurrence, given that an individual is still at risk. These are naturally discrete-time hazards.
+}
+\end{frame}
+
+\begin{frame}{Disease Signature Loadings ($\phi$)}
+\begin{itemize}
+    \item For each disease $d$ and signature $k$:
+    \begin{align*}
+    \phi_{kd}(t) \sim \mathcal{GP}(\mu_d + \psi_{kd}, K_k)
+    \end{align*}
+    
+    \item Components:
+    \begin{itemize}
+        \item $\mu_d$: Base disease risk (population prevalence)
+        \item $\psi_{kd}$: Signature-specific shift
+        \item $K_k$: Signature covariance
+    \end{itemize}
+    
+    \item Clinical meaning:
+    \begin{itemize}
+        \item Signature-disease links
+        \item Disease patterns
+        \item Time variation
+    \end{itemize}
+\end{itemize}
+\note{Similarly, a given disease d also arises from a Gaussian process, now centered around the time-specific disease prevalence in the population, here mud and a term that conveys the importance of each signatrue to a disease 
+Our special kernel again captures the variation of this signature-disease loading over time. 
+At each time step, these loadings can be transformed to probability and are used to generate the absence or presence of disease as a bernoulli process, without any competitive restrictions.
+}
+\end{frame}
+
+
+
+\begin{frame}{Discrete-Time Survival Likelihood}
+Log-likelihood for a single individual-disease pair:
+\begin{align*}
+\ell_{id} &= \sum_{t < E_{id}} \log(1-\pi_{idt}) \quad \text{(survival until $E_{id}$)} \\
+&+ Y_{id,E_{id}}\log(\pi_{id,E_{id}}) \quad \text{(event term if $Y_{id,E_{id}}=1$)} \\
+&+ (1-Y_{id,E_{id}})\log(1-\pi_{id,E_{id}}) \quad \text{(censoring term)}
+\end{align*}
+
+Total log-likelihood:
+\begin{align*}
+\mathcal{L}_{data} = \sum_{i,d} \ell_{id}
+\end{align*}
+
+\begin{itemize}
+    \item $E_{id}$: Event/censoring time
+    \item $Y_{id,E_{id}}$: Event indicator at $E_{id}$ (1=event, 0=censored)
+\end{itemize}
+\note{
+
+}
+\note{The log-likelihood for a single individual-disease pair is composed of three components: The first term represents the survival probability up to time Eid, summing the log probability of not experiencing the event at each time point before Eid. The second term accounts for the occurrence of an event at time Eid, contributing to the likelihood when the event occurs (Y = 1). The third term addresses censoring, contributing when the individual is censored at time Eid (Y=0) rather than experiencing the event. The total log-likelihood for the dataset is the sum of these individual log-likelihoods across all individual-disease pairs, allowing for accurate inference by properly accounting for both observed events and censored data within a Bayesian framework.
+}
+\end{frame}
+
+
+
+\begin{frame}{Solution}
+Log-likelihood for a single individual-disease pair:
+\begin{align*}
+\ell_{id} &= \sum_{t < E_{id}} \log(1-\pi_{idt}) \quad \text{(survival until $E_{id}$)} \\
+&+ Y_{id,E_{id}}\log(\pi_{id,E_{id}}) \quad \text{(event term if $Y_{id,E_{id}}=1$)} \\
+&+ (1-Y_{id,E_{id}})\log(1-\pi_{id,E_{id}}) \quad \text{(censoring term)}
+\end{align*}
+
+Total log-likelihood:
+\begin{align*}
+\mathcal{L}_{data} = \sum_{i,d} \ell_{id}
+\end{align*}
+
+\begin{itemize}
+    \item $E_{id}$: Event/censoring time
+    \item $Y_{id,E_{id}}$: Event indicator at $E_{id}$ (1=event, 0=censored)
+\end{itemize}
+\note{
+
+}
+\note{The log-likelihood for a single individual-disease pair is composed of three components: The first term represents the survival probability up to time Eid, summing the log probability of not experiencing the event at each time point before Eid. The second term accounts for the occurrence of an event at time Eid, contributing to the likelihood when the event occurs (Y = 1). The third term addresses censoring, contributing when the individual is censored at time Eid (Y=0) rather than experiencing the event. The total log-likelihood for the dataset is the sum of these individual log-likelihoods across all individual-disease pairs, allowing for accurate inference by properly accounting for both observed events and censored data within a Bayesian framework.
+}
+\end{frame}
+\begin{frame}{Disease Probabilities ($\pi$): a Mixture of Probabilities}
+\emph{NOT} a probability of a mixture ... but more on that
+\begin{itemize}
+    \item Individual disease risk combines all signatures:
+    \begin{align*}
+    \pi_{idt} = \kappa \cdot \sum_{k=1}^K \theta_{ikt} \cdot \sigma(\phi_{kdt})
+    \end{align*}
+    
+    \item Components:
+    \begin{itemize}
+        \item Personal risk profile ($\theta$)
+        \item Signature contributions ($\phi$)
+        \item Temporal dynamics
+        \item Global calibration parameter ($\kappa$)
+    \end{itemize}
+    
+    \item Clinical use:
+    \begin{itemize}
+        \item Risk prediction
+        \item Trajectory planning
+        \item Intervention timing
+    \end{itemize}
+\end{itemize}
+
+\note{we then combine these parameters across signatures, generating disease probabilities, to also help predict the future.  This is a key innovation that separates the Aladynoulli approach, and stems from its Bernoulli parameterization
+Returning to our pt, this feature could mean the difference between prevention and emergency intervention"
+}
+\end{frame}
+
+\begin{frame}{Model Architecture Visualization}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/fig1.pdf}
+    \caption{Complete Aladynoulli model architecture}
+    \label{fig:model-architecture}
+\end{figure}
+
+\note{
+The novelty in our approach parallels our patient’s walk in 4 key ways:
+*First, our model bridges discovery and prediction, by discovering latent disease signatures that also combine to form individualized predictions. 
+Second, our disease signatures evolve over time and across disease, expanding the dimension of shared biology.
+Third, anchoring individual loadings in genomics ensures that our model produces biologically informed parameters rather than ML artifacts, which enables targeted precision treatment strategies. 
+And finally, Bayesian updating adapts estimates in real time, jointly refining our understanding of the population and the individual. Our 38-year-old patient’s past informs the present, and the present becomes the past to inform the future.}
+\end{frame}
+
+
+\section{Results}
+\begin{frame}{Real Data Application}
+\begin{itemize}
+    \item UK Biobank: 460,000 individuals
+    \item 348 conditions $\geq 1\%$ lifetime prevalence)
+    \item 51 time points (ages 30-80 years)
+    \item 36 unique externally validated PRS
+    \item Validation in All of Us dataset (~340,000 individuals)
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{oldfigs/ukb.png}
+    \caption{MW Yeung et al}
+    \label{fig:enter-label}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Model Initiation: What do we get ...}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/model_init.png}
+    \caption{Temporal evolution of disease probabilities across signatures}
+    \label{fig:temporal-patterns}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Disease-specific Signature Patterns}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/alltraj.pdf}
+    \caption{Temporal evolution of disease probabilities across signatures}
+    \label{fig:temporal-patterns}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Disease-specific Signature Patterns}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/psi.pdf}
+    \caption{Temporal evolution of disease probabilities across signatures}
+    \label{fig:temporal-patterns}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Concordance across biobanks}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/conocrdance.pdf}
+    \caption{Consistency across AOU, UKB and MGB}
+  
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Constructing Probabilities}
+
+\begin{columns}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/contributions.pdf}\
+    \caption{From many ... to build one!}
+    \label{fig:multimorbid}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/red_scale_disease_probabilities_linear_pointers.pdf}\
+    \caption{Marginal Probabilities of Disease}
+    \label{fig:discrimination}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+
+\begin{frame}{Case Study: Multimorbid Patient... when you have the benefit of the full history}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/patient_43672_dynamics.pdf}
+    \caption{Not a smoothie!}
+    \label{fig:multimorbid}
+\end{figure}
+\end{frame}
+
+
+
+\begin{frame}{Case Study: Multimorbid Patient}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/longpattraj.pdf}
+    \caption{Not a smoothie!}
+    \label{fig:multimorbid}
+\end{figure}
+\end{frame}
+
+
+
+
+
+\begin{frame}{Case Study: Individual Patient Trajectory: Anticipating the future }
+
+But what if we censor \textbf{BEFORE Diagnosis}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/mipredict.png}
+    \caption{MI risk prediction}
+    \label{fig:mi-predict}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/lambdatraj.png}
+    \caption{Signature trajectory}
+    \label{fig:lambda-traj}
+\end{figure}
+
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/discrimn.png}
+    \caption{Signature trajectory}
+    \label{fig:lambda-traj}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+    
+
+\begin{frame}{Heterogeneity: Case Examples}
+\begin{columns}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{stackedtrajMalignant neoplasm of female breast.pdf}
+    \caption{Clustering across Signatures conditional on disease}
+    \label{fig:multimorbid}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{stackedgeneticsMalignant neoplasm of female breast.pdf}
+    \caption{PRS for Br Ca patients by cluster}
+    \label{fig:brca}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Heterogeneity: Case Examples}
+\begin{columns}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{stackedtrajMyocardial infarction.pdf}
+    \caption{Clustering across Signatures conditional on disease}
+    \label{fig:multimorbid}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{stackedgeneticsMyocardial infarction.pdf}
+    \caption{Discrimination metrics}
+    \label{fig:discrimination}
+\end{figure}
+\end{columns}
+\end{frame}
+
+\begin{frame}{AEX Gwas}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{AEX.pdf}
+    \caption{Caption}
+    \label{From Model to Interpretation}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Downstream GWAS Results}
+\begin{columns}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/99-corrplot_rg_sig_disease-opposite (3).pdf}
+    \caption{Interrogating Signatures with known GWAS summary stats}
+    \label{fig:multimorbid}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{cardiovascular_variants_upset_plot.pdf}
+    \caption{How much better do we do?}
+    \label{fig:discrimination}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Downstream GWAS Results}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{SNP-Phenotype Association Heatmap by Signature.pdf}
+    \caption{Interrogating Signatures with known GWAS summary stats}
+    \label{fig:multimorbid}
+\end{figure}
+\end{frame}
+
+
+\section{Prediction Performance}
+
+\begin{frame}{The test: Valid prediction, censoring AT ENROLLMENT}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{paucplot.pdf}
+    \caption{ROC curves for prediction}
+    \label{fig:roc}
+\end{figure}
+\end{frame}
+
+\begin{frame}{But what if we had all the information?}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{oldfigs/rocpce.png}
+    \caption{ROC curves for prediction}
+    \label{fig:roc}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{oldfigs/gail.png}
+    \caption{ROC curves for prediction}
+    \label{fig:roc}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Calibration}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{calibration_plot.pdf}
+    \caption{For all at risk individuals}
+    \label{fig:roc}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{hazard_rates_kappa1.pdf}
+    \caption{Simulations}
+    \label{fig:calibration}
+\end{figure}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Calibration Results: Simulations and overall}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{oldfigs/calib_10.png}
+    \caption{Calibration of risk predictions: Ten year Mean for ASCVD}
+    \label{fig:calibration}
+\end{figure}
+
+
+
+\note{
+  - Key challenge: diseases don't occur in isolation
+  - MGH building represents where our work is based (mention if relevant)
+  - Four main challenges to address: multiple diseases, individual variation, genetic factors, and temporal dynamics
+  - This slide sets up the motivation for our modeling approach
+}
+\end{frame}
+
+
+
+\begin{frame}{Profile of Early MDD}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{oldfigs/mddearly.png}
+    \caption{Signature patterns in early-onset MDD}
+    \label{fig:mdd-early}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Early Detection of CAD}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/coca.png}
+    \caption{Comorbidity analysis}
+    \label{fig:comorbidity}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Boston Chicago Manhattan Plots}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/SIG0_AUC_ukb_eur_regenie_af1_60x180_log.png}
+    
+    \vspace{0.5cm}
+    \includegraphics[width=0.5\linewidth]{figures/SIG5_AUC_ukb_eur_regenie_af1_60x180_log.png}
+    
+    \vspace{0.5cm}
+    \includegraphics[width=0.5\linewidth]{figures/SIG18_AUC_ukb_eur_regenie_af1_60x180_log.png}
+    
+    \caption{Manhattan plots showing genetic associations for three different signatures}
+    \label{fig:manhattan-plots}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Conclusions}
+\begin{itemize}
+    \item Aladynoulli provides a comprehensive framework for modeling disease progression
+    \item Key innovations:
+    \begin{itemize}
+        \item signature separation via $\psi$ parameters
+        \item Stable GP priors with fixed amplitudes
+        \item Balanced prior weight for flexibility
+        \item Structured initialization from disease clusters
+    \end{itemize}
+    \item Applications:
+    \begin{itemize}
+        \item Disease Progression Modeling
+        \item Genetic Association
+        \item Risk Prediction
+        \item Disease Clustering
+        \item Personalized Medicine
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+
+\begin{frame}{Resources and Availability}
+\begin{itemize}
+    \item Paper: \url{https://www.medrxiv.org/content/10.1101/2024.09.29.24314557V1}
+    \item Github: \url{github.com/surbut/Aladynoulli2}
+    \item Interactive app: \url{Surbut.shinyapps.io/berndiffapp}
+\end{itemize}
+
+\begin{center}
+\Large{Thank you!}
+\begin{itemize}
+    \item Giovanni Parmigiani, PhD
+    \item Sasha Gusev, PhD
+    \item Pradeep Natarajan, MD MMSc
+\end{itemize}
+\end{center}
+\end{frame}
+
+
+
+\end{document}
