@@ -1,0 +1,340 @@
+\documentclass[10pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{whale}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{multirow}
+\definecolor{myblue}{RGB}{70,130,180}
+\definecolor{myred}{RGB}{178,34,34}
+\definecolor{mygreen}{RGB}{34,139,34}
+
+\title[Hierarchical Bayesian Survival Model]{A Hierarchical Bayesian Model for Personalized Survival Predictions}
+\author[Journal Club]{Journal Club}
+\institute{Alexis Bellot, Mihaela van der Schaar \\ IEEE Journal of Biomedical and Health Informatics}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+\section{The Model}
+
+\begin{frame}{Key Innovation: Hierarchical Bayesian Survival (HBS)}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+    \item \textbf{Novel probabilistic model} that:
+    \begin{itemize}
+        \item Captures individual traits through \textbf{hierarchical latent variables}
+        \item Estimates survival paths by \textbf{jointly sampling} location and shape parameters
+        \item Results in \textbf{patient-specific curves} with \textbf{uncertainty estimates}
+    \end{itemize}
+\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{center}
+\begin{tikzpicture}[node distance=1.2cm]
+    \node[draw, circle, fill=gray!20] (X) {$X$};
+    \node[draw, circle, fill=myred!20] (beta) [below=of X] {$\beta$};
+    \node[draw, circle, fill=myblue!20] (lambda) [right=1.2cm of beta] {$\lambda$};
+    \node[draw, circle, fill=myblue!20] (sigma) [right=1.2cm of lambda] {$\sigma$};
+    \node[draw, circle, double] (T) [below=1.2cm of beta] {$T$};
+    \draw[->] (X) -- (beta);
+    \draw[->] (X) -- (lambda);
+    \draw[->] (X) -- (sigma);
+    \draw[->] (beta) -- (T);
+    \draw[->] (lambda) -- (T);
+    \draw[->] (sigma) -- (T);
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Model Structure: Three Key Components}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\begin{enumerate}
+    \item \textbf{Patient-level:}
+    \begin{itemize}
+        \item Covariates $X_i$
+        \item Individual $\beta_i$ via BART
+    \end{itemize}
+    \item \textbf{Subgroup-level:}
+    \begin{itemize}
+        \item Shape ($\lambda$)
+        \item Scale ($\sigma$)
+    \end{itemize}
+    \item \textbf{Outcome:}
+    \begin{itemize}
+        \item Time-to-event $T_i$
+        \item Generalized Gamma
+    \end{itemize}
+\end{enumerate}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{block}{Key Idea}
+\centering
+\textbf{Flexible, interpretable, and personalized survival curves for each patient}
+\end{block}
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \draw[fill=myblue!10] (0,0) rectangle (4,3);
+    \draw[fill=myred!10] (0,3) rectangle (4,4);
+    \draw[fill=mygreen!10] (0,4) rectangle (4,5);
+    \node at (2,4.5) {Patient Level};
+    \node at (2,3.5) {Subgroup Level};
+    \node at (2,1.5) {Outcome Level};
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Time-to-Event Model: Generalized Gamma}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+    \item $T_i \sim GG(\beta_i, \sigma_i, \lambda_i)$
+    \item PDF: 
+    \begin{equation*}
+    f(t) = \frac{|\lambda|(\lambda^{-2})^{\lambda^{-2}}}{\sigma t \Gamma(\lambda^{-2})}(e^{-\beta}t)^{1/\sigma\lambda}\exp\{-\lambda^{-2}(e^{-\beta}t)^{\lambda/\sigma}\}
+    \end{equation*}
+    \item Parameters:
+    \begin{itemize}
+        \item $\beta$: location
+        \item $\sigma$: scale
+        \item $\lambda$: shape
+    \end{itemize}
+\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \draw[->] (0,0) -- (3,0) node[right] {t};
+    \draw[->] (0,0) -- (0,3) node[above] {f(t)};
+    \draw[thick, myblue] plot[domain=0:3] (\x,{2.5*exp(-\x)});
+    \draw[thick, myred] plot[domain=0:3] (\x,{1.5*exp(-2*\x)});
+    \draw[thick, mygreen] plot[domain=0:3] (\x,{2*exp(-1.5*\x)});
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Personalized Interpreter}
+
+\begin{frame}{Hierarchical Personalized Survival Model: Flowchart}
+\begin{center}
+\fbox{\parbox{2.5cm}{\centering Patient Covariates \\ $x_i$}}
+$\xrightarrow{\text{regression}}$
+\fbox{\parbox{2.5cm}{\centering Personalized \\ $\beta_i$}}
+$\xrightarrow{\text{group}}$
+\fbox{\parbox{2.5cm}{\centering Group Shape/Scale \\ $\sigma_j, \lambda_j$}}
+$\xrightarrow{}$
+\fbox{\parbox{3cm}{\centering Survival Time \\ $T_i \sim GG(\beta_i, \sigma_j, \lambda_j)$}}
+\end{center}
+\end{frame}
+
+\begin{frame}{Regression Model Using BART}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+    \item $\beta_i$ incorporates patient covariates:
+    \begin{align*}
+    \beta_i|x_i &\sim g(x_i) + \epsilon_i \\
+    \epsilon_i &\sim \mathcal{N}(0, \alpha) \\
+    g(x_i) &:= \mathbb{E}\left[\sum_j h(x_i; Z_j, M_j)\right]
+    \end{align*}
+    \item Benefits:
+    \begin{itemize}
+        \item Complex interactions
+        \item No feature selection
+        \item Robust to transformations
+    \end{itemize}
+\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \node[draw, circle] (X) {$X$};
+    \node[draw, circle, below=of X] (T1) {$T_1$};
+    \node[draw, circle, right=of T1] (T2) {$T_2$};
+    \node[draw, circle, right=of T2] (T3) {$T_3$};
+    \draw[->] (X) -- (T1);
+    \draw[->] (X) -- (T2);
+    \draw[->] (X) -- (T3);
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Modeling Heterogeneity}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+    \item Shape and scale parameters vary by subgroup:
+    \begin{align*}
+    \sigma_i &= \sigma_{(j)}I(i \in C_j) \\
+    \lambda_i &= \lambda_{(j)}I(i \in C_j)
+    \end{align*}
+    \item Captures different survival trajectories:
+    \begin{itemize}
+        \item Treatments with short-term risk
+        \item Long-term benefits
+        \item Different co-morbidities
+    \end{itemize}
+\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \draw[->] (0,0) -- (3,0) node[right] {t};
+    \draw[->] (0,0) -- (0,3) node[above] {S(t)};
+    \draw[thick, myblue] plot[domain=0:3] (\x,{2.5*exp(-\x)});
+    \draw[thick, myred] plot[domain=0:3] (\x,{2*exp(-0.5*\x)});
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Inference}
+
+\begin{frame}{Posterior Sampling}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+    \item Parameters: $\theta = (\beta, \sigma, \lambda, \alpha, Z, M)$
+    \item Joint posterior:
+    \begin{align*}
+    p(\theta|D) \propto p(D|\theta)p(\theta)
+    \end{align*}
+    \item Likelihood:
+    \begin{align*}
+    p(D|\theta) = \prod_i f(t_i)^{\delta_i}S(t_i)^{1-\delta_i}
+    \end{align*}
+\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{block}{Sampling Steps}
+\begin{enumerate}
+    \item Update $(Z, M)$
+    \item Sample $\alpha$
+    \item Update $\beta_i$
+    \item Sample $\sigma_j$
+    \item Sample $\lambda_j$
+\end{enumerate}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+
+\section{Results}
+
+\begin{frame}{Performance Comparison}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{C-index (higher is better)}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Models} & \textbf{3M} & \textbf{1Y} & \textbf{3Y} \\
+\midrule
+Cox & 0.628 & 0.611 & 0.589 \\
+RSF & 0.652 & 0.624 & 0.602 \\
+BART & 0.672 & 0.628 & 0.622 \\
+\rowcolor{gray!20} HBS & \textbf{0.697} & \textbf{0.646} & \textbf{0.627} \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.5\textwidth}
+\textbf{Brier Score (lower is better)}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Models} & \textbf{3M} & \textbf{1Y} & \textbf{3Y} \\
+\midrule
+Cox & 0.206 & 0.237 & 0.245 \\
+RSF & 0.201 & 0.237 & 0.235 \\
+BART & 0.193 & 0.217 & 0.216 \\
+\rowcolor{gray!20} HBS & \textbf{0.191} & \textbf{0.225} & \textbf{0.225} \\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Hierarchical Personalized Survival Model: Flowchart}
+\begin{center}
+\begin{tikzpicture}[node distance=2.2cm, every node/.style={align=center}]
+    % Covariates
+    \node[draw, rounded corners, fill=myblue!10] (cov) {Patient Covariates \\ $x_i$};
+    % Regression function
+    \node[draw, rounded corners, fill=myred!10, right=3.5cm of cov] (g) {Regression Function \\ $g(x_i)$ (e.g., BART)};
+    % Personalized beta
+    \node[draw, rounded corners, fill=gray!10, below=of g] (beta) {Personalized \\ Location Parameter \\ $\beta_i$};
+    % Group assignment
+    \node[draw, rounded corners, fill=mygreen!10, below=of cov] (group) {Group Assignment \\ $C_j$};
+    % Group-level params
+    \node[draw, rounded corners, fill=mygreen!20, right=3.5cm of group] (params) {Group Shape/Scale \\ $\sigma_j, \lambda_j$};
+    % Survival time
+    \node[draw, rounded corners, fill=white, below=2.2cm of beta] (T) {Survival Time \\ $T_i \sim GG(\beta_i, \sigma_j, \lambda_j)$};
+
+    % Arrows
+    \draw[->, thick] (cov) -- (g);
+    \draw[->, thick] (g) -- (beta);
+    \draw[->, thick] (group) -- (params);
+    \draw[->, thick] (beta) -- (T);
+    \draw[->, thick] (params) -- (T);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{Key Takeaways}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\begin{itemize}
+    \item \textbf{Model Advantages:}
+    \begin{itemize}
+        \item Captures heterogeneity
+        \item Provides uncertainty estimates
+        \item Tests individual effects
+        \item Superior performance
+    \end{itemize}
+    \item \textbf{Clinical Impact:}
+    \begin{itemize}
+        \item Personalized care
+        \item Evidence-based plans
+        \item Better understanding
+    \end{itemize}
+\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{block}{Future Work}
+\begin{itemize}
+    \item Competing risks
+    \item Treatment effects
+    \item EHR integration
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\end{document}
+\end{document}

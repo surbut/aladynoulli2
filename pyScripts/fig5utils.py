@@ -1046,7 +1046,7 @@ def create_traditional_calibration_plot2(model, mu_dt, n_bins=10):
     
     # Add bin sizes as text
     for i in range(n_bins):
-        ax.annotate(f'n={int(bin_counts[i])}', 
+        ax.annotate(f'n={int(bin_counts[i]):,}', 
                    (bin_pred_means[i], bin_obs_means[i]),
                    textcoords="offset points",
                    xytext=(0,10), 
@@ -1218,11 +1218,27 @@ def evaluate_major_diseases_wsex(model, Y_100k, E_100k, disease_names, pce_df, f
             outcomes_auc = torch.zeros(current_N_auc, device=pi.device) # Outcome over follow_up_duration_years
             processed_indices_auc_final = [] 
 
-            for i in range(current_N_auc): 
-                age = current_pce_df_auc.iloc[i]['age'] 
+            n_prevalent_excluded = 0
+            for i in range(current_N_auc):
+                age = current_pce_df_auc.iloc[i]['age']
                 t_enroll = int(age - 30)
                 if t_enroll < 0 or t_enroll >= current_pi_auc.shape[2]: continue
 
+                # INCIDENT DISEASE FILTER: Only for single-disease outcomes
+                if len(disease_indices) == 1:
+                    prevalent = False
+                    for d_idx in disease_indices:
+                        if d_idx >= current_Y_100k_auc.shape[1]:
+                            continue
+                        if torch.any(current_Y_100k_auc[i, d_idx, :t_enroll] > 0):
+                            prevalent = True
+                            break
+                    if prevalent:
+                        n_prevalent_excluded += 1
+                        continue  # Skip this patient for this disease group
+                # ... rest of your code ...
+
+                
                 pi_diseases = current_pi_auc[i, disease_indices, t_enroll]
                 yearly_risk = 1 - torch.prod(1 - pi_diseases)
                 risks_auc[i] = yearly_risk # Use 1-year risk as score
@@ -1277,6 +1293,7 @@ def evaluate_major_diseases_wsex(model, Y_100k, E_100k, disease_names, pce_df, f
         # Updated printout
         print(f"AUC (Score: 1-Yr Risk, Outcome: {follow_up_duration_years}-Yr Event): {auc_score if not np.isnan(auc_score) else 'N/A'} (calculated on {n_processed} individuals)") 
         print(f"Events ({follow_up_duration_years}-Year in Eval Cohort): {n_events} ({event_rate:.1f}%) (from {n_processed} individuals)") 
+        print(f"Excluded {n_prevalent_excluded} prevalent cases for {disease_group}.")
 
     # Updated printout
     print(f"\nSummary of Results (Prospective {follow_up_duration_years}-Year Outcome, 1-Year Score, Sex-Adjusted):") 
@@ -1295,8 +1312,7 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
     """
     Same as evaluate_major_diseases_wsex but adds bootstrap CIs for AUC.
     Uses exact same time logic and event counting as original.
-
-
+    Also prints sex-stratified AUCs (except for sex-specific diseases) and ASCVD AUCs for patients with pre-existing RA or breast cancer.
     """
 
     major_diseases = {
@@ -1329,6 +1345,12 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
         'Parkinsons': ["Parkinson's disease"],
         'Multiple_Sclerosis': ['Multiple sclerosis'],
         'Thyroid_Disorders': ['Thyrotoxicosis with or without goiter', 'Secondary hypothyroidism', 'Hypothyroidism NOS']
+    }
+
+    # For ASCVD analysis with pre-existing conditions
+    pre_existing_conditions = {
+        'RA': ['Rheumatoid arthritis'],
+        'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast']
     }
 
     results = {}
@@ -1399,10 +1421,44 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
             outcomes_auc = torch.zeros(current_N_auc, device=pi.device)
             processed_indices_auc_final = [] 
 
+            n_prevalent_excluded = 0
+            # For ASCVD analysis with pre-existing conditions
+            if disease_group == 'ASCVD':
+                pre_existing_indices = {}
+                for condition, condition_names in pre_existing_conditions.items():
+                    indices = []
+                    for name in condition_names:
+                        matches = [i for i, dname in enumerate(disease_names) if name.lower() in dname.lower()]
+                        indices.extend(matches)
+                    pre_existing_indices[condition] = list(set(indices))
+                # Precompute pre-existing flags for all patients
+                pre_existing_flags = {cond: np.zeros(current_N_auc, dtype=bool) for cond in pre_existing_indices}
+                for i in range(current_N_auc):
+                    t_enroll = int(current_pce_df_auc.iloc[i]['age'] - 30)
+                    for cond, idxs in pre_existing_indices.items():
+                        for idx in idxs:
+                            if idx < current_Y_100k_auc.shape[1] and torch.any(current_Y_100k_auc[i, idx, :t_enroll] > 0):
+                                pre_existing_flags[cond][i] = True
+                                break
+
             for i in range(current_N_auc): 
                 age = current_pce_df_auc.iloc[i]['age'] 
                 t_enroll = int(age - 30)
                 if t_enroll < 0 or t_enroll >= current_pi_auc.shape[2]: continue
+
+                # INCIDENT DISEASE FILTER: Only for single-disease outcomes
+                if len(disease_indices) == 1:
+                    prevalent = False
+                    for d_idx in disease_indices:
+                        if d_idx >= current_Y_100k_auc.shape[1]:
+                            continue
+                        if torch.any(current_Y_100k_auc[i, d_idx, :t_enroll] > 0):
+                            prevalent = True
+                            break
+                    if prevalent:
+                        n_prevalent_excluded += 1
+                        continue  # Skip this patient for this disease group
+                # ... rest of your code ...
 
                 # Store risk for ALL valid enrollment times
                 pi_diseases = current_pi_auc[i, disease_indices, t_enroll]
@@ -1411,7 +1467,6 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
 
                 end_time = min(t_enroll + follow_up_duration_years, current_Y_100k_auc.shape[2]) 
                 if end_time <= t_enroll: continue
-                
                 # Check for events and store outcome
                 event_found_auc = False
                 for d_idx in disease_indices:
@@ -1420,7 +1475,6 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
                         outcomes_auc[i] = 1
                         event_found_auc = True
                         break
-                
                 # Only add to processed indices if we'll use for AUC
                 processed_indices_auc_final.append(i) 
 
@@ -1444,7 +1498,6 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
                  if len(np.unique(outcomes_np)) > 1:
                       fpr, tpr, _ = roc_curve(outcomes_np, risks_np)
                       auc_score = auc(fpr, tpr)
-                      
                       # Bootstrap CI calculation using same method
                       aucs = []
                       for _ in range(n_bootstraps):
@@ -1453,7 +1506,6 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
                               fpr_boot, tpr_boot, _ = roc_curve(outcomes_np[indices], risks_np[indices])
                               bootstrap_auc = auc(fpr_boot, tpr_boot)
                               aucs.append(bootstrap_auc)
-                      
                       if aucs:
                           ci_lower = np.percentile(aucs, 2.5)
                           ci_upper = np.percentile(aucs, 97.5)
@@ -1463,7 +1515,6 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
                       auc_score = np.nan
                       ci_lower = ci_upper = np.nan
                       print(f"Warning: Only one class present ({np.unique(outcomes_np)}) for AUC.")
-                 
                  # Calculate events using ALL outcomes
                  n_events = int(torch.sum(outcomes_auc).item())
                  event_rate = (n_events / current_N_auc * 100)
@@ -1478,6 +1529,43 @@ def evaluate_major_diseases_wsex_with_bootstrap(model, Y_100k, E_100k, disease_n
         
         print(f"AUC: {auc_score:.3f} ({ci_lower:.3f}-{ci_upper:.3f}) (calculated on {n_processed} individuals)") 
         print(f"Events ({follow_up_duration_years}-Year in Eval Cohort): {n_events} ({event_rate:.1f}%) (from {current_N_auc} individuals)") 
+        print(f"Excluded {n_prevalent_excluded} prevalent cases for {disease_group}.")
+
+        # Sex-stratified analysis (except for sex-specific diseases)
+        if disease_group not in ['Breast_Cancer', 'Prostate_Cancer'] and len(int_indices_pce) > 0 and n_processed > 0:
+            print("\n   Sex-stratified analysis:")
+            # Map processed indices to sex (string values)
+            processed_sexes = [current_pce_df_auc.iloc[i]['Sex'] for i in processed_indices_auc_final]
+            for sex in ['Female', 'Male']:
+                sex_indices = [j for j, s in enumerate(processed_sexes) if s == sex]
+                if len(sex_indices) > 0:
+                    sex_risks = risks_auc[sex_indices].cpu().numpy()
+                    sex_outcomes = outcomes_auc[sex_indices].cpu().numpy()
+                    if len(np.unique(sex_outcomes)) > 1:
+                        fpr, tpr, _ = roc_curve(sex_outcomes, sex_risks)
+                        sex_auc = auc(fpr, tpr)
+                    else:
+                        sex_auc = np.nan
+                    sex_events = int(np.sum(sex_outcomes))
+                    print(f"   {sex}: AUC = {sex_auc:.3f}, Events = {sex_events}/{len(sex_indices)}")
+                else:
+                    print(f"   {sex}: No data.")
+
+        # Pre-existing condition analysis for ASCVD
+        if disease_group == 'ASCVD' and len(int_indices_pce) > 0 and n_processed > 0:
+            print("\n   ASCVD risk in patients with pre-existing conditions:")
+            for cond in pre_existing_conditions.keys():
+                cond_indices = [i for i in processed_indices_auc_final if pre_existing_flags[cond][i]]
+                if len(cond_indices) > 0:
+                    cond_risks = risks_auc[cond_indices].cpu().numpy()
+                    cond_outcomes = outcomes_auc[cond_indices].cpu().numpy()
+                    if len(np.unique(cond_outcomes)) > 1:
+                        fpr, tpr, _ = roc_curve(cond_outcomes, cond_risks)
+                        cond_auc = auc(fpr, tpr)
+                    else:
+                        cond_auc = np.nan
+                    cond_events = int(np.sum(cond_outcomes))
+                    print(f"   {cond}: AUC = {cond_auc:.3f}, Events = {cond_events}/{len(cond_indices)}")
 
     print(f"\nSummary of Results (Prospective {follow_up_duration_years}-Year Outcome, 1-Year Score, Sex-Adjusted):") 
     print("-" * 80)
@@ -1513,7 +1601,6 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
         if disease_group == 'Breast_Cancer': target_sex_code = 0
         elif disease_group == 'Prostate_Cancer': target_sex_code = 1
 
-        
         if target_sex_code is not None:
             mask_train = (FH_train['sex'] == target_sex_code)
         else:
@@ -1543,16 +1630,24 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
         
         # Prepare data for Cox model
         cox_data = []
+        n_prevalent_excluded = 0  # Counter for excluded prevalent cases
         for i in range(len(current_FH_train)):
             age_at_enrollment = current_FH_train.iloc[i]['age']
             t_enroll = int(age_at_enrollment - 30)
             if t_enroll < 0 or t_enroll >= current_Y_train.shape[2]:
                 continue
-                
+            
+            # Exclude prevalent cases for single-disease groups only
+            if len(disease_indices) == 1:
+                d_idx = disease_indices[0]
+                if torch.any(current_Y_train[i, d_idx, :t_enroll] > 0):
+                    n_prevalent_excluded += 1
+                    continue  # skip prevalent case
+            
             end_time = min(t_enroll + follow_up_duration_years, current_Y_train.shape[2])
             if end_time <= t_enroll:
                 continue
-                
+            
             for d_idx in disease_indices:
                 Y_slice = current_Y_train[i, d_idx, t_enroll:end_time]
                 if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
@@ -1576,7 +1671,7 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
                     valid_fh_cols = [col for col in fh_cols if col in current_FH_train.columns]
                     if valid_fh_cols:
                         row['fh'] = current_FH_train.iloc[i][valid_fh_cols].any()
-                
+
                 cox_data.append(row)
         
         if not cox_data:
@@ -1607,6 +1702,8 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
             cph.fit(cox_df, duration_col='age', event_col='event', formula=formula)
             fitted_models[disease_group] = cph
             print(f"   Model fitted for {disease_group} using {len(cox_df)} samples.")
+            if len(disease_indices) == 1:
+                print(f"   Excluded {n_prevalent_excluded} prevalent cases for {disease_group}.")
         except Exception as e:
             print(f"   Error fitting {disease_group}: {e}")
             fitted_models[disease_group] = None
@@ -1615,8 +1712,8 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
     return fitted_models
 
 # --- Function to Evaluate Cox Models on Test Set ---
-def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10):
-    """Evaluates pre-fitted Cox models on the test set."""
+def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10, pce_df=None):
+    """Evaluates pre-fitted Cox models on the test set. Optionally takes pce_df for PCE/PREVENT AUC reporting."""
     from lifelines.utils import concordance_index
     test_results = {}
     print("\nEvaluating Cox models on test data...")
@@ -1625,6 +1722,14 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
         raise ValueError(f"Test data size mismatch: Y_test ({len(Y_test)}), FH_test ({len(FH_test)})")
     
     FH_test = FH_test.reset_index(drop=True)
+    if pce_df is not None:
+        pce_df = pce_df.reset_index(drop=True)
+    
+    # For ASCVD analysis with pre-existing conditions
+    pre_existing_conditions = {
+        'RA': ['Rheumatoid arthritis'],
+        'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast']
+    }
     
     for disease_group, model in fitted_models.items():
         if model is None:
@@ -1645,6 +1750,10 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
         
         current_FH_test = FH_test[mask_test].copy()
         current_Y_test = Y_test[mask_test]
+        if pce_df is not None:
+            current_pce_df = pce_df[mask_test].copy()
+        else:
+            current_pce_df = None
         
         if len(current_FH_test) == 0:
             print(f"   Warning: No individuals for target sex code {target_sex_code}.")
@@ -1667,16 +1776,37 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
         
         # Prepare data for evaluation
         eval_data = []
+        processed_indices = []  # Track which original indices are used
+        n_prevalent_excluded = 0  # Counter for excluded prevalent cases
+        
+        # For ASCVD analysis with pre-existing conditions
+        if disease_group == 'ASCVD':
+            # Find indices for pre-existing conditions
+            pre_existing_indices = {}
+            for condition, condition_names in pre_existing_conditions.items():
+                indices = []
+                for name in condition_names:
+                    matches = [i for i, dname in enumerate(disease_names) if name.lower() in dname.lower()]
+                    indices.extend(matches)
+                pre_existing_indices[condition] = list(set(indices))
+        
         for i in range(len(current_FH_test)):
             age_at_enrollment = current_FH_test.iloc[i]['age']
             t_enroll = int(age_at_enrollment - 30)
             if t_enroll < 0 or t_enroll >= current_Y_test.shape[2]:
                 continue
-                
+            
+            # Exclude prevalent cases for single-disease groups only
+            if len(disease_indices) == 1:
+                d_idx = disease_indices[0]
+                if torch.any(current_Y_test[i, d_idx, :t_enroll] > 0):
+                    n_prevalent_excluded += 1
+                    continue  # skip prevalent case
+            
             end_time = min(t_enroll + follow_up_duration_years, current_Y_test.shape[2])
             if end_time <= t_enroll:
                 continue
-                
+            
             for d_idx in disease_indices:
                 Y_slice = current_Y_test[i, d_idx, t_enroll:end_time]
                 if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
@@ -1694,12 +1824,23 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
                     'sex': current_FH_test.iloc[i]['sex']
                 }
                 
+                # Add pre-existing condition flags for ASCVD analysis
+                if disease_group == 'ASCVD':
+                    for condition, indices in pre_existing_indices.items():
+                        has_condition = False
+                        for idx in indices:
+                            if torch.any(current_Y_test[i, idx, :t_enroll] > 0):
+                                has_condition = True
+                                break
+                        row[f'has_{condition}'] = has_condition
+                
                 if fh_cols:
                     valid_fh_cols = [col for col in fh_cols if col in current_FH_test.columns]
                     if valid_fh_cols:
                         row['fh'] = current_FH_test.iloc[i][valid_fh_cols].any()
-                
                 eval_data.append(row)
+                # Track the original index in FH_test (after masking)
+                processed_indices.append(current_FH_test.index[i])
         
         if not eval_data:
             print("   Warning: No individuals processed for evaluation.")
@@ -1707,6 +1848,7 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
             continue
         
         eval_df = pd.DataFrame(eval_data)
+        eval_df['orig_index'] = processed_indices  # Add for alignment
         
         try:
             # Get predicted risk scores using formula
@@ -1716,7 +1858,7 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
             
             risk_scores = model.predict_partial_hazard(eval_df)
             
-            # Calculate concordance index
+            # Calculate overall concordance index
             c_index = concordance_index(
                 eval_df['age'],
                 -risk_scores,  # Negative because higher risk should have shorter survival
@@ -1750,9 +1892,74 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
                 'n_total': n_total
             }
             
-            print(f"   C-index: {c_index:.3f} ({ci_lower:.3f}-{ci_upper:.3f})")
+            print(f"   Overall C-index: {c_index:.3f} ({ci_lower:.3f}-{ci_upper:.3f})")
             print(f"   Events: {n_events}/{n_total}")
+            if len(disease_indices) == 1:
+                print(f"   Excluded {n_prevalent_excluded} prevalent cases for {disease_group}.")
             
+            # Sex-stratified analysis (except for sex-specific diseases)
+            if disease_group not in ['Breast_Cancer', 'Prostate_Cancer']:
+                print("\n   Sex-stratified analysis:")
+                for sex in [0, 1]:  # 0 for female, 1 for male
+                    sex_mask = eval_df['sex'] == sex
+                    sex_df = eval_df[sex_mask]
+                    if len(sex_df) > 0:
+                        sex_risk = model.predict_partial_hazard(sex_df)
+                        sex_c_index = concordance_index(
+                            sex_df['age'],
+                            -sex_risk,
+                            sex_df['event']
+                        )
+                        sex_events = sex_df['event'].sum()
+                        print(f"   {'Female' if sex == 0 else 'Male'}: C-index = {sex_c_index:.3f}, Events = {sex_events}/{len(sex_df)}")
+            
+            # Pre-existing condition analysis for ASCVD
+            if disease_group == 'ASCVD':
+                print("\n   ASCVD risk in patients with pre-existing conditions:")
+                for condition in pre_existing_conditions.keys():
+                    condition_mask = eval_df[f'has_{condition}'] == True
+                    condition_df = eval_df[condition_mask]
+                    if len(condition_df) > 0:
+                        condition_risk = model.predict_partial_hazard(condition_df)
+                        condition_c_index = concordance_index(
+                            condition_df['age'],
+                            -condition_risk,
+                            condition_df['event']
+                        )
+                        condition_events = condition_df['event'].sum()
+                        print(f"   {condition}: C-index = {condition_c_index:.3f}, Events = {condition_events}/{len(condition_df)}")
+                # PCE and PREVENT AUC for ASCVD if available in pce_df
+                from sklearn.metrics import roc_auc_score
+                if current_pce_df is not None:
+                    # Use processed_indices to align with eval_df
+                    aligned_pce_df = current_pce_df.iloc[eval_df['orig_index']].reset_index(drop=True)
+                    # PCE
+                    if 'pce_goff_fuull' in aligned_pce_df.columns:
+                        pce_vals = aligned_pce_df['pce_goff_fuull'].values
+                        events = eval_df['event'].values
+                        mask = ~np.isnan(pce_vals)
+                        if np.any(mask):
+                            try:
+                                auc_pce = roc_auc_score(events[mask], pce_vals[mask])
+                                print(f"   PCE (pce_goff_fuull) AUC: {auc_pce:.3f}")
+                            except Exception as e:
+                                print(f"   PCE AUC error: {e}")
+                        else:
+                            print("   PCE AUC error: all values are NaN")
+                    # PREVENT
+                    if 'prevent_impute' in aligned_pce_df.columns:
+                        prevent_vals = aligned_pce_df['prevent_impute'].values
+                        mask = ~np.isnan(prevent_vals)
+                        if np.any(mask):
+                            try:
+                                auc_prevent = roc_auc_score(events[mask], prevent_vals[mask])
+                                print(f"   PREVENT (prevent_impute) AUC: {auc_prevent:.3f}")
+                            except Exception as e:
+                                print(f"   PREVENT AUC error: {e}")
+                        else:
+                            print("   PREVENT AUC error: all values are NaN")
+
+        
         except Exception as e:
             print(f"   Error evaluating {disease_group}: {e}")
             test_results[disease_group] = {'c_index': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}

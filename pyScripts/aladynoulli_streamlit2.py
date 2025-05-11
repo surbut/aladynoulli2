@@ -10,6 +10,18 @@ from sklearn.metrics import roc_curve, auc
 import pandas as pd
 import matplotlib.gridspec as gridspec
 
+def simulate_treatment(visualizer, person_idx, time_idx, risk_reduction=0.2, sig_change=0.1):
+    """
+    Simulate a treatment effect by increasing the 'healthy' signature (20) and decreasing a 'disease' signature.
+    """
+    theta = visualizer.theta[person_idx, :, :]  # (K, T)
+    theta[20, time_idx:] += sig_change  # Increase healthy signature
+    theta[1, time_idx:] -= sig_change   # Decrease disease signature (change index if needed)
+    theta[:, time_idx:] = theta[:, time_idx:] / theta[:, time_idx:].sum(axis=0, keepdims=True)
+    visualizer.theta[person_idx, :, :] = theta
+    pi_t = visualizer.compute_disease_probabilities(person_idx)
+    return pi_t
+
 class ModelVisualizer:
     def __init__(self, model_state_dict, G=None, disease_names=None):
         # Get model parameters
@@ -821,20 +833,14 @@ def download_model():
 def main():
     st.title("Disease Trajectory Model Visualization")
     
+    # Load model and data
     first_model = torch.load('/Users/sarahurbut/Dropbox/model_with_kappa_bigam.pt')
-    # Load model state dict and additional data
     model_state_dict = first_model['model_state_dict']
-    
-    # Load and convert data types as needed
     clusters = np.array(first_model['clusters'])
     G = first_model['G']
     disease_names = first_model['disease_names']
     
     visualizer = ModelVisualizer(model_state_dict, G=G, disease_names=disease_names)
-    
-    # TODO: Load and set genomic data
-    # genomic_data = np.load('path_to_genomic_data.npy')
-    # visualizer.set_genomic_data(genomic_data)
     
     # Sidebar controls
     st.sidebar.header("Controls")
@@ -843,6 +849,20 @@ def main():
     show_population = st.sidebar.checkbox("Overlay Population Mean", value=False)
     highlight_cycles = st.sidebar.checkbox("Highlight Cyclical Patterns", value=False)
     
+    # Use session state to track if treatment was simulated for this person/time
+    if 'treatment_simulated' not in st.session_state:
+        st.session_state['treatment_simulated'] = False
+    if 'simulated_person' not in st.session_state:
+        st.session_state['simulated_person'] = None
+    if 'simulated_time' not in st.session_state:
+        st.session_state['simulated_time'] = None
+
+    if st.sidebar.button("Simulate Treatment"):
+        simulate_treatment(visualizer, person_idx, time_idx)
+        st.session_state['treatment_simulated'] = True
+        st.session_state['simulated_person'] = person_idx
+        st.session_state['simulated_time'] = time_idx
+
     # Create tabs
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "Individual Trajectories", 
@@ -852,7 +872,7 @@ def main():
         "Predictions Analysis",
         "Disease Correlations",
         "Onset Analysis",
-        "Predictive Analytics"  # New tab
+        "Predictive Analytics"
     ])
     
     with tab1:
@@ -861,6 +881,22 @@ def main():
             person_idx, Y=Y, show_population=show_population, highlight_cycles=highlight_cycles, time_idx=time_idx)
         st.pyplot(fig)
         
+        # Visualize all disease probabilities (pi_t) as a heatmap
+        pi_t = visualizer.compute_disease_probabilities(person_idx)
+        fig2, ax2 = plt.subplots(figsize=(10, 4))
+        sns.heatmap(pi_t.T, ax=ax2, cmap='viridis', cbar=True,
+                    xticklabels=10, yticklabels=visualizer.disease_names)
+        ax2.set_xlabel("Time")
+        ax2.set_ylabel("Disease")
+        ax2.set_title("Disease Probabilities (π) Over Time")
+        st.pyplot(fig2)
+
+        # Show info if simulation is active for this person/time
+        if (st.session_state.get('treatment_simulated', False) and
+            st.session_state.get('simulated_person') == person_idx and
+            st.session_state.get('simulated_time') == time_idx):
+            st.info("Treatment simulation is ON. The plot reflects the simulated effect.")
+
         st.sidebar.markdown("---")
         st.sidebar.markdown("""
         ### How to interpret:

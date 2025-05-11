@@ -217,9 +217,9 @@ pce_df = readRDS('/Users/sarahurbut/Dropbox/pce_df_prevent.rds')
 ukb_params=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/ukb_params_enrollment.rds")
 ukb_results <- evaluate_major_diseases_wsex(
   params = ukb_params,
-  Y = ukb_params$Y,
+  Y = ukb_params$Y[pce_df$Sex%in%"Male",,],
   disease_names = as.character(ukb_params$disease_names[,1]),
-  pce_df = pce_df,
+  pce_df = pce_df[pce_df$Sex=="Male",],
   follow_up_duration_years = 10
 )
 

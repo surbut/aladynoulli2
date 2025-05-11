@@ -674,16 +674,17 @@ scale_fill_nejm()+labs(x="PRS",y="Mean Effect",Fill="Cluster")+
 
 # Load required libraries
 library(tidyverse)
-
+library(data.table)
 # Read the data (assuming it's in a file called "ldsc_data.tsv")
 # If your data is already in an R environment, you can skip this step
 # and just use the data frame directly
 ldsc_data <- fread("~/Downloads/99-ldsc-for-plot (2).tsv")
 
 # Filter for positive genetic correlations and non-NA values
-positive_correlations <- ldsc_data %>%
-  filter(rg > 0, !is.na(rg))
+#positive_correlations <- ldsc_data %>%
+ # filter(rg > 0, !is.na(rg))
 
+positive_correlations = ldsc_data 
 # Create a factor for signature to maintain order
 positive_correlations$sig=positive_correlations$p1
 positive_correlations$sig <- factor(positive_correlations$sig)
@@ -696,11 +697,12 @@ positive_correlations <- positive_correlations %>%
 unique_traits <- positive_correlations %>%
   select(p2,trait) %>%
   distinct()
-
+positive_correlations=positive_correlations[!is.na(positive_correlations$rg),]
 # Create the heatmap with light red to dark red color scale
-pos_cor=ggplot(positive_correlations, aes(x = signature, y = trait, fill = rg)) +
+pos_cor=ggplot(positive_correlations, aes(x = sig, y = trait, fill = rg)) +
   geom_tile(color = "white") +
-  scale_fill_gradient(low = "#FFCCCC", high = "#990000") +
+  #scale_fill_gradient(low = "#FFCCCC", high = "#990000") +
+  scale_fill_gradient2(low = "blue", high = "#990000",mid="white") +
   geom_text(aes(label = significant), color = "black", size = 5) +
   theme_minimal() +
   labs(

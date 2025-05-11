@@ -332,7 +332,8 @@ ages <- 30:81
 k_idx <- 6  # or your K of interest
 
 # --- Panel 1: Individual patients ---
-idxs <- head(which(E != 81))
+set.seed(7)
+idxs <- sample(which(E != 81),size = 5)
 df_indiv <- data.frame(
   Age = rep(ages, length(idxs)),
   Theta = as.vector(t(all_thetas[idxs, k_idx, ])),
@@ -342,7 +343,8 @@ df_indiv <- data.frame(
 
 p1 <- ggplot(df_indiv, aes(x = Age, y = Theta, color = Patient, group = Patient)) +
   geom_line(size = 1.1) +
-  geom_vline(aes(xintercept = Event, color = Patient), linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = Event, color = Patient), linetype = "solid", size = 1) +
+  geom_vline(aes(xintercept = Event-2, color = Patient), linetype = "dashed", size = 1) +
   labs(title = "Softmax Trajectories (Individual Patients)", y = paste0("Theta (K=", k_idx, ")"), x = "Age") +
   theme_minimal(base_size = 15) +
   theme(legend.position = "bottom")
@@ -365,7 +367,7 @@ p2 <- ggplot(df_mean, aes(x = Age, y = Theta, color = Group)) +
 
 # --- Combine panels ---
 g=p1 + p2 + plot_layout(ncol = 1)
-ggsave(plot =g,filename = "sofmaxtraj.pdf",width=10,height = 20 )
+ggsave(plot =g,filename = "sofmaxtraj.pdf",width=10,height = 10 )
 
 
 #### early late
@@ -377,11 +379,40 @@ early_thetas$group="young"
 early_thetas$sig=c(0:20)
 late_thetas$group="old"
 late_thetas$sig=c(0:20)
+library(microViz)
 
 library(reshape2)
 m=melt(rbind(early_thetas,late_thetas),id.vars=c("group","sig"))
-ggplot(m,aes(x=variable,y=value,col=as.factor(sig),group=as.factor(sig)))+geom_smooth()+facet_wrap(~as.factor(group))
+ggplot(m,aes(x=variable,y=value,col=as.factor(sig),group=as.factor(sig)))+theme_classic()+
+geom_smooth()+facet_wrap(~as.factor(group),ncol=1)+scale_color_manual(values = brewerPlus)
 
+
+
+# 1. Compute velocity
+early_theta_mat <- as.matrix(early_thetas[, as.character(30:81)])
+early_velocity <- t(apply(early_theta_mat, 1, diff))
+colnames(early_velocity) <- as.character(31:81)
+early_velocity <- data.frame(early_velocity)
+early_velocity$group <- "young"
+early_velocity$sig <- 0:20
+
+late_theta_mat <- as.matrix(late_thetas[, as.character(30:81)])
+late_velocity <- t(apply(late_theta_mat, 1, diff))
+colnames(late_velocity) <- as.character(31:81)
+late_velocity <- data.frame(late_velocity)
+late_velocity$group <- "old"
+late_velocity$sig <- 0:20
+
+# 2. Reshape
+library(reshape2)
+m_vel <- melt(rbind(early_velocity, late_velocity), id.vars = c("group", "sig"))
+
+# 3. Plot
+library(ggplot2)
+ggplot(m_vel, aes(x = variable, y = value, col = as.factor(sig), group = as.factor(sig))) +
+  geom_smooth(se = FALSE) +
+  facet_wrap(~group) +
+  labs(x = "Age", y = "Velocity (Δθ)", title = "Signature Velocity Over Time by Group")
 
 mean_func = funclasction(disease_ix) {
   name = all_patient_diseases[disease_ix, 1]

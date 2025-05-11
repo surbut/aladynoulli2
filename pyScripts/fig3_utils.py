@@ -24,36 +24,15 @@ from typing import List, Dict, Optional, Any
 
 
 def get_signature_colors(K):
-    """
-    Get a consistent color palette for K signatures.
-    Returns a list of K colors that will be used consistently across all plots.
-    Uses a carefully curated scientific color palette that is colorblind-friendly.
-    """
-    # Define a carefully curated scientific color palette
-    # These colors are chosen to be distinct, professional, and colorblind-friendly
-    base_colors = [
-        '#4C72B0',  # Strong blue
-        '#DD8452',  # Orange
-        '#55A868',  # Green
-        '#C44E52',  # Red
-        '#8172B3',  # Purple
-        '#937860',  # Brown
-        '#DA8BC3',  # Pink
-        '#8C8C8C',  # Gray
-        '#CCB974',  # Light brown
-        '#64B5CD',  # Light blue
-        '#4C3B4D',  # Dark purple
-        '#B47C80',  # Dusty rose
-        '#7C9FB0',  # Steel blue
-        '#A5A449',  # Olive
-        '#BE9C8E',  # Taupe
-    ]
-    
-    if K <= len(base_colors):
-        return base_colors[:K]
+    """Return a list of K distinct colors for signatures."""
+    import matplotlib.pyplot as plt
+    cmap = plt.get_cmap('tab20')
+    if K <= 20:
+        return [cmap(i) for i in range(K)]
     else:
-        # If we need more colors, use seaborn's colorblind palette
-        return sns.color_palette("colorblind", K)
+        # If more than 20, repeat or use another palette
+        import seaborn as sns
+        return sns.color_palette("hsv", K)
 
 
 
