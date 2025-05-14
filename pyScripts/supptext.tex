@@ -1,0 +1,538 @@
+\documentclass[12pt]{article}
+\usepackage{newtxtext,newtxmath}
+\usepackage{graphicx}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[letterpaper,margin=1in]{geometry}
+\linespread{1.5}
+\frenchspacing
+\renewenvironment{abstract}{\quotation}{\endquotation}
+\date{}
+\renewcommand\refname{References and Notes}
+\makeatletter
+\renewcommand{\fnum@figure}{\textbf{Figure \thefigure}}
+\renewcommand{\fnum@table}{\textbf{Table \thetable}}
+\makeatother
+\usepackage{scicite}
+\usepackage{url}
+\newcommand{\aladyn}{ALADYNOULLI}
+
+\title{\bfseries \boldmath Supplementary Materials for: \aladyn: Adaptive latent dynamics with Bernoulli outcomes for longitudinal health records}
+
+\begin{document}
+\maketitle
+
+\subsubsection*{This PDF file includes:}
+Materials and Methods\\
+Supplementary Text\\
+Figures S1 to S3\\
+Tables S1 to S4\\
+Captions for Movies S1 to S2\\
+Captions for Data S1 to S2
+
+\subsubsection*{Other Supplementary Materials for this manuscript:}
+Movies S1 to S2\\
+Data S1 to S2
+
+\newpage
+
+\subsection*{Materials and Methods}
+
+\subsubsection*{Detailed Model Formulation}
+
+The \aladyn model represents the probability of disease occurrence for patient $i$, disease $d$, at time $t$ as:
+
+$$\pi_{i,d,t} = \kappa \cdot \sum_{k=1}^{K} \theta_{i,k,t} \cdot \text{sigmoid}(\phi_{k,d,t})$$
+
+where $\kappa$ is a global calibration parameter, $\theta_{i,k,t}$ represents patient $i$'s time-varying association with signature $k$, and $\phi_{k,d,t}$ captures the relationship between signature $k$ and disease $d$ over time.
+
+The patient-signature associations are modeled as a softmax over latent variables:
+
+$$\theta_{i,k,t} = \frac{\exp(\lambda_{i,k,t})}{\sum_{k'=1}^{K} \exp(\lambda_{i,k',t})}$$
+
+The patient-specific latent variables follow a Gaussian process prior:
+
+$$\lambda_{i,k} \sim \mathcal{GP}(r_k + \Gamma_k^{\top}\mathbf{g}_i, K_{\lambda})$$
+
+where $r_k$ is a signature-specific baseline, $\Gamma_k$ captures how genetic/demographic factors $\mathbf{g}_i$ influence signature affinity, and $K_{\lambda}$ is a kernel function ensuring temporal smoothness.
+
+The kernel function $K_{\lambda}$ is defined as:
+
+$$K_{\lambda}(t, t') = \alpha_{\lambda}^2 \exp\left(-\frac{(t-t')^2}{2l_{\lambda}^2}\right)$$
+
+where $\alpha_{\lambda}$ is the amplitude parameter and $l_{\lambda}$ is the length scale parameter, set to $T/4$ in our implementation.
+
+Similarly, the disease-signature associations follow a Gaussian process:
+
+$$\phi_{k,d} \sim \mathcal{GP}(\mu_d + \psi_{k,d}, K_{\phi})$$
+
+where $\mu_d$ is a disease-specific baseline derived from population prevalence, $\psi_{k,d}$ represents the overall strength of association between signature $k$ and disease $d$, and $K_{\phi}$ is a kernel function defined as:
+
+$$K_{\phi}(t, t') = \alpha_{\phi}^2 \exp\left(-\frac{(t-t')^2}{2l_{\phi}^2}\right)$$
+
+with $l_{\phi}$ set to $T/3$ in our implementation.
+
+\subsubsection*{Loss Function}
+
+The loss function for training the model combines several terms:
+
+1. Negative log-likelihood (NLL) of observed disease events:
+$$\mathcal{L}_{NLL} = -\sum_{i=1}^{N} \sum_{d=1}^{D} \sum_{t=1}^{T} \left[ Y_{i,d,t} \log(\pi_{i,d,t}) + (1-Y_{i,d,t}) \log(1-\pi_{i,d,t}) \right]$$
+
+2. Gaussian process prior term for $\lambda$:
+$$\mathcal{L}_{GP\lambda} = \sum_{i=1}^{N} \sum_{k=1}^{K} \frac{1}{2} (\lambda_{i,k} - \mu_{i,k})^{\top} K_{\lambda}^{-1} (\lambda_{i,k} - \mu_{i,k})$$
+where $\mu_{i,k} = r_k + \Gamma_k^{\top}\mathbf{g}_i$
+
+3. Gaussian process prior term for $\phi$:
+$$\mathcal{L}_{GP\phi} = \sum_{k=1}^{K} \sum_{d=1}^{D} \frac{1}{2} (\phi_{k,d} - \mu_d - \psi_{k,d})^{\top} K_{\phi}^{-1} (\phi_{k,d} - \mu_d - \psi_{k,d})$$
+
+%4. Likelihood ratio term (LRT) to promote signature specificity:
+%$$\mathcal{L}_{LRT} = R \cdot \sum_{k=1}^{K} \sum_{d=1}^{D} %\psi_{k,d}^2$$
+%where $R$ is a regularization parameter.
+
+The total loss is a weighted sum of these terms:
+$$\mathcal{L}_{total} = \mathcal{L}_{NLL} + W \cdot (\mathcal{L}_{GP\lambda} %+ \mathcal{L}_{GP\phi}) + \mathcal{L}_{LRT}$$
+
+where $W$ is a weight parameter for the GP prior terms.
+
+\subsubsection*{Model Initialization}
+
+We initialize the model parameters using spectral clustering on disease co-occurrence patterns. Specifically:
+
+1. We compute a disease co-occurrence matrix $C$ where $C_{d,d'}$ represents the frequency with which diseases $d$ and $d'$ co-occur in the same patient.
+
+2. We apply spectral clustering to this matrix to identify $K$ disease clusters.
+
+3. We initialize the $\psi_{k,d}$ parameters based on cluster membership:
+   - For diseases in cluster $k$, we set $\psi_{k,d} = 2.0 + \epsilon$ where $\epsilon$ is small random noise.
+   - For diseases not in cluster $k$, we set $\psi_{k,d} = -2.0 + \epsilon$.
+
+4. We initialize $\lambda_{i,k,t}$ using the Gaussian process prior with mean $r_k + \Gamma_k^{\top}\mathbf{g}_i$, where $\Gamma_k$ is initialized using regression on disease occurrences.
+
+5. We initialize $\phi_{k,d,t}$ using the Gaussian process prior with mean $\mu_d + \psi_{k,d}$, where $\mu_d$ is derived from disease prevalence.
+
+\subsubsection*{Implementation Details}
+
+We implemented the model using PyTorch, a deep learning framework that allows for efficient computation of gradients through automatic differentiation. The model was trained using the Adam optimizer with a learning rate of 0.001 and a batch size of 1000 individuals.
+
+For computational efficiency, we used the Cholesky decomposition to compute the Gaussian process log-likelihood and to sample from the Gaussian process prior during initialization. We also used a jitter term of 1e-6 to ensure numerical stability when computing the inverse of the kernel matrices.
+
+The model was trained for 1000 epochs, with early stopping based on validation loss to prevent overfitting. We used a validation set comprising 10% of the individuals, randomly selected from the training data.
+
+\subsection*{Supplementary Text}
+
+
+\section*{Simulation Study}
+
+To validate the ability of the \aladyn{} model to recover latent disease clusters and temporal dynamics, we generated synthetic longitudinal health data closely matching the structure and complexity of real-world electronic health records.
+
+\subsection*{Simulation Design}
+
+We simulated $N=1000$ individuals, $D=20$ diseases, $T=50$ time points, and $K=5$ latent disease signatures. Disease baseline trajectories were generated on the logit scale with diverse prevalence, onset ages, and slopes, capturing both early- and late-onset patterns. Diseases were assigned to $K$ clusters, with strong positive associations within clusters and negative associations outside clusters.
+
+For each individual, genetic covariates were simulated and used to generate personalized, temporally smooth latent signature trajectories ($\lambda_{i,k,t}$) via a Gaussian process prior. Disease-signature associations ($\phi_{k,d,t}$) were also generated using a Gaussian process, with cluster-specific offsets. The probability of disease occurrence at each time was computed as a mixture of signature contributions, and event times were simulated accordingly.
+
+\subsection*{Validation and Results}
+
+
+Explain here
+
+\subsection{Simulation Study}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/simulations_ai.pdf}
+    \caption{Caption}
+    \label{fig:enter-label}
+\end{figure}
+To validate our clustering approach, we simulated data that reflects realistic disease trajectories and cluster structures:
+
+\subsubsection{Data Generation Process}
+\begin{enumerate}
+    \item \textbf{Disease Baseline Trajectories:} 
+    \begin{itemize}
+        \item Generated logit-scale trajectories for each disease with realistic prevalence ranges
+        \item Incorporated disease-specific onset patterns (early vs late onset)
+        \item Added age-dependent effects through peak age and slope parameters
+    \end{itemize}
+
+    \item \textbf{Cluster Structure:}
+    \begin{itemize}
+        \item Created $K$ distinct clusters with equal number of diseases per cluster
+        \item Assigned strong positive associations within clusters ($\psi_{k,d} = 1.0$)
+        \item Set weak negative associations outside clusters ($\psi_{k,d} = -3.0$)
+    \end{itemize}
+
+    \item \textbf{Individual Trajectories ($\lambda$):}
+    \begin{itemize}
+        \item Generated genetic covariates $G$ and effects $\Gamma_k$
+        \item Applied Gaussian Process smoothing with length scale $T/4$
+        \item Created individual-specific means through genetic effects
+    \end{itemize}
+
+    \item \textbf{Disease-Signature Associations ($\phi$):}
+    \begin{itemize}
+        \item Generated around disease-specific baseline trajectories
+        \item Added cluster-specific offsets through $\psi$
+        \item Applied Gaussian Process smoothing with length scale $T/3$
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Validation}
+When applying our model to this simulated data, we successfully:
+\begin{itemize}
+    \item Recovered the correct number of clusters
+    \item Identified disease groupings that match the true cluster assignments
+    \item Reconstructed temporal trajectories that closely match the generative process
+\end{itemize}
+
+
+We applied the \aladyn{} model to the simulated data and evaluated its ability to recover the true cluster structure, temporal patterns, and individual risk trajectories. The model successfully identified the correct number of clusters, accurately grouped diseases according to their simulated cluster assignments, and reconstructed temporal trajectories that closely matched the generative process.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/simulations_ai.pdf}
+    \caption{
+        \textbf{Simulation study demonstrates accurate recovery of latent disease clusters and temporal dynamics.}
+        (\textbf{A}) Simulated disease baseline trajectories on the logit scale, showing diverse prevalence and onset patterns.
+        (\textbf{B}) Example latent signature trajectories for individual patients, illustrating temporal smoothness and genetic heterogeneity.
+        (\textbf{C}) True and inferred disease cluster assignments visualized as a confusion matrix.
+        (\textbf{D}) Correlation matrix comparing true and inferred cluster assignments.
+        (\textbf{E}) Comparison of true and model-inferred hazard rates over time.
+        (\textbf{F}) ROC curve for simulated disease prediction, demonstrating high discriminative performance.
+        Together, these results confirm that the \aladyn{} model can accurately recover both the cluster structure and temporal risk dynamics from complex, realistic simulated data.
+    }
+    \label{fig:simulation}
+\end{figure}
+
+
+\subsubsection*{Signature Characteristics}
+
+Our model identified 21 distinct disease signatures, each representing a coherent pattern of disease co-occurrence. Below, we describe the key characteristics of each signature based on the top associated diseases:
+
+\paragraph{Signature 0: Cardiac Structure and Rhythm} This signature is characterized by structural heart diseases and arrhythmias, with strong associations with paroxysmal ventricular tachycardia (OR=3.50), aortic valve disease (OR=3.28), heart failure (OR=3.16), pericarditis (OR=2.90), and atrial fibrillation (OR=2.53). This signature likely represents advanced cardiac pathology with both structural and electrical abnormalities.
+
+\paragraph{Signature 1: Musculoskeletal and Rheumatologic} This signature captures musculoskeletal disorders with a focus on joint and connective tissue diseases. Top associations include enthesopathy (OR=3.42), synovium/tendon disorders (OR=3.22), hallux valgus (OR=3.19), peripheral enthesopathies (OR=3.06), and rheumatoid arthritis (OR=3.00). This signature represents inflammatory and degenerative processes affecting the musculoskeletal system.
+
+\paragraph{Signature 2: Upper Gastrointestinal} This signature is dominated by upper GI conditions, with strong associations with gastritis/duodenitis (OR=3.32), gastric ulcer (OR=3.17), Barrett's esophagus (OR=3.13), esophageal stricture (OR=3.11), and other disorders of the stomach and duodenum. This signature likely represents chronic inflammatory and structural changes in the upper digestive tract.
+
+\paragraph{Signature 3: Mixed Vascular and Inflammatory} This signature shows a diverse pattern with vascular disease (peripheral vascular disease, OR=3.68), autoimmune conditions (celiac disease, OR=3.54), dermatologic issues (atopic/contact dermatitis, OR=3.35), and various inflammatory conditions. This may represent systemic inflammatory processes with vascular manifestations.
+
+\paragraph{Signature 4: Upper Respiratory} This signature is characterized by upper respiratory tract conditions, including upper respiratory disease (OR=2.72), nasal polyps (OR=2.41), chronic sinusitis (OR=2.40), and septal deviations (OR=2.40). Interestingly, it shows negative associations with certain musculoskeletal and ophthalmologic conditions, suggesting a distinct phenotype.
+
+\paragraph{Signature 5: Coronary Artery Disease} This signature represents the atherosclerotic cardiovascular disease spectrum, with strong associations with coronary atherosclerosis (OR=3.44), acute ischemic heart disease (OR=3.10), hypercholesterolemia (OR=2.99), angina pectoris (OR=2.35), and myocardial infarction (OR=2.17). This signature captures the progression from risk factors to clinical manifestations of coronary disease.
+
+\paragraph{Signature 6: Metastatic Cancer} This signature is characterized by metastatic malignancies, with strong associations with secondary malignancies of the liver (OR=2.90), lymph nodes (OR=2.88), and digestive system (OR=2.77), as well as primary lung cancer (OR=2.77). This signature represents advanced cancer with metastatic spread.
+
+\paragraph{Signature 7: Chronic Pain and Metabolic Syndrome} This signature captures a constellation of conditions often seen together in clinical practice: asthma (OR=3.99), migraine (OR=3.89), osteoporosis (OR=3.39), myalgia (OR=3.20), depression (OR=3.13), obesity (OR=3.11), and hyperlipidemia (OR=2.87). This may represent a complex phenotype involving chronic pain, mood disorders, and metabolic dysfunction.
+
+\paragraph{Signature 8: Female Reproductive} This signature is focused on female reproductive system disorders, including cervicitis (OR=3.88), ovarian cysts (OR=3.52), uterine polyps (OR=3.31), cervical disorders (OR=3.13), menstrual disorders (OR=3.13), and uterine malignancy (OR=3.13). This signature represents both benign and malignant conditions of the female reproductive tract.
+
+\paragraph{Signature 9: Spinal Disorders} This signature is dominated by back and spine conditions, including back pain (OR=3.72), radiculitis (OR=3.05), intervertebral disc displacement (OR=3.04), neuralgia (OR=2.86), disc disorders (OR=2.69), and spinal stenosis (OR=2.39). This signature represents degenerative and inflammatory conditions of the spine.
+
+\paragraph{Signature 10: Ophthalmologic} This signature is characterized by eye conditions, particularly those affecting the retina and lens. Top associations include primary open-angle glaucoma (OR=3.54), macular degeneration (OR=3.35), retinal vascular changes (OR=3.30), other retinal disorders (OR=3.19), myopia (OR=3.14), and cataracts (OR=2.39). This signature represents age-related and degenerative eye conditions.
+
+\paragraph{Signature 11: Cerebrovascular} This signature captures cerebrovascular disease and its sequelae, with strong associations with cerebral artery occlusion (OR=3.15), cerebral ischemia (OR=3.03), late effects of cerebrovascular disease (OR=2.98), cerebral infarction (OR=2.86), and hemiplegia (OR=2.77). This signature represents the spectrum from acute stroke to chronic post-stroke conditions.
+
+\paragraph{Signature 12: Urolithiasis} This signature is focused on kidney stones and related conditions, including renal colic (OR=3.53), hydronephrosis (OR=2.91), ureteral disorders (OR=2.83), ureteral calculi (OR=2.75), ureteral stricture (OR=2.71), and kidney stones (OR=2.55). This signature represents the clinical manifestations and complications of urinary tract stones.
+
+\paragraph{Signature 13: Urologic and Prostate} This signature captures urologic conditions with a focus on male urinary tract and prostate disorders. Top associations include urethral stricture (OR=3.53), cystitis (OR=3.35), prostate cancer (OR=3.17), urinary symptoms (OR=2.89), bladder cancer (OR=2.88), and prostate hyperplasia (OR=2.50). This signature represents both benign and malignant conditions of the male urogenital system.
+
+\paragraph{Signature 14: Pulmonary} This signature is characterized by lung diseases, including empyema/pneumothorax (OR=3.02), pneumonia (OR=2.85), emphysema (OR=2.79), chronic bronchitis (OR=2.48), bronchiectasis (OR=2.47), and respiratory failure (OR=2.15). This signature represents both acute and chronic lung conditions, with a strong association with tobacco use (OR=2.08).
+
+\paragraph{Signature 15: Diabetes} This signature is focused on diabetes and its complications, with strong associations with hypoglycemia (OR=3.44), diabetic eye disease (OR=3.02), type 1 diabetes (OR=2.69), diabetic retinopathy (OR=2.67), and type 2 diabetes (OR=2.35). This signature represents the spectrum of diabetes and its microvascular complications.
+
+\paragraph{Signature 16: Infection and Sepsis} This signature captures infectious and inflammatory conditions, including peritonitis (OR=3.04), E. coli infections (OR=3.01), hypotension (OR=2.96), electrolyte disorders (OR=2.96), cellulitis (OR=2.92), chronic skin ulcers (OR=2.92), gram-negative septicemia (OR=2.90), and acute renal failure (OR=2.89). This signature represents severe infections and their systemic complications.
+
+\paragraph{Signature 17: Lower Gastrointestinal} This signature is focused on lower GI conditions, including GI hemorrhage (OR=3.23), benign colon neoplasms (OR=3.21), regional enteritis (OR=3.16), hemorrhoids (OR=3.03), ventral hernia (OR=3.02), rectal bleeding (OR=2.94), and colon cancer (OR=2.72). This signature represents both inflammatory and neoplastic conditions of the lower digestive tract.
+
+\paragraph{Signature 18: Hepatobiliary} This signature captures disorders of the gallbladder and biliary tract, including gallbladder disorders (OR=3.53), peritoneal adhesions (OR=3.26), acute cholecystitis with stones (OR=3.19), acute pancreatitis (OR=2.86), bile duct stones (OR=2.85), and cholelithiasis (OR=2.78). This signature represents the spectrum of gallstone disease and its complications.
+
+\paragraph{Signature 19: Dermatologic and Renal} This signature shows a mix of endocrine, dermatologic, and renal conditions, including thyrotoxicosis (OR=3.35), seborrheic keratosis (OR=3.34), eyelid disorders (OR=3.21), chronic glomerulonephritis (OR=3.14), skin cancer (OR=3.02), chronic kidney disease (OR=2.90), and breast cancer (OR=2.76). This signature may represent age-related conditions with both dermatologic and renal manifestations.
+
+\paragraph{Signature 20: Negative Associations} This signature is unique in that it is primarily characterized by strong negative associations with various conditions, including endometrial hyperplasia (OR=0.01), gastroenteritis (OR=0.01), myalgia (OR=0.01), and depression (OR=0.01). This may represent a "healthy" signature or a pattern of disease avoidance.
+
+\subsection{Cross-Biobank Signature Correspondence}
+
+To assess the reproducibility and generalizability of our disease signatures across different populations, we performed two complementary analyses comparing the ALADYNOULLI model trained on three distinct biobanks: Massachusetts General Brigham (MGB), All of Us (AoU), and UK Biobank (UKB).
+
+\subsubsection{Cluster Correspondence Analysis}
+We first examined the correspondence between disease clusters identified in each biobank by creating normalized confusion matrices. For each pair of biobanks (UKB vs MGB and UKB vs AoU), we:
+\begin{itemize}
+    \item Identified the set of diseases common to both biobanks
+    \item Mapped each disease to its assigned cluster in each biobank
+    \item Created a cross-tabulation matrix showing the proportion of diseases in each UKB cluster that were assigned to each MGB/AoU cluster
+    \item Normalized the counts by row to show the distribution of cluster assignments
+\end{itemize}
+This analysis revealed strong correspondence between clusters across biobanks, particularly for cardiovascular and malignancy signatures, suggesting robust biological patterns that transcend population differences.
+
+\subsubsection{Temporal Pattern Analysis}
+We then performed a detailed comparison of the temporal patterns (phi trajectories) for diseases shared across all three biobanks, focusing on two key signatures:
+\begin{itemize}
+    \item Cardiovascular signature (MGB: Sig 5, AoU: Sig 16, UKB: Sig 5)
+    \item Malignancy signature (MGB: Sig 11, AoU: Sig 11, UKB: Sig 6)
+\end{itemize}
+For each signature:
+\begin{itemize}
+    \item We identified diseases assigned to that signature in all three biobanks
+    \item Plotted the temporal patterns (phi values) for each shared disease
+    \item Overlaid the average pattern across all three biobanks (gray dashed line)
+    \item Used consistent colors for each disease across biobanks to facilitate comparison
+\end{itemize}
+This analysis demonstrated remarkable consistency in the temporal patterns of disease risk across different populations, with shared diseases showing similar risk trajectories despite being modeled independently in each biobank. The strong correspondence in both cluster assignments and temporal patterns provides robust evidence for the biological validity and generalizability of the ALADYNOULLI signatures.
+
+\subsection{Individual Patient Trajectory Analysis}
+
+To illustrate the complex interplay of disease signatures in individual patients, we analyzed detailed trajectories for patients with multiple conditions. For each selected patient, we generated a three-panel visualization that captures both the temporal dynamics and overall signature contributions:
+
+\subsubsection{Patient Selection}
+We identified patients who:
+\begin{itemize}
+    \item Had at least one target disease of interest
+    \item Developed multiple conditions (minimum of 2)
+    \item Had complete follow-up data
+\end{itemize}
+
+\subsubsection{Visualization Components}
+For each selected patient, we created a three-panel figure:
+
+\begin{enumerate}
+    \item \textbf{Signature Dynamics Panel} (Top Left):
+    \begin{itemize}
+        \item Shows the temporal evolution of signature loadings ($\theta$) over time
+        \item Each signature is represented by a distinct colored line
+        \item Vertical dotted lines mark the timing of each disease diagnosis
+        \item Colors are consistent across panels and match the primary signature of each diagnosed condition
+    \end{itemize}
+    
+    \item \textbf{Disease Timeline Panel} (Bottom Left):
+    \begin{itemize}
+        \item Displays a chronological sequence of diagnosed conditions
+        \item Each condition is represented by a horizontal line in its primary signature's color
+        \item Diagnosis points are marked with filled circles
+        \item Provides a clear visualization of disease progression and timing
+    \end{itemize}
+    
+    \item \textbf{Signature Summary Panel} (Right):
+    \begin{itemize}
+        \item Shows a stacked bar chart of time-averaged signature loadings
+        \item Each segment represents the average contribution of a signature over the patient's follow-up
+        \item Colors match the signature colors in the other panels
+        \item Provides a static summary of the patient's overall signature profile
+    \end{itemize}
+\end{enumerate}
+
+This visualization approach allows us to:
+\begin{itemize}
+    \item Track how signature loadings change before and after each diagnosis
+    \item Identify which signatures are most active at different time points
+    \item Understand the temporal relationship between different conditions
+    \item Compare the relative contributions of different signatures to the patient's overall disease profile
+\end{itemize}
+
+For example, in patients with both cardiovascular and inflammatory conditions, we observed distinct patterns of signature activation, with inflammatory signatures often preceding cardiovascular events, suggesting potential mechanistic relationships between these disease processes.
+
+
+
+\section{Additional Patient Examples}
+
+\begin{figure}
+    \centering
+    %\includegraphics[width=0.9\linewidth]{figures/figure3_patient_example_1.pdf}
+    \includegraphics[width=0.9\linewidth]{figures/figure3_patient_example_2.pdf}
+    \includegraphics[width=0.9\linewidth]{figures/figure3_patient_example_3.pdf}
+%    \includegraphics[width=0.9\linewidth]{figures/figure3_patient_example_4.pdf}
+    \includegraphics[width=0.9\linewidth]{figures/figure3_patient_example_5.pdf}
+    \caption{
+    \textbf{Individual patient trajectories reveal distinct patterns of disease progression.}
+    For each patient, the top panel shows signature loadings ($\theta$) over time, with vertical dotted lines indicating disease diagnoses.
+    The middle panel displays a chronological timeline of diagnosed conditions, with colors matching their primary signatures.
+    The right panel shows the time-averaged signature contributions.
+    Patients are ordered by increasing complexity of their disease profiles, from a single signature (top) to multiple interacting signatures (bottom).
+    Colors are consistent across panels and represent the primary signature of each diagnosed condition.
+    }
+    \label{fig:patient_trajectories}
+\end{figure}
+
+\subsection{Disease-Specific Trajectory Analysis}
+
+To understand the heterogeneity in disease progression patterns, we performed a detailed analysis of individual disease trajectories using the ALADYNOULLI model. For each disease of interest, we:
+
+\subsubsection{Patient Clustering}
+\begin{itemize}
+    \item Identified all patients who developed the target disease
+    \item Extracted their signature loadings ($\theta$) over time
+    \item Computed time-averaged signature loadings for each patient
+    \item Performed k-means clustering (k=3) on these average loadings to identify distinct trajectory patterns
+\end{itemize}
+
+\subsubsection{Trajectory Visualization}
+For each disease, we generated three complementary visualizations:
+
+\begin{enumerate}
+    \item \textbf{Event Time Distribution}: A ridge plot showing the distribution of ages at disease onset for each cluster, revealing whether different trajectory patterns are associated with different disease timing.
+    
+    \item \textbf{Signature Deviation Plot}: A stacked area plot showing how each cluster's signature loadings deviate from the population reference trajectory over time. This visualization:
+    \begin{itemize}
+        \item Shows the temporal evolution of signature contributions
+        \item Highlights which signatures drive the differences between clusters
+        \item Reveals whether clusters represent distinct progression patterns or different rates of progression
+    \end{itemize}
+    
+    \item \textbf{Genetic Architecture}: A heatmap showing the mean polygenic risk scores (PRS) for each cluster, with:
+    \begin{itemize}
+        \item Rows representing different PRS traits
+        \item Columns representing the three clusters
+        \item Color intensity showing the mean PRS value
+        \item Text annotations showing the effect size (Cohen's d) of the difference between in-cluster and out-of-cluster means
+    \end{itemize}
+\end{enumerate}
+
+This analysis revealed distinct patterns of disease progression that are associated with different genetic architectures and timing of disease onset. For example, in myocardial infarction, we identified three clusters:
+\begin{itemize}
+    \item A cluster with early onset and high cardiovascular signature loading
+    \item A cluster with later onset and balanced signature contributions
+    \item A cluster with intermediate timing and elevated inflammatory signature loading
+\end{itemize}
+
+Each cluster showed distinct patterns of polygenic risk, suggesting that these trajectory patterns may reflect different biological mechanisms of disease development.
+
+
+\subsection{Genetic Architecture of Disease Signatures}
+
+To dissect the genetic underpinnings of the ALADYNOULLI disease signatures, we performed a series of analyses integrating polygenic risk scores (PRS), model-inferred patient clusters, and genome-wide association studies (GWAS):
+
+\paragraph{(A) PRS–Signature Associations.}
+We estimated the effect of each PRS on the model-inferred signatures by examining the posterior mean of the $\gamma$ parameter, which quantifies the influence of each PRS on each signature. The resulting heatmap (top left) highlights the strongest PRS–signature associations, grouped by disease category, and reveals distinct genetic drivers for each signature.
+
+\paragraph{(B–D) PRS Stratification by Disease-Specific Cluster.}
+For three representative diseases (major depressive disorder, breast cancer, and myocardial infarction), we assigned patients to clusters based on their time-averaged signature loadings. The heatmaps show the mean PRS values for each cluster, illustrating how polygenic risk is differentially distributed across model-inferred disease subtypes.
+
+\paragraph{(E) Genetic Correlation Heatmap.}
+To assess the shared genetic architecture between signatures and complex traits, we refit the model without the genetic prior and performed GWAS on the "area of exposure" for each signature. The area of exposure is defined as the integral of the signature loading ($\theta$) over time for each individual (i.e., $\mathrm{AUC} = \int \theta_{i,s}(t) dt$). We then computed genetic correlations ($r_g$) between these signature AUCs and a broad set of complex traits using LD score regression. The heatmap displays positive genetic correlations, highlighting pleiotropic effects and shared genetic risk factors.
+
+\paragraph{(F) Locus Sharing Across Signatures.}
+We further performed GWAS on the area of exposure for each signature and on individual diseases enriched for a sample signature (e.g., signature 5). The UpSet plot (bottom right) summarizes the overlap of genome-wide significant loci across signatures and component diseases. For each lead variant, we also tested for association with genotype vectors for component traits, revealing both shared and signature-specific genetic effects.
+
+Together, these analyses demonstrate that ALADYNOULLI signatures capture distinct and biologically meaningful axes of genetic risk, with both shared and unique contributions to disease architecture.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/SNP-Phenotype Association Heatmap by Signature.pdf}
+    \caption{
+\textbf{Signature-specific SNP associations reveal pleiotropic genetic effects.}
+For each ALADYNOULLI disease signature, we identified lead genetic variants (SNPs) from GWAS of the area-under-the-curve (AUC) of signature loadings ($\theta$) across individuals. We then tested each lead SNP for association with a broad set of component disease phenotypes using logistic regression, adjusting for sex and ancestry principal components. The heatmap displays Z-statistics for the top signature-specific SNPs across all tested phenotypes, highlighting variants that are strongly associated with the signature trajectory but not with any single disease. These results reveal pleiotropic genetic effects that are captured by the multi-disease signature but are not apparent in single-disease GWAS.
+}
+    \label{fig:enter-label}
+\end{figure}
+
+
+\caption{
+\textbf{Signature-specific SNP associations reveal pleiotropic genetic effects.}
+For each ALADYNOULLI disease signature, we identified lead genetic variants (SNPs) from GWAS of the area-under-the-curve (AUC) of signature loadings ($\theta$) across individuals. We then tested each lead SNP for association with a broad set of component disease phenotypes using logistic regression, adjusting for sex and ancestry principal components. The heatmap displays Z-statistics for the top signature-specific SNPs across all tested phenotypes, highlighting variants that are strongly associated with the signature trajectory but not with any single disease. These results reveal pleiotropic genetic effects that are captured by the multi-disease signature but are not apparent in single-disease GWAS.
+}
+
+\section{Data Description}
+
+\begin{figure}{l}{0.5\textwidth}
+\centering
+    \includegraphics[width=0.9\linewidth]{figures/tablefig.pdf}
+    \caption{\textbf{Cohort characteristics and study design}. Integration of partial life trajectories from three age groups (A: 30-50, B: 45-65, C: 60-82 years). The overlapping periods within each cohort enable robust estimation of disease trajectories across the full age spectrum.}
+    \label{fig:cohort_design}
+    \vspace{-8pt}
+\end{figure}
+
+
+
+\subsection*{Figure Captions}
+
+\paragraph{Figure S1: Sensitivity Analysis Results} (A) Model performance (AUROC) for different numbers of signatures ($K$). (B) Model performance for different length scale parameters. (C) Model performance for different regularization parameters. (D) Computational time for different model configurations.
+
+\paragraph{Figure S2: Individual Patient Trajectories} Temporal evolution of signature associations for representative patients. (A) Patient A: Cardiovascular progression showing transition from Signature 5 to Signature 0. (B) Patient B: Metabolic-to-cardiovascular transition showing progression from Signature 15 to Signature 5. (C) Patient C: Stable healthy trajectory with minimal disease signature associations. (D) Patient D: Complex multimorbidity with multiple signature associations.
+
+\paragraph{Figure S3: Population-Level Signature Dynamics} (A) Average signature associations by age group. (B) Average signature associations by sex. (C) Average signature associations by birth cohort. (D) Average signature associations by genetic risk group. (E) Real-time signature update after MI diagnosis showing changes in Signatures 0 and 5.
+
+\subsection*{Table Captions}
+
+
+\begin{table}[ht]
+\centering
+\caption{Baseline Characteristics Across Cohorts}
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+\textbf{Variable} & \textbf{MGB} (N=48,069) & \textbf{AoU} (N=208263) & \textbf{UKB} (N=427239) \\
+\midrule
+Enrollment Age (years) & 54.3 (17.1) & 59.4 (14.3) & 57.2 (8.0) \\
+Female, n (\%) & 26,295 (55.4\%) & 128,082 (61.5\%) & 233,205 (54.6\%) \\
+\textit{Genetic Ancestry} & & & \\
+\hspace{5mm}EUR & 32,811 (69.2\%) & 84,164 (40.4\%) & 387,119 (90.6\%) \\
+\hspace{5mm}AFR & 2,113 (4.5\%) & 28,651 (13.7\%) & 7,158 (1.7\%) \\
+\hspace{5mm}AMR & 2,785 (5.9\%) & 21,401 (10.3\%) & 607 (0.1\%) \\
+\hspace{5mm}EAS & 770 (1.6\%) & 2,313 (1.1\%) & 1,715 (0.4\%) \\
+\hspace{5mm}SAS & 425 (0.9\%) & 1,147 (0.6\%) & 7,915 (1.9\%) \\
+%\hspace{5mm}OTH & -- & 11,999 (5.8\%) & -- \\
+%\hspace{5mm}MID & -- & 308 (0.1\%) & -- \\
+\hspace{5mm}NA (Missing) & 8,524 (18.0\%) & 58,410 (28.0\%) & 22,727 (5.3\%) \\
+\\
+Number of Diagnoses, median [IQR] & 28.0 [38.0] & 18.0 [28.0] & 6.0 [9.0] \\
+Median Age at Diagnosis, median [IQR] & 58.0 [26.0] & 54.0 [22.0] & 63.3 [15.2] \\
+Ages Considered & 30-81 & 30-81 &30-81\\
+EHR years available & 1991-2023 & 1990-2023 & 1981-2023 \\
+Patients per age/year & 910 & 6223 & 7843 \\
+\\
+%Time Between First and Last Diagnosis, median [IQR] (years) & 7.0 [5.0] & -- & 10.2 [15.4] \\
+\bottomrule
+\end{tabularx}
+\label{tab:baseline_characteristics}
+\end{table}
+
+
+\paragraph{Table S2: Signature Characteristics} Detailed characteristics of each signature, including top associated diseases, genetic associations, and demographic patterns.
+
+\paragraph{Table S3: Signature Transition Patterns} Common signature transition patterns, including frequency, typical timeline, and associated risk of adverse outcomes.
+
+\paragraph{Table S4: Real-Time Update Performance} Predictive performance before and after incorporating new diagnoses for different diagnosis categories.
+
+\subsection*{Movie Captions}
+
+\paragraph{Movie S1: Temporal Evolution of Signature Associations} Animation showing the temporal evolution of signature associations for a cohort of 1000 representative patients over 20 years of follow-up. Each patient is represented by a point in the signature space, with colors indicating the dominant signature.
+
+\paragraph{Movie S2: Disease Progression Visualization} Animation showing the progression of disease probabilities for a representative patient over time, with signature associations shown in the background. The visualization illustrates how changes in signature associations drive changes in disease probabilities.
+
+\subsection*{Data Captions}
+
+\paragraph{Data S1: Signature-Disease Associations} Table containing the learned associations ($\psi_{k,d}$) between signatures and diseases, along with temporal patterns ($\phi_{k,d,t}$) for each signature-disease pair.
+
+\paragraph{Data S2: Genetic Associations} Table containing the learned associations ($\Gamma_k$) between genetic/demographic factors and signature affinities, along with statistical significance measures.
+
+\
+
+
+Dataset Descriptions:
+UKB, MGB, AoU characteristics (sample sizes, demographics)
+Follow-up time distributions
+Disease coding systems and harmonization
+Event rates/prevalence
+Technical Details:
+Model implementation details
+Hyperparameter choices (learning rates, GP weights, etc.)
+Training dynamics (these convergence plots)
+Initialization procedures
+Validation:
+Simulation studies showing model recovers known patterns
+Comparison of different model variants
+Sensitivity analyses for key parameters
+Cross-cohort validation details
+Additional Results:
+Complete list of signatures and their disease compositions
+Full genetic association results
+Detailed prediction metrics for all diseases
+Additional patient trajectory examples
+Methods:
+Detailed mathematical derivations
+GP kernel specifications
+Loss function components
+Optimization procedure
+\end{document}

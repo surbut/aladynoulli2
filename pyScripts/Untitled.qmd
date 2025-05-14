@@ -1,0 +1,373 @@
+---
+title: "From Princeton to Polygenic Risk: A Bayesian's Journey Through Time"
+subtitle: "Or: How I Learned to Stop Worrying and Love Posterior Distributions"
+author: "Sarah M. Urbut, MD, PhD"
+institute: "Massachusetts General Hospital & Broad Institute"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    logo: "https://www.massgeneral.org/assets/MGH/images/logo/mgh-logo-rgb.svg"
+    footer: "MGH Grand Rounds | May 2025"
+---
+
+## The Story of My Research Life
+
+![Kurt Vonnegut's "Man in Hole" plot](https://miro.medium.com/v2/resize:fit:1400/1*-_wuDHpE1ku9R3c6Dm0cwA.png)
+
+::: {.notes}
+Just like Kurt Vonnegut mapped the shapes of stories, my research journey has its own narrative arc. It may not involve a tornado taking me to Oz, but there have been plenty of academic cyclones along the way.
+:::
+
+## Prologue: Princeton Days
+
+::: {.columns}
+::: {.column width="60%"}
+- Studied molecular biology with a focus on quantitative & computational biology
+- First learned about p-value adjustment and FDRs
+- Discovered my superpower: turning messy biological data into tidy statistical models
+- Developed a dangerous addiction to coffee and R packages
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDM3NTdlYjZkNGVlMDE0N2QzOTZlODJiOTFhYTQzZTliNWRhYjIzNyZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/XIqCQx02E1U9W/giphy.gif)
+:::
+:::
+
+::: {.notes}
+My Princeton thesis was actually rejected at first. Later accepted, but really taught me perseverance. Just like Vonnegut's thesis at Chicago - initially rejected, later accepted. Lesson: academic rejection is a time-honored tradition!
+:::
+
+# Theme 1: Posterior Probabilities Beat Likelihoods
+
+## P-Values vs. Posterior Probabilities
+
+::: {.columns}
+::: {.column width="60%"}
+- P-value: "How weird is this data if nothing's happening?"
+- Posterior probability: "Given this data, what's actually happening?"
+- One asks about data given hypothesis, the other about hypothesis given data
+- Guess which one is more useful?
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2YwNmRmM2JmYzI2MTRjMmFiZjYzZWFlNzA5YzNjZDk1MWZiMThiZSZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o7TKQ8kAP0f9X5PoY/giphy.gif)
+:::
+:::
+
+::: {.notes}
+I like to say p-values are like telling someone whether their outfit is statistically different from pajamas, when what they really want to know is whether they look good for their date.
+:::
+
+## The FDR Revolution
+
+- Multiple testing problem: test 20,000 genes, 1,000 will be "significant" by chance (p<0.05)
+- False Discovery Rate controls proportion of false discoveries
+- Local FDR: probability that this specific finding is false
+- My gateway drug to Bayesian thinking
+
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzYwZGVlYzM2ZDMzMWU0OGY3ZjBjOWMwMTUyYzExM2YzZWQxMTVlYiZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o7TKEP6YngkCKFI6k/giphy.gif)
+
+::: {.notes}
+I often joke that FDR is like the bouncer at an exclusive club - keeps out the riffraff results that shouldn't make it into your paper.
+:::
+
+## Matthew Stephens and the Multivariate Bayesian
+
+::: {.columns}
+::: {.column width="60%"}
+- PhD at University of Chicago with Matthew Stephens
+- Developed mashR: Multivariate Adaptive Shrinkage
+- Published in Nature Genetics (2019)
+- Analyzing genetic effects across multiple tissues
+- Leveraging patterns of sharing for better inference
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmVlMzE1OTgyMjc4NzkzNTZiMWQzZmYzZDE1YzllNGVkNTgzNTEwZSZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/4JVTF9zR9BicshFAb7/giphy.gif)
+:::
+:::
+
+::: {.notes}
+My time with Matthew was like statistical bootcamp - painful but transformative. I came out with a new way of seeing the world: through the lens of multivariate distributions and shrinkage estimators. This is where I really started to see the power of borrowing information across contexts.
+:::
+
+## Why Go Bayesian?
+
+> "Science is basically advanced Bayesian reasoning. Why run an experiment if you didn't have a hunch about the outcome? In fact, why get out of bed in the morning if you don't have a prior that it will be a better decision than staying under the covers?"
+
+::: {.notes}
+We're all Bayesians in real life. No one approaches their day with a uniform prior across all possible events. You have expectations, and you update them with evidence. Statistical methods should reflect this reality!
+:::
+
+# Theme 2: Life is a Mixture Distribution
+
+## Not All Effects Are Created Equal
+
+::: {.columns}
+::: {.column width="50%"}
+- Some variants have large effects
+- Some have small effects
+- Many have zero effect
+- Reality is a mixture of these possibilities
+:::
+
+::: {.column width="50%"}
+![Mixture distribution concept](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Mixture_distribution.svg/300px-Mixture_distribution.svg.png)
+:::
+:::
+
+::: {.notes}
+Biology is messy! Some things matter a lot, some things matter a little, and most things don't matter at all. Just like my apartment - a mixture of important stuff, somewhat important stuff, and junk that should probably be thrown out.
+:::
+
+## The GTEx Project: eQTLs Across 44 Tissues
+
+::: {.columns}
+::: {.column width="60%"}
+- Analyzed cis-eQTLs across 44 human tissues
+- Found extensive sharing but significant variability
+- Some effects tissue-specific (e.g., testis)
+- Some effects brain-specific
+- Mixture approach captured this complexity
+:::
+
+::: {.column width="40%"}
+![GTEx project logo](https://imgur.com/2j3ZjFi.png)
+:::
+:::
+
+::: {.notes}
+The GTEx project was a treasure trove of data - like 44 parallel universes of gene expression to explore. Our mixture models helped make sense of the chaos by identifying patterns of sharing and specificity.
+:::
+
+## From Genes to Diseases: ALADYNOULLI
+
+::: {.columns}
+::: {.column width="55%"}
+- ALADYNOULLI: Adaptive LAtent DYnamics with BerNOULLI outcomes
+- Models individuals' health as mixtures of disease signatures
+- Each signature = coherent pattern of disease co-occurrence
+- Different people = different mixtures of signatures
+:::
+
+::: {.column width="45%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWI5MDIzY2ZlYzY2MTI2NzE2NTZlOWNmMDQzNmMzY2QzZWZhYjJiOSZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o84U5xPY1JXXoj4SQ/giphy.gif)
+:::
+:::
+
+::: {.notes}
+ALADYNOULLI may sound like a magical spell from Harry Potter, but it's actually our approach to modeling disease patterns. Each person's health journey is a unique mixture of underlying disease processes - like how each cocktail is a unique mixture of ingredients. Some combinations work better than others!
+:::
+
+# Theme 3: Sharing is Caring (Statistically Speaking)
+
+## The Power of Information Sharing
+
+::: {.columns}
+::: {.column width="60%"}
+- Individual measurements are noisy
+- But patterns across measurements are informative
+- Borrowing information improves estimation
+- Like statistical carpooling - everyone gets where they're going more efficiently
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMDQ5MmQzZDE5OGRkODgwMjM0ODJlNDhhMWU0NGU2M2QzODIxYjczZCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o6Zt11nsxGxGT5qUM/giphy.gif)
+:::
+:::
+
+::: {.notes}
+Sharing information across contexts is like having friends who help you make better decisions. "No, that outfit doesn't work." "Yes, that restaurant is worth trying." It's crowdsourcing your statistical inferences!
+:::
+
+## Tissue Sharing in eQTL Effects
+
+![Brain tissues share eQTL effects](https://imgur.com/JsRkXMa.png)
+
+::: {.notes}
+This heatmap from our GTEx analysis shows that brain tissues have very similar eQTL effects to each other, but differ from other tissues. It's like how all medical students think alike but are different from law students. The power is in recognizing these patterns of similarity and difference.
+:::
+
+## MSGene: Sharing Across Health States
+
+::: {.columns}
+::: {.column width="55%"}
+- Multistate model for coronary artery disease
+- Learns transitions between health states
+- Published in Nature Communications (2024)
+- Borrowing information across:
+  - Similar individuals
+  - Similar transition types
+  - Time points
+:::
+
+::: {.column width="45%"}
+![MSGene state transitions](https://imgur.com/RAPLiKi.png)
+:::
+:::
+
+::: {.notes}
+MSGene is like a GPS system for health - it learns the common routes people take between health states, then uses that information to predict your journey. Unlike real GPS, it doesn't send you down a dead-end street because of outdated maps!
+:::
+
+# Theme 4: Everything is Dynamic
+
+## Risk Factors Change with Age
+
+![Diminishing hazard ratios with age](https://imgur.com/iL8LsZs.png)
+
+::: {.notes}
+This figure from our Circulation Genomics paper shows how the impact of risk factors changes over the life course. The hazard ratio for CAD polygenic risk score goes from 3.58 at age 19 to 1.51 by age 70. It's like how spicy food becomes less intimidating as you get older - what once seemed overwhelming becomes just another dinner option.
+:::
+
+## Patient Trajectories Are Unique 
+
+::: {.columns}
+::: {.column width="55%"}
+- Same diagnosis, different paths
+- Some progress quickly, others slowly
+- Some have complications, others don't
+- Modeling these differences matters!
+:::
+
+::: {.column width="45%"}
+![](https://media.giphy.com/media/3o7aCTfyhYawdOXcFW/giphy.gif)
+:::
+:::
+
+::: {.notes}
+Medicine often treats diagnoses like static labels, but they're really just snapshots of a dynamic process. Two patients with "coronary artery disease" can be as different as two people with "blue shirts" - the label tells you very little about what happens next.
+:::
+
+## Time-Varying Signature Loadings
+
+![Changing signature importance over time](https://imgur.com/ZPdGpQw.png)
+
+::: {.notes}
+In our ALADYNOULLI model, we capture how a patient's association with different disease signatures changes over time. It's like watching someone's music preferences evolve from teenage pop to college indie rock to middle-aged classic rock - the underlying patterns shift as life progresses.
+:::
+
+# Bringing It All Together
+
+## Dynamic Bayesian Mixture Models
+
+::: {.columns}
+::: {.column width="100%"}
+![ALADYNOULLI model overview](https://imgur.com/nXtmPiB.png)
+:::
+:::
+
+::: {.notes}
+This is where all the themes come together - posterior probabilities, mixture distributions, information sharing, and temporal dynamics. ALADYNOULLI combines all these elements to create a comprehensive model of disease progression that adapts to each individual's unique health journey.
+:::
+
+## Dramatic Results
+
+- AUC for coronary artery disease: 71% vs. 65% for traditional models
+- Improved prediction for multiple diseases simultaneously
+- Better risk discrimination across the lifespan
+- More accurate genetic discoveries
+- Clinically interpretable results
+
+::: {.notes}
+The proof is in the pudding, as they say. By combining these principles, we've achieved substantially better prediction and insight than traditional approaches. It's not just about fancy math - it's about results that matter for patients.
+:::
+
+## Real-World Applications
+
+::: {.columns}
+::: {.column width="60%"}
+- Earlier identification of high-risk individuals
+- More personalized prevention strategies
+- Better timing of interventions
+- Discovery of new disease subtypes
+- Improved clinical trial design
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTY0Y2M0NWI3ZWEzYmNiYTJkYzQ2ZTEzZjM2ODJhNjFiZGE3ODllZiZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/KzJkzjggfGN5Py6nkT/giphy.gif)
+:::
+:::
+
+::: {.notes}
+This isn't just academic navel-gazing - these approaches have real implications for patient care. By better understanding disease trajectories, we can be more strategic about when and how we intervene, potentially changing outcomes for thousands of patients.
+:::
+
+## Future Directions
+
+- Integrating environmental and lifestyle data
+- Exploring treatment response heterogeneity
+- Real-time dynamic risk assessment
+- Novel therapeutic targets based on signature biology
+- Implementation in clinical decision support systems
+
+::: {.notes}
+We're just scratching the surface of what's possible with these approaches. The future lies in more comprehensive data integration, more nuanced modeling of treatment effects, and direct implementation in clinical care.
+:::
+
+## The Moral of the Story
+
+::: {.columns}
+::: {.column width="60%"}
+1. Think in terms of posterior probabilities
+2. Embrace the mixture nature of biology
+3. Share information across contexts
+4. Account for dynamics in everything
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTA0ZDhkMDBmYzEzYTUzZDExYWYxNzRkM2ZlYmJiYmQ4N2VmODgwNyZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/l2Je9dUI5NpTYcOFq/giphy.gif)
+:::
+:::
+
+::: {.notes}
+Like any good story, this research journey has a moral. By embracing these four principles, we can build models that better reflect the complexities of human biology and disease, ultimately improving our ability to predict and prevent adverse health outcomes.
+:::
+
+## Acknowledgments
+
+::: {.columns}
+::: {.column width="50%"}
+**Mentors:**
+- Matthew Stephens (UChicago)
+- Giovanni Parmigiani (DFCI)
+- Alexander Gusev (DFCI)
+- Pradeep Natarajan (MGH)
+:::
+
+::: {.column width="50%"}
+**Funding:**
+- NIH T32HG010464
+- American Heart Association
+- UK Biobank
+- Million Veterans Program
+:::
+:::
+
+I'd also like to thank caffeine, impostor syndrome, and the relentless fear of disappointing my mother, without which none of this work would have been possible.
+
+## Thank You!
+
+::: {.columns}
+::: {.column width="60%"}
+**Contact:**
+- Email: surbut@mgh.harvard.edu
+- Twitter: @SarahUrbut
+- Website: urbut-health.github.io
+
+**Papers:**
+- ALADYNOULLI - in submission
+- MSGene - Nature Communications (2024)
+- Dynamic Importance of Genomic and Clinical Risk - Circulation Genomics (2025)
+- Multivariate Adaptive Shrinkage - Nature Genetics (2019)
+:::
+
+::: {.column width="40%"}
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWNlZDlmYzk2MTVhYzg3MTI1YWEzZDI1N2Q4Y2ZmM2E5OTgzNDYwYyZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/ZfK4cXKJTTay1Ava29/giphy.gif)
+:::
+:::
+
+::: {.notes}
+And that's a wrap! Remember, in the grand narrative of medical research, we're all just characters trying to make sense of the plot. But with the right statistical tools, we might just figure out how the story ends before it's too late for our patients.
+:::

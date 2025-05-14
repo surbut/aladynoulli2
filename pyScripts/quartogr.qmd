@@ -1,0 +1,512 @@
+---
+title: "From Equations to Patients: A Journey Through Statistical Genetics and Precision Cardiology"
+author: "Sarah M. Urbut, MD, PhD"
+format:
+  revealjs:
+    theme: simple
+    transition: slide
+    slide-number: true
+    logo: "broad_institute_logo.png"
+    footer: "MGH Cardiology Grand Rounds | May 2025"
+    css: custom.css
+---
+
+## {background-image="images/dna_heart_background.jpg" background-opacity="0.3"}
+
+::: {.r-fit-text}
+# From Equations to Patients
+### A Journey Through Statistical Genetics and Precision Cardiology
+:::
+
+::: {.notes}
+Thank everyone for the invitation. Mention mentors and collaborators. Open with a light joke about being both a cardiologist and statistician - "Yes, I can tell you exactly how unlikely your insurance is to cover that procedure."
+:::
+
+## The Shape of My Story {background-color="#f5f5f5"}
+
+![](images/vonnegut_curve.png){.absolute top=50 right=50 width="350px"}
+
+::: {.columns}
+::: {.column width="60%"}
+Kurt Vonnegut taught us that every story has a shape:
+
+- **Man in Hole**: Hero starts happy, falls in a hole, gets out even happier
+- My research journey follows this curve (with more math)
+- Though some days in the lab felt more like "From Bad to Worse"!
+:::
+:::
+
+::: {.notes}
+Joke about how fellowship sometimes felt like the "From Bad to Worse" plot structure. Share anecdote about spending hours debugging code only to find a missing parenthesis.
+:::
+
+## My Research Through Vonnegut's Eyes {background-color="#f5f5f5"}
+
+::: {.columns}
+::: {.column width="60%"}
+- Princeton: Happy, naive undergrad
+- PhD: The deep, deep hole (p-values < 0.05)
+- Yale/MGH: Crawling out with better methods
+- Now: Modeling diseases as dynamic stories
+
+As Vonnegut would say, "And so it goes..."
+:::
+
+::: {.column width="40%"}
+![](images/phd_hole_meme.jpg){width="90%"}
+:::
+:::
+
+::: {.notes}
+Share a quick anecdote about the notorious "third year of PhD" slump and how running helped clear your mind.
+:::
+
+## Four Themes That Drive My Research {.smaller}
+
+::: {.incremental}
+1. **Posterior probabilities > likelihood alone**
+   - Or: How I learned to stop worrying and love Bayes
+   - Because knowing what you're looking for isn't cheating!
+
+2. **Life is a mixture distribution**
+   - Like my coffee order: complex, multifaceted, and varies by time of day
+
+3. **Sharing information enhances discovery**
+   - Whether it's tissues, traits, or lunch with colleagues
+
+4. **Everything is dynamic**
+   - Including my excitement when the code finally runs
+:::
+
+::: {.notes}
+Add personal touch: "My fascination with Bayesian methods started during those long train commutes from Chicago's suburbs, where I'd read statistics books to pass the time - yes, I was that kid."
+:::
+
+## The Problem: Disease Risk Changes Over Time {auto-animate=true}
+
+![](images/static_risk_models.png)
+
+::: {.columns}
+::: {.column width="60%"}
+Current models provide static snapshots of risk
+
+Like judging a marathon runner by a single photo
+:::
+
+::: {.column width="40%"}
+![](images/marathon_single_photo.jpg){width="90%"}
+:::
+:::
+
+::: {.notes}
+Add personal angle: "As both a distance runner and physician, I've always been frustrated by snapshot metrics. My pace at mile 2 doesn't predict my finish time, just like risk at age 40 doesn't capture lifetime trajectory."
+:::
+
+## The Problem: Disease Risk Changes Over Time {auto-animate=true}
+
+![](images/dynamic_risk_reality.png)
+
+::: {.columns}
+::: {.column width="60%"}
+But real disease risk evolves dynamically
+
+Just like my coffee consumption during fellowship
+:::
+
+::: {.column width="40%"}
+![](images/coffee_consumption_graph.jpg){width="90%"}
+:::
+:::
+
+::: {.notes}
+Joke about how your coffee consumption increased exponentially during cardiology fellowship nights, with a slight decline after discovering the attendings' better coffee stash.
+:::
+
+## Dynamic Hazard: The Missing Piece {.smaller}
+
+::: {.columns}
+::: {.column width="50%"}
+![](images/dynamic_hazard_graph.png)
+:::
+
+::: {.column width="50%"}
+- Published in *Circulation Genomic and Precision Medicine* (2025)
+- Discovered genetic effects **decrease** with age
+- 3.5x stronger effect in 19-year-olds vs. 70-year-olds
+- Won AHA Quest Diagnostics Award (despite my quest for coffee)
+:::
+:::
+
+::: {.notes}
+Share the story of how you first noticed this pattern when looking at age-stratified GWAS results and thought it was an error, until you realized it was consistent across multiple cohorts. Mention how this was a "light bulb" moment that shifted your thinking.
+:::
+
+## Dynamic Hazard: Clinical Implications {.smaller}
+
+::: {.columns}
+::: {.column width="45%"}
+![](images/hazard_implications.png)
+:::
+
+::: {.column width="55%"}
+- Young patients: genetics drives risk
+- Older patients: acquired factors dominate
+- Doreen from fellowship didn't believe me...
+- ...until we showed a 39-year-old with "low" traditional risk but high genetic risk having an MI
+:::
+:::
+
+::: {.notes}
+Share anecdote about convincing skeptical colleagues with real patient examples, while keeping it professional and not targeting anyone specifically.
+:::
+
+## Multivariate Adaptive Shrinkage (mashR) {.smaller}
+
+::: {.columns}
+::: {.column width="60%"}
+- My PhD work with Matthew Stephens
+- First step toward dynamic modeling
+- **Key innovation**: Sharing information across tissues
+- Published in *Nature Genetics* (2019)
+- Finally justified my habit of "borrowing" colleagues' ideas
+:::
+
+::: {.column width="40%"}
+![](images/mash_heatmap.png)
+:::
+:::
+
+::: {.notes}
+Add personal touch: "Matthew taught me that the best ideas come from thinking across disciplines. I spent as much time in statistics department lounges as medical school classrooms. And yes, my medical school friends thought I was strange for getting excited about mixture models."
+:::
+
+## From Tissues to Time: MSGene {background-color="#f8f8f8"}
+
+::: {.columns}
+::: {.column width="50%"}
+![](images/msgene_model.png)
+:::
+
+::: {.column width="50%"}
+- **M**ulti**S**tate model using **Gene**tics
+- Predicts lifetime CAD risk across states
+- *Nature Communications* (2024)
+- Handles all the "what ifs" clinicians love to ask
+:::
+:::
+
+::: {.notes}
+Share story about the origin of MSGene - how clinical questions during rounds inspired you to think about modeling disease transitions. "Patients never follow the textbook progression, and I wanted to capture that messiness mathematically."
+:::
+
+## MSGene: How It Works {.smaller}
+
+::: {.columns}
+::: {.column width="45%"}
+![](images/msgene_states.png)
+:::
+
+::: {.column width="55%"}
+1. Models transitions between health states
+2. Estimates risk conditioned on current state
+3. Incorporates genetics and time-varying factors
+4. Calculates true *remaining* lifetime risk
+5. When I explained it to my grandmother, she said "So it's like The Game of Life, but depressing?"
+:::
+:::
+
+::: {.notes}
+Share challenge of coding the original MSGene prototype on a flight to a conference, and how explaining your work to non-scientists helps clarify your thinking.
+:::
+
+## MSGene: What We Learned {.smaller}
+
+::: {.columns}
+::: {.column width="50%"}
+![](images/msgene_results.png)
+:::
+
+::: {.column width="50%"}
+- Remaining lifetime risk ≠ fixed-window risk
+- Risk **decreases** with age (if you survive)
+- Maximum prevention benefit is early
+- Got UK Biobank Early Career Award!
+- "Early Career" = still eating ramen at age 35
+:::
+:::
+
+::: {.notes}
+Share story of presenting these counterintuitive findings at a conference and the animated discussion that followed. "One prominent cardiologist insisted our model must be wrong because it contradicted conventional wisdom - until we showed the math."
+:::
+
+## The Revelation: Disease Signatures Across the Lifespan
+
+::: {r-stack}
+![](images/signature_evolution.png){.fragment .fade-in-then-semi-out}
+![](images/patient_trajectories.png){.fragment .fade-in}
+:::
+
+::: {.quotation}
+"The moment when you realize diseases don't read textbook chapters about themselves."
+:::
+
+::: {.notes}
+Describe your "aha moment" - perhaps during rounds when seeing a patient with an unusual constellation of symptoms that didn't fit neatly into traditional categories, but made sense when viewed through a signature lens.
+:::
+
+## ALADYNOULLI: The Next Evolution {background-color="#f8f8f8"}
+
+::: {.columns}
+::: {.column width="40%"}
+![](images/aladynoulli_model.png)
+:::
+
+::: {.column width="60%"}
+- **A**daptive **LA**tent **DY**namics with Ber**NOULLI** outcomes
+- Yes, I spent way too long on that acronym
+- And yes, I was listening to Aladdin soundtrack when coding it
+- A whole new world of disease signatures!
+:::
+:::
+
+::: {.notes}
+Share funny story about the process of coming up with the acronym and how many iterations it went through. "My lab mates started a betting pool on how ridiculous the final name would be."
+:::
+
+## What Makes ALADYNOULLI Different? {.smaller}
+
+::: {.incremental}
+1. **Comprehensive information integration**
+   - Like my brain during overnight call - absorbing everything
+
+2. **Joint genetic-trajectory modeling**
+   - Genetics + environment, not versus
+
+3. **Non-competitive diagnosis structure**
+   - Because in real life, patients collect diagnoses like I collect coffee mugs
+
+4. **Predictive disease modeling**
+   - Actually useful for that pesky "clinical relevance" question
+:::
+
+::: {.notes}
+Share anecdote about a reviewer who didn't see the clinical relevance until you showed them a case example that changed their mind.
+:::
+
+## What We Found: Signature 5 (Cardiovascular) {transition="fade"}
+
+![](images/signature5_heatmap.png)
+
+::: {.notes}
+"This signature wasn't surprising - we expected to see coronary disease, hyperlipidemia, and hypertension clustering together. But what was fascinating was how the temporal ordering varied between patients with different genetic backgrounds."
+:::
+
+## What We Found: Signature 7 (Metabolic-Inflammatory) {transition="fade"}
+
+![](images/signature7_heatmap.png)
+
+::: {.notes}
+"This signature was unexpected and fascinating - connecting inflammatory conditions with metabolic disorders in a way that makes biological sense but isn't emphasized in clinical training."
+:::
+
+## These Patterns Are Consistent Across Populations {transition="slide"}
+
+![](images/cross_biobank_patterns.png)
+
+::: {.incremental}
+- Same patterns in UK Biobank, Mass General Brigham, and All of Us
+- Despite different healthcare systems, coding practices, and populations
+- Disease speaks the same language everywhere (sadly)
+:::
+
+::: {.notes}
+Emphasize how surprised you were at the consistency, and how this strengthens the biological validity of these patterns. "We expected more noise between healthcare systems, but the signal was remarkably clear."
+:::
+
+## From Population Patterns to Individual Stories {background-color="#f8f8f8"}
+
+::: {.panel-tabset}
+### Patient A: Early-Onset CAD
+
+![](images/patient_trajectory_early_cad.png)
+
+### Patient B: Late-Onset CAD
+
+![](images/patient_trajectory_late_cad.png)
+
+### Patient C: My Attending (Just Kidding)
+
+![](images/patient_trajectory_complex.png)
+:::
+
+::: {.notes}
+For the attending joke, immediately clarify it's not actually anyone specific - just a lighthearted way to show complex multimorbidity trajectories.
+:::
+
+## Genetics Shape These Trajectories {.smaller}
+
+::: {.columns}
+::: {.column width="60%"}
+![](images/genetic_warping.png)
+:::
+
+::: {.column width="40%"}
+- Introducing "genetic warping"
+- Like time dilation, but for your health
+- Same destination, different speed
+- My genetics apparently warped my height trajectory (still waiting for that growth spurt)
+:::
+:::
+
+::: {.notes}
+Explain the concept by using the analogy of GPS navigation - two cars may reach the same destination but take different routes and speeds based on their capabilities.
+:::
+
+## Better Prediction Across Diseases {.smaller}
+
+![](images/prediction_auc_comparison.png)
+
+::: {.incremental}
+- Substantial AUC improvements across diseases
+- CAD: 0.65 → 0.71
+- Heart failure: 0.70 → 0.76
+- Type 2 diabetes: 0.72 → 0.78
+- And I didn't even have to use a black-box neural network!
+:::
+
+::: {.notes}
+Emphasize that these improvements were achieved with interpretable models that physicians can actually understand, unlike many "black box" approaches.
+:::
+
+## Beyond Prediction: Discovery and Treatment {transition="slide"}
+
+::: {.columns}
+::: {.column width="50%"}
+![](images/genetic_loci_discovery.png)
+:::
+
+::: {.column width="50%"}
+- Novel genetic loci discovered
+- **56 loci** for cardiovascular signature
+- **23 unique** to signature analysis
+- I was so excited when we found these that I spilled coffee all over my keyboard
+:::
+:::
+
+::: {.notes}
+Share the excitement of discovering new loci that weren't found in traditional single-disease GWAS, and how this suggests shared biological mechanisms that could be therapeutic targets.
+:::
+
+## The Future: From Models to Medicine {background-color="#f5f5f5"}
+
+::: {.incremental}
+1. **Integration into EHR**
+   - Your risk updates with each new diagnosis
+   - No more "I'll just ignore that family history"
+
+2. **Clinical decision support**
+   - "This patient is on a high-risk trajectory"
+   - Not just "current risk is X%"
+
+3. **Drug development**
+   - Target signature-specific mechanisms
+   - Beyond "one drug, one disease"
+
+4. **Precision prevention**
+   - Right intervention, right patient, right time
+   - Not "statins for everyone over 60"
+:::
+
+::: {.notes}
+Share your vision of walking into clinic with a dashboard that shows not just current risk but trajectory, and how that could transform preventive care decisions.
+:::
+
+## Behind the Equations: Why This Matters {.smaller}
+
+::: {.columns}
+::: {.column width="60%"}
+![](images/patient_photo.png){width="80%"}
+:::
+
+::: {.column width="40%"}
+- 32-year-old with family history
+- Traditional models: "Low risk"
+- Our model: High-risk trajectory
+- Early intervention → Changed outcome
+- Worth all those late nights coding
+:::
+:::
+
+::: {.notes}
+Share a real (anonymized) case where traditional risk scores missed a high-risk young patient that your model identified correctly. Explain how this type of case motivated you through difficult research challenges.
+:::
+
+## The Road Ahead {background-color="#f8f8f8"}
+
+::: {.incremental}
+- Expand to more disease categories
+- Incorporate treatment response heterogeneity
+- Develop real-time clinical implementation
+- Maybe find time to sleep occasionally
+- Help Doreen understand dynamic risk 😉
+:::
+
+::: {.notes}
+Frame future directions in terms of both scientific goals and personal growth. Mention collaboration opportunities you're excited about, while keeping the Doreen reference light and non-specific.
+:::
+
+## Acknowledgments {.smaller}
+
+::: {.columns}
+::: {.column width="50%"}
+**Mentors**
+- Pradeep Natarajan, MD (coffee supplier)
+- Giovanni Parmigiani, PhD (statistics guru)
+- Matthew Stephens, PhD (Bayesian wizard)
+- Alexander Gusev, PhD (genetics genius)
+- Jordan Smoller, MD, ScD (psychiatrist I needed)
+
+**Funding**
+- NIH/NHLBI K08HL161448 (pays the bills)
+- NHGRI T32HG010464 (fueled the research)
+- MGH Transformative Scholar Award (boosted the ego)
+:::
+
+::: {.column width="50%"}
+**Collaborators**
+- Rui Duan, PhD (statistical superhero)
+- James Pirruccello, MD (fellow code debugger)
+- Paul Ridker, MD, MPH (clinical trial sage)
+- Patrick Ellinor, MD, PhD (cardiology sherpa)
+
+**Patients**
+- UK Biobank (407,878 volunteers)
+- Mass General Brigham (47,327 patients)
+- All of Us Program (94,158 participants)
+- And all who trusted us with their data
+:::
+:::
+
+::: {.notes}
+Express genuine gratitude while keeping a lighthearted tone. Share a brief anecdote about a mentor who particularly shaped your approach.
+:::
+
+## Questions? {background-image="images/dna_background.jpg" background-opacity="0.2"}
+
+::: {.r-fit-text}
+Thank You
+:::
+
+::: {.columns}
+::: {.column width="50%"}
+Contact: surbut@mgh.harvard.edu
+:::
+
+::: {.column width="50%"}
+Twitter: @SarahUrbut
+:::
+:::
+
+::: {.notes}
+"I'm happy to take any questions - statistical, clinical, or philosophical. Just please don't ask me to explain Gaussian processes to your grandmother like I had to at Thanksgiving last year."
+:::

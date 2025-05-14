@@ -1,8 +1,9 @@
 # psi_matrix: K x D
 ukb_params=readRDS("big_stuff/ukb_params.rds")
+ukb_checkpoint=readRDS("ukb_model.rds")
 psi_mat=ukb_params$psi
 E_full=read.csv("E_full_first10k.csv")
-
+pce_data=readRDS("~/Dropbox/pce_df_prevent.rds")
 n_signatures=21
 library(microViz)
 brewerPlus <- distinct_palette()
@@ -14,15 +15,17 @@ primary_signature <- apply(psi_mat, 2, which.max) - 1  # length D, 0-based
 #### to do for all times with model fir using all times 
 
 all_thetas_array <- readRDS("all_thetas_array_time.rds")
-E=readRDS("E_full_tensor.rds")
+E_full=readRDS("E_full_tensor.rds")
+E_mi=E_full[,113]
 num_diag <- rowSums(E_full != 51)
 table(num_diag)  # See distribution
 
+for(i in 1:10){
 # Pick a patient with 5-15 diagnoses
-candidate_patients <- which(num_diag >= 10 & num_diag <= 20)
+candidate_patients <- which(num_diag >= 10 & num_diag <= 20&E_mi!=51)
 #set.seed(1)
 chosen_patient <- sample(candidate_patients, 1)
-chosen_patient=176919 #someone with high loading on having nothing 
+#chosen_patient=176919 #someone with high loading on having nothing 
 #chosen_patient=74021
 #chosen_patien=357674
 patient_theta <- all_thetas_array[chosen_patient,,]
@@ -52,7 +55,7 @@ names(signature_colors) <- signature_labels
 # Prepare theta_long for the top plot
 theta_df <- as.data.frame(patient_theta)
 #pop_refs=apply(all_thetas_array,c(2,3),mean)
-theta_df=theta_df/pop_refs
+#theta_df=theta_df/pop_refs
 colnames(theta_df) <- time_points
 theta_df$signature <- factor(0:(nrow(patient_theta)-1), levels = signature_labels)  # 0-based
 theta_long <- pivot_longer(theta_df, cols = -signature, names_to = "age", values_to = "loading")
@@ -136,8 +139,8 @@ p3 <- ggplot(avg_loadings, aes(x = 0, y = avg_loading, fill = signature)) +
 a=(p1 / p2) | p3 +
   plot_layout(widths = c(5, 1), heights = c(2, 1), guides = "collect")
 
-ggsave(plot = a,filename = "longpattraj_withenrollment_censor_9493.pdf",dpi = 300,width = 25,height = 10)
-
+ggsave(plot = a,filename = paste0("longpattraj_withenrollment_",chosen_patient,".pdf"),dpi = 300,width = 25,height = 10)
+}
 
 
 #### do with enrollment info
@@ -184,6 +187,9 @@ sum(diagnosis_times<pce_data[chosen_patient,age])
 sum(diagnosis_times>pce_data[chosen_patient,age]&diagnosis_times!=51)
 sum(diagnosis_times!=51)
 #######
+
+
+
 disease_names=ukb_checkpoint$disease_names[,1]
 diagnosis_names <- disease_names[diagnosed]
 diagnosis_sigs <- primary_signature[diagnosed]
