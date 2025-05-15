@@ -1711,6 +1711,144 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
     print("Finished fitting Cox models.")
     return fitted_models
 
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+def fit_glm_baseline_models(Y_full, FH_processed, train_indices, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10):
+    """Fits Cox proportional hazards models using age as time scale."""
+    from lifelines import CoxPHFitter
+    fitted_models = {}
+    print(f"Fitting Cox models using training indices [{train_indices.min()}:{train_indices.max()+1}]...")
+    
+    try:
+        Y_train = Y_full[train_indices]
+        FH_train = FH_processed.iloc[train_indices].reset_index(drop=True)
+    except IndexError as e:
+        raise IndexError(f"Training indices out of bounds for Y_full/FH_processed. Error: {e}") from e
+    
+    for disease_group, disease_names_list in major_diseases.items():
+        fh_cols = disease_mapping.get(disease_group, [])
+        if not fh_cols: print(f" - {disease_group}: No FH columns, fitting Sex only.")
+        print(f" - Fitting {disease_group}...")
+        
+        target_sex_code = None
+        if disease_group == 'Breast_Cancer': target_sex_code = 0
+        elif disease_group == 'Prostate_Cancer': target_sex_code = 1
+
+        if target_sex_code is not None:
+            mask_train = (FH_train['sex'] == target_sex_code)
+        else:
+            mask_train = pd.Series(True, index=FH_train.index)
+        
+        current_FH_train = FH_train[mask_train].copy()
+        current_Y_train = Y_train[mask_train]
+        
+        if len(current_FH_train) == 0:
+            print(f"   Warning: No individuals for target sex code {target_sex_code} in training slice.")
+            fitted_models[disease_group] = None
+            continue
+        
+        # Find disease indices
+        disease_indices = []
+        unique_indices = set()
+        for disease in disease_names_list:
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                if idx not in unique_indices and idx < Y_full.shape[1]:
+                    disease_indices.append(idx)
+                    unique_indices.add(idx)
+        
+        if not disease_indices:
+            fitted_models[disease_group] = None
+            continue
+        
+        # Prepare data for Cox model
+        cox_data = []
+        n_prevalent_excluded = 0  # Counter for excluded prevalent cases
+        for i in range(len(current_FH_train)):
+            age_at_enrollment = current_FH_train.iloc[i]['age']
+            t_enroll = int(age_at_enrollment - 30)
+            if t_enroll < 0 or t_enroll >= current_Y_train.shape[2]:
+                continue
+            
+            # Exclude prevalent cases for single-disease groups only
+            if len(disease_indices) == 1:
+                d_idx = disease_indices[0]
+                if torch.any(current_Y_train[i, d_idx, :t_enroll] > 0):
+                    n_prevalent_excluded += 1
+                    continue  # skip prevalent case
+            
+            end_time = min(t_enroll + follow_up_duration_years, current_Y_train.shape[2])
+            if end_time <= t_enroll:
+                continue
+            
+            for d_idx in disease_indices:
+                Y_slice = current_Y_train[i, d_idx, t_enroll:end_time]
+                if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
+                   (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
+                    event_time = np.where(Y_slice > 0)[0][0] + t_enroll
+                    age_at_event = 30 + event_time  # Convert to actual age
+                    event = 1
+                else:
+                    age_at_event = 30 + end_time - 1  # Convert to actual age
+                    event = 0
+                
+                # Create row for Cox model - now using actual age
+                row = {
+                    'age': age_at_event,  # Age at event/censoring
+                    'event': event,
+                    'sex': current_FH_train.iloc[i]['sex']
+                }
+                
+                # Add family history indicators
+                if fh_cols:
+                    valid_fh_cols = [col for col in fh_cols if col in current_FH_train.columns]
+                    if valid_fh_cols:
+                        row['fh'] = current_FH_train.iloc[i][valid_fh_cols].any()
+
+                cox_data.append(row)
+        
+        if not cox_data:
+            fitted_models[disease_group] = None
+            continue
+            
+        cox_df = pd.DataFrame(cox_data)
+
+          # Check if we have enough events
+        if cox_df['event'].sum() < 5:  # Require at least 5 events
+            print(f"   Warning: Too few events ({cox_df['event'].sum()}) for {disease_group}")
+            fitted_models[disease_group] = None
+            continue
+        
+        try:
+            # Fit Cox model using formula interface
+            glm = LogisticRegression(max_iter=1000)
+            
+            # Build formula based on available covariates
+            formula = 'sex'
+            if 'fh' in cox_df.columns:
+                formula += ' + fh'
+
+            if target_sex_code is not None:
+                formula = 'fh' if 'fh' in cox_df.columns else '1'  # Use intercept-only model
+           
+            
+            glm.fit(cox_df, duration_col='age', event_col='event', formula=formula)
+            fitted_models[disease_group] = cph
+            print(f"   Model fitted for {disease_group} using {len(cox_df)} samples.")
+            if len(disease_indices) == 1:
+                print(f"   Excluded {n_prevalent_excluded} prevalent cases for {disease_group}.")
+        except Exception as e:
+            print(f"   Error fitting {disease_group}: {e}")
+            fitted_models[disease_group] = None
+    
+    print("Finished fitting glm models.")
+    return fitted_models
+
+
+
+
 # --- Function to Evaluate Cox Models on Test Set ---
 def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10, pce_df=None):
     """Evaluates pre-fitted Cox models on the test set. Optionally takes pce_df for PCE/PREVENT AUC reporting."""
@@ -3005,3 +3143,588 @@ def create_proper_calibration_plots(checkpoint_path, cov_df, n_bins=10, use_log_
         plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
     
     return fig
+
+# --- Function to Evaluate Cox Models on Test Set with 10-Year AUC ---
+def evaluate_cox_baseline_models_auc(fitted_models, Y_test, FH_test, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10, pce_df=None, n_bootstraps=100):
+    """
+    Evaluates pre-fitted Cox models on the test set using 10-year risk AUC (C-statistic).
+    For each subject, computes the predicted 10-year risk and the binary outcome (event within 10 years).
+    Returns AUC and bootstrap CIs for each disease group.
+    """
+    from lifelines.utils import concordance_index
+    from sklearn.metrics import roc_auc_score
+    import numpy as np
+    import pandas as pd
+    test_results = {}
+    print("\nEvaluating Cox models on test data (10-year AUC)...")
+
+    if not (len(Y_test) == len(FH_test)):
+        raise ValueError(f"Test data size mismatch: Y_test ({len(Y_test)}), FH_test ({len(FH_test)})")
+
+    FH_test = FH_test.reset_index(drop=True)
+    if pce_df is not None:
+        pce_df = pce_df.reset_index(drop=True)
+
+    for disease_group, model in fitted_models.items():
+        if model is None:
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+
+        print(f" - Evaluating {disease_group}...")
+        fh_cols = disease_mapping.get(disease_group, [])
+
+        target_sex_code = None
+        if disease_group == 'Breast_Cancer': target_sex_code = 0
+        elif disease_group == 'Prostate_Cancer': target_sex_code = 1
+
+        if target_sex_code is not None:
+            mask_test = (FH_test['sex'] == target_sex_code)
+        else:
+            mask_test = pd.Series(True, index=FH_test.index)
+
+        current_FH_test = FH_test[mask_test].copy()
+        current_Y_test = Y_test[mask_test]
+        if len(current_FH_test) == 0:
+            print(f"   Warning: No individuals for target sex code {target_sex_code}.")
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+
+        # Find disease indices
+        disease_indices = []
+        unique_indices = set()
+        for disease in major_diseases.get(disease_group, []):
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                if idx not in unique_indices and idx < Y_test.shape[1]:
+                    disease_indices.append(idx)
+                    unique_indices.add(idx)
+
+        if not disease_indices:
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+
+        # Prepare data for evaluation
+        eval_data = []
+        for i in range(len(current_FH_test)):
+            age_at_enrollment = current_FH_test.iloc[i]['age']
+            t_enroll = int(age_at_enrollment - 30)
+            if t_enroll < 0 or t_enroll >= current_Y_test.shape[2]:
+                continue
+            end_time = min(t_enroll + follow_up_duration_years, current_Y_test.shape[2])
+            if end_time <= t_enroll:
+                continue
+            # For each disease in group, check for event in window
+            had_event = 0
+            event_time = None
+            for d_idx in disease_indices:
+                Y_slice = current_Y_test[i, d_idx, t_enroll:end_time]
+                if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
+                   (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
+                    had_event = 1
+                    # For time-to-event, could use: event_time = np.where(Y_slice > 0)[0][0] + t_enroll
+                    break
+            # Prepare row for Cox prediction
+            row = {
+                'age': age_at_enrollment,
+                'sex': current_FH_test.iloc[i]['sex']
+            }
+            if fh_cols:
+                valid_fh_cols = [col for col in fh_cols if col in current_FH_test.columns]
+                if valid_fh_cols:
+                    row['fh'] = current_FH_test.iloc[i][valid_fh_cols].any()
+            eval_data.append((row, had_event))
+
+        if not eval_data:
+            print("   Warning: No individuals processed for evaluation.")
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+
+        # Build DataFrame for prediction
+        pred_df = pd.DataFrame([row for row, _ in eval_data])
+        outcomes = np.array([had_event for _, had_event in eval_data])
+        n_total = len(outcomes)
+        n_events = int(np.sum(outcomes))
+
+        # Predict 10-year risk for each subject
+        # Use model.predict_survival_function to get S(t) at 10 years after enrollment
+        # If model uses 'age' as time scale, predict at age+10
+        try:
+            surv_funcs = model.predict_survival_function(pred_df)
+            # Each column is a subject, index is time (age)
+            # For each subject, find S(age+10)
+            ten_year_risks = []
+            for i, row in pred_df.iterrows():
+                age0 = row['age']
+                target_age = age0 + follow_up_duration_years
+                # Find closest time in survival function index
+                surv = surv_funcs[i]
+                # If index is not integer ages, interpolate
+                if target_age in surv.index:
+                    s10 = surv.loc[target_age]
+                else:
+                    s10 = np.interp(target_age, surv.index.values, surv.values)
+                risk10 = 1 - s10
+                ten_year_risks.append(risk10)
+            ten_year_risks = np.array(ten_year_risks)
+        except Exception as e:
+            print(f"   Error predicting 10-year risk: {e}")
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': n_events, 'n_total': n_total}
+            continue
+
+        # Compute AUC
+        try:
+            if len(np.unique(outcomes)) > 1:
+                auc = roc_auc_score(outcomes, ten_year_risks)
+                # Bootstrap CIs
+                aucs = []
+                for _ in range(n_bootstraps):
+                    idx = np.random.choice(n_total, n_total, replace=True)
+                    if len(np.unique(outcomes[idx])) > 1:
+                        aucs.append(roc_auc_score(outcomes[idx], ten_year_risks[idx]))
+                if aucs:
+                    ci_lower = np.percentile(aucs, 2.5)
+                    ci_upper = np.percentile(aucs, 97.5)
+                else:
+                    ci_lower = ci_upper = np.nan
+            else:
+                auc = np.nan
+                ci_lower = ci_upper = np.nan
+                print(f"   Warning: Only one class present for AUC.")
+        except Exception as e:
+            print(f"   Error computing AUC: {e}")
+            auc = np.nan
+            ci_lower = ci_upper = np.nan
+
+        test_results[disease_group] = {
+            'auc': auc,
+            'ci': (ci_lower, ci_upper),
+            'n_events': n_events,
+            'n_total': n_total
+        }
+        print(f"   10-year AUC: {auc:.3f} ({ci_lower:.3f}-{ci_upper:.3f}) | Events: {n_events}/{n_total}")
+    print("Finished evaluating Cox models (10-year AUC).")
+    return test_results
+
+
+
+## add the aladynoulli results to the cox results
+## do the PCE updated each year
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+import numpy as np
+import pandas as pd
+
+def fit_and_eval_glm_baseline_models(Y_full, FH_processed, train_indices, test_indices, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10):
+    """
+    Fit and evaluate GLM (logistic regression) for 10-year risk prediction for each disease group.
+    Uses enrollment covariates (age, sex, FH if available) and binary outcome (event in 10 years).
+    Returns dict of AUCs and predictions for each group.
+    """
+    results = {}
+    Y_train = Y_full[train_indices]
+    Y_test = Y_full[test_indices]
+    FH_train = FH_processed.iloc[train_indices].reset_index(drop=True)
+    FH_test = FH_processed.iloc[test_indices].reset_index(drop=True)
+    
+    for disease_group, disease_names_list in major_diseases.items():
+        fh_cols = disease_mapping.get(disease_group, [])
+        print(f"- Fitting GLM for {disease_group}...")
+        target_sex_code = None
+        if disease_group == 'Breast_Cancer': target_sex_code = 0
+        elif disease_group == 'Prostate_Cancer': target_sex_code = 1
+        
+        # --- Prepare training data ---
+        if target_sex_code is not None:
+            mask_train = (FH_train['sex'] == target_sex_code)
+        else:
+            mask_train = pd.Series(True, index=FH_train.index)
+        current_FH_train = FH_train[mask_train].copy()
+        current_Y_train = Y_train[mask_train]
+        
+        # --- Prepare test data ---
+        if target_sex_code is not None:
+            mask_test = (FH_test['sex'] == target_sex_code)
+        else:
+            mask_test = pd.Series(True, index=FH_test.index)
+        current_FH_test = FH_test[mask_test].copy()
+        current_Y_test = Y_test[mask_test]
+        
+        # --- Find disease indices ---
+        disease_indices = []
+        unique_indices = set()
+        for disease in disease_names_list:
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                if idx not in unique_indices and idx < Y_full.shape[1]:
+                    disease_indices.append(idx)
+                    unique_indices.add(idx)
+        if not disease_indices:
+            print(f"  No valid indices for {disease_group}.")
+            results[disease_group] = {'auc': np.nan, 'n_events': 0, 'n_total': 0}
+            continue
+        
+        # --- Build X and y for train/test ---
+        def build_Xy(FH, Y, disease_indices):
+            X = []
+            y = []
+            for i in range(len(FH)):
+                age = FH.iloc[i]['age']
+                sex = FH.iloc[i]['sex']
+                t_enroll = int(age - 30)
+                if t_enroll < 0 or t_enroll >= Y.shape[2]:
+                    continue
+                end_time = min(t_enroll + follow_up_duration_years, Y.shape[2])
+                # Binary label: 1 if any event in group in 10 years, else 0
+                had_event = 0
+                for d_idx in disease_indices:
+                    if torch.any(Y[i, d_idx, t_enroll:end_time] > 0):
+                        had_event = 1
+                        break
+                # Covariates: age, sex, FH columns if available
+                row = [age, sex]
+                if fh_cols:
+                    valid_fh_cols = [col for col in fh_cols if col in FH.columns]
+                    if valid_fh_cols:
+                        row.append(FH.iloc[i][valid_fh_cols].any())
+                X.append(row)
+                y.append(had_event)
+            return np.array(X), np.array(y)
+        
+        X_train, y_train = build_Xy(current_FH_train, current_Y_train, disease_indices)
+        X_test, y_test = build_Xy(current_FH_test, current_Y_test, disease_indices)
+        
+        if np.sum(y_train) < 5 or np.sum(y_test) < 5:
+            print(f"  Too few events for {disease_group} (train: {np.sum(y_train)}, test: {np.sum(y_test)})")
+            results[disease_group] = {'auc': np.nan, 'n_events': int(np.sum(y_test)), 'n_total': len(y_test)}
+            continue
+        
+        # --- Fit GLM ---
+        glm = LogisticRegression(max_iter=1000)
+        glm.fit(X_train, y_train)
+        y_pred = glm.predict_proba(X_test)[:, 1]
+        auc = roc_auc_score(y_test, y_pred)
+        results[disease_group] = {
+            'auc': auc,
+            'n_events': int(np.sum(y_test)),
+            'n_total': len(y_test),
+            'y_pred': y_pred,
+            'y_true': y_test
+        }
+        print(f"  GLM AUC for {disease_group}: {auc:.3f} (Events: {np.sum(y_test)}/{len(y_test)})")
+    return results
+
+
+
+
+def evaluate_major_diseases_wsex_with_bootstrap_dynamic(model, Y_100k, E_100k, disease_names, pce_df, n_bootstraps=100, follow_up_duration_years=10):
+    """
+    Evaluate dynamic 10-year risk for each patient using Aladynoulli model, with bootstrap CIs for AUC.
+    For each patient, at each year after enrollment, use the model to get the risk for that year.
+    The cumulative 10-year risk is 1 - prod(1 - yearly_risks).
+    """
+    import numpy as np
+    import torch
+    import pandas as pd
+    from sklearn.metrics import roc_curve, auc
+
+    major_diseases = {
+        'ASCVD': ['Myocardial infarction', 'Coronary atherosclerosis', 'Other acute and subacute forms of ischemic heart disease', 
+                  'Unstable angina (intermediate coronary syndrome)', 'Angina pectoris', 'Other chronic ischemic heart disease, unspecified'],
+        'Diabetes': ['Type 2 diabetes'],
+        'Atrial_Fib': ['Atrial fibrillation and flutter'],
+        'CKD': ['Chronic renal failure [CKD]', 'Chronic Kidney Disease, Stage III'],
+        'All_Cancers': ['Colon cancer', 'Cancer of bronchus; lung', 'Cancer of prostate', 'Malignant neoplasm of bladder', 'Secondary malignant neoplasm','Secondary malignant neoplasm of digestive systems', 'Secondary malignant neoplasm of liver'],
+        'Stroke': ['Cerebral artery occlusion, with cerebral infarction', 'Cerebral ischemia'],
+        'Heart_Failure': ['Congestive heart failure (CHF) NOS', 'Heart failure NOS'],
+        'Pneumonia': ['Pneumonia', 'Bacterial pneumonia', 'Pneumococcal pneumonia'],
+        'COPD': ['Chronic airway obstruction', 'Emphysema', 'Obstructive chronic bronchitis'],
+        'Osteoporosis': ['Osteoporosis NOS'],
+        'Anemia': ['Iron deficiency anemias, unspecified or not due to blood loss', 'Other anemias'],
+        'Colorectal_Cancer': ['Colon cancer', 'Malignant neoplasm of rectum, rectosigmoid junction, and anus'],
+        'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast'],
+        'Prostate_Cancer': ['Cancer of prostate'],
+        'Lung_Cancer': ['Cancer of bronchus; lung'],
+        'Bladder_Cancer': ['Malignant neoplasm of bladder'],
+        'Secondary_Cancer': ['Secondary malignant neoplasm', 'Secondary malignancy of lymph nodes', 'Secondary malignancy of respiratory organs', 'Secondary malignant neoplasm of digestive systems'],
+        'Depression': ['Major depressive disorder'],
+        'Anxiety': ['Anxiety disorder'],
+        'Bipolar_Disorder': ['Bipolar'],
+        'Rheumatoid_Arthritis': ['Rheumatoid arthritis'],
+        'Psoriasis': ['Psoriasis vulgaris'],
+        'Ulcerative_Colitis': ['Ulcerative colitis'],
+        'Crohns_Disease': ['Regional enteritis'],
+        'Asthma': ['Asthma'],
+        'Parkinsons': ["Parkinson's disease"],
+        'Multiple_Sclerosis': ['Multiple sclerosis'],
+        'Thyroid_Disorders': ['Thyrotoxicosis with or without goiter', 'Secondary hypothyroidism', 'Hypothyroidism NOS']
+    }
+
+    results = {}
+    if 'Sex' not in pce_df.columns: raise ValueError("'Sex' column not found in pce_df")
+    if 'age' not in pce_df.columns: raise ValueError("'age' column not found in pce_df")
+
+    with torch.no_grad():
+        pi, _, _ = model.forward()
+    N_pi = pi.shape[0]
+    N_pce = len(pce_df)
+    N_y100k = Y_100k.shape[0]
+    if not (N_pi == N_pce == N_y100k):
+        print(f"Warning: Size mismatch for evaluation cohort. pi: {N_pi}, pce_df: {N_pce}, Y_100k: {N_y100k}. Using minimum size.")
+        min_N = min(N_pi, N_pce, N_y100k)
+        pi = pi[:min_N]
+        pce_df = pce_df.iloc[:min_N]
+        Y_100k = Y_100k[:min_N]
+    pce_df = pce_df.reset_index(drop=True)
+
+    for disease_group, disease_list in major_diseases.items():
+        print(f"\nEvaluating {disease_group} (Dynamic 10-Year Risk)...")
+        disease_indices = []
+        unique_indices = set()
+        for disease in disease_list:
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                if idx not in unique_indices:
+                    disease_indices.append(idx)
+                    unique_indices.add(idx)
+        max_model_disease_idx = pi.shape[1] - 1
+        disease_indices = [idx for idx in disease_indices if idx <= max_model_disease_idx]
+        if not disease_indices:
+            print(f"No valid matching disease indices found for {disease_group}.")
+            results[disease_group] = {'auc': np.nan, 'n_events': 0, 'event_rate': 0.0, 'ci_lower': np.nan, 'ci_upper': np.nan}
+            continue
+
+        target_sex = None
+        if disease_group == 'Breast_Cancer': target_sex = 'Female'
+        elif disease_group == 'Prostate_Cancer': target_sex = 'Male'
+        mask_pce = (pce_df['Sex'] == target_sex) if target_sex else pd.Series(True, index=pce_df.index)
+        int_indices_pce = np.where(mask_pce)[0]
+        if target_sex:
+            print(f"Filtering for {target_sex}: Found {len(int_indices_pce)} individuals in cohort")
+            if len(int_indices_pce) == 0:
+                print(f"Warning: No individuals found for target sex '{target_sex}'. Skipping.")
+                results[disease_group] = {'auc': np.nan, 'n_events': 0, 'event_rate': 0.0, 'ci_lower': np.nan, 'ci_upper': np.nan}
+                continue
+        if len(int_indices_pce) == 0:
+            auc_score = np.nan; n_events = 0; event_rate = 0.0; n_processed = 0
+            ci_lower = np.nan; ci_upper = np.nan
+        else:
+            current_pi_auc = pi[int_indices_pce]
+            current_Y_100k_auc = Y_100k[int_indices_pce]
+            current_pce_df_auc = pce_df.iloc[int_indices_pce]
+            current_N_auc = len(int_indices_pce)
+            risks_auc = np.zeros(current_N_auc)
+            outcomes_auc = np.zeros(current_N_auc)
+            processed_indices_auc_final = []
+            n_prevalent_excluded = 0
+            for i in range(current_N_auc):
+                age = current_pce_df_auc.iloc[i]['age']
+                t_enroll = int(age - 30)
+                if t_enroll < 0 or t_enroll + follow_up_duration_years >= current_pi_auc.shape[2]:
+                    continue
+                # INCIDENT DISEASE FILTER: Only for single-disease outcomes
+                if len(disease_indices) == 1:
+                    prevalent = False
+                    for d_idx in disease_indices:
+                        if d_idx >= current_Y_100k_auc.shape[1]:
+                            continue
+                        if torch.any(current_Y_100k_auc[i, d_idx, :t_enroll] > 0):
+                            prevalent = True
+                            break
+                    if prevalent:
+                        n_prevalent_excluded += 1
+                        continue
+                # Collect yearly risks for years 1 to 10 after enrollment
+                yearly_risks = []
+                for t in range(1, follow_up_duration_years + 1):
+                    pi_diseases = current_pi_auc[i, disease_indices, t_enroll + t]
+                    yearly_risk = 1 - torch.prod(1 - pi_diseases)
+                    yearly_risks.append(yearly_risk.item())
+                # Compute cumulative 10-year risk
+                survival_prob = np.prod([1 - r for r in yearly_risks])
+                ten_year_risk = 1 - survival_prob
+                risks_auc[i] = ten_year_risk
+                # Outcome: did any event occur in the 10 years after enrollment?
+                end_time = min(t_enroll + follow_up_duration_years, current_Y_100k_auc.shape[2])
+                event_found = False
+                for d_idx in disease_indices:
+                    if d_idx >= current_Y_100k_auc.shape[1]: continue
+                    if torch.any(current_Y_100k_auc[i, d_idx, t_enroll:end_time] > 0):
+                        outcomes_auc[i] = 1
+                        event_found = True
+                        break
+                processed_indices_auc_final.append(i)
+            if not processed_indices_auc_final:
+                auc_score = np.nan; n_events = 0; event_rate = 0.0; n_processed = 0
+                ci_lower = np.nan; ci_upper = np.nan
+            else:
+                risks_np = risks_auc[processed_indices_auc_final]
+                outcomes_np = outcomes_auc[processed_indices_auc_final]
+                n_processed = len(outcomes_np)
+                if len(np.unique(outcomes_np)) > 1:
+                    fpr, tpr, _ = roc_curve(outcomes_np, risks_np)
+                    auc_score = auc(fpr, tpr)
+                    aucs = []
+                    for _ in range(n_bootstraps):
+                        indices = np.random.choice(len(risks_np), size=len(risks_np), replace=True)
+                        if len(np.unique(outcomes_np[indices])) > 1:
+                            fpr_boot, tpr_boot, _ = roc_curve(outcomes_np[indices], risks_np[indices])
+                            bootstrap_auc = auc(fpr_boot, tpr_boot)
+                            aucs.append(bootstrap_auc)
+                    if aucs:
+                        ci_lower = np.percentile(aucs, 2.5)
+                        ci_upper = np.percentile(aucs, 97.5)
+                    else:
+                        ci_lower = ci_upper = np.nan
+                else:
+                    auc_score = np.nan
+                    ci_lower = ci_upper = np.nan
+                    print(f"Warning: Only one class present ({np.unique(outcomes_np)}) for AUC.")
+                n_events = int(np.sum(outcomes_np))
+                event_rate = (n_events / n_processed * 100) if n_processed > 0 else 0.0
+        results[disease_group] = {
+            'auc': auc_score,
+            'n_events': n_events,
+            'event_rate': event_rate,
+            'ci_lower': ci_lower,
+            'ci_upper': ci_upper
+        }
+        print(f"AUC: {auc_score:.3f} ({ci_lower:.3f}-{ci_upper:.3f}) (calculated on {n_processed} individuals)")
+        print(f"Events (10-Year in Eval Cohort): {n_events} ({event_rate:.1f}%) (from {n_processed} individuals)")
+        print(f"Excluded {n_prevalent_excluded} prevalent cases for {disease_group}.")
+    print(f"\nSummary of Results (Dynamic 10-Year Risk, Sex-Adjusted):")
+    print("-" * 80)
+    print(f"{'Disease Group':<20} {'AUC':<25} {'Events':<10} {'Rate (%)':<10}")
+    print("-" * 80)
+    for group, res in results.items():
+        auc_str = f"{res['auc']:.3f} ({res['ci_lower']:.3f}-{res['ci_upper']:.3f})" if not np.isnan(res['auc']) else "N/A"
+        rate_str = f"{res['event_rate']:.1f}" if res['event_rate'] is not None else "N/A"
+        print(f"{group:<20} {auc_str:<25} {res['n_events']:<10d} {rate_str}")
+    print("-" * 80)
+    return results
+
+def evaluate_cox_baseline_models_1yrscore_10youtcome_auc(fitted_models, Y_test, FH_test, disease_mapping, major_diseases, disease_names, follow_up_duration_years=10, n_bootstraps=100):
+    """
+    Evaluates Cox models using 1-year risk at enrollment as the score, and 10-year event as the outcome.
+    Returns AUC and bootstrap CIs for each disease group.
+    """
+    from sklearn.metrics import roc_auc_score
+    import numpy as np
+    import pandas as pd
+    print("\nEvaluating Cox models (1-year risk at enrollment, 10-year outcome AUC)...")
+    test_results = {}
+    if not (len(Y_test) == len(FH_test)):
+        raise ValueError(f"Test data size mismatch: Y_test ({len(Y_test)}), FH_test ({len(FH_test)})")
+    FH_test = FH_test.reset_index(drop=True)
+    for disease_group, model in fitted_models.items():
+        if model is None:
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+        print(f" - Evaluating {disease_group}...")
+        fh_cols = disease_mapping.get(disease_group, [])
+        target_sex_code = None
+        if disease_group == 'Breast_Cancer': target_sex_code = 0
+        elif disease_group == 'Prostate_Cancer': target_sex_code = 1
+        if target_sex_code is not None:
+            mask_test = (FH_test['sex'] == target_sex_code)
+        else:
+            mask_test = pd.Series(True, index=FH_test.index)
+        current_FH_test = FH_test[mask_test].copy()
+        current_Y_test = Y_test[mask_test]
+        if len(current_FH_test) == 0:
+            print(f"   Warning: No individuals for target sex code {target_sex_code}.")
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+        # Find disease indices
+        disease_indices = []
+        unique_indices = set()
+        for disease in major_diseases.get(disease_group, []):
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                if idx not in unique_indices and idx < Y_test.shape[1]:
+                    disease_indices.append(idx)
+                    unique_indices.add(idx)
+        if not disease_indices:
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+        eval_data = []
+        for i in range(len(current_FH_test)):
+            age_at_enrollment = current_FH_test.iloc[i]['age']
+            t_enroll = int(age_at_enrollment - 30)
+            if t_enroll < 0 or t_enroll >= current_Y_test.shape[2]:
+                continue
+            end_time = min(t_enroll + follow_up_duration_years, current_Y_test.shape[2])
+            if end_time <= t_enroll:
+                continue
+            # For each disease in group, check for event in window
+            had_event = 0
+            for d_idx in disease_indices:
+                Y_slice = current_Y_test[i, d_idx, t_enroll:end_time]
+                if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
+                   (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
+                    had_event = 1
+                    break
+            # Prepare row for Cox prediction
+            row = {
+                'age': age_at_enrollment,
+                'sex': current_FH_test.iloc[i]['sex']
+            }
+            if fh_cols:
+                valid_fh_cols = [col for col in fh_cols if col in current_FH_test.columns]
+                if valid_fh_cols:
+                    row['fh'] = current_FH_test.iloc[i][valid_fh_cols].any()
+            eval_data.append((row, had_event))
+        if not eval_data:
+            print("   Warning: No individuals processed for evaluation.")
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
+            continue
+        pred_df = pd.DataFrame([row for row, _ in eval_data])
+        outcomes = np.array([had_event for _, had_event in eval_data])
+        n_total = len(outcomes)
+        n_events = int(np.sum(outcomes))
+        # Predict 1-year risk at enrollment
+        try:
+            surv_funcs = model.predict_survival_function(pred_df)
+            one_year_risks = []
+            for i, row in pred_df.iterrows():
+                age0 = row['age']
+                s0 = surv_funcs[i].loc[age0] if age0 in surv_funcs[i].index else np.interp(age0, surv_funcs[i].index.values, surv_funcs[i].values)
+                s1 = surv_funcs[i].loc[age0+1] if (age0+1) in surv_funcs[i].index else np.interp(age0+1, surv_funcs[i].index.values, surv_funcs[i].values)
+                risk1 = 1 - s1 / s0 if s0 > 0 else 0.0
+                one_year_risks.append(risk1)
+            one_year_risks = np.array(one_year_risks)
+        except Exception as e:
+            print(f"   Error predicting 1-year risk: {e}")
+            test_results[disease_group] = {'auc': np.nan, 'ci': (np.nan, np.nan), 'n_events': n_events, 'n_total': n_total}
+            continue
+        # Compute AUC
+        try:
+            if len(np.unique(outcomes)) > 1:
+                auc_val = roc_auc_score(outcomes, one_year_risks)
+                aucs = []
+                for _ in range(n_bootstraps):
+                    idx = np.random.choice(n_total, n_total, replace=True)
+                    if len(np.unique(outcomes[idx])) > 1:
+                        aucs.append(roc_auc_score(outcomes[idx], one_year_risks[idx]))
+                if aucs:
+                    ci_lower = np.percentile(aucs, 2.5)
+                    ci_upper = np.percentile(aucs, 97.5)
+                else:
+                    ci_lower = ci_upper = np.nan
+            else:
+                auc_val = np.nan
+                ci_lower = ci_upper = np.nan
+                print(f"   Warning: Only one class present for AUC.")
+        except Exception as e:
+            print(f"   Error computing AUC: {e}")
+            auc_val = np.nan
+            ci_lower = ci_upper = np.nan
+        test_results[disease_group] = {
+            'auc': auc_val,
+            'ci': (ci_lower, ci_upper),
+            'n_events': n_events,
+            'n_total': n_total
+        }
+        print(f"   1-year risk AUC (10-year outcome): {auc_val:.3f} ({ci_lower:.3f}-{ci_upper:.3f}) | Events: {n_events}/{n_total}")
+    print("Finished evaluating Cox models (1-year risk, 10-year outcome AUC).")
+    return test_results

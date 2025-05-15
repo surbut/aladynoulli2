@@ -161,6 +161,11 @@ class DigitalTwin:
             
         fig, (ax0, ax1, ax2) = plt.subplots(3, 1, figsize=figsize)
 
+        # Add subplot labels
+        ax0.text(-0.08, 1.05, 'A', transform=ax0.transAxes, fontsize=18, fontweight='bold', va='top', ha='right')
+        ax1.text(-0.08, 1.05, 'B', transform=ax1.transAxes, fontsize=18, fontweight='bold', va='top', ha='right')
+        ax2.text(-0.08, 1.05, 'C', transform=ax2.transAxes, fontsize=18, fontweight='bold', va='top', ha='right')
+
         time_points = np.arange(self.T)
 
         # 1. Plot raw lambda (signature trajectories)
@@ -168,7 +173,7 @@ class DigitalTwin:
             ax0.plot(time_points, twin_data['lambda'][k], label=f'Signature {k}', alpha=0.7)
             if modified_data is not None:
                 ax0.plot(time_points, modified_data['lambda'][k], '--', alpha=0.7)
-        ax0.set_title('Signature Trajectories (lambda) Over Time')
+        ax0.set_title('A. Signature Trajectories (lambda) Over Time\nRaw latent signature values for each signature, before (solid) and after (dashed) intervention.')
         ax0.set_xlabel('Time')
         ax0.set_ylabel('Lambda Value')
         ax0.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -178,7 +183,7 @@ class DigitalTwin:
             ax1.plot(time_points, twin_data['theta'][k], label=f'Signature {k}', alpha=0.7)
             if modified_data is not None:
                 ax1.plot(time_points, modified_data['theta'][k], '--', alpha=0.7)
-        ax1.set_title('Signature Proportions (theta) Over Time')
+        ax1.set_title('B. Signature Proportions (theta) Over Time\nSoftmaxed signature proportions, before (solid) and after (dashed) intervention.')
         ax1.set_xlabel('Time')
         ax1.set_ylabel('Proportion')
         ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -192,7 +197,7 @@ class DigitalTwin:
             ax2.plot(time_points, twin_data['pi'][d], label=disease_name, alpha=0.7)
             if modified_data is not None:
                 ax2.plot(time_points, modified_data['pi'][d], '--', label=f'{disease_name} (modified)', alpha=0.7)
-        ax2.set_title('Disease Probabilities (pi) Over Time')
+        ax2.set_title('C. Disease Probabilities (pi) Over Time\nPredicted disease probabilities for selected diseases, before (solid) and after (dashed) intervention.')
         ax2.set_xlabel('Time')
         ax2.set_ylabel('Probability')
         ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -239,3 +244,53 @@ class DigitalTwin:
             'max_difference': max_diff,
             'raw_differences': differences
         }
+    
+
+
+    class DigitalTwin:
+    def __init__(self, model=None, disease_names=None, lambda_=None, phi=None, psi=None, gamma=None, G=None):
+        """
+        Initialize digital twin with a trained model or directly from arrays.
+        """
+        self.disease_names = disease_names
+
+        if model is not None:
+            self.model = model
+            self.N = model.N
+            self.D = model.D
+            self.T = model.T
+            self.K = model.K
+            with torch.no_grad():
+                self.lambda_ = model.lambda_.detach().numpy()
+                self.phi = model.phi.detach().numpy()
+                self.psi = model.psi.detach().numpy()
+                self.gamma = model.gamma.detach().numpy()
+                self.G = model.G.detach().numpy()
+        else:
+            # Direct array initialization
+            self.model = None
+            self.lambda_ = lambda_
+            self.phi = phi
+            self.psi = psi
+            self.gamma = gamma
+            self.G = G
+            self.N, self.K, self.T = self.lambda_.shape
+            self.D = self.phi.shape[1]
+
+        # Pre-compute theta
+        self.theta = np.exp(self.lambda_) / np.sum(np.exp(self.lambda_), axis=1, keepdims=True)
+
+    @classmethod
+    def from_lambdas(cls, lambda_, phi, disease_names=None, psi=None, gamma=None, G=None):
+        """
+        Alternate constructor to initialize from arrays.
+        """
+        return cls(
+            model=None,
+            disease_names=disease_names,
+            lambda_=lambda_,
+            phi=phi,
+            psi=psi,
+            gamma=gamma,
+            G=G
+        )
