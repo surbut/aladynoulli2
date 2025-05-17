@@ -29,6 +29,16 @@ ukb_train = torch$load(
 Y_train_load = tensor_to_r(ukb_train$Y)
 E_mat = tensor_to_r(ukb_train$E)
 
+
+#### 
+ukb_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_model_W0.0001_jointphi_sexspecific_0_10000.pt",
+  weights_only = FALSE
+)
+
+Y_test_load = tensor_to_r(ukb_test$Y)
+E_mat = tensor_to_r(ukb_train$E)
+saveRDS(Y_test_load,"ukb_Y_test.rds")
 #####
 
 disease_names = readRDS("~/aladynoulli2/pyScripts/ukb_model.rds")$disease_names[, 1]
@@ -150,7 +160,7 @@ fit_cox_baseline_models <- function(Y_train,
   
   FH_train <- FH_processed[train_indices, ]
   
-  disease_group = "ASCVD"
+  #disease_group = "ASCVD"
   for (disease_group in names(major_diseases)) {
     ## which fh_cols match
     fh_cols <- disease_mapping[[disease_group]]
@@ -190,6 +200,7 @@ fit_cox_baseline_models <- function(Y_train,
     disease_indices <- unlist(lapply(major_diseases[[disease_group]], function(disease) {
       which(tolower(disease_names) == tolower(disease))
     }))
+    print(disease_indices)
     if (length(disease_indices) == 0) {
       fitted_models[[disease_group]] <- NULL
       next
@@ -198,7 +209,7 @@ fit_cox_baseline_models <- function(Y_train,
     # Prepare data for Cox model
     cox_data <- data.frame()
     for (i in seq_len(nrow(current_FH_train))) {
-      print(i)
+      
       age_at_enrollment <- current_FH_train$age[i]
       t_enroll <- as.integer(age_at_enrollment - 29)
       if (t_enroll < 0 || t_enroll >= dim(current_Y_train)[3])
@@ -206,30 +217,45 @@ fit_cox_baseline_models <- function(Y_train,
       
       end_time <- min(t_enroll + follow_up_duration_years,
                       dim(current_Y_train)[3])
-      #if (end_time <= t_enroll)
-      # next
       
-      for (d_idx in disease_indices) {
-        Y_slice <- current_Y_train[i, d_idx, t_enroll:end_time, drop = TRUE]
-        if (any(Y_slice > 0, na.rm = TRUE)) {
-          event_time <- which(Y_slice > 0)[1] + t_enroll - 1
-          age_at_event <- 29 + event_time
-          event <- 1
-        } else {
-          age_at_event <- 29 + end_time - 1
-          event <- 0
-        }
-        row <- data.frame(age_enroll=t_enroll+29,
-                          age = age_at_event,
-                          event = event,
-                          sex = current_FH_train$sex[i])
-        if (length(fh_cols) > 0 &&
-            all(fh_cols %in% colnames(current_FH_train))) {
-          row$fh <- any(current_FH_train[i, fh_cols])
-        }
-        cox_data <- rbind(cox_data, row)
+      end_time <- min(t_enroll + follow_up_duration_years,
+                      dim(current_Y_train)[3])
+      ymat <- current_Y_train[i, disease_indices, t_enroll:end_time, drop = TRUE]
+      # Find all event indices (relative to t_enroll)
+      if (length(disease_indices) == 1) {
+        # ymat is a vector
+        event_ages <- which(ymat == 1)
+      } else {
+        # ymat is a matrix
+        event_ages <- which(ymat == 1, arr.ind = TRUE)[, 2]
       }
+      
+      if (length(event_ages) == 0) {
+        age_at_event <- end_time + 29 - 1
+        event <- 0
+      } else {
+        min_event_idx <- min(event_ages)
+        age_at_event <- t_enroll + min_event_idx + 29 - 1
+        event <- 1
+      }
+      age_enroll <- t_enroll + 29
+      # Skip if no follow-up time
+      if (age_enroll >= age_at_event)
+        next
+      
+      row <- data.frame(
+        age_enroll = t_enroll + 29,
+        age = age_at_event,
+        event = event,
+        sex = current_FH_train$sex[i]
+      )
+      if (length(fh_cols) > 0 &&
+          all(fh_cols %in% colnames(current_FH_train))) {
+        row$fh <- any(current_FH_train[i, fh_cols])
+      }
+      cox_data <- rbind(cox_data, row)
     }
+    
     if (nrow(cox_data) == 0 || sum(cox_data$event) < 5) {
       cat(sprintf(
         "   Warning: Too few events (%d) for %s\n",
@@ -249,8 +275,10 @@ fit_cox_baseline_models <- function(Y_train,
       else
         "Surv(age_enroll,age,event) ~ 1"
     }
+    print(formula_str)
     fit <- try(coxph(as.formula(formula_str), data = cox_data), silent =
                  TRUE)
+    print(summary(fit))
     if (inherits(fit, "try-error")) {
       cat(sprintf("   Error fitting %s: %s\n", disease_group, fit))
       fitted_models[[disease_group]] <- NULL
@@ -266,6 +294,162 @@ fit_cox_baseline_models <- function(Y_train,
   cat("Finished fitting Cox models.\n")
   return(fitted_models)
 }
+
+
+###
+
+cb = fit_cox_baseline_models(
+  Y_train = Y_train,
+  FH_processed = FH_processed,
+  
+  train_indices = 20001:30000,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 10
+)
+
+
+### test cox models:
+
+library(survival)
+library(pROC)
+Y_test=readRDS("ukb_Y_test.rds")
+test_cox_baseline_models <- function(Y_test,
+                                     FH_processed,
+                                     test_indices,
+                                     disease_mapping,
+                                     major_diseases,
+                                     disease_names,
+                                     follow_up_duration_years = 10,
+                                     fitted_models) {
+  auc_results <- list()
+  FH_test <- FH_processed[test_indices, ]
+  
+  for (disease_group in names(major_diseases)) {
+    fh_cols <- disease_mapping[[disease_group]]
+    if (is.null(fh_cols)) fh_cols <- character(0)
+    if (length(fh_cols) == 0)
+      cat(sprintf(" - %s: No FH columns, fitting Sex only.\n", disease_group))
+    cat(sprintf(" - Evaluating %s...\n", disease_group))
+    
+    target_sex_code <- NA
+    if (disease_group == "Breast_Cancer") target_sex_code <- 0
+    if (disease_group == "Prostate_Cancer") target_sex_code <- 1
+    
+    if (!is.na(target_sex_code)) {
+      mask_test <- FH_test$sex == target_sex_code
+    } else {
+      mask_test <- rep(TRUE, nrow(FH_test))
+    }
+    
+    current_FH_test <- FH_test[mask_test, ]
+    current_Y_test <- Y_test[mask_test, , , drop = FALSE]
+    if (nrow(current_FH_test) == 0) {
+      cat(sprintf("   Warning: No individuals for target sex code %s in testing slice.\n", target_sex_code))
+      next
+    }
+    
+    disease_indices <- unlist(lapply(major_diseases[[disease_group]], function(disease) {
+      which(tolower(disease_names) == tolower(disease))
+    }))
+    if (length(disease_indices) == 0) next
+    
+    cox_data <- data.frame()
+    for (i in seq_len(nrow(current_FH_test))) {
+      age_at_enrollment <- current_FH_test$age[i]
+      t_enroll <- as.integer(age_at_enrollment - 29)
+      if (t_enroll < 0 || t_enroll >= dim(current_Y_test)[3]) next
+      end_time <- min(t_enroll + follow_up_duration_years, dim(current_Y_test)[3])
+      ymat <- current_Y_test[i, disease_indices, t_enroll:end_time, drop = TRUE]
+      # Find all event indices (relative to t_enroll)
+      if (length(disease_indices) == 1) {
+        # ymat is a vector
+        event_ages <- which(ymat == 1)
+      } else {
+        # ymat is a matrix
+        event_ages <- which(ymat == 1, arr.ind = TRUE)[, 2]
+      }
+      
+       if (length(event_ages) == 0) {
+        age_at_event <- end_time + 29 - 1
+        event <- 0
+      } else {
+        min_event_idx <- min(event_ages)
+        age_at_event <- t_enroll + min_event_idx + 29 - 1
+        event <- 1
+      }
+      age_enroll <- t_enroll + 29
+      if (age_enroll >= age_at_event) next
+      row <- data.frame(
+        age_enroll = age_enroll,
+        age = age_at_event,
+        event = event,
+        sex = current_FH_test$sex[i]
+      )
+      if (length(fh_cols) > 0 && all(fh_cols %in% colnames(current_FH_test))) {
+        row$fh <- any(current_FH_test[i, fh_cols])
+      }
+      cox_data <- rbind(cox_data, row)
+    }
+    print(dim(cox_data))
+    fit <- fitted_models[[disease_group]]
+    if (is.null(fit) || nrow(cox_data) == 0) next
+    
+    # Predict linear predictor (risk score)
+    risk_score <- predict(fit, newdata = cox_data, type = "lp")
+    
+    # Calculate AUC (using pROC)
+    roc_obj <- roc(cox_data$event, risk_score)
+    auc_val <- auc(roc_obj)
+    print(sprintf("AUC for %s: %.3f", disease_group, auc_val))
+    auc_results[[disease_group]] <- auc_val
+  }
+  return(auc_results)
+}
+
+
+
+
+cb = fit_cox_baseline_models(
+  Y_train = Y_train,
+  FH_processed = FH_processed,
+  
+  train_indices = 20001:30000,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 10
+)
+
+
+Y_test = readRDS("big_stuff/ukb_params.rds")$Y
+test_indices=0:10000
+auc_results = test_cox_baseline_models(
+  Y_test = Y_test,
+  FH_processed = FH_processed,
+  test_indices = test_indices,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 10,
+  fitted_models = cb
+)
+
+auc_results=e;auc_df <- data.frame(
+disease_group = names(auc_results),
+auc = unlist(auc_results)
+)
+
+write.table(auc_results,"auc_results.txt",quote = FALSE)
+
+
+
+
+
+###########
+
+
 
 # --- Function to Evaluate Cox Models on Test Set ---
 evaluate_cox_baseline_models <- function(fitted_models,
@@ -406,27 +590,3 @@ evaluate_cox_baseline_models <- function(fitted_models,
   cat("Finished evaluating Cox models.\n")
   return(test_results)
 }
-
-cb = fit_cox_baseline_models(
-  Y_train = Y_train,
-  FH_processed = FH_processed,
-  
-  train_indices = 20001:30000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10
-)
-
-
-Y_test = readRDS("big_stuff/ukb_params.rds")$Y
-
-e = evaluate_cox_baseline_models(
-  cb,
-  Y_test,
-  FH_processed[1:10000, ],
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10
-)

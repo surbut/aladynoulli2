@@ -1628,6 +1628,7 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
             fitted_models[disease_group] = None
             continue
         
+                # Prepare data for Cox model
         # Prepare data for Cox model
         cox_data = []
         n_prevalent_excluded = 0  # Counter for excluded prevalent cases
@@ -1636,49 +1637,73 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
             t_enroll = int(age_at_enrollment - 30)
             if t_enroll < 0 or t_enroll >= current_Y_train.shape[2]:
                 continue
-            
+
             # Exclude prevalent cases for single-disease groups only
             if len(disease_indices) == 1:
                 d_idx = disease_indices[0]
                 if torch.any(current_Y_train[i, d_idx, :t_enroll] > 0):
                     n_prevalent_excluded += 1
                     continue  # skip prevalent case
-            
+
             end_time = min(t_enroll + follow_up_duration_years, current_Y_train.shape[2])
             if end_time <= t_enroll:
                 continue
-            
+
+            # --- AGGREGATE ACROSS DISEASES: one row per person ---
+            event_found = False
+            earliest_event_time = None
             for d_idx in disease_indices:
                 Y_slice = current_Y_train[i, d_idx, t_enroll:end_time]
                 if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
-                   (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
-                    event_time = np.where(Y_slice > 0)[0][0] + t_enroll
-                    age_at_event = 30 + event_time  # Convert to actual age
-                    event = 1
-                else:
-                    age_at_event = 30 + end_time - 1  # Convert to actual age
-                    event = 0
-                
-                # Create row for Cox model - now using actual age
-                row = {
-                    'age': age_at_event,  # Age at event/censoring
-                    'event': event,
-                    'sex': current_FH_train.iloc[i]['sex']
-                }
-                
-                # Add family history indicators
-                if fh_cols:
-                    valid_fh_cols = [col for col in fh_cols if col in current_FH_train.columns]
-                    if valid_fh_cols:
-                        row['fh'] = current_FH_train.iloc[i][valid_fh_cols].any()
+                (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
+                    this_event_time = np.where(Y_slice > 0)[0][0] + t_enroll
+                    if (earliest_event_time is None) or (this_event_time < earliest_event_time):
+                        earliest_event_time = this_event_time
+                    event_found = True
+            if event_found:
+                age_at_event = 30 + earliest_event_time  # Convert to actual age
+                event = 1
+            else:
+                age_at_event = 30 + end_time - 1  # Convert to actual age
+                event = 0
 
-                cox_data.append(row)
+                        # ... after setting age_at_event and age_at_enrollment ...
+            #if age_at_enrollment >= age_at_event:
+             #   continue  # skip this row, as entry >= duration
+
+            row = {
+                'age_enroll': age_at_enrollment,  # Age at enrollment (entry)
+                'age': age_at_event,              # Age at event/censoring (exit)
+                'event': event,
+                'sex': current_FH_train.iloc[i]['sex']
+            }
+            # Add family history indicators
+            if fh_cols:
+                valid_fh_cols = [col for col in fh_cols if col in current_FH_train.columns]
+                if valid_fh_cols:
+                    row['fh'] = current_FH_train.iloc[i][valid_fh_cols].any()
+            cox_data.append(row)
+
+
         
         if not cox_data:
             fitted_models[disease_group] = None
             continue
             
         cox_df = pd.DataFrame(cox_data)
+
+
+        print(cox_df.head())
+        print(cox_df.shape)
+        problem_rows = cox_df[cox_df['age_enroll'] >= cox_df['age']]
+        print(problem_rows)
+        print(f"Number of rows with entry >= duration: {problem_rows.shape[0]}")
+            # After building cox_df
+        mask = cox_df['age_enroll'] >= cox_df['age']
+        cox_df.loc[mask, 'age'] = cox_df.loc[mask, 'age_enroll'] + 1.0  # 
+        problem_rows = cox_df[cox_df['age_enroll'] >= cox_df['age']]
+        print(problem_rows)
+        print(f"Number of rows with entry >= duration: {problem_rows.shape[0]}")
 
           # Check if we have enough events
         if cox_df['event'].sum() < 5:  # Require at least 5 events
@@ -1697,9 +1722,9 @@ def fit_cox_baseline_models(Y_full, FH_processed, train_indices, disease_mapping
 
             if target_sex_code is not None:
                 formula = 'fh' if 'fh' in cox_df.columns else '1'  # Use intercept-only model
-           
+            print(formula)
             
-            cph.fit(cox_df, duration_col='age', event_col='event', formula=formula)
+            cph.fit(cox_df, duration_col='age', event_col='event', entry_col='age_enroll', formula=formula)
             fitted_models[disease_group] = cph
             print(f"   Model fitted for {disease_group} using {len(cox_df)} samples.")
             if len(disease_indices) == 1:
@@ -1912,74 +1937,58 @@ def evaluate_cox_baseline_models(fitted_models, Y_test, FH_test, disease_mapping
             test_results[disease_group] = {'c_index': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
             continue
         
-        # Prepare data for evaluation
         eval_data = []
-        processed_indices = []  # Track which original indices are used
-        n_prevalent_excluded = 0  # Counter for excluded prevalent cases
-        
-        # For ASCVD analysis with pre-existing conditions
-        if disease_group == 'ASCVD':
-            # Find indices for pre-existing conditions
-            pre_existing_indices = {}
-            for condition, condition_names in pre_existing_conditions.items():
-                indices = []
-                for name in condition_names:
-                    matches = [i for i, dname in enumerate(disease_names) if name.lower() in dname.lower()]
-                    indices.extend(matches)
-                pre_existing_indices[condition] = list(set(indices))
-        
+        processed_indices = []
+        n_prevalent_excluded = 0
+
         for i in range(len(current_FH_test)):
             age_at_enrollment = current_FH_test.iloc[i]['age']
             t_enroll = int(age_at_enrollment - 30)
             if t_enroll < 0 or t_enroll >= current_Y_test.shape[2]:
                 continue
-            
+
             # Exclude prevalent cases for single-disease groups only
             if len(disease_indices) == 1:
                 d_idx = disease_indices[0]
                 if torch.any(current_Y_test[i, d_idx, :t_enroll] > 0):
                     n_prevalent_excluded += 1
                     continue  # skip prevalent case
-            
+
             end_time = min(t_enroll + follow_up_duration_years, current_Y_test.shape[2])
             if end_time <= t_enroll:
                 continue
-            
+
+            # --- AGGREGATE ACROSS DISEASES: one row per person ---
+            event_found = False
+            earliest_event_time = None
             for d_idx in disease_indices:
                 Y_slice = current_Y_test[i, d_idx, t_enroll:end_time]
                 if (torch.is_tensor(Y_slice) and torch.any(Y_slice > 0)) or \
-                   (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
-                    event_time = np.where(Y_slice > 0)[0][0] + t_enroll
-                    age_at_event = 30 + event_time  # Convert to actual age
-                    event = 1
-                else:
-                    age_at_event = 30 + end_time - 1  # Convert to actual age
-                    event = 0
+                (isinstance(Y_slice, np.ndarray) and np.any(Y_slice > 0)):
+                    this_event_time = np.where(Y_slice > 0)[0][0] + t_enroll
+                    if (earliest_event_time is None) or (this_event_time < earliest_event_time):
+                        earliest_event_time = this_event_time
+                    event_found = True
+            if event_found:
+                age_at_event = 30 + earliest_event_time
+                event = 1
+            else:
+                age_at_event = 30 + end_time - 1
+                event = 0
+
+            row = {
+                'age_enroll': age_at_enrollment,
+                'age': age_at_event,
+                'event': event,
+                'sex': current_FH_test.iloc[i]['sex']
+            }
+            if fh_cols:
+                valid_fh_cols = [col for col in fh_cols if col in current_FH_test.columns]
+                if valid_fh_cols:
+                    row['fh'] = current_FH_test.iloc[i][valid_fh_cols].any()
+            eval_data.append(row)
+            processed_indices.append(current_FH_test.index[i])
                 
-                row = {
-                    'age': age_at_event,  # Age at event/censoring
-                    'event': event,
-                    'sex': current_FH_test.iloc[i]['sex']
-                }
-                
-                # Add pre-existing condition flags for ASCVD analysis
-                if disease_group == 'ASCVD':
-                    for condition, indices in pre_existing_indices.items():
-                        has_condition = False
-                        for idx in indices:
-                            if torch.any(current_Y_test[i, idx, :t_enroll] > 0):
-                                has_condition = True
-                                break
-                        row[f'has_{condition}'] = has_condition
-                
-                if fh_cols:
-                    valid_fh_cols = [col for col in fh_cols if col in current_FH_test.columns]
-                    if valid_fh_cols:
-                        row['fh'] = current_FH_test.iloc[i][valid_fh_cols].any()
-                eval_data.append(row)
-                # Track the original index in FH_test (after masking)
-                processed_indices.append(current_FH_test.index[i])
-        
         if not eval_data:
             print("   Warning: No individuals processed for evaluation.")
             test_results[disease_group] = {'c_index': np.nan, 'ci': (np.nan, np.nan), 'n_events': 0, 'n_total': 0}
