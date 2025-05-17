@@ -4209,3 +4209,109 @@ def get_preexisting_patient_indices(Y_100k, pce_df, disease_names, preexisting_g
                 preexisting_patients.append(i)
                 break
     return preexisting_patients
+
+def fit_and_eval_glm_baseline_models_with_noulli(
+    Y_full, FH_processed, train_indices, test_indices, disease_mapping, major_diseases, disease_names,
+    aladynoulli_1yr_risk_train, aladynoulli_1yr_risk_test, follow_up_duration_years=10):
+    """
+    Fit and evaluate GLM (logistic regression) for 10-year risk prediction for each disease group.
+    Uses enrollment covariates (age, sex, FH if available, and aladynoulli_1yr_risk) and binary outcome (event in 10 years).
+    Returns dict of AUCs and predictions for each group.
+    """
+    results = {}
+    Y_train = Y_full[train_indices]
+    Y_test = Y_full[test_indices]
+    FH_train = FH_processed.iloc[train_indices].reset_index(drop=True)
+    FH_test = FH_processed.iloc[test_indices].reset_index(drop=True)
+    aladyn_train = aladynoulli_1yr_risk_train
+    aladyn_test = aladynoulli_1yr_risk_test
+
+    for disease_group, disease_names_list in major_diseases.items():
+        fh_cols = disease_mapping.get(disease_group, [])
+        print(f"- Fitting GLM+Noulli for {disease_group}...")
+        target_sex_code = None
+        if disease_group == 'Breast_Cancer': target_sex_code = 0
+        elif disease_group == 'Prostate_Cancer': target_sex_code = 1
+
+        # --- Prepare training data ---
+        if target_sex_code is not None:
+            mask_train = (FH_train['sex'] == target_sex_code)
+        else:
+            mask_train = pd.Series(True, index=FH_train.index)
+        current_FH_train = FH_train[mask_train].copy()
+        current_Y_train = Y_train[mask_train]
+        current_aladyn_train = aladyn_train[mask_train.values]
+
+        # --- Prepare test data ---
+        if target_sex_code is not None:
+            mask_test = (FH_test['sex'] == target_sex_code)
+        else:
+            mask_test = pd.Series(True, index=FH_test.index)
+        current_FH_test = FH_test[mask_test].copy()
+        current_Y_test = Y_test[mask_test]
+        current_aladyn_test = aladyn_test[mask_test.values]
+
+        # --- Find disease indices ---
+        disease_indices = []
+        unique_indices = set()
+        for disease in disease_names_list:
+            indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+            for idx in indices:
+                if idx not in unique_indices and idx < Y_full.shape[1]:
+                    disease_indices.append(idx)
+                    unique_indices.add(idx)
+        if not disease_indices:
+            print(f"  No valid indices for {disease_group}.")
+            results[disease_group] = {'auc': np.nan, 'n_events': 0, 'n_total': 0}
+            continue
+
+        # --- Build X and y for train/test ---
+        def build_Xy(FH, Y, aladyn, disease_indices):
+            X = []
+            y = []
+            for i in range(len(FH)):
+                age = FH.iloc[i]['age']
+                sex = FH.iloc[i]['sex']
+                t_enroll = int(age - 30)
+                if t_enroll < 0 or t_enroll >= Y.shape[2]:
+                    continue
+                end_time = min(t_enroll + follow_up_duration_years, Y.shape[2])
+                # Binary label: 1 if any event in group in 10 years, else 0
+                had_event = 0
+                for d_idx in disease_indices:
+                    if torch.any(Y[i, d_idx, t_enroll:end_time] > 0):
+                        had_event = 1
+                        break
+                # Covariates: age, sex, FH columns if available, plus aladynoulli_1yr
+                row = [age, sex]
+                if fh_cols:
+                    valid_fh_cols = [col for col in fh_cols if col in FH.columns]
+                    if valid_fh_cols:
+                        row.append(FH.iloc[i][valid_fh_cols].any())
+                row.append(aladyn[i])
+                X.append(row)
+                y.append(had_event)
+            return np.array(X), np.array(y)
+
+        X_train, y_train = build_Xy(current_FH_train, current_Y_train, current_aladyn_train, disease_indices)
+        X_test, y_test = build_Xy(current_FH_test, current_Y_test, current_aladyn_test, disease_indices)
+
+        if np.sum(y_train) < 5 or np.sum(y_test) < 5:
+            print(f"  Too few events for {disease_group} (train: {np.sum(y_train)}, test: {np.sum(y_test)})")
+            results[disease_group] = {'auc': np.nan, 'n_events': int(np.sum(y_test)), 'n_total': len(y_test)}
+            continue
+
+        # --- Fit GLM ---
+        glm = LogisticRegression(max_iter=1000)
+        glm.fit(X_train, y_train)
+        y_pred = glm.predict_proba(X_test)[:, 1]
+        auc = roc_auc_score(y_test, y_pred)
+        results[disease_group] = {
+            'auc': auc,
+            'n_events': int(np.sum(y_test)),
+            'n_total': len(y_test),
+            'y_pred': y_pred,
+            'y_true': y_test
+        }
+        print(f"  GLM+Noulli AUC for {disease_group}: {auc:.3f} (Events: {np.sum(y_test)}/{len(y_test)})")
+    return results
