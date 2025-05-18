@@ -1,13 +1,44 @@
 # cox_utils.R
 
-### here we load some stuff##
-
 library(survival)
 library(broom)
 library(dplyr)
 
 FH_processed = read.csv('/Users/sarahurbut/Library/CloudStorage/Dropbox/baselinagefamh.csv')
+Y_train = readRDS("~/aladynoulli2/pyScripts/Y_train_tensor.rds")
 
+
+###
+library(reticulate)
+## convert ro R
+#use_condaenv("r-tensornoulli")
+use_condaenv("/opt/miniconda3/envs/new_env_pyro2", required = TRUE)
+torch <- import("torch")
+tensor_to_r <- function(tensor) {
+  as.array(tensor$detach()$cpu()$numpy())
+}
+
+
+## the trained data was 20000-30000
+
+ukb_train = torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_model_W0.0001_jointphi_sexspecific_20000_30000.pt",
+  weights_only = FALSE
+)
+
+Y_train_load = tensor_to_r(ukb_train$Y)
+E_mat = tensor_to_r(ukb_train$E)
+
+
+#### 
+ukb_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_model_W0.0001_jointphi_sexspecific_0_10000.pt",
+  weights_only = FALSE
+)
+
+Y_test_load = tensor_to_r(ukb_test$Y)
+E_mat = tensor_to_r(ukb_train$E)
+saveRDS(Y_test_load,"ukb_Y_test.rds")
 #####
 
 disease_names = readRDS("~/aladynoulli2/pyScripts/ukb_model.rds")$disease_names[, 1]
@@ -117,6 +148,9 @@ disease_mapping = list(
   Thyroid_Disorders = character(0)
 )
 
+pi_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.rds")
+pi_test=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
+
 fit_cox_baseline_models <- function(Y_train,
                                     FH_processed,
                                     train_indices,
@@ -154,20 +188,13 @@ fit_cox_baseline_models <- function(Y_train,
     
     current_FH_train <- FH_train[mask_train, ]
     current_Y_train <- Y_train[mask_train, , , drop = FALSE]
-    print("dim(current_FH_train))")
-    print(dim(current_FH_train))
-    print("dim(current_Y_train)")
-    print(dim(current_Y_train))
     
     if (!is.null(pi_train)) {
-      
       current_pi_train <- pi_train[mask_train, , , drop = FALSE]
-      print("dimPi")
-      print(dim(current_pi_train))
     } else {
       current_pi_train <- NULL
     }
-
+    print(dim(FH_train))
     if (nrow(current_FH_train) == 0) {
       cat(
         sprintf(
@@ -183,43 +210,23 @@ fit_cox_baseline_models <- function(Y_train,
     disease_indices <- unlist(lapply(major_diseases[[disease_group]], function(disease) {
       which(tolower(disease_names) == tolower(disease))
     }))
-    print("disease indices are")
     print(disease_indices)
     if (length(disease_indices) == 0) {
       fitted_models[[disease_group]] <- NULL
       next
     }
     print(disease_names[sort(disease_indices)])
-   
-
-    print(paste("Total events before filtering:", sum(current_Y_train[, disease_indices, ] == 1)))
-     # Prepare data for Cox model
-    
-    n_age_filtered <- 0
-    n_prevalent <- 0
-    n_no_followup <- 0
-    
+    # Prepare data for Cox model
     cox_data <- data.frame()
     for (i in seq_len(nrow(current_FH_train))) {
       
       age_at_enrollment <- current_FH_train$age[i]
       t_enroll <- as.integer(age_at_enrollment - 29)
-      
-  
-      # Age filtering
-      if (t_enroll < 0 || t_enroll >= dim(current_Y_train)[3]) {
-        n_age_filtered <- n_age_filtered + 1
+      if (t_enroll < 0 || t_enroll >= dim(current_Y_train)[3])
         next
-      }
       
-      # Prevalent disease check
-      if (length(disease_indices) == 1 && t_enroll > 0) {
-        if (any(current_Y_train[i, disease_indices, 1:(t_enroll-1)] == 1)) {
-          n_prevalent <- n_prevalent + 1
-          next
-        }
-      }
-    
+      end_time <- min(t_enroll + follow_up_duration_years,
+                      dim(current_Y_train)[3])
       
       end_time <- min(t_enroll + follow_up_duration_years,
                       dim(current_Y_train)[3])
@@ -243,11 +250,8 @@ fit_cox_baseline_models <- function(Y_train,
       }
       age_enroll <- t_enroll + 29
       # Skip if no follow-up time
-    
-      if (age_enroll >= age_at_event) {
-        n_no_followup <- n_no_followup + 1
+      if (age_enroll >= age_at_event)
         next
-      }
       
       row <- data.frame(
         age_enroll = t_enroll + 29,
@@ -269,14 +273,6 @@ fit_cox_baseline_models <- function(Y_train,
       
       cox_data <- rbind(cox_data, row)
     }
-    print(paste("Excluded due to age:", n_age_filtered))
-    print(paste("Excluded due to prevalent disease:", n_prevalent))
-    print(paste("Excluded due to no follow-up:", n_no_followup))
-    print(paste("Final nrow(cox_data):", nrow(cox_data)))
-    print(paste("Total events before filtering:", sum(current_Y_train[, disease_indices, ] == 1)))
-    print(paste("Total events after filtering:", sum(cox_data$event)))
-    print("first few rows of cox data")
-    print(head(cox_data))
     
     if (nrow(cox_data) == 0 || sum(cox_data$event) < 5) {
       cat(sprintf(
@@ -324,10 +320,9 @@ fit_cox_baseline_models <- function(Y_train,
 
 ###
 
-Y_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/ukb_Y_train.rds")
-FH_processed = read.csv('/Users/sarahurbut/Library/CloudStorage/Dropbox/baselinagefamh.csv')
 
-pi_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.rds")
+FH_processed = read.csv('/Users/sarahurbut/Library/CloudStorage/Dropbox/baselinagefamh.csv')
+Y_train = readRDS("~/aladynoulli2/pyScripts/Y_train_tensor.rds")
 
 
 cb = fit_cox_baseline_models(
@@ -339,7 +334,7 @@ cb = fit_cox_baseline_models(
   major_diseases = major_diseases,
   disease_names = disease_names,
   follow_up_duration_years = 10,
-  #pi_train=pi_train
+  pi_train=pi_train
 )
 
 
@@ -347,12 +342,7 @@ cb = fit_cox_baseline_models(
 
 library(survival)
 library(pROC)
-rm(Y_train)
-rm(pi_train)
-rm(train_indices)
-Y_test=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/ukb_Y_test.rds")
-
-
+Y_test=readRDS("ukb_Y_test.rds")
 test_cox_baseline_models <- function(Y_test,
                                      FH_processed,
                                      test_indices,
@@ -370,20 +360,17 @@ test_cox_baseline_models <- function(Y_test,
     if (length(fh_cols) == 0)
       cat(sprintf(" - %s: No FH columns, fitting Sex only.\n", disease_group))
     cat(sprintf(" - Evaluating %s...\n", disease_group))
-
-    target_sex_code <- NA
-    if (disease_group == "Breast_Cancer")
-      target_sex_code <- 0
-    if (disease_group == "Prostate_Cancer")
-      target_sex_code <- 1
     
+     # After sex filtering
     if (!is.na(target_sex_code)) {
       mask_test <- FH_test$sex == target_sex_code
     } else {
       mask_test <- rep(TRUE, nrow(FH_test))
     }
-    
+
+
     if (!is.null(pi_test)) {
+      
       current_pi_test <- pi_test[mask_test, , , drop = FALSE]
       print("dimPi")
       print(dim(current_pi_test))
@@ -393,7 +380,7 @@ test_cox_baseline_models <- function(Y_test,
     current_FH_test <- FH_test[mask_test, ]
     current_Y_test <- Y_test[mask_test, , , drop = FALSE]
     print(paste("After sex filtering:", nrow(current_FH_test)))
-    
+
     
     
     
@@ -407,25 +394,22 @@ test_cox_baseline_models <- function(Y_test,
     }))
     if (length(disease_indices) == 0) next
 
-
-    print(paste("Total events before filtering:", sum(current_Y_test[, disease_indices, ] == 1)))
-    
     n_age_filtered <- 0
     n_prevalent <- 0
     n_no_followup <- 0
-    
+ 
     
     cox_data <- data.frame()
     for (i in seq_len(nrow(current_FH_test))) {
       age_at_enrollment <- current_FH_test$age[i]
       t_enroll <- as.integer(age_at_enrollment - 29)
-      
-      
+
+
       if (t_enroll < 0 || t_enroll >= dim(current_Y_test)[3]) {
         n_age_filtered <- n_age_filtered + 1
         next
       }
-      
+
       # Prevalent disease check
       if (length(disease_indices) == 1 && t_enroll > 0) {
         if (any(current_Y_test[i, disease_indices, 1:(t_enroll-1)] == 1)) {
@@ -476,17 +460,12 @@ test_cox_baseline_models <- function(Y_test,
       
       cox_data <- rbind(cox_data, row)
     }
-    
+
     print(paste("Excluded due to age:", n_age_filtered))
     print(paste("Excluded due to prevalent disease:", n_prevalent))
     print(paste("Excluded due to no follow-up:", n_no_followup))
     print(paste("Final nrow(cox_data):", nrow(cox_data)))
-
-    print(paste("First few rows of data"))
-    print(head(cox_data))
-    print(paste("Total events before filtering:", sum(current_Y_test[, disease_indices, ] == 1)))
-    print(paste("Total events after filtering:", sum(cox_data$event)))
-
+  
     fit <- fitted_models[[disease_group]]
     if (is.null(fit) || nrow(cox_data) == 0) next
     
@@ -505,35 +484,6 @@ test_cox_baseline_models <- function(Y_test,
 
 
 
-test_indices=0:10000
-auc_results = test_cox_baseline_models(
-  Y_test = Y_test,
-  FH_processed = FH_processed,
-  test_indices = test_indices,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  fitted_models = cb,
-  #pi_test=pi_test
-)
-
-
-auc_df <- data.frame(
-disease_group = names(auc_results),
-auc = unlist(auc_results)
-)
-
-write.csv(auc_df,"~/Library/CloudStorage/Dropbox/auc_results_cox_20000_30000train_0_10000test.csv",quote = FALSE)
-
-#### 
-
-Y_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/ukb_Y_train.rds")
-FH_processed = read.csv('/Users/sarahurbut/Library/CloudStorage/Dropbox/baselinagefamh.csv')
-
-pi_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.rds")
-
-
 cb = fit_cox_baseline_models(
   Y_train = Y_train,
   FH_processed = FH_processed,
@@ -542,19 +492,11 @@ cb = fit_cox_baseline_models(
   disease_mapping = disease_mapping,
   major_diseases = major_diseases,
   disease_names = disease_names,
-  follow_up_duration_years = 10,
-  pi_train=pi_train
+  follow_up_duration_years = 10
 )
 
 
-rm(Y_train)
-rm(pi_train)
-rm(train_indices)
-
-### 
-Y_test=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/ukb_Y_test.rds")
-
-pi_test=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
+Y_test = readRDS("big_stuff/ukb_params.rds")$Y
 test_indices=0:10000
 auc_results = test_cox_baseline_models(
   Y_test = Y_test,
@@ -569,48 +511,175 @@ auc_results = test_cox_baseline_models(
 )
 
 
-auc_df_with_noulli <- data.frame(
+auc_df <- data.frame(
 disease_group = names(auc_results),
 auc = unlist(auc_results)
 )
 
+write.table(auc_results,"auc_results.txt",quote = FALSE)
 
-write.csv(auc_df_with_noulli,"~/Library/CloudStorage/Dropbox/auc_results_cox_20000_30000train_0_10000test_with_noulli.csv",quote = FALSE)
+####
 
-dynamic_model_results=read.csv("model_comparison_results_dynamic_vcoxauc.csv")[,c(1,2,4,5)]
-names(dynamic_model_results)[2]="aladynoulli_auc_dynamic"
+pi_train=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.pt",
+  weights_only = FALSE
+)
 
-static_noulli=read.csv("model_comparison_results_bootstatic_auc.csv")[,c(1,2)]
-names(static_noulli)[2]="aladynoulli_auc_static"
+pi_train=tensor_to_r(pi_train)
 
-cox_results_without=read.csv("~/Library/CloudStorage/Dropbox/auc_results_cox_20000_30000train_0_10000test.csv")[,c(2,3)]
-names(cox_results_without)[1]="Disease"
-names(cox_results_without)[2]="cox_auc_without_noulli"
+saveRDS(pi_train,file = "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.rds")
 
-cox_results_with_noulli=read.csv("~/Library/CloudStorage/Dropbox/auc_results_cox_20000_30000train_0_10000test_with_noulli.csv")[,c(2,3)]
-names(cox_results_with_noulli)[1]="Disease"
-names(cox_results_with_noulli)[2]="cox_auc_with_noulli"
-
-
-m1=merge(dynamic_model_results,static_noulli,by="Disease",all=TRUE)
-m2=merge(m1,cox_results_without,by="Disease",all=TRUE)
-m3=merge(m2,cox_results_with_noulli,by="Disease",all=TRUE)
+pi_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.pt",
+  weights_only = FALSE
+)
 
 
-write.csv(m3,"~/Library/CloudStorage/Dropbox/model_comparison_everything.csv",quote = FALSE)
+pi_test=tensor_to_r(pi_test)
+
+saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
 
 
-
+###########
 
 
 
-
-
-
-
-
-
-
-
-
-
+# --- Function to Evaluate Cox Models on Test Set ---
+evaluate_cox_baseline_models <- function(fitted_models,
+                                         Y_test,
+                                         FH_test,
+                                         disease_mapping,
+                                         major_diseases,
+                                         disease_names,
+                                         follow_up_duration_years = 10) {
+  test_results <- list()
+  cat("\nEvaluating Cox models on test data...\n")
+  
+  FH_test <- as.data.frame(FH_test)
+  
+  for (disease_group in names(fitted_models)) {
+    model <- fitted_models[[disease_group]]
+    if (is.null(model)) {
+      test_results[[disease_group]] <- list(
+        c_index = NA,
+        ci = c(NA, NA),
+        n_events = 0,
+        n_total = 0
+      )
+      next
+    }
+    cat(sprintf(" - Evaluating %s...\n", disease_group))
+    fh_cols <- disease_mapping[[disease_group]]
+    if (is.null(fh_cols))
+      fh_cols <- character(0)
+    
+    target_sex_code <- NA
+    if (disease_group == "Breast_Cancer")
+      target_sex_code <- 0
+    if (disease_group == "Prostate_Cancer")
+      target_sex_code <- 1
+    
+    if (!is.na(target_sex_code)) {
+      mask_test <- FH_test$sex == target_sex_code
+    } else {
+      mask_test <- rep(TRUE, nrow(FH_test))
+    }
+    current_FH_test <- FH_test[mask_test, ]
+    current_Y_test <- Y_test[mask_test, , , drop = FALSE]
+    if (nrow(current_FH_test) == 0) {
+      cat(sprintf(
+        "   Warning: No individuals for target sex code %s.\n",
+        target_sex_code
+      ))
+      test_results[[disease_group]] <- list(
+        c_index = NA,
+        ci = c(NA, NA),
+        n_events = 0,
+        n_total = 0
+      )
+      next
+    }
+    disease_indices <- unlist(lapply(major_diseases[[disease_group]], function(disease) {
+      which(tolower(disease_names) == tolower(disease))
+    }))
+    if (length(disease_indices) == 0) {
+      test_results[[disease_group]] <- list(
+        c_index = NA,
+        ci = c(NA, NA),
+        n_events = 0,
+        n_total = 0
+      )
+      next
+    }
+    eval_data <- data.frame()
+    for (i in seq_len(nrow(current_FH_test))) {
+      age_at_enrollment <- current_FH_test$age[i]
+      t_enroll <- as.integer(age_at_enrollment - 29)
+      if (t_enroll < 0 || t_enroll >= dim(current_Y_test)[3])
+        next
+      end_time <- min(t_enroll + follow_up_duration_years,
+                      dim(current_Y_test)[3])
+      if (end_time <= t_enroll)
+        next
+      for (d_idx in disease_indices) {
+        Y_slice <- current_Y_test[i, d_idx, t_enroll:end_time, drop = TRUE]
+        if (any(Y_slice > 0, na.rm = TRUE)) {
+          event_time <- which(Y_slice > 0)[1] + t_enroll - 1
+          age_at_event <- 29 + event_time
+          event <- 1
+        } else {
+          age_at_event <- 29 + end_time - 1
+          event <- 0
+        }
+        row <- data.frame(age = age_at_event,
+                          event = event,
+                          sex = current_FH_test$sex[i])
+        if (length(fh_cols) > 0 &&
+            all(fh_cols %in% colnames(current_FH_test))) {
+          row$fh <- any(data.frame(current_FH_test[i, fh_cols]))
+        }
+        eval_data <- rbind(eval_data, row)
+      }
+    }
+    if (nrow(eval_data) == 0) {
+      cat("   Warning: No individuals processed for evaluation.\n")
+      test_results[[disease_group]] <- list(
+        c_index = NA,
+        ci = c(NA, NA),
+        n_events = 0,
+        n_total = 0
+      )
+      next
+    }
+    # Get predicted risk scores
+    risk_scores <- predict(model, newdata = eval_data, type = "risk")
+    eval_data$risk_scores = risk_scores
+    # Calculate concordance index
+    c_index <- survConcordance(Surv(age, event) ~ -1 * risk_scores, data =
+                                 eval_data)$concordance
+    # Bootstrap confidence interval
+    n_bootstraps <- 10
+    c_indices <- numeric(n_bootstraps)
+    for (b in 1:n_bootstraps) {
+      idx <- sample(seq_len(nrow(eval_data)), replace = TRUE)
+      boot_eval <- eval_data[idx, ]
+      boot_risk <- predict(model, newdata = boot_eval, type = "risk")
+      c_indices[b] <- survConcordance(Surv(age, event) ~ -1 * boot_risk, data =
+                                        boot_eval)$concordance
+    }
+    ci_lower <- quantile(c_indices, 0.025, na.rm = TRUE)
+    ci_upper <- quantile(c_indices, 0.975, na.rm = TRUE)
+    n_events <- sum(eval_data$event)
+    n_total <- nrow(eval_data)
+    test_results[[disease_group]] <- list(
+      c_index = c_index,
+      ci = c(ci_lower, ci_upper),
+      n_events = n_events,
+      n_total = n_total
+    )
+    cat(sprintf("   C-index: %.3f (%.3f-%.3f)\n", c_index, ci_lower, ci_upper))
+    cat(sprintf("   Events: %d/%d\n", n_events, n_total))
+  }
+  cat("Finished evaluating Cox models.\n")
+  return(test_results)
+}
