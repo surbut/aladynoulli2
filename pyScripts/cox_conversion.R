@@ -605,6 +605,7 @@ write.csv(m3,"~/Library/CloudStorage/Dropbox/model_comparison_everything.csv",qu
 
 
 
+install.packages(c("ggplot2", "dplyr", "tidyr", "stringr", "forcats"))
 
 
 
@@ -613,4 +614,259 @@ write.csv(m3,"~/Library/CloudStorage/Dropbox/model_comparison_everything.csv",qu
 
 
 
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(forcats)
 
+# Function to parse the data
+parse_model_data <- function(data_path) {
+  # Read the data
+  df <- read.csv(data_path)
+  
+  # Extract confidence intervals from the formatted strings
+  extract_ci <- function(ci_str) {
+    # Matches format like "0.765 (0.748-0.782)"
+    pattern <- "(\\d+\\.\\d+)\\s*\\((\\d+\\.\\d+)-(\\d+\\.\\d+)\\)"
+    matches <- regexec(pattern, ci_str)
+    result <- regmatches(ci_str, matches)
+    
+    if(length(result) > 0 && length(result[[1]]) >= 4) {
+      return(c(as.numeric(result[[1]][2]), 
+               as.numeric(result[[1]][3]),
+               as.numeric(result[[1]][4])))
+    } else {
+      return(c(NA, NA, NA))
+    }
+  }
+  
+  # Create a clean data frame
+  model_data <- data.frame(
+    Disease = df$Disease,
+    Events = df$Events,
+    Rate = df$Rate,
+    stringsAsFactors = FALSE
+  )
+  
+  # Extract values for Aladynoulli Dynamic
+  dynamic_ci <- lapply(df$aladynoulli_auc_dynamic, extract_ci)
+  model_data$dynamic_auc <- sapply(dynamic_ci, function(x) x[1])
+  model_data$dynamic_lower <- sapply(dynamic_ci, function(x) x[2])
+  model_data$dynamic_upper <- sapply(dynamic_ci, function(x) x[3])
+  
+  # Extract values for Aladynoulli Static
+  static_ci <- lapply(df$aladynoulli_auc_static, extract_ci)
+  model_data$static_auc <- sapply(static_ci, function(x) x[1])
+  model_data$static_lower <- sapply(static_ci, function(x) x[2])
+  model_data$static_upper <- sapply(static_ci, function(x) x[3])
+  
+  # Add Cox values
+  model_data$cox_without_noulli <- df$cox_auc_without_noulli
+  model_data$cox_with_noulli <- df$cox_auc_with_noulli
+  
+  # Calculate CI for Cox values (using the formula SE = sqrt((AUC * (1-AUC)) / (n * prevalence)))
+  calc_cox_ci <- function(auc, events, total = 400000) {
+    # Parse rate from string like "4.8%"
+    prevalence <- events / total
+    # Ensure minimum prevalence for calculation
+    prevalence <- max(0.01, prevalence)
+    
+    # Standard error
+    se <- sqrt((auc * (1 - auc)) / (total * prevalence))
+    # 95% CI
+    lower <- max(0, auc - 1.96 * se)
+    upper <- min(1, auc + 1.96 * se)
+    
+    return(c(lower, upper))
+  }
+  
+  # Add CI for Cox without Noulli
+  cox_without_ci <- mapply(calc_cox_ci, 
+                           model_data$cox_without_noulli, 
+                           model_data$Events, 
+                           SIMPLIFY = FALSE)
+  model_data$cox_without_lower <- sapply(cox_without_ci, function(x) x[1])
+  model_data$cox_without_upper <- sapply(cox_without_ci, function(x) x[2])
+  
+  # Add CI for Cox with Noulli
+  cox_with_ci <- mapply(calc_cox_ci, 
+                        model_data$cox_with_noulli, 
+                        model_data$Events, 
+                        SIMPLIFY = FALSE)
+  model_data$cox_with_lower <- sapply(cox_with_ci, function(x) x[1])
+  model_data$cox_with_upper <- sapply(cox_with_ci, function(x) x[2])
+  
+  return(model_data)
+}
+
+# Reshape data for plotting
+prepare_forest_plot_data <- function(model_data) {
+  # Transform to long format
+  long_data <- model_data %>%
+    pivot_longer(
+      cols = c("dynamic_auc", "static_auc", "cox_without_noulli", "cox_with_noulli"),
+      names_to = "model",
+      values_to = "auc"
+    ) %>%
+    mutate(
+      lower = case_when(
+        model == "dynamic_auc" ~ dynamic_lower,
+        model == "static_auc" ~ static_lower,
+        model == "cox_without_noulli" ~ cox_without_lower,
+        model == "cox_with_noulli" ~ cox_with_lower
+      ),
+      upper = case_when(
+        model == "dynamic_auc" ~ dynamic_upper,
+        model == "static_auc" ~ static_upper,
+        model == "cox_without_noulli" ~ cox_without_upper,
+        model == "cox_with_noulli" ~ cox_with_upper
+      ),
+      model = case_when(
+        model == "dynamic_auc" ~ "Aladynoulli Dynamic",
+        model == "static_auc" ~ "Aladynoulli Static",
+        model == "cox_without_noulli" ~ "Cox without Noulli",
+        model == "cox_with_noulli" ~ "Cox with Noulli"
+      )
+    ) %>%
+    select(Disease, Events, Rate, model, auc, lower, upper)
+  
+  # Make Disease a factor ordered by dynamic AUC
+  disease_order <- model_data %>%
+    arrange(desc(dynamic_auc)) %>%
+    pull(Disease)
+  
+  long_data$Disease <- factor(long_data$Disease, levels = disease_order)
+  
+  return(long_data)
+}
+
+# Create the forest plot
+create_forest_plot <- function(plot_data) {
+  # Define colors for models
+  model_colors <- c(
+    "Aladynoulli Dynamic" = "#4285F4",  # Blue
+    "Aladynoulli Static" = "#34A853",   # Green
+    "Cox without Noulli" = "#FBBC05",   # Yellow/Orange
+    "Cox with Noulli" = "#EA4335"       # Red
+  )
+  
+  # Shape the disease names to be more readable
+  plot_data <- plot_data %>%
+    mutate(Disease = str_replace_all(Disease, "_", " "))
+  
+  # Create the plot
+  p <- ggplot(plot_data, aes(x = auc, y = Disease, color = model)) +
+    geom_vline(xintercept = 0.5, linetype = "dashed", color = "gray70") +
+    geom_point(aes(shape = model), size = 2.5, position = position_dodge(width = 0.5)) +
+    geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.2, position = position_dodge(width = 0.5)) +
+    scale_color_manual(values = model_colors) +
+    scale_x_continuous(limits = c(0.3, 1), breaks = seq(0.3, 1, by = 0.1)) +
+    labs(
+      title = "Multi-Disease AUC Comparison",
+      subtitle = "Comparing performance of four prediction models across 28 diseases",
+      x = "AUC (95% CI)",
+      y = NULL,
+      color = "Model",
+      shape = "Model"
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "top",
+      panel.grid.major.y = element_line(color = "gray90"),
+      panel.grid.minor.y = element_blank(),
+      axis.text.y = element_text(size = 10),
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 12)
+    )
+  
+  return(p)
+}
+
+# Main function to run the analysis
+create_multidisease_comparison <- function(data_path) {
+  # Parse the data
+  model_data <- parse_model_data(data_path)
+  
+  # Prepare data for plotting
+  plot_data <- prepare_forest_plot_data(model_data)
+  
+  # Create forest plot
+  forest_plot <- create_forest_plot(plot_data)
+  
+  # Save the plot
+  ggsave("multidisease_forest_plot.png", forest_plot, width = 12, height = 14, dpi = 300)
+  
+  # Print summary statistics
+  model_summary <- plot_data %>%
+    group_by(model) %>%
+    summarize(
+      mean_auc = mean(auc, na.rm = TRUE),
+      median_auc = median(auc, na.rm = TRUE),
+      min_auc = min(auc, na.rm = TRUE),
+      max_auc = max(auc, na.rm = TRUE)
+    )
+  
+  print(model_summary)
+  
+  return(forest_plot)
+}
+
+# Example usage:
+# forest_plot <- create_multidisease_comparison("model_comparison_everything.csv")
+# print(forest_plot)
+
+# Alternative approach with facet_wrap for separate panels by disease
+create_faceted_forest_plot <- function(plot_data) {
+  # Limit to top 16 diseases by dynamic AUC
+  top_diseases <- plot_data %>%
+    filter(model == "Aladynoulli Dynamic") %>%
+    arrange(desc(Events)) %>%
+    head(16) %>%
+    pull(Disease)
+  
+  plot_data_subset <- plot_data %>%
+    filter(Disease %in% top_diseases)
+  
+  plot_data_subset$Disease=factor(plot_data_subset$Disease,levels = top_diseases)
+  # Define colors for models
+  model_colors <- c(
+    "Aladynoulli Dynamic" = "#4285F4",  # Blue
+    "Aladynoulli Static" = "#34A853",   # Green
+    "Cox without Noulli" = "#FBBC05",   # Yellow/Orange
+    "Cox with Noulli" = "#EA4335"       # Red
+  )
+  
+  # Create the faceted plot
+  p <- ggplot(plot_data_subset, aes(x = model, y = auc, color = model)) +
+    geom_point(size = 1) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+    facet_wrap(~ Disease, scales = "free_y", ncol = 4) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray70") +
+    scale_color_manual(values = model_colors) +
+    scale_y_continuous(limits = c(0.3, 1), breaks = seq(0.3, 1, by = 0.1)) +
+    labs(
+      title = "Multi-Disease AUC Comparison",
+      subtitle = "Performance across top 16 diseases",
+      y = "AUC (95% CI)",
+      x = NULL
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "top",
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+      strip.text = element_text(face = "bold"),
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 12)
+    )
+  
+  return(p)
+}
+
+
+model_data <- parse_model_data("~/Library/CloudStorage/Dropbox/model_comparison_everything.csv")
+plot_data <- prepare_forest_plot_data(model_data)
+# Add this line to also generate the faceted plot
+faceted_plot <- create_faceted_forest_plot(plot_data)
+ggsave("multidisease_faceted_plot.pdf", faceted_plot, width = 12, height = 12, dpi = 300)
