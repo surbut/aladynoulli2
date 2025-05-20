@@ -19,7 +19,7 @@ ukb_train = torch$load(
 Y_train_load = tensor_to_r(ukb_train$Y)
 E_mat = tensor_to_r(ukb_train$E)
 
-
+saveRDS(Y_train_load,"ukb_Y_train.rds")
 #### 
 ukb_test=torch$load(
   "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_model_W0.0001_jointphi_sexspecific_0_10000.pt",
@@ -29,3 +29,26 @@ ukb_test=torch$load(
 Y_test_load = tensor_to_r(ukb_test$Y)
 E_mat = tensor_to_r(ukb_train$E)
 saveRDS(Y_test_load,"ukb_Y_test.rds")
+
+
+
+
+pi_train=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.pt",
+  weights_only = FALSE
+)
+
+pi_train=tensor_to_r(pi_train)
+
+saveRDS(pi_train,file = "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_20000_30000.rds")
+
+pi_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.pt",
+  weights_only = FALSE
+)
+
+
+pi_test=tensor_to_r(pi_test)
+
+saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
+

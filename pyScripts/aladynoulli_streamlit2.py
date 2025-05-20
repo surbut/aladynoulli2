@@ -834,7 +834,7 @@ def main():
     st.title("Disease Trajectory Model Visualization")
     
     # Load model and data
-    first_model = torch.load('/Users/sarahurbut/Dropbox/model_with_kappa_bigam.pt')
+    first_model = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox/model_with_kappa_bigam.pt')
     model_state_dict = first_model['model_state_dict']
     clusters = np.array(first_model['clusters'])
     G = first_model['G']
