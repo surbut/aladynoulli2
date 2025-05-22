@@ -2,7 +2,12 @@ import random
 import time
 import numpy as np
 import matplotlib.pyplot as plt 
+import streamlit as st
 
+random.seed(42)
+np.random.seed(42)
+
+@st.cache_data
 def run_digital_twin_matching(
     treated_time_idx,
     untreated_eids,
@@ -12,17 +17,20 @@ def run_digital_twin_matching(
     diabetes_idx=47,
     window=10,
     window_post=10,
-    sig_idx=15,
+    sig_idx=None,
     sample_size=1000,
-    max_cases=None
+    max_cases=None,
+    age_at_enroll=None,
+    age_tolerance=2
 ):
     """
-    Match each treated individual to a control by signature trajectory in the years prior to drug start,
+    Match each treated individual to a control by signature trajectory in the years prior to drug start (multivariate: all signatures),
     then compare post-treatment Type 2 diabetes event rates and signature trajectories.
     For each treated, only a random sample of controls (sample_size) is considered.
     Prints progress and estimated time remaining.
     Supports both numpy arrays and torch tensors for Y.
     If max_cases is set, only process up to max_cases treated individuals.
+    If age_at_enroll is provided, only match controls within age_tolerance years.
     
     Parameters:
         treated_time_idx: dict {eid: t0} for treated patients
@@ -33,131 +41,92 @@ def run_digital_twin_matching(
         diabetes_idx: index of Type 2 diabetes in Y (default 47)
         window: years before t0 for matching (default 10)
         window_post: years after t0 for outcome (default 10)
-        sig_idx: signature index to plot (default 15)
+        sig_idx: signature index to plot (default None, meaning all signatures)
         sample_size: number of controls to sample for each treated (default 1000)
         max_cases: maximum number of treated cases to process (default None, meaning all)
+        age_at_enroll: dict {eid: age} for age at enrollment
+        age_tolerance: age tolerance for matching (default 2 years)
     """
-    # List to store matched (treated, control, t0) tuples
     matched_pairs = []
-    # Get list of treated patient IDs
     treated_eids = list(treated_time_idx.keys())
-    # Number of treated patients
     n_treated = len(treated_eids)
-    # Start timer for progress estimation
     start_time = time.time()
 
-    # Detect if Y is a torch tensor (for compatibility)
     try:
         import torch
         is_torch = isinstance(Y, torch.Tensor)
     except ImportError:
         is_torch = False
 
-    # If max_cases is set, only use a subset of treated
     if max_cases is not None:
         treated_eids = treated_eids[:max_cases]
         n_treated = len(treated_eids)
 
-    # Loop over each treated patient
     for i, treated_eid in enumerate(treated_eids):
-        t0 = treated_time_idx[treated_eid]  # Drug start time for this patient
-        print(f"Processing treated patient {i+1}/{n_treated} (EID: {treated_eid}) at time {t0}")
-        print(f"t0: {t0}")
-        # Find index of treated patient in processed_ids
+        t0 = treated_time_idx[treated_eid]
         try:
             treated_idx = np.where(processed_ids == int(treated_eid))[0][0]
-            print(f"treated_idx: {treated_idx}")
-            print(f"processed_ids: {processed_ids}")
         except Exception:
-            continue  # Skip if not found
+            continue
         if t0 < window:
-            continue  # Skip if not enough history
-        # Get the treated's signature trajectory in the pre-t0 window
-        traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten()  # shape: (n_sigs * window,)
-        #print(f"traj_treated: {traj_treated}")
-        print("shape of traj_treated:")
-        print(traj_treated.shape)
+            continue
+        # Get the treated's signature trajectory in the pre-t0 window (all signatures)
+        traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten()
 
-        # Randomly sample controls from untreated_eids
-        if len(untreated_eids) > sample_size:
-            sampled_controls = random.sample(list(untreated_eids), sample_size)
-            print(f"sampled_controls: {sampled_controls[0:10]}")
+        # Age filtering for controls
+        if age_at_enroll is not None:
+            treated_age = age_at_enroll.get(int(treated_eid), None)
+            eligible_controls = [eid for eid in untreated_eids if abs(age_at_enroll.get(int(eid), -999) - treated_age) <= age_tolerance]
         else:
-            sampled_controls = untreated_eids
+            eligible_controls = untreated_eids
 
-        control_trajs = []  # Store control trajectories
-        control_indices = []  # Store control indices
+        # Randomly sample controls
+        if len(eligible_controls) > sample_size:
+            sampled_controls = random.sample(list(eligible_controls), sample_size)
+        else:
+            sampled_controls = eligible_controls
+
+        control_trajs = []
+        control_indices = []
         for eid in sampled_controls:
             try:
                 idx = np.where(processed_ids == int(eid))[0][0]
-                print(f"idx: {idx}")
-                print(f"sampled_controls eid: {eid}")
             except Exception:
-                continue  # Skip if not found
+                continue
             if t0 < window:
-                continue  # Skip if not enough history
-            # Get control's signature trajectory in the same pre-t0 window
+                continue
             traj_control = lambdas[idx, :, t0-window:t0].flatten()
-            #print(f"traj_control: {traj_control}")
-            print("shape of traj_control:")
-            print(traj_control.shape)
             control_trajs.append(traj_control)
             control_indices.append(idx)
         if not control_trajs:
-            continue  # Skip if no valid controls
+            continue
         control_trajs = np.array(control_trajs)
-        # Compute Euclidean distance between treated and each control
         dists = np.linalg.norm(control_trajs - traj_treated, axis=1)
-        print(f"dists: {dists}")
-        print("shape of dists:")
-        print(dists.shape)
-        # Find the closest control
         best_match_idx = np.argmin(dists)
-        print(f"best_match_idx: {best_match_idx}")  
-        print(f"control_indices: {control_indices[best_match_idx]}")
-        print(f"sampled_controls[best_match_idx]: {sampled_controls[best_match_idx]}")
-        # Store the matched pair (treated_idx, control_idx, t0)
-        matched_pairs.append((treated_idx, control_indices[best_match_idx],t0))
-        print(f"matched_pairs: {matched_pairs}")
+        matched_pairs.append((treated_idx, control_indices[best_match_idx], t0))
 
-        # Print progress and estimated time remaining every 500 patients
         if (i+1) % 500 == 0 or (i+1) == n_treated:
             elapsed = time.time() - start_time
             avg_per = elapsed / (i+1)
             remaining = avg_per * (n_treated - (i+1))
             print(f"Processed {i+1}/{n_treated} treated. Elapsed: {elapsed/60:.1f} min. Est. remaining: {remaining/60:.1f} min.")
 
-    # Print total time taken for matching
     total_time = time.time() - start_time
     print(f"\nMatching complete. Total elapsed time: {total_time/60:.1f} min ({total_time:.1f} sec)")
 
-    # Print ages of the first 5 matched pairs for verification
-    if age_at_enroll is not None and len(matched_pairs) > 0:
-        print("\n[Check] Ages of first 5 matched treated-control pairs:")
-        for j, (treated_idx, control_idx, t0) in enumerate(matched_pairs[:5]):
-            treated_eid = processed_ids[treated_idx]
-            control_eid = processed_ids[control_idx]
-            treated_age = age_at_enroll.get(int(treated_eid), None)
-            control_age = age_at_enroll.get(int(control_eid), None)
-            print(f"Pair {j+1}: Treated EID {treated_eid} (age {treated_age}) -- Control EID {control_eid} (age {control_age})")
-
     # For each matched pair, compare post-t0 signature and event rates
-    trajectories_treated = []  # Store post-t0 signature trajectories for treated
-    trajectories_control = []  # Store post-t0 signature trajectories for controls
-    diabetes_events_treated = []  # Store diabetes event for treated
-    diabetes_events_control = []  # Store diabetes event for controls
+    trajectories_treated = []
+    trajectories_control = []
+    diabetes_events_treated = []
+    diabetes_events_control = []
 
     for treated_idx, control_idx, t0 in matched_pairs:
-        # Define end of post-t0 window
         t_end = min(lambdas.shape[2], t0 + window_post)
-        # Get post-t0 signature trajectories
         traj_treated = lambdas[treated_idx, :, t0:t_end]
         traj_control = lambdas[control_idx, :, t0:t_end]
-        # Only keep pairs with full-length post-t0 window
         if traj_treated.shape[1] == window_post and traj_control.shape[1] == window_post:
             trajectories_treated.append(traj_treated)
             trajectories_control.append(traj_control)
-            # Check if diabetes event occurred in post-t0 window
             if is_torch:
                 diabetes_event_treated = (Y[treated_idx, diabetes_idx, t0:t_end] > 0).any().item()
                 diabetes_event_control = (Y[control_idx, diabetes_idx, t0:t_end] > 0).any().item()
@@ -167,9 +136,8 @@ def run_digital_twin_matching(
             diabetes_events_treated.append(diabetes_event_treated)
             diabetes_events_control.append(diabetes_event_control)
         else:
-            continue  # Skip pairs with short trajectories
+            continue
 
-    # Try to convert lists to numpy arrays for analysis, handle errors if shapes are inhomogeneous
     try:
         trajectories_treated = np.array(trajectories_treated)
         trajectories_control = np.array(trajectories_control)
@@ -179,23 +147,10 @@ def run_digital_twin_matching(
     diabetes_events_treated = np.array(diabetes_events_treated)
     diabetes_events_control = np.array(diabetes_events_control)
 
-    # Calculate and print event rates for treated and controls
     treated_event_rate = diabetes_events_treated.mean() if len(diabetes_events_treated) > 0 else float('nan')
     control_event_rate = diabetes_events_control.mean() if len(diabetes_events_control) > 0 else float('nan')
     print(f"Treated event rate: {treated_event_rate:.3f}")
     print(f"Control event rate: {control_event_rate:.3f}")
-
-    # (Optional) Plot mean signature trajectory for a given signature index
-    if isinstance(trajectories_treated, np.ndarray) and trajectories_treated.shape[0] > 0 and len(trajectories_treated.shape) == 3:
-        mean_treated = trajectories_treated[:, sig_idx, :].mean(axis=0)
-        mean_control = trajectories_control[:, sig_idx, :].mean(axis=0)
-        plt.plot(mean_treated, label='Treated')
-        plt.plot(mean_control, label='Control')
-        plt.legend()
-        plt.title('Mean signature trajectory after t0')
-        plt.show()
-    else:
-        print("No matched pairs found or trajectories are not arrays.")
 
     return {
         'matched_pairs': matched_pairs,
@@ -206,6 +161,8 @@ def run_digital_twin_matching(
         'treated_event_rate': treated_event_rate,
         'control_event_rate': control_event_rate
     }
+
+
 
 def run_digital_twin_matching_single_sig(
     treated_time_idx,
@@ -411,18 +368,6 @@ def run_digital_twin_matching_single_sig(
     control_event_rate = diabetes_events_control.mean() if len(diabetes_events_control) > 0 else float('nan')
     print(f"Treated event rate: {treated_event_rate:.3f}")
     print(f"Control event rate: {control_event_rate:.3f}")
-
-    # (Optional) Plot mean signature trajectory for the drug-specific signature
-    if isinstance(trajectories_treated, np.ndarray) and trajectories_treated.shape[0] > 0 and len(trajectories_treated.shape) == 2:
-        mean_treated = trajectories_treated.mean(axis=0)
-        mean_control = trajectories_control.mean(axis=0)
-        plt.plot(mean_treated, label='Treated')
-        plt.plot(mean_control, label='Control')
-        plt.legend()
-        plt.title(f'Mean signature (sig_idx={sig_idx}) trajectory after t0')
-        plt.show()
-    else:
-        print("No matched pairs found or trajectories are not arrays.")
 
     return {
         'matched_pairs': matched_pairs,
