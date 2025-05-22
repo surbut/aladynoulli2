@@ -21,7 +21,7 @@ except Exception:
 
 # --- Disease selection (place here!) ---
 # Load disease names from DataFrame
-disease_names_df = model.disease_names  # or pd.read_csv("disease_names.csv")
+disease_names_df = pd.read_csv("disease_names.csv")
 disease_names_list = disease_names_df.iloc[:, 1].tolist()
 
 # Streamlit dropdown
@@ -180,6 +180,9 @@ if st.button("Run Digital Twin Matching"):
     # --- Download matched pairs ---
     df_pairs = pd.DataFrame(results['matched_pairs'], columns=['Treated_idx', 'Control_idx', 't0'])
     st.download_button("Download Matched Pairs", df_pairs.to_csv(index=False), "matched_pairs.csv")
+
+    print("Sum of Y for disease 47:", np.sum(Y[:, 47, :]))
+    print("disease_names_list[47]:", disease_names_list[47])
 
 st.markdown("---")
 st.write("This app lets you run digital twin matching and compare outcomes for treated vs. matched controls interactively.")
