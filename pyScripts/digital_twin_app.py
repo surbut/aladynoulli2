@@ -20,15 +20,12 @@ except Exception:
         Y = Y.detach().cpu().numpy()
 
 # --- Disease selection (place here!) ---
-# Load disease names from DataFrame
 disease_names_df = pd.read_csv("disease_names.csv")
-disease_names_list = disease_names_df.iloc[:, 1].tolist()
-
-# Streamlit dropdown
+disease_names = disease_names_df.iloc[:, 1].tolist()
 disease_idx = st.sidebar.selectbox(
     "Select disease/event to measure",
-    options=list(range(len(disease_names_list))),
-    format_func=lambda x: disease_names_list[x]
+    list(range(Y.shape[1])),
+    format_func=lambda x: disease_names[x]
 )
 
 # --- Load covariate file (age, year of birth, etc.) ---
@@ -69,7 +66,7 @@ sig_idx = st.sidebar.selectbox("Signature for Matching (if not all)", list(range
 if match_all_sigs:
     st.sidebar.info("Signature selection above is for plotting only. Matching uses all signatures.")
 else:
-    st.sidebar.info("Signature selection above is used for both matching and plotting.")
+    st.sidebar.info("Signature selection below is used for both matching and plotting.")
 
 # --- Filter prescriptions by drug class ---
 if drug_class == 'All':
@@ -84,6 +81,11 @@ first_presc = df_drug.groupby('eid')[presc_col].min()
 
 def get_time_index(yob, presc_date, time_grid):
     if pd.isnull(yob) or pd.isnull(presc_date):
+        return None
+    # Ensure presc_date is a datetime object
+    if isinstance(presc_date, str):
+        presc_date = pd.to_datetime(presc_date, errors='coerce')
+    if pd.isnull(presc_date):
         return None
     age_at_presc = presc_date.year - yob
     return int(np.argmin(np.abs(time_grid + 30 - age_at_presc)))
@@ -122,7 +124,7 @@ if st.button("Run Digital Twin Matching"):
                 diabetes_idx=disease_idx,
                 window=window,
                 window_post=window_post,
-                sig_idx=None,  # Always None for matching on all signatures
+                sig_idx=None,  # None means all sigs
                 sample_size=sample_size,
                 max_cases=max_cases,
                 age_at_enroll=age_at_enroll,
@@ -181,8 +183,70 @@ if st.button("Run Digital Twin Matching"):
     df_pairs = pd.DataFrame(results['matched_pairs'], columns=['Treated_idx', 'Control_idx', 't0'])
     st.download_button("Download Matched Pairs", df_pairs.to_csv(index=False), "matched_pairs.csv")
 
-    print("Sum of Y for disease 47:", np.sum(Y[:, 47, :]))
-    print("disease_names_list[47]:", disease_names_list[47])
+    # Store matched event rates for plotting
+    matched_treated_rate = results['treated_event_rate'] * 100  # assuming it's a fraction
+    matched_control_rate = results['control_event_rate'] * 100
+
+    # Only plot if you have also calculated raw rates
+    if 'raw_treated_rate' in locals() and 'raw_untreated_rate' in locals():
+        fig, ax = plt.subplots(figsize=(8, 4))
+        bar_labels = ['Treated', 'Untreated']
+        x = np.arange(len(bar_labels))
+        width = 0.35
+
+        # Raw rates
+        raw_rates = [raw_treated_rate, raw_untreated_rate]
+        # Matched rates
+        matched_rates = [matched_treated_rate, matched_control_rate]
+
+        rects1 = ax.bar(x - width/2, raw_rates, width, label='Raw')
+        rects2 = ax.bar(x + width/2, matched_rates, width, label='Matched')
+
+        ax.set_ylabel('Event Rate (%)')
+        ax.set_title(f'Event Rates for {disease_names[disease_idx]}')
+        ax.set_xticks(x)
+        ax.set_xticklabels(bar_labels)
+        ax.legend()
+
+        # Add value labels
+        for rect in rects1 + rects2:
+            height = rect.get_height()
+            ax.annotate(f'{height:.1f}%',
+                        xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xytext=(0, 3),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom')
+
+        st.pyplot(fig)
+    else:
+        st.info("Run 'Show Raw Event Rates' first to compare with matched rates.")
+
+if st.sidebar.button("Show Raw Event Rates"):
+    # Calculate raw event rates for treated and untreated
+    treated_events = 0
+    treated_total = 0
+    for eid, t0 in treated_time_idx.items():
+        if t0 + window_post < Y.shape[2]:
+            treated_total += 1
+            idx = np.where(processed_ids == int(eid))[0][0]
+            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
+                treated_events += 1
+
+    untreated_events = 0
+    untreated_total = 0
+    for eid in untreated_eids:
+        t0 = int(age_at_enroll.get(eid, 0) - 30)
+        if t0 + window_post < Y.shape[2]:
+            untreated_total += 1
+            idx = np.where(processed_ids == int(eid))[0][0]
+            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
+                untreated_events += 1
+
+    raw_treated_rate = (treated_events / treated_total * 100) if treated_total > 0 else 0
+    raw_untreated_rate = (untreated_events / untreated_total * 100) if untreated_total > 0 else 0
+
+    st.write(f"**Raw Treated Event Rate:** {raw_treated_rate:.2f}% (n={treated_total})")
+    st.write(f"**Raw Untreated Event Rate:** {raw_untreated_rate:.2f}% (n={untreated_total})")
 
 st.markdown("---")
 st.write("This app lets you run digital twin matching and compare outcomes for treated vs. matched controls interactively.")

@@ -3,9 +3,14 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt 
 import streamlit as st
+import pandas as pd
 
 random.seed(42)
 np.random.seed(42)
+
+disease_names_df = pd.read_csv("disease_names.csv")
+disease_names_list = disease_names_df.iloc[:, 1].tolist()
+disease_names = disease_names_list
 
 @st.cache_data
 def run_digital_twin_matching(
@@ -378,3 +383,30 @@ def run_digital_twin_matching_single_sig(
         'treated_event_rate': treated_event_rate,
         'control_event_rate': control_event_rate
     }
+
+if st.sidebar.button("Show Raw Event Rates"):
+    # Calculate raw event rates for treated and untreated
+    treated_events = 0
+    treated_total = 0
+    for eid, t0 in treated_time_idx.items():
+        if t0 + window_post < Y.shape[2]:
+            treated_total += 1
+            idx = np.where(processed_ids == int(eid))[0][0]
+            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
+                treated_events += 1
+
+    untreated_events = 0
+    untreated_total = 0
+    for eid in untreated_eids:
+        t0 = int(age_at_enroll.get(eid, 0) - 30)
+        if t0 + window_post < Y.shape[2]:
+            untreated_total += 1
+            idx = np.where(processed_ids == int(eid))[0][0]
+            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
+                untreated_events += 1
+
+    raw_treated_rate = (treated_events / treated_total * 100) if treated_total > 0 else 0
+    raw_untreated_rate = (untreated_events / untreated_total * 100) if untreated_total > 0 else 0
+
+    st.write(f"Raw Treated Event Rate: {raw_treated_rate:.2f}% (n={treated_total})")
+    st.write(f"Raw Untreated Event Rate: {raw_untreated_rate:.2f}% (n={untreated_total})")

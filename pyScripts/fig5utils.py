@@ -3558,7 +3558,7 @@ def evaluate_major_diseases_wsex_with_bootstrap_dynamic(model, Y_100k, E_100k, d
                     pi_diseases = current_pi_auc[i, disease_indices, t_enroll + t]
                     yearly_risk = 1 - torch.prod(1 - pi_diseases)
                     yearly_risks.append(yearly_risk.item())
-                # Compute cumulative 10-year risk
+                # Compute cumulative 10-year risk, but might be a problem if diseaes occurs, so we should really do td cox
                 survival_prob = np.prod([1 - r for r in yearly_risks])
                 ten_year_risk = 1 - survival_prob
                 risks_auc[i] = ten_year_risk
