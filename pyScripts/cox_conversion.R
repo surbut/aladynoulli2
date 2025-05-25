@@ -665,20 +665,17 @@ parse_model_data <- function(data_path) {
   # Add Cox values
   model_data$cox_without_noulli <- df$cox_auc_without_noulli
   model_data$cox_with_noulli <- df$cox_auc_with_noulli
+
+  # Add TD Cox AUC (as numeric)
+  model_data$td_cox_auc <- as.numeric(df$td_cox)
   
   # Calculate CI for Cox values (using the formula SE = sqrt((AUC * (1-AUC)) / (n * prevalence)))
   calc_cox_ci <- function(auc, events, total = 400000) {
-    # Parse rate from string like "4.8%"
     prevalence <- events / total
-    # Ensure minimum prevalence for calculation
     prevalence <- max(0.01, prevalence)
-    
-    # Standard error
     se <- sqrt((auc * (1 - auc)) / (total * prevalence))
-    # 95% CI
     lower <- max(0, auc - 1.96 * se)
     upper <- min(1, auc + 1.96 * se)
-    
     return(c(lower, upper))
   }
   
@@ -697,40 +694,60 @@ parse_model_data <- function(data_path) {
                         SIMPLIFY = FALSE)
   model_data$cox_with_lower <- sapply(cox_with_ci, function(x) x[1])
   model_data$cox_with_upper <- sapply(cox_with_ci, function(x) x[2])
+
+  # Add CI for TD Cox
+  td_cox_ci <- mapply(calc_cox_ci, 
+                      model_data$td_cox_auc, 
+                      model_data$Events, 
+                      SIMPLIFY = FALSE)
+  model_data$td_cox_lower <- sapply(td_cox_ci, function(x) x[1])
+  model_data$td_cox_upper <- sapply(td_cox_ci, function(x) x[2])
   
   return(model_data)
 }
 
 # Reshape data for plotting
 prepare_forest_plot_data <- function(model_data) {
-  # Transform to long format
+  # Transform to long format, now including TD Cox
   long_data <- model_data %>%
     pivot_longer(
-      cols = c("dynamic_auc", "static_auc", "cox_without_noulli", "cox_with_noulli"),
+      cols = c("td_cox_auc", "dynamic_auc", "static_auc", "cox_with_noulli", "cox_without_noulli"),
       names_to = "model",
       values_to = "auc"
     ) %>%
     mutate(
       lower = case_when(
+        model == "td_cox_auc" ~ td_cox_lower,
         model == "dynamic_auc" ~ dynamic_lower,
         model == "static_auc" ~ static_lower,
-        model == "cox_without_noulli" ~ cox_without_lower,
-        model == "cox_with_noulli" ~ cox_with_lower
+        model == "cox_with_noulli" ~ cox_with_lower,
+        model == "cox_without_noulli" ~ cox_without_lower
       ),
       upper = case_when(
+        model == "td_cox_auc" ~ td_cox_upper,
         model == "dynamic_auc" ~ dynamic_upper,
         model == "static_auc" ~ static_upper,
-        model == "cox_without_noulli" ~ cox_without_upper,
-        model == "cox_with_noulli" ~ cox_with_upper
+        model == "cox_with_noulli" ~ cox_with_upper,
+        model == "cox_without_noulli" ~ cox_without_upper
       ),
       model = case_when(
+        model == "td_cox_auc" ~ "Time-dependent Cox with Noulli",
         model == "dynamic_auc" ~ "Aladynoulli Dynamic",
         model == "static_auc" ~ "Aladynoulli Static",
-        model == "cox_without_noulli" ~ "Cox without Noulli",
-        model == "cox_with_noulli" ~ "Cox with Noulli"
+        model == "cox_with_noulli" ~ "Cox with Noulli",
+        model == "cox_without_noulli" ~ "Cox without Noulli"
       )
     ) %>%
     select(Disease, Events, Rate, model, auc, lower, upper)
+  
+  # Set the model order as requested
+  long_data$model <- factor(long_data$model, levels = c(
+    "Time-dependent Cox with Noulli",
+    "Aladynoulli Dynamic",
+    "Aladynoulli Static",
+    "Cox with Noulli",
+    "Cox without Noulli"
+  ))
   
   # Make Disease a factor ordered by dynamic AUC
   disease_order <- model_data %>%
@@ -746,10 +763,11 @@ prepare_forest_plot_data <- function(model_data) {
 create_forest_plot <- function(plot_data) {
   # Define colors for models
   model_colors <- c(
-    "Aladynoulli Dynamic" = "#4285F4",  # Blue
-    "Aladynoulli Static" = "#34A853",   # Green
-    "Cox without Noulli" = "#FBBC05",   # Yellow/Orange
-    "Cox with Noulli" = "#EA4335"       # Red
+    "Time-dependent Cox with Noulli" = "#8E44AD",   # Purple
+    "Aladynoulli Dynamic" = "#4285F4",              # Blue
+    "Aladynoulli Static" = "#34A853",               # Green
+    "Cox with Noulli" = "#EA4335",                  # Red
+    "Cox without Noulli" = "#FBBC05"                # Yellow/Orange
   )
   
   # Shape the disease names to be more readable
@@ -829,14 +847,15 @@ create_faceted_forest_plot <- function(plot_data) {
   plot_data_subset <- plot_data %>%
     filter(Disease %in% top_diseases)
 
+  plot_data_subset$Disease <- factor(plot_data_subset$Disease, levels = top_diseases)
   
-  plot_data_subset$Disease=factor(plot_data_subset$Disease,levels = top_diseases)
-  # Define colors for models
+  # Define colors for models, now including TD Cox
   model_colors <- c(
-    "Aladynoulli Dynamic" = "#4285F4",  # Blue
-    "Aladynoulli Static" = "#34A853",   # Green
-    "Cox without Noulli" = "#FBBC05",   # Yellow/Orange
-    "Cox with Noulli" = "#EA4335"       # Red
+    "Time-dependent Cox with Noulli" = "#8E44AD",   # Purple
+    "Aladynoulli Dynamic" = "#4285F4",              # Blue
+    "Aladynoulli Static" = "#34A853",               # Green
+    "Cox with Noulli" = "#EA4335",                  # Red
+    "Cox without Noulli" = "#FBBC05"                # Yellow/Orange
   )
   
   # Create the faceted plot
@@ -1328,6 +1347,10 @@ tdc_auc_df <- data.frame(
 )
 
 write.csv(tdc_auc_df, "~/Library/CloudStorage/Dropbox/auc_results_tdc_20000_30000train_0_10000test.csv", quote = FALSE)
+
+model_comp=read.csv("~/Library/CloudStorage/Dropbox/model_comparison_everything.csv")
+merge(model_comp,tdc_auc_df,by.x="Disease",by.y="disease_group")
+
 
 # Calculate time-varying probabilities for training set
 library(torch)
