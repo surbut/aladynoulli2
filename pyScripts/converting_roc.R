@@ -96,36 +96,46 @@ evaluate_major_diseases_wsex <- function(params, Y, disease_names, pce_df, follo
     int_indices_pce <- which(mask_pce)
     
     # Slice all arrays to the same set of individuals
-    current_theta <- theta[int_indices_pce,, , drop=FALSE]
+    #current_theta <- theta[int_indices_pce,, , drop=FALSE]
     current_Y <- Y[int_indices_pce,, , drop=FALSE]
     current_pce_df <- pce_df[int_indices_pce,]
     current_N <- length(int_indices_pce)
     
     # Calculate probabilities for this disease group
-    # Only for the selected individuals and diseases
-    pi_pred <- array(0, dim=c(current_N, length(disease_indices), T))
-    for(t in 1:T) {
-      for(d_idx in seq_along(disease_indices)) {
-        disease_phi <- phi[, disease_indices[d_idx], t]  # K x 1
-        logit_phi <- sigmoid(disease_phi)
-
-        pi_pred[, d_idx, t] <- as.numeric(kappa) * (current_theta[,,t] %*% logit_phi)
-      }
-    }
+    # # Only for the selected individuals and diseases
+    # pi_pred <- array(0, dim=c(current_N, length(disease_indices), T))
+    # for(t in 1:T) {
+    #   for(d_idx in seq_along(disease_indices)) {
+    #     disease_phi <- phi[, disease_indices[d_idx], t]  # K x 1
+    #     logit_phi <- sigmoid(disease_phi)
+    # 
+    #     pi_pred[, d_idx, t] <- as.numeric(kappa) * (current_theta[,,t] %*% logit_phi)
+    #   }
+    # }
     
+    pi_pred_full=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
+    pi_pred=pi_pred_full[,disease_indices,,drop=TRUE]
+    rm(pi_pred_full)
     risks <- numeric(current_N)
+    tenyearrisks = numeric(current_N)
     outcomes <- numeric(current_N)
     processed_indices <- integer(0)
     
     for(i in seq_len(current_N)) {
       age <- current_pce_df$age[i]
       t_enroll <- as.integer(age - 30)
-      if(t_enroll < 0 || t_enroll >= T) next
+      #if(t_enroll < 0 || t_enroll >= T) next 
       
       # Calculate 1-year risk for this disease group
       disease_probs <- pi_pred[i, , t_enroll + 1]
       risks[i] <- 1 - prod(1 - disease_probs)
       
+      
+      # Calculate 10-year risk for this disease group
+      disease_probs <- pi_pred[i, , (t_enroll + 1):(t_enroll+10)]
+      ten_yearly_risks=apply(disease_probs,2,function(x){1-prod(1-x)})
+      tenyearrisks[i] <- 1 - prod(1 - ten_yearly_risks)
+      print(cor(tenyearrisks,risks))
       # Check outcome in follow-up window
       end_time <- min(t_enroll + follow_up_duration_years, T)
       if(end_time < t_enroll) next
@@ -213,13 +223,25 @@ evaluate_major_diseases_wsex <- function(params, Y, disease_names, pce_df, follo
 
 # Use the function
 
-pce_df = readRDS('/Users/sarahurbut/Dropbox/pce_df_prevent.rds')
+pce_df = readRDS('/Users/sarahurbut/Library/Cloudstorage/Dropbox/pce_df_prevent.rds')
 ukb_params=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/ukb_params_enrollment.rds")
 ukb_results <- evaluate_major_diseases_wsex(
   params = ukb_params,
   Y = ukb_params$Y[pce_df$Sex%in%"Male",,],
   disease_names = as.character(ukb_params$disease_names[,1]),
   pce_df = pce_df[pce_df$Sex=="Male",],
+  follow_up_duration_years = 10
+)
+
+
+pce_df = readRDS('/Users/sarahurbut/Library/Cloudstorage/Dropbox/pce_df_prevent.rds')
+ukb_params=readRDS("/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/ukb_params_enrollment.rds")
+Y=readRDS("ukb_Y_test.rds")
+ukb_results <- evaluate_major_diseases_wsex(
+  params = ukb_params,
+  Y = Y,
+  disease_names = as.character(ukb_params$disease_names[,1]),
+  pce_df = pce_df,
   follow_up_duration_years = 10
 )
 

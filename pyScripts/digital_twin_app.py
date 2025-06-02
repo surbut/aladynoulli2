@@ -107,6 +107,47 @@ sample_size = st.sidebar.number_input("Sample Size for Controls", min_value=10, 
 age_tolerance = st.sidebar.number_input("Age Tolerance (years)", min_value=0, max_value=10, value=2)
 max_cases = st.sidebar.number_input("Max Treated Cases", min_value=1, max_value=10000, value=100)
 
+# --- Show Raw Event Rates Button (main area, before matching) ---
+if st.button("Show Raw Event Rates", key="raw_event_rates"):
+    treated_events = 0
+    treated_total = 0
+    for eid, t0 in treated_time_idx.items():
+        if t0 + window_post < Y.shape[2]:
+            treated_total += 1
+            idx = np.where(processed_ids == int(eid))[0][0]
+            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
+                treated_events += 1
+
+    untreated_events = 0
+    untreated_total = 0
+    for eid in untreated_eids:
+        t0 = int(age_at_enroll.get(eid, 0) - 30)
+        if t0 + window_post < Y.shape[2]:
+            untreated_total += 1
+            idx = np.where(processed_ids == int(eid))[0][0]
+            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
+                untreated_events += 1
+
+    raw_treated_rate = (treated_events / treated_total * 100) if treated_total > 0 else 0
+    raw_untreated_rate = (untreated_events / untreated_total * 100) if untreated_total > 0 else 0
+
+    st.session_state['raw_treated_rate'] = raw_treated_rate
+    st.session_state['raw_untreated_rate'] = raw_untreated_rate
+    st.session_state['treated_total'] = treated_total
+    st.session_state['untreated_total'] = untreated_total
+
+    st.write(f"**Raw Treated Event Rate:** {raw_treated_rate:.2f}% (n={treated_total})")
+    st.write(f"**Raw Untreated Event Rate:** {raw_untreated_rate:.2f}% (n={untreated_total})")
+
+# --- Debug print ---
+st.write("First 5 treated_time_idx:", list(treated_time_idx.items())[:5])
+st.write("First 5 untreated_eids:", untreated_eids[:5])
+st.write("First 5 age_at_enroll:", list(age_at_enroll.items())[:5])
+st.write("window:", window, "window_post:", window_post, "sample_size:", sample_size, "max_cases:", max_cases)
+import numpy as np, random
+st.write("np.random.seed:", np.random.get_state()[1][0])
+st.write("random.seed:", random.getstate()[1][0])
+
 # --- Run matching ---
 if st.button("Run Digital Twin Matching"):
     if not treated_time_idx or not untreated_eids or not age_at_enroll:
@@ -128,7 +169,8 @@ if st.button("Run Digital Twin Matching"):
                 sample_size=sample_size,
                 max_cases=max_cases,
                 age_at_enroll=age_at_enroll,
-                age_tolerance=age_tolerance
+                age_tolerance=age_tolerance,
+                eid_to_sex=None
             )
         else:
             results = run_digital_twin_matching_single_sig(
@@ -188,7 +230,9 @@ if st.button("Run Digital Twin Matching"):
     matched_control_rate = results['control_event_rate'] * 100
 
     # Only plot if you have also calculated raw rates
-    if 'raw_treated_rate' in locals() and 'raw_untreated_rate' in locals():
+    if 'raw_treated_rate' in st.session_state and 'raw_untreated_rate' in st.session_state:
+        raw_treated_rate = st.session_state['raw_treated_rate']
+        raw_untreated_rate = st.session_state['raw_untreated_rate']
         fig, ax = plt.subplots(figsize=(8, 4))
         bar_labels = ['Treated', 'Untreated']
         x = np.arange(len(bar_labels))
@@ -220,33 +264,6 @@ if st.button("Run Digital Twin Matching"):
         st.pyplot(fig)
     else:
         st.info("Run 'Show Raw Event Rates' first to compare with matched rates.")
-
-if st.sidebar.button("Show Raw Event Rates"):
-    # Calculate raw event rates for treated and untreated
-    treated_events = 0
-    treated_total = 0
-    for eid, t0 in treated_time_idx.items():
-        if t0 + window_post < Y.shape[2]:
-            treated_total += 1
-            idx = np.where(processed_ids == int(eid))[0][0]
-            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
-                treated_events += 1
-
-    untreated_events = 0
-    untreated_total = 0
-    for eid in untreated_eids:
-        t0 = int(age_at_enroll.get(eid, 0) - 30)
-        if t0 + window_post < Y.shape[2]:
-            untreated_total += 1
-            idx = np.where(processed_ids == int(eid))[0][0]
-            if np.any(Y[idx, disease_idx, t0:t0+window_post] > 0):
-                untreated_events += 1
-
-    raw_treated_rate = (treated_events / treated_total * 100) if treated_total > 0 else 0
-    raw_untreated_rate = (untreated_events / untreated_total * 100) if untreated_total > 0 else 0
-
-    st.write(f"**Raw Treated Event Rate:** {raw_treated_rate:.2f}% (n={treated_total})")
-    st.write(f"**Raw Untreated Event Rate:** {raw_untreated_rate:.2f}% (n={untreated_total})")
 
 st.markdown("---")
 st.write("This app lets you run digital twin matching and compare outcomes for treated vs. matched controls interactively.")

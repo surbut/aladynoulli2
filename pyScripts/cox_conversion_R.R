@@ -605,7 +605,12 @@ write.csv(m3,"~/Library/CloudStorage/Dropbox/model_comparison_everything.csv",qu
 
 
 
-install.packages(c("ggplot2", "dplyr", "tidyr", "stringr", "forcats"))
+require("ggplot2")
+require("dplyr")
+require("tidyr")
+require("stringr")
+require("forcats")
+
 
 
 
@@ -821,7 +826,7 @@ create_multidisease_comparison <- function(data_path) {
 create_faceted_forest_plot <- function(plot_data) {
   # Limit to top 16 diseases by dynamic AUC
   top_diseases <- plot_data %>%
-    filter(model == "Aladynoulli Dynamic") %>%
+    filter(model == "Aladynoulli Static") %>%
     arrange(desc(Events)) %>%
     head(16) %>%
     pull(Disease)
@@ -829,8 +834,15 @@ create_faceted_forest_plot <- function(plot_data) {
   plot_data_subset <- plot_data %>%
     filter(Disease %in% top_diseases)
 
-  
   plot_data_subset$Disease=factor(plot_data_subset$Disease,levels = top_diseases)
+  
+  plot_data_subset=plot_data%>%
+    filter(Disease %in% c("ASCVD","Diabetes","All_Cancers","COPD","Atrial_Fib","Pneumonia","Secondary_Cancer","Osteoporosis",
+    "Breast Cancer","CKD","Heart_Failure","Rheumatoid_Arthritis","Stroke"))
+  
+  plot_data_subset=plot_data%>%
+    filter(Disease %in% c("ASCVD","Diabetes","All_Cancers","COPD","Atrial_Fib","Pneumonia","Secondary_Cancer","Osteoporosis",
+                          "Breast Cancer","CKD","Heart_Failure","Rheumatoid_Arthritis","Stroke"))
   # Define colors for models
   model_colors <- c(
     "Aladynoulli Dynamic" = "#4285F4",  # Blue
@@ -841,7 +853,7 @@ create_faceted_forest_plot <- function(plot_data) {
   
   # Create the faceted plot
   p <- ggplot(plot_data_subset, aes(x = model, y = auc, color = model)) +
-    geom_point(size = 5) +
+    geom_point(size = 3) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
     facet_wrap(~ Disease, scales = "free_y", ncol = 4) +
     geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray70") +
