@@ -26,7 +26,8 @@ def run_digital_twin_matching(
     sample_size=1000,
     max_cases=None,
     age_at_enroll=None,
-    age_tolerance=2
+    age_tolerance=2,
+    eid_to_sex=None
 ):
     """
     Match each treated individual to a control by signature trajectory in the years prior to drug start (multivariate: all signatures),
@@ -51,6 +52,7 @@ def run_digital_twin_matching(
         max_cases: maximum number of treated cases to process (default None, meaning all)
         age_at_enroll: dict {eid: age} for age at enrollment
         age_tolerance: age tolerance for matching (default 2 years)
+        eid_to_sex: dict {eid: sex} for sex at enrollment
     """
     matched_pairs = []
     treated_eids = list(treated_time_idx.keys())
@@ -79,9 +81,20 @@ def run_digital_twin_matching(
         traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten()
 
         # Age filtering for controls
-        if age_at_enroll is not None:
+        if age_at_enroll is not None and eid_to_sex is not None:
             treated_age = age_at_enroll.get(int(treated_eid), None)
-            eligible_controls = [eid for eid in untreated_eids if abs(age_at_enroll.get(int(eid), -999) - treated_age) <= age_tolerance]
+            treated_sex = eid_to_sex.get(int(treated_eid), None)
+            eligible_controls = [
+                eid for eid in untreated_eids
+                if (abs(age_at_enroll.get(int(eid), -999) - treated_age) <= age_tolerance)
+                and (eid_to_sex.get(int(eid), None) == treated_sex)
+            ]
+        elif age_at_enroll is not None:
+            treated_age = age_at_enroll.get(int(treated_eid), None)
+            eligible_controls = [
+                eid for eid in untreated_eids
+                if abs(age_at_enroll.get(int(eid), -999) - treated_age) <= age_tolerance
+            ]
         else:
             eligible_controls = untreated_eids
 
