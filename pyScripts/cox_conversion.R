@@ -489,7 +489,7 @@ test_cox_baseline_models <- function(Y_test,
     print(head(cox_data))
     print(paste("Total events before filtering:", sum(current_Y_test[, disease_indices, ] == 1)))
     print(paste("Total events after filtering:", sum(cox_data$event)))
-    sum(cox_data$)
+    
     fit <- fitted_models[[disease_group]]
     if (is.null(fit) || nrow(cox_data) == 0) next
     
@@ -505,7 +505,11 @@ test_cox_baseline_models <- function(Y_test,
     auc_results[[disease_group]] <- auc_val
     
     
-    surv_obj <- Surv(cox_data$age_enroll,cox_data$age, cox_data$event)
+    #surv_obj <- Surv(cox_data$age_enroll,cox_data$age, cox_data$event)
+    surv_obj <- Surv(time = cox_data$age - cox_data$age_enroll, cox_data$event)
+    print(surv_obj)
+    print("risk_score")
+    print(risk_score)
     	concordance_result <- concordance(surv_obj ~ risk_score,reverse=TRUE)
     	c_index <-concordance_result$concordance 
     	print(sprintf("C-index for %s: %.3f", disease_group, c_index))
@@ -657,7 +661,7 @@ library(forcats)
 # Function to parse the data
 parse_model_data <- function(data_path) {
   # Read the data
-  df <- read.csv(data_path)
+  df <- readRDS(data_path)
   
   # Extract confidence intervals from the formatted strings
   extract_ci <- function(ci_str) {
@@ -771,6 +775,16 @@ parse_model_data <- function(data_path) {
   model_data$one_year_lower <- sapply(one_year_ci_calc, function(x) x[1])
   model_data$one_year_upper <- sapply(one_year_ci_calc, function(x) x[2])
   
+ 
+  # Calculate CI for TDC C-statistic using the same formula as for AUC
+  tdc_cox_ci <- mapply(calc_cox_ci, 
+                       model_data$tdc_cox_cstat, 
+                       model_data$Events, 
+                       MoreArgs = list(total = 400000), 
+                       SIMPLIFY = FALSE)
+  model_data$tdc_cox_lower <- sapply(tdc_cox_ci, function(x) x[1])
+  model_data$tdc_cox_upper <- sapply(tdc_cox_ci, function(x) x[2])
+  
   return(model_data)
 }
 
@@ -779,7 +793,7 @@ prepare_forest_plot_data <- function(model_data) {
   # Transform to long format, now including TD Cox
   long_data <- model_data %>%
     pivot_longer(
-      cols = c("one_year_auc", "td_cox_auc", "dynamic_auc", "static_auc", "cox_with_noulli", "cox_without_noulli"),
+      cols = c("one_year_auc", "td_cox_auc", "dynamic_auc", "static_auc", "cox_with_noulli", "cox_without_noulli","tdc_cox_cstat"),
       names_to = "model",
       values_to = "auc"
     ) %>%
@@ -790,7 +804,8 @@ prepare_forest_plot_data <- function(model_data) {
         model == "dynamic_auc" ~ dynamic_lower,
         model == "static_auc" ~ static_lower,
         model == "cox_with_noulli" ~ cox_with_lower,
-        model == "cox_without_noulli" ~ cox_without_lower
+        model == "cox_without_noulli" ~ cox_without_lower,
+        model == "tdc_cox_cstat" ~ tdc_cox_lower
       ),
       upper = case_when(
         model == "one_year_auc" ~ one_year_upper,
@@ -798,7 +813,9 @@ prepare_forest_plot_data <- function(model_data) {
         model == "dynamic_auc" ~ dynamic_upper,
         model == "static_auc" ~ static_upper,
         model == "cox_with_noulli" ~ cox_with_upper,
-        model == "cox_without_noulli" ~ cox_without_upper
+        model == "cox_without_noulli" ~ cox_without_upper,
+        model == "tdc_cox_cstat" ~ tdc_cox_upper
+        
       ),
       model = case_when(
         model == "one_year_auc" ~ "Aladynoulli 1-year",
@@ -806,7 +823,8 @@ prepare_forest_plot_data <- function(model_data) {
         model == "dynamic_auc" ~ "Aladynoulli Dynamic",
         model == "static_auc" ~ "Aladynoulli Static",
         model == "cox_with_noulli" ~ "Cox with Noulli",
-        model == "cox_without_noulli" ~ "Cox without Noulli"
+        model == "cox_without_noulli" ~ "Cox without Noulli",
+        model == "tdc_cox_cstat" ~ "Time-dependent Cox with Noulli c-stat"
       )
     ) %>%
     select(Disease, Events, Rate, model, auc, lower, upper)
@@ -815,10 +833,12 @@ prepare_forest_plot_data <- function(model_data) {
   long_data$model <- factor(long_data$model, levels = c(
     "Aladynoulli 1-year",
     "Time-dependent Cox with Noulli",
+    "Time-dependent Cox with Noulli c-stat",
     "Aladynoulli Dynamic",
     "Aladynoulli Static",
     "Cox with Noulli",
     "Cox without Noulli"
+   
   ))
   
   # Make Disease a factor ordered by dynamic AUC
@@ -922,6 +942,7 @@ create_faceted_forest_plot <- function(plot_data) {
 
   plot_data_subset$Disease <- factor(plot_data_subset$Disease, levels = top_diseases)
   
+  
 
 
       
@@ -932,13 +953,16 @@ plot_data_subset=plot_data%>%
   # Define colors for models, now including TD Cox
   model_colors <- c(
     "Aladynoulli 1-year" = "#222222", # Black or dark gray
-    "Time-dependent Cox with Noulli" = "#8E44AD",   # Purple
-    "Aladynoulli Dynamic" = "#4285F4",              # Blue
+    "Time-dependent Cox with Noulli" = "#8E44AD",
+    "Time-dependent Cox with Noulli c-stat"="blue",# Purple
+    ##"Aladynoulli Dynamic" = "#4285F4",              # Blue
     "Aladynoulli Static" = "#34A853",               # Green
     "Cox with Noulli" = "#EA4335",                  # Red
     "Cox without Noulli" = "#FBBC05"                # Yellow/Orange
   )
   
+  plot_data_subset=plot_data_subset[plot_data_subset$model%in%c("Aladynoulli 1-year","Time-dependent Cox with Noulli c-stat","Aladynoulli Static","Cox with Noulli",
+    "Cox without Noulli"),]
   # Create the faceted plot
   p <- ggplot(plot_data_subset, aes(x = model, y = auc, color = model)) +
     geom_point(size = 2) +
@@ -967,6 +991,14 @@ plot_data_subset=plot_data%>%
 
 
 model_data <- parse_model_data("all_model_comp_withtdcox2.csv")
+
+
+model_data <- parse_model_data("allmodels.rds")
+
+model_data$tdc_cox_cstat <- as.numeric(model_data$tdc_cox_cstat)
+model_data$tdc_cox_lower <- as.numeric(model_data$tdc_cox_lower)
+model_data$tdc_cox_upper <- as.numeric(model_data$tdc_cox_upper)
+
 plot_data <- prepare_forest_plot_data(model_data)
 
 # Add this line to also generate the faceted plot
