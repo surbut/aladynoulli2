@@ -17,7 +17,7 @@ import torch.nn.functional as F
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def __init__(self, N, D, T, K, P, G, Y, R,W,prevalence_t, init_sd_scaler, genetic_scale,
-                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False, learn_kappa=True):
+                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False, learn_kappa=True, disable_warping=False):
         super().__init__()
         # Basic dimensions and settings
         self.N, self.D, self.T, self.K = N, D, T, K
@@ -100,6 +100,12 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
 
         # Add neural network for warping (simple linear layer)
         self.beta_warp_nn = nn.Linear(self.P, self.K_total)
+
+        self.disable_warping = disable_warping  # If True, disables warping (rho=1)
+
+        with torch.no_grad():
+            self.beta_warp_nn.weight.zero_()
+            self.beta_warp_nn.bias.zero_()
 
     def initialize_params(self, psi_config=None, true_psi=None, **kwargs):
         """Initialize parameters with K disease clusters plus one healthy cluster"""
@@ -229,44 +235,79 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         t_warped = (t_norm ** (1.0 / rho_ik)) * T
         return t_warped
 
-    def forward(self):
+    def forward(self, return_warped_phi=False):
         theta = torch.softmax(self.lambda_, dim=1)
         epsilon = 1e-6
         phi_prob = torch.sigmoid(self.phi)  # [K_total, D, T]
         N, K_total, D, T = self.N, self.K_total, self.D, self.T
         device = self.lambda_.device
         # --- Genetic warping using neural network ---
-        eta = self.beta_warp_nn(self.G)  # [N, K_total]
-        rho = torch.exp(eta)             # [N, K_total], ensures positivity
-        time_points = torch.arange(T, dtype=torch.float32, device=device)  # [T]
+        if self.disable_warping:
+            pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * self.kappa
+            print("pi (before clamp) min/max:", pi.min().item(), pi.max().item())
+            if return_warped_phi:
+                return pi, theta, phi_prob, None
+            else:
+                return pi, theta, phi_prob
+        else:
+            eta = self.beta_warp_nn(self.G)  # [N, K_total]
+            rho = torch.exp(eta)             # [N, K_total], ensures positivity
+            if torch.is_grad_enabled() and rho.requires_grad:
+                rho.retain_grad()
+            time_points = torch.arange(T, dtype=torch.float32, device=device)  # [T]
 
-        # Compute warped times for all individuals and topics: [N, K_total, T]
-        t_warped = self.warp_time(time_points, rho.unsqueeze(-1), T-1)  # [N, K_total, T]
+            # Compute warped times for all individuals and topics: [N, K_total, T]
+            t_warped = self.warp_time(time_points, rho.unsqueeze(-1), T-1)  # [N, K_total, T]
 
-        # Expand t_warped to [N, K_total, D, T]
-        t_warped_exp = t_warped.unsqueeze(2).expand(N, K_total, D, T)
+            # Print t_warped stats for debugging
+            print("rho stats: min =", rho.min().item(), "max =", rho.max().item(), "mean =", rho.mean().item())
+            print("t_warped stats: min =", t_warped.min().item(), "max =", t_warped.max().item(), "mean =", t_warped.mean().item())
+            print("t_warped[0, 0, :10]:", t_warped[0, 0, :10].cpu().detach().numpy())
+            # Print how often t_warped is at the boundaries
+            at_zero = (t_warped == 0).float().mean().item()
+            at_T = (t_warped == (self.T-1)).float().mean().item()
+            print(f"Fraction of t_warped at 0: {at_zero:.4f}, at T-1: {at_T:.4f}")
 
-        # Reshape phi_prob and t_warped_exp for vectorized interpolation
-        # phi_prob: [K_total, D, T] -> [K_total*D, T]
-        phi_prob_flat = phi_prob.reshape(K_total * D, T)
-        # t_warped_exp: [N, K_total, D, T] -> [N * K_total * D, T]
-        t_warped_flat = t_warped_exp.permute(1, 2, 0, 3).reshape(K_total * D * N, T)
-        # Repeat phi_prob_flat for each individual
-        phi_prob_flat_rep = phi_prob_flat.repeat(N, 1)  # [N * K_total * D, T]
-        # Interpolate
-        interpolated = vectorized_linear_interp(phi_prob_flat_rep, t_warped_flat)  # [N * K_total * D, T]
-        # Reshape back to [K_total, D, N, T]
-        phi_prob_warped = interpolated.reshape(K_total, D, N, T)
+            # Expand t_warped to [N, K_total, D, T]
+            t_warped_exp = t_warped.unsqueeze(2).expand(N, K_total, D, T)
 
-        # Now phi_prob_warped: [K_total, D, N, T]
-        # Vectorized computation of pi: [N, D, T]
-        # NOTE: In the warping model, phi_prob_warped is [K_total, D, N, T] because each individual's hazard curve is different (due to interpolation at warped times).
-        # We want: pi[n, d, t] = sum_k theta[n, k, t] * phi_prob_warped[k, d, n, t]
-        # This is different from the non-warped model, where phi_prob is [K_total, D, T] and the einsum is 'nkt,kdt->ndt'.
-        pi = torch.einsum('nkt,kdni->ndi', theta, phi_prob_warped)
-        pi = pi * self.kappa
-        pi = torch.clamp(pi, epsilon, 1-epsilon)
-        return pi, theta, phi_prob
+            # Reshape phi_prob and t_warped_exp for vectorized interpolation
+            # phi_prob: [K_total, D, T] -> [K_total*D, T]
+            phi_prob_flat = phi_prob.reshape(K_total * D, T)
+            # t_warped_exp: [N, K_total, D, T] -> [N * K_total * D, T]
+            t_warped_flat = t_warped_exp.permute(1, 2, 0, 3).reshape(K_total * D * N, T)
+            # Repeat phi_prob_flat for each individual
+            phi_prob_flat_rep = phi_prob_flat.repeat(N, 1)  # [N * K_total * D, T]
+            # Interpolate
+            interpolated = vectorized_linear_interp(phi_prob_flat_rep, t_warped_flat)  # [N * K_total * D, T]
+            # Reshape back to [K_total, D, N, T]
+            phi_prob_warped = interpolated.reshape(K_total, D, N, T)
+
+            # Now phi_prob_warped: [K_total, D, N, T]
+            # Vectorized computation of pi: [N, D, T]
+            # NOTE: In the warping model, phi_prob_warped is [K_total, D, N, T] because each individual's hazard curve is different (due to interpolation at warped times).
+            # We want: pi[n, d, t] = sum_k theta[n, k, t] * phi_prob_warped[k, d, n, t]
+            # This is different from the non-warped model, where phi_prob is [K_total, D, T] and the einsum is 'nkt,kdt->ndt'.
+            phi_prob_warped_perm = phi_prob_warped.permute(2, 0, 1, 3)  # [N, K, D, T]
+            theta_exp = theta.unsqueeze(2)  # [N, K, 1, T]
+            pi = (theta_exp * phi_prob_warped_perm).sum(dim=1)  # sum over K, result: [N, D, T]
+            pi = pi * self.kappa
+         
+            # Only for debugging: check if interpolation is identity when t_warped is the grid
+            print(torch.max(torch.abs(phi_prob_warped - phi_prob.unsqueeze(2))))
+            print("phi_prob_warped stats: min =", phi_prob_warped.min().item(), "max =", phi_prob_warped.max().item())
+            print("phi min/max:", self.phi.min().item(), self.phi.max().item())
+            print("phi_prob_warped min/max:", phi_prob_warped.min().item(), phi_prob_warped.max().item())
+            print("theta min/max:", theta.min().item(), theta.max().item())
+            print("pi (before clamp) min/max:", pi.min().item(), pi.max().item())
+            self._last_rho = rho
+            print("theta shape:", theta.shape)
+            print("phi_prob_warped shape:", phi_prob_warped.shape)
+            print("kappa:", self.kappa)
+            if return_warped_phi:
+                return pi, theta, phi_prob, phi_prob_warped
+            else:
+                return pi, theta, phi_prob
 
     def compute_loss(self, event_times):
         """Modified loss function with vectorized LRT updates"""
@@ -372,12 +413,14 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         
         # Create parameter groups based on whether kappa is learnable
         param_groups = [
-            {'params': [self.lambda_], 'lr': learning_rate},      # e.g. 1e-2
+            {'params': [self.lambda_], 'lr': learning_rate},
             {'params': [self.phi], 'lr': learning_rate * 0.1},
-            {'params': [self.psi], 'lr': learning_rate*0.1},          
+            {'params': [self.psi], 'lr': learning_rate * 0.1},
             {'params': [self.gamma], 'weight_decay': lambda_reg, 'lr': learning_rate}
-     
         ]
+        # Only add warping parameters if warping is enabled
+        if not self.disable_warping:
+            param_groups.append({'params': self.beta_warp_nn.parameters(), 'lr': learning_rate*0.01})
         
         # Add kappa to optimizer only if it's learnable
         if isinstance(self.kappa, nn.Parameter):
@@ -395,10 +438,26 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
             loss.backward()
+            # Print rho gradient norm after backward
+            if not self.disable_warping:
+                # Recompute eta and rho for current batch
+                eta = self.beta_warp_nn(self.G)
+                rho = torch.exp(eta)
+                if hasattr(self, '_last_rho') and self._last_rho.grad is not None:
+                    print("rho grad norm:", self._last_rho.grad.norm().item())
+                else:
+                    print("rho grad is None")
             # Remove kappa gradient printing
             
-            gradient_history['lambda_grad'].append(self.lambda_.grad.clone().detach())
-            gradient_history['phi_grad'].append(self.phi.grad.clone().detach())
+            if self.lambda_.grad is not None:
+                gradient_history['lambda_grad'].append(self.lambda_.grad.clone().detach())
+            else:
+                gradient_history['lambda_grad'].append(None)
+
+            if self.phi.grad is not None:
+                gradient_history['phi_grad'].append(self.phi.grad.clone().detach())
+            else:
+                gradient_history['phi_grad'].append(None)
         
             optimizer.step()
             losses.append(loss.item())
@@ -407,6 +466,11 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                 print(f"\nEpoch {epoch}")
                 print(f"Loss: {loss.item():.4f}")
                 self.analyze_signature_responses()  # Call as method
+        
+            # After loss.backward(), you can print warping gradients for debugging:
+            for p in self.beta_warp_nn.parameters():
+                if p.grad is not None:
+                    print("beta_warp_nn grad norm:", p.grad.norm().item())
         
         return losses, gradient_history
     
@@ -679,3 +743,41 @@ def vectorized_linear_interp(fp, x):
     fp1 = torch.gather(fp, 1, x1)
     return fp0 * (1 - w) + fp1 * w
 
+
+
+def plot_training_evolution(history_tuple):
+    losses, gradient_history = history_tuple
+    
+    plt.figure(figsize=(15, 5))
+    
+    # Plot loss
+    plt.subplot(1, 3, 1)
+    plt.plot(losses, label='Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss Evolution')
+    #plt.yscale('log')
+    plt.legend()
+    
+    # Plot lambda gradients
+    plt.subplot(1, 3, 2)
+    lambda_norms = [torch.norm(g).item() for g in gradient_history['lambda_grad'] if g is not None]
+    plt.plot(lambda_norms, label='Lambda gradients')
+    #plt.yscale('log')
+    plt.xlabel('Epoch')
+    plt.ylabel('Gradient norm')
+    plt.title('Lambda Gradient Evolution')
+    plt.legend()
+    
+    # Plot phi gradients
+    plt.subplot(1, 3, 3)
+    phi_norms = [torch.norm(g).item() for g in gradient_history['phi_grad'] if g is not None]
+    plt.plot(phi_norms, label='Phi gradients')
+    #plt.yscale('log')
+    plt.xlabel('Epoch')
+    plt.ylabel('Gradient norm')
+    plt.title('Phi Gradient Evolution')
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
