@@ -572,10 +572,15 @@ tdc_models <- fit_time_dependent_cox(
   pi_train = pi_train_full
 )
 
+
+
+pce_data = readRDS('/Users/sarahurbut/Library/Cloudstorage/Dropbox/pce_df_prevent.rds')
+
+FH_processed2=merge(FH_processed,pce_data[,c("id","pce_goff_fuull","prevent_impute")])
 # Evaluate time-dependent Cox models
 tdc_auc_results <- test_time_dependent_cox(
   Y_test = Y_test,
-  FH_processed = FH_processed,
+  FH_processed = FH_processed2,
   test_indices = 0:10000,
   disease_mapping = disease_mapping,
   major_diseases = major_diseases,
@@ -710,17 +715,32 @@ cat(sprintf("C-index WITHOUT Aladynoulli: %.3f\n", c_index_without_noulli))
 cat(sprintf("C-index WITH Aladynoulli: %.3f\n", c_index_with_noulli))
 
 
-auc_results <- results$auc_results
-concordance_results <- results$concordance_results
-tdc_data_list <- results$tdc_data_list
 
 # Now you can easily plot ROC curves for any disease
 library(pROC)
 library(ggplot2)
-
+library(survival)
 # Example: Plot ROC curve for ASCVD
 disease <- "ASCVD"
+
+tdc_auc_results <- test_time_dependent_cox(
+  Y_test = Y_test,
+  FH_processed = FH_processed2,
+  test_indices = 0:10000,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 10,
+  fitted_models = tdc_models,
+  pi_test = pi_test_full
+)
+results=tdc_auc_results
+
+auc_results <- results$auc_results
+concordance_results <- results$concordance_results
+tdc_data_list <- results$tdc_data_list
 tdc_data <- tdc_data_list[[disease]]
+fitted_models=tdc_models
 risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
 person_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
 person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
@@ -765,3 +785,94 @@ legend("bottomright",
        ),
        col = c("blue", "red", "green"),
        lwd = 2)
+
+
+### males
+
+library(pROC)
+library(ggplot2)
+disease <- "ASCVD"
+tdc_data <- tdc_data_list[[disease]]
+disease <- "ASCVD"
+tdc_data <- tdc_data_list[[disease]]
+
+# 1. Get per-person event status
+
+tdc_data=tdc_data[tdc_data$sex==1,]
+person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
+
+# 2. Get per-person risk scores for each model
+# Your model (Noulli)
+risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
+person_noulli_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
+
+# PREVENT (static, so just take the unique value per person)
+person_prevent_risks <- aggregate(tdc_data$prevent_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
+
+# PCE (static, so just take the unique value per person)
+person_pce_risks <- aggregate(tdc_data$pce_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
+
+# 3. Calculate ROC objects
+roc_noulli <- roc(person_events$x, person_noulli_risks$x)
+roc_prevent <- roc(person_events$x, person_prevent_risks$x)
+roc_pce <- roc(person_events$x, person_pce_risks$x)
+
+
+pdf("MaleROC.pdf")
+# 4. Plot all ROC curves together
+plot(roc_noulli, col = "blue", lwd = 2, main = paste("ROC Curves for Males", disease))
+lines(roc_prevent, col = "red", lwd = 2)
+lines(roc_pce, col = "green", lwd = 2)
+legend("bottomright",
+       legend = c(
+         sprintf("Noulli (AUC = %.3f)", auc(roc_noulli)),
+         sprintf("PREVENT (AUC = %.3f)", auc(roc_prevent)),
+         sprintf("PCE (AUC = %.3f)", auc(roc_pce))
+       ),
+       col = c("blue", "red", "green"),
+       lwd = 2)
+
+dev.off()
+
+#### sex = 0 
+
+disease <- "ASCVD"
+tdc_data <- tdc_data_list[[disease]]
+tdc_data=tdc_data[tdc_data$sex==0,]
+person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
+
+# 2. Get per-person risk scores for each model
+# Your model (Noulli)
+risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
+person_noulli_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
+
+# PREVENT (static, so just take the unique value per person)
+person_prevent_risks <- aggregate(tdc_data$prevent_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
+
+# PCE (static, so just take the unique value per person)
+person_pce_risks <- aggregate(tdc_data$pce_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
+
+# 3. Calculate ROC objects
+
+surv_obj <- with(tdc_data, Surv(start, stop, event))
+# 3. Calculate ROC objects
+roc_noulli <- roc(person_events$x, person_noulli_risks$x)
+roc_prevent <- roc(person_events$x, person_prevent_risks$x)
+roc_pce <- roc(person_events$x, person_pce_risks$x)
+
+
+pdf("FeMaleROC.pdf")
+# 4. Plot all ROC curves together
+plot(roc_noulli, col = "blue", lwd = 2, main = paste("ROC Curves for Females", disease))
+lines(roc_prevent, col = "red", lwd = 2)
+lines(roc_pce, col = "green", lwd = 2)
+legend("bottomright",
+       legend = c(
+         sprintf("Noulli (AUC = %.3f)", auc(roc_noulli)),
+         sprintf("PREVENT (AUC = %.3f)", auc(roc_prevent)),
+         sprintf("PCE (AUC = %.3f)", auc(roc_pce))
+       ),
+       col = c("blue", "red", "green"),
+       lwd = 2)
+
+dev.off()

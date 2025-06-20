@@ -654,7 +654,7 @@ evaluate_cox_baseline_models <- function(fitted_models,
     # Get predicted risk scores
     risk_scores <- predict(model, newdata = eval_data, type = "risk")
     eval_data$risk_scores = risk_scores
-    # Calculate concordance index
+    # Calculate concotrdance index
     c_index <- survConcordance(Surv(age, event) ~ -1 * risk_scores, data =
                                  eval_data)$concordance
     # Bootstrap confidence interval
