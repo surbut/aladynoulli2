@@ -1234,6 +1234,218 @@ def plot_signature_temporal_patterns_assigned(
     # Increase 'right' closer to 1 to give less space to legend
     plt.tight_layout(rect=[0, 0, 0.92, 1])
 
+    # --- Save or Show ---
+    if output_path:
+        try:
+            import os
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                print(f"Created directory: {output_dir}")
+            plt.savefig(output_path, bbox_inches='tight', dpi=300)
+            print(f"Plot saved to {output_path}")
+        except Exception as e:
+            print(f"Error saving plot to {output_path}: {e}")
+    else:
+        plt.show()
+    plt.close(fig)
+
+
+
+
+def plot_signature_temporal_patterns_assigned_grid(
+    phi_log_odds: torch.Tensor,
+    disease_names: List[str],
+    disease_to_signature_map: Dict[int, int],
+    selected_signatures: List[int],
+    num_time_points: int = 51,
+    age_offset: int = 30,
+    top_n_diseases: Optional[int] = None,
+    plot_style: str = 'seaborn-v0_8-whitegrid',
+    # --- Adjusted figsize default: Wider, slightly shorter per plot ---
+    figsize: tuple = (15, 5), # Changed default: width=15, height_per_plot=5
+    output_path: Optional[str] = None,
+    plot_probability: bool = True, # Add flag to switch between log-odds and probability
+    legend_fontsize: Optional[int] = None # Optional: Control legend font size
+):
+    """
+    Plots temporal patterns for diseases assigned to selected signatures,
+    showing either probability (sigmoid(phi)) or raw log-odds (phi).
+    Stretched horizontally for better time visualization.
+
+    Args:
+        phi_log_odds (torch.Tensor): Tensor of shape (num_signatures, num_diseases, num_time_points)
+                                     containing the raw phi values (log-odds scale).
+        disease_names (List[str]): List of disease names corresponding to the second dimension of phi.
+        disease_to_signature_map (Dict[int, int]): Dictionary mapping disease index to its primary signature index.
+        selected_signatures (List[int]): List of signature indices to plot.
+        num_time_points (int): Number of time points (length of the last dimension of phi). Default is 51.
+        age_offset (int): Value to add to the time index to get the actual age. Default is 30.
+        top_n_diseases (Optional[int]): If set, plot only the top N diseases per signature based on
+                                        max probability or max absolute log-odds. Default is None (plot all).
+        plot_style (str): Matplotlib/Seaborn style for the plot. Default is 'seaborn-v0_8-whitegrid'.
+        figsize (tuple): Figure size (width, height_per_plot) for the plot.
+                         Default is (15, 5). Total height will be height_per_plot * num_selected_signatures.
+        output_path (Optional[str]): Path to save the plot image. If None, plot is displayed. Default is None.
+        plot_probability (bool): If True, plot sigmoid(phi). If False, plot raw phi (log-odds). Default True.
+        legend_fontsize (Optional[int]): Font size for the legend text. Default is None (matplotlib default).
+    """
+    plt.style.use(plot_style)
+
+    # Ensure phi is on CPU and converted to numpy
+    if isinstance(phi_log_odds, torch.Tensor):
+        phi_log_odds_np = phi_log_odds.detach().cpu().numpy()
+    else:
+        phi_log_odds_np = np.array(phi_log_odds) # Assuming it's already numpy or list-like
+
+    # Calculate plot values based on the flag
+    if plot_probability:
+        phi_plot_values = sigmoid(phi_log_odds_np)
+        y_label = f"Prob(Disease | Sig k, Age)"
+        plot_title_suffix = "Temporal Patterns (Probability)"
+    else:
+        phi_plot_values = phi_log_odds_np
+        y_label = f"Phi Value (Log-Odds)"
+        plot_title_suffix = "Temporal Patterns (Log-Odds)"
+
+
+    num_selected_signatures = len(selected_signatures)
+    if num_selected_signatures == 0:
+        print("No signatures selected for plotting.")
+        return
+
+    # --- Adjust figsize calculation for aspect ratio ---
+    plot_width = figsize[0]
+    height_per_plot = figsize[1]
+    total_height = height_per_plot * num_selected_signatures
+
+    fig, axes = plt.subplots(num_selected_signatures, 1,
+                             figsize=(plot_width, total_height),
+                             sharex=True) # Share x-axis
+
+    # Handle case where only one signature is selected (axes is not an array)
+    if num_selected_signatures == 1:
+        axes = [axes]
+
+    # Generate time points representing actual ages
+    time_points = np.arange(num_time_points)
+    age_points = time_points + age_offset
+
+    for i, sig_idx in enumerate(selected_signatures):
+        ax = axes[i]
+
+        # Find diseases assigned to this signature
+        assigned_disease_indices = [
+            d_idx for d_idx, prim_sig in disease_to_signature_map.items()
+            if prim_sig == sig_idx and 0 <= d_idx < len(disease_names) # Ensure disease index is valid
+        ]
+
+        # Validate signature index access
+        if sig_idx < 0 or sig_idx >= phi_plot_values.shape[0]:
+             print(f"Warning: Signature index {sig_idx} is out of bounds for phi_plot_values shape {phi_plot_values.shape}. Skipping.")
+             ax.set_title(f"Signature {sig_idx} - Error: Index out of bounds")
+             continue
+
+        if not assigned_disease_indices:
+            ax.set_title(f"Signature {sig_idx} - {plot_title_suffix}\n(No diseases primarily assigned)")
+            ax.text(0.5, 0.5, "No diseases assigned", horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+            ax.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7) # Add grid even if empty
+            continue # Skip to the next signature if no diseases are assigned
+
+        # Filter out invalid disease indices before accessing phi_plot_values
+        valid_assigned_disease_indices = [idx for idx in assigned_disease_indices if 0 <= idx < phi_plot_values.shape[1]]
+        if len(valid_assigned_disease_indices) != len(assigned_disease_indices):
+            print(f"Warning: Some disease indices for signature {sig_idx} were out of bounds for phi_plot_values shape {phi_plot_values.shape}.")
+            assigned_disease_indices = valid_assigned_disease_indices
+            if not assigned_disease_indices:
+                 ax.set_title(f"Signature {sig_idx} - {plot_title_suffix}\n(No valid diseases found)")
+                 ax.text(0.5, 0.5, "No valid diseases", horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+                 ax.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+                 continue
+
+
+        # Select the relevant phi values for these diseases and the current signature
+        # Shape: (num_assigned_diseases, num_time_points)
+        signature_phi_values = phi_plot_values[sig_idx, assigned_disease_indices, :]
+        assigned_disease_names = [disease_names[d_idx] for d_idx in assigned_disease_indices]
+
+
+        # --- Optional: Select Top N diseases ---
+        if top_n_diseases is not None and len(assigned_disease_indices) > top_n_diseases:
+            if signature_phi_values.size == 0: # Check if array is empty before ranking
+                 print(f"Warning: No data to rank for top N diseases in signature {sig_idx}. Plotting available ones.")
+                 plot_title = f"Signature {sig_idx} - {plot_title_suffix}"
+            else:
+                # Calculate metric for ranking (max value across time)
+                if plot_probability:
+                     # For probability, rank by max probability
+                    ranking_metric = np.max(signature_phi_values, axis=1)
+                else:
+                     # For log-odds, rank by max absolute value to capture strong positive/negative effects
+                    ranking_metric = np.max(np.abs(signature_phi_values), axis=1)
+
+                # Get indices of top N diseases based on the metric
+                # Ensure we don't request more indices than available
+                num_to_select = min(top_n_diseases, len(ranking_metric))
+                # Argsort gives indices; select the top ones
+                top_indices_local = np.argsort(ranking_metric)[-num_to_select:] # Indices within the assigned group
+
+                # Select the data and names for the top N
+                signature_phi_values = signature_phi_values[top_indices_local, :]
+                assigned_disease_names = [assigned_disease_names[j] for j in top_indices_local]
+                plot_title = f"Signature {sig_idx} - Top {len(top_indices_local)} Disease {plot_title_suffix}"
+        else:
+             plot_title = f"Signature {sig_idx} - {plot_title_suffix}"
+             if top_n_diseases is not None: # Adjust title if N > available
+                 plot_title = f"Signature {sig_idx} - Top {len(assigned_disease_indices)} Disease {plot_title_suffix}"
+
+
+        # --- Plotting Section ---
+        if signature_phi_values.size > 0: # Ensure there's data to plot
+            # Create DataFrame for easier plotting with Seaborn/Pandas
+            plot_data = pd.DataFrame(signature_phi_values.T, columns=assigned_disease_names)
+            plot_data['Age'] = age_points # Use age_points for the x-axis
+
+            # Plot each disease trajectory
+            for disease_name in assigned_disease_names:
+                ax.plot(plot_data['Age'], plot_data[disease_name], label=disease_name)
+
+            # Place legend outside the plot
+            # Use smaller fontsize if specified
+            legend = ax.legend(title='Diseases', bbox_to_anchor=(1.02, 1), loc='upper left',
+                               fontsize=legend_fontsize)
+            if legend_fontsize:
+                 plt.setp(legend.get_title(), fontsize=legend_fontsize) # Adjust title size too if needed
+
+
+        ax.set_title(plot_title)
+        ax.set_ylabel(y_label)
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+
+
+    # Set common x-axis label only for the bottom plot
+    axes[-1].set_xlabel(f"Age (t + {age_offset})") # Simplified label
+
+    # --- Adjust layout to reduce white space around legend ---
+    # rect=[left, bottom, right, top]
+    # Increase 'right' closer to 1 to give less space to legend
+    plt.tight_layout(rect=[0, 0, 0.92, 1])
+
+    # --- Save or Show ---
+    if output_path:
+        try:
+            import os
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                print(f"Created directory: {output_dir}")
+            plt.savefig(output_path, bbox_inches='tight', dpi=300)
+            print(f"Plot saved to {output_path}")
+        except Exception as e:
+            print(f"Error saving plot to {output_path}: {e}")
+    else:
+        plt.show()
+    plt.close(fig)
 
 def plot_signature_temporal_patterns(model, disease_names, n_top=10, selected_signatures=None):
     """Show temporal patterns of top diseases for each signature"""
@@ -2383,7 +2595,7 @@ def compare_clusters_across_biobanks(mgb_checkpoint, aou_checkpoint, ukb_checkpo
         plt.tight_layout()
         plt.show()
         
-        # Find most consistent disease pairs
+        # Find most consistently co-clustered diseases (among common diseases):
         print("\nMost consistently co-clustered diseases (among common diseases):")
         consistent_pairs = []
         for i in range(n_diseases):
@@ -3739,3 +3951,101 @@ def compare_disease_vs_population_clusters(
         'signature_deviations': deviations_ordered,
         'prs_deviations': prs_deviations_ordered
     }
+
+def plot_all_signatures_temporal_patterns_grid(
+    phi_log_odds: torch.Tensor,
+    disease_names: list,
+    clusters: np.ndarray,
+    num_time_points: int = 51,
+    age_offset: int = 30,
+    plot_probability: bool = True,
+    figsize: tuple = (24, 20),
+    output_path: str = 'all_signatures_temporal_patterns.pdf',
+    legend_fontsize: int = 7
+):
+    """
+    For each signature (0 to 19), finds all diseases assigned to it (using clusters),
+    plots the temporal pattern for each disease in the corresponding subplot,
+    arranges all 20 signatures in a 5x4 grid, and saves the figure as a PDF.
+    Args:
+        phi_log_odds: Tensor of shape (num_signatures, num_diseases, num_time_points)
+        disease_names: List of disease names
+        clusters: Array of length num_diseases, where clusters[d] = signature assignment
+        num_time_points: Number of time points (default 51)
+        age_offset: Value to add to time index for Age axis
+        plot_probability: If True, plot sigmoid(phi), else plot log-odds
+        figsize: Figure size (width, height)
+        output_path: Path to save the PDF
+        legend_fontsize: Font size for the legend
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import torch
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    # Convert phi_log_odds to numpy if needed
+    if isinstance(phi_log_odds, torch.Tensor):
+        phi_log_odds_np = phi_log_odds.detach().cpu().numpy()
+    else:
+        phi_log_odds_np = np.array(phi_log_odds)
+
+    # Use sigmoid if plotting probability
+    def sigmoid(x):
+        x = np.clip(x, -500, 500)
+        return 1 / (1 + np.exp(-x))
+
+    if plot_probability:
+        phi_plot_values = sigmoid(phi_log_odds_np)
+        y_label = "Prob(Disease | Sig k, Age)"
+        plot_title_suffix = "Temporal Patterns (Probability)"
+    else:
+        phi_plot_values = phi_log_odds_np
+        y_label = "Phi Value (Log-Odds)"
+        plot_title_suffix = "Temporal Patterns (Log-Odds)"
+
+    n_signatures = 20
+    n_rows, n_cols = 5, 4
+    assert n_signatures == n_rows * n_cols, "Grid must match number of signatures"
+
+    time_points = np.arange(num_time_points)
+    age_points = time_points + age_offset
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True)
+    axes = axes.reshape(-1)
+
+    for sig_idx in range(n_signatures):
+        ax = axes[sig_idx]
+        # Find diseases assigned to this signature
+        assigned_disease_indices = np.where(clusters == sig_idx)[0]
+        if len(assigned_disease_indices) == 0:
+            ax.set_title(f"Signature {sig_idx}\n(No diseases assigned)")
+            ax.text(0.5, 0.5, "No diseases assigned", ha='center', va='center', transform=ax.transAxes)
+            ax.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+            continue
+        # Plot each disease
+        for d_idx in assigned_disease_indices:
+            if d_idx >= phi_plot_values.shape[1]:
+                continue
+            y = phi_plot_values[sig_idx, d_idx, :num_time_points]
+            label = disease_names[d_idx] if d_idx < len(disease_names) else f"Disease {d_idx}"
+            ax.plot(age_points, y, label=label, alpha=0.7)
+        ax.set_title(f"Signature {sig_idx}")
+        ax.set_ylabel(y_label)
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+        if len(assigned_disease_indices) <= 10:
+            ax.legend(fontsize=legend_fontsize, loc='best')
+        elif len(assigned_disease_indices) <= 20:
+            ax.legend(fontsize=legend_fontsize, loc='upper left', bbox_to_anchor=(1, 1))
+        # else: skip legend for very large groups
+    # Set x-label only for bottom row
+    for ax in axes[-n_cols:]:
+        ax.set_xlabel(f"Age (t + {age_offset})")
+    plt.suptitle("All 20 Signatures: Disease Temporal Patterns", fontsize=18, y=0.92)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Saved all signature temporal patterns to {output_path}")
+        plt.close(fig)
+    else:
+        plt.show()
+        plt.close(fig)

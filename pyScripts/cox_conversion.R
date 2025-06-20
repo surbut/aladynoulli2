@@ -765,7 +765,7 @@ parse_model_data <- function(data_path) {
   one_year_ci <- lapply(one_year_ci_str, extract_ci)
   model_data$one_year_lower <- sapply(one_year_ci, function(x) x[1])
   model_data$one_year_upper <- sapply(one_year_ci, function(x) x[2])
-  
+  model_data$tdc_cox_cstat=model_data$C_index
   # After extracting one_year_auc, one_year_lower, one_year_upper, recalculate CI for 1-year AUC using total=400000
   one_year_ci_calc <- mapply(calc_cox_ci, 
                             model_data$one_year_auc, 
@@ -774,17 +774,24 @@ parse_model_data <- function(data_path) {
                             SIMPLIFY = FALSE)
   model_data$one_year_lower <- sapply(one_year_ci_calc, function(x) x[1])
   model_data$one_year_upper <- sapply(one_year_ci_calc, function(x) x[2])
-  
- 
   # Calculate CI for TDC C-statistic using the same formula as for AUC
-  tdc_cox_ci <- mapply(calc_cox_ci, 
-                       model_data$tdc_cox_cstat, 
-                       model_data$Events, 
-                       MoreArgs = list(total = 400000), 
-                       SIMPLIFY = FALSE)
-  model_data$tdc_cox_lower <- sapply(tdc_cox_ci, function(x) x[1])
-  model_data$tdc_cox_upper <- sapply(tdc_cox_ci, function(x) x[2])
-  
+  calc_cindex_ci <- function(cindex, events, total = 400000) {
+    if (is.na(cindex) || is.na(events) || events == 0) return(c(NA, NA))
+    prevalence <- events / total
+    prevalence <- max(0.01, prevalence)  # avoid division by zero
+    se <- sqrt((cindex * (1 - cindex)) / (total * prevalence))
+    lower <- max(0, cindex - 1.96 * se)
+    upper <- min(1, cindex + 1.96 * se)
+    return(c(lower, upper))
+  }
+  # Make sure Events is numeric
+  model_data$Events <- as.numeric(model_data$Events)
+  model_data$tdc_Cindex <- as.numeric(df$tdc_cox_final)
+  # Calculate C-index CIs
+  cindex_ci <- mapply(calc_cindex_ci, model_data$tdc_Cindex, model_data$Events, MoreArgs = list(total = 400000), SIMPLIFY = FALSE)
+  model_data$tdc_cox_lower <- sapply(cindex_ci, function(x) x[1])
+  model_data$tdc_cox_upper <- sapply(cindex_ci, function(x) x[2])
+  model_data$tdc_cox_cstat=model_data$C_index
   return(model_data)
 }
 
@@ -960,11 +967,16 @@ plot_data_subset=plot_data%>%
     "Cox with Noulli" = "#EA4335",                  # Red
     "Cox without Noulli" = "#FBBC05"                # Yellow/Orange
   )
-  
-  plot_data_subset=plot_data_subset[plot_data_subset$model%in%c("Aladynoulli 1-year","Time-dependent Cox with Noulli c-stat","Aladynoulli Static","Cox with Noulli",
+
+  plot_data_subset2=plot_data[plot_data$model%in%c("Aladynoulli 1-year","Time-dependent Cox with Noulli c-stat","Aladynoulli Static","Cox with Noulli",
     "Cox without Noulli"),]
+
+  plot_data_subset2 <- plot_data_subset2%>%
+    filter(!Disease %in% c("Psoriasis", "Bipolar_Disorder", "Pneumonia"))
+  
+
   # Create the faceted plot
-  p <- ggplot(plot_data_subset, aes(x = model, y = auc, color = model)) +
+  p <- ggplot(plot_data_subset2, aes(x = model, y = auc, color = model)) +
     geom_point(size = 2) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
     facet_wrap(~ Disease, scales = "free_y", ncol = 4) +
@@ -995,15 +1007,15 @@ model_data <- parse_model_data("all_model_comp_withtdcox2.csv")
 
 model_data <- parse_model_data("allmodels.rds")
 
-model_data$tdc_cox_cstat <- as.numeric(model_data$tdc_cox_cstat)
+model_data$tdc_cox_cstat <- as.numeric(model_data$tdc_Cindex)
 model_data$tdc_cox_lower <- as.numeric(model_data$tdc_cox_lower)
 model_data$tdc_cox_upper <- as.numeric(model_data$tdc_cox_upper)
-
 plot_data <- prepare_forest_plot_data(model_data)
+plot_data=plot_data[-which(plot_data$model=="Aladynoulli Dynamic"),]
 
 # Add this line to also generate the faceted plot
 faceted_plot <- create_faceted_forest_plot(plot_data)
 ggsave("multidisease_faceted_plot.pdf", faceted_plot, width = 12, height = 12, dpi = 300)
 
-
+print
 #############################

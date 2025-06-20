@@ -1,0 +1,28 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+J = 3  # populations
+N = 100  # observations
+
+mu_global = 0.0
+sigma_global = 0.5
+mu_i = np.random.normal(mu_global, sigma_global, J)
+sigma_i = np.abs(np.random.standard_cauchy(J)) * 0.2 + 0.1
+
+pop = np.random.choice(J, N)
+beta_ij = np.random.normal(mu_i[pop], sigma_i[pop])
+se_log_or = np.random.uniform(0.05, 0.2, N)
+log_or = np.random.normal(beta_ij, se_log_or)
+
+plt.figure(figsize=(8,4))
+for j in range(J):
+    idx = pop == j
+    plt.errorbar(np.full(idx.sum(), j), log_or[idx], yerr=se_log_or[idx], fmt='o', alpha=0.5, label=f'Pop {j+1}')
+    plt.axhline(mu_i[j], color=f'C{j}', linestyle='--', label=f'Pop {j+1} mean')
+plt.axhline(mu_global, color='k', linestyle=':', label='Global mean')
+plt.legend()
+plt.xlabel('Population')
+plt.ylabel('Observed log OR')
+plt.title('Hierarchical Model Structure (Toy Example)')
+plt.show()

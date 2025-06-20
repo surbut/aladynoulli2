@@ -104,8 +104,8 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.disable_warping = disable_warping  # If True, disables warping (rho=1)
 
         with torch.no_grad():
-            self.beta_warp_nn.weight.zero_()
-            self.beta_warp_nn.bias.zero_()
+            self.beta_warp_nn.weight.normal_(0, 0.05)  # Keep random initialization
+            self.beta_warp_nn.bias.normal_(0, 0.05)   # Keep random initialization
 
     def initialize_params(self, psi_config=None, true_psi=None, **kwargs):
         """Initialize parameters with K disease clusters plus one healthy cluster"""
@@ -420,7 +420,10 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         ]
         # Only add warping parameters if warping is enabled
         if not self.disable_warping:
-            param_groups.append({'params': self.beta_warp_nn.parameters(), 'lr': learning_rate*0.01})
+            param_groups.append({
+                'params': self.beta_warp_nn.parameters(), 
+                'lr': learning_rate * 0.01  # Small learning rate for warping
+            })
         
         # Add kappa to optimizer only if it's learnable
         if isinstance(self.kappa, nn.Parameter):
