@@ -8,14 +8,14 @@ library(dendextend)
 # Load the data
 
 
-mgb_checkpoint <- readRDS("~/Dropbox/mgb_model.rds")
-aou_checkpoint <- readRDS("~/Dropbox/aou_model.rds")
-ukb_checkpoint <- readRDS("~/Dropbox/ukb_model.rds")
+mgb_checkpoint <- readRDS("~/Library/CloudStorage//Dropbox/mgb_model.rds")
+aou_checkpoint <- readRDS("~/Library/CloudStorage//Dropbox/aou_model.rds")
+ukb_checkpoint <- readRDS("~/Library/CloudStorage//Dropbox/ukb_model.rds")
 
 
-mgb_params=readRDS("~/Dropbox/mgb_params.rds")
-aou_params=readRDS("~/Dropbox/aou_params.rds")
-param=ukb_params=readRDS("~/Dropbox/ukb_params.rds")
+mgb_params=readRDS("~/Library/CloudStorage//Dropbox/mgb_params.rds")
+aou_params=readRDS("~/Library/CloudStorage/Dropbox/aou_params.rds")
+param=ukb_params=readRDS("~/Library/CloudStorage/Dropbox/ukb_params.rds")
 
 a=array(data = NA,dim = c(21,348,52));for(i in c(1:21))
 {a[i,,]=ukb_params$phi[i,,]-ukb_params$logit_prev}

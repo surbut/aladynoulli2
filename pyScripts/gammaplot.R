@@ -11,13 +11,13 @@ library(forcats)
 library(cowplot)
 
 # Read data
-ukb_params <- readRDS("ukb_params.rds")
-prs_names <- read.csv("prs_names.csv")[,1]
+ukb_params <- readRDS("~/Library/CloudStorage/Dropbox/ukb_params.rds")
+prs_names <- read.csv("prs_names.csv",header = F)[,1]
 
 # Create main gamma dataframe
 gamma_df <- data.frame(ukb_params$gamma)
 names(gamma_df) <- as.character(0:20)
-rownames(gamma_df) <- prs_names
+
 gamma_df$prs <- prs_names
 
 # Get PRS-signature significance data if available
@@ -30,7 +30,7 @@ if(exists("gamma_pvals")) {
 }
 
 # Find top associations
-gamma_melted <- melt(gamma_df, id.vars="prs", variable.name="signature", value.name="effect")
+gamma_melted <- reshape2::melt(gamma_df, id.vars="prs", variable.name="signature", value.name="effect")
 gamma_melted$signature <- paste0("Sig ", gamma_melted$signature)
 
 # Add disease category grouping to PRSs if known
