@@ -27,7 +27,9 @@ def run_digital_twin_matching(
     max_cases=None,
     age_at_enroll=None,
     age_tolerance=2,
-    eid_to_sex=None
+    eid_to_sex=None,
+    eid_to_pgs=None,
+    pgs_weight=0.5
 ):
     """
     Match each treated individual to a control by signature trajectory in the years prior to drug start (multivariate: all signatures),
@@ -37,6 +39,7 @@ def run_digital_twin_matching(
     Supports both numpy arrays and torch tensors for Y.
     If max_cases is set, only process up to max_cases treated individuals.
     If age_at_enroll is provided, only match controls within age_tolerance years.
+    If eid_to_pgs is provided, matching will be based on a composite distance of trajectory and polygenic score.
     
     Parameters:
         treated_time_idx: dict {eid: t0} for treated patients
@@ -53,6 +56,8 @@ def run_digital_twin_matching(
         age_at_enroll: dict {eid: age} for age at enrollment
         age_tolerance: age tolerance for matching (default 2 years)
         eid_to_sex: dict {eid: sex} for sex at enrollment
+        eid_to_pgs: dict {eid: pgs} for polygenic scores. If provided, matching will incorporate PGS.
+        pgs_weight: float (0 to 1), weight to give PGS distance in matching. 0 means no weight, 1 means only PGS.
     """
     matched_pairs = []
     treated_eids = list(treated_time_idx.keys())
@@ -80,6 +85,9 @@ def run_digital_twin_matching(
         # Get the treated's signature trajectory in the pre-t0 window (all signatures)
         traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten()
 
+        # Get treated's PGS if available
+        pgs_treated = eid_to_pgs.get(int(treated_eid)) if eid_to_pgs else None
+
         # Age filtering for controls
         if age_at_enroll is not None and eid_to_sex is not None:
             treated_age = age_at_enroll.get(int(treated_eid), None)
@@ -106,6 +114,7 @@ def run_digital_twin_matching(
 
         control_trajs = []
         control_indices = []
+        control_pgs_values = []
         for eid in sampled_controls:
             try:
                 idx = np.where(processed_ids == int(eid))[0][0]
@@ -116,10 +125,38 @@ def run_digital_twin_matching(
             traj_control = lambdas[idx, :, t0-window:t0].flatten()
             control_trajs.append(traj_control)
             control_indices.append(idx)
+
+            # If using PGS, skip controls who don't have a score
+            if eid_to_pgs:
+                pgs_control = eid_to_pgs.get(int(eid))
+                if pgs_control is None:
+                    continue
+                control_pgs_values.append(pgs_control)
         if not control_trajs:
             continue
         control_trajs = np.array(control_trajs)
-        dists = np.linalg.norm(control_trajs - traj_treated, axis=1)
+
+        # If PGS data is provided, use the composite distance. Otherwise, use original method.
+        if eid_to_pgs and pgs_treated is not None and len(control_pgs_values) == len(control_trajs):
+            # 1. Calculate trajectory distances
+            traj_dists = np.linalg.norm(control_trajs - traj_treated, axis=1)
+
+            # 2. Calculate PGS distances
+            control_pgs_values = np.array(control_pgs_values)
+            pgs_dists = np.abs(control_pgs_values - pgs_treated)
+
+            # 3. Normalize both distances to prevent scale issues
+            std_traj = np.std(traj_dists)
+            std_pgs = np.std(pgs_dists)
+            norm_traj_dists = traj_dists / std_traj if std_traj > 0 else np.zeros_like(traj_dists)
+            norm_pgs_dists = pgs_dists / std_pgs if std_pgs > 0 else np.zeros_like(pgs_dists)
+            
+            # 4. Combine distances with the specified weight
+            dists = (1 - pgs_weight) * norm_traj_dists + pgs_weight * norm_pgs_dists
+        else:
+            # Original distance calculation (trajectory only)
+            dists = np.linalg.norm(control_trajs - traj_treated, axis=1)
+
         best_match_idx = np.argmin(dists)
         matched_pairs.append((treated_idx, control_indices[best_match_idx], t0))
 

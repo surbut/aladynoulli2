@@ -784,3 +784,76 @@ def plot_training_evolution(history_tuple):
     
     plt.tight_layout()
     plt.show()
+
+
+def plot_calibration_at_risk(pi, Y, n_bins=20, min_bin_count=50, use_log_scale=False):
+    """
+    Plots calibration curve for at-risk only time points.
+    Args:
+        pi: [N, D, T] predicted probabilities (torch.Tensor or np.ndarray)
+        Y: [N, D, T] observed events (torch.Tensor or np.ndarray)
+        n_bins: number of bins for calibration
+        min_bin_count: minimum number of samples per bin
+        use_log_scale: whether to use log scale for bins/axes
+    """
+    if hasattr(pi, 'detach'):
+        pi = pi.detach().cpu().numpy()
+    if hasattr(Y, 'detach'):
+        Y = Y.detach().cpu().numpy()
+    N, D, T = Y.shape
+
+    # Create at-risk mask
+    at_risk = np.ones_like(Y, dtype=bool)
+    for n in range(N):
+        for d in range(D):
+            event_times = np.where(Y[n, d, :])[0]
+            if len(event_times) > 0:
+                at_risk[n, d, (event_times[0]+1):] = False
+
+    # Gather predictions and observations for at-risk only
+    pred = pi[at_risk]
+    obs = Y[at_risk]
+
+    # Bin predictions
+    if use_log_scale:
+        bin_edges = np.logspace(np.log10(max(1e-7, pred.min())), np.log10(pred.max()), n_bins + 1)
+    else:
+        bin_edges = np.linspace(pred.min(), pred.max(), n_bins + 1)
+
+    bin_means = []
+    obs_means = []
+    counts = []
+
+    for i in range(n_bins):
+        mask = (pred >= bin_edges[i]) & (pred < bin_edges[i + 1])
+        if np.sum(mask) >= min_bin_count:
+            bin_means.append(np.mean(pred[mask]))
+            obs_means.append(np.mean(obs[mask]))
+            counts.append(np.sum(mask))
+
+    # Plot
+    plt.figure(figsize=(7, 7))
+    if use_log_scale:
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.plot([1e-7, 1], [1e-7, 1], '--', color='gray', label='Perfect calibration')
+    else:
+        plt.plot([0, max(bin_means + obs_means)], [0, max(bin_means + obs_means)], '--', color='gray', label='Perfect calibration')
+
+    plt.plot(bin_means, obs_means, 'o-', label='Observed rates')
+    plt.xlabel('Predicted Event Rate')
+    plt.ylabel('Observed Event Rate')
+    plt.title('Calibration (At-Risk Only)')
+    plt.legend()
+    plt.grid(True, which='both', linestyle='--', alpha=0.3)
+    plt.show()
+
+    # Print summary stats
+    mse = np.mean((np.array(bin_means) - np.array(obs_means))**2)
+    print(f'MSE: {mse:.2e}')
+    print(f'Mean Predicted: {np.mean(pred):.2e}')
+    print(f'Mean Observed: {np.mean(obs):.2e}')
+    print(f'N total: {len(pred):,}')
+
+    return bin_means, obs_means, counts
+
