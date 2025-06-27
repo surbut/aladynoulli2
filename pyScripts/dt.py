@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import streamlit as st
 import pandas as pd
+from sklearn.neighbors import NearestNeighbors
 
 random.seed(42)
 np.random.seed(42)
@@ -23,42 +24,23 @@ def run_digital_twin_matching(
     window=10,
     window_post=10,
     sig_idx=None,
-    sample_size=1000,
+    sample_size=1000,  # Ignored in new approach
     max_cases=None,
     age_at_enroll=None,
     age_tolerance=2,
     eid_to_sex=None,
     eid_to_pgs=None,
-    pgs_weight=0.5
+    pgs_weight=0.5,
+    eid_to_dm2_prev=None,
+    eid_to_antihtnbase=None,
+    eid_to_dm1_prev=None
 ):
     """
     Match each treated individual to a control by signature trajectory in the years prior to drug start (multivariate: all signatures),
     then compare post-treatment Type 2 diabetes event rates and signature trajectories.
-    For each treated, only a random sample of controls (sample_size) is considered.
-    Prints progress and estimated time remaining.
-    Supports both numpy arrays and torch tensors for Y.
-    If max_cases is set, only process up to max_cases treated individuals.
-    If age_at_enroll is provided, only match controls within age_tolerance years.
-    If eid_to_pgs is provided, matching will be based on a composite distance of trajectory and polygenic score.
-    
-    Parameters:
-        treated_time_idx: dict {eid: t0} for treated patients
-        untreated_eids: list of EIDs who have not started the drug (or started much later)
-        processed_ids: numpy array of patient IDs (strings or ints)
-        lambdas: (N, n_signatures, n_timepoints) array (already softmaxed)
-        Y: event tensor (N, n_diseases, n_timepoints) (numpy or torch)
-        diabetes_idx: index of Type 2 diabetes in Y (default 47)
-        window: years before t0 for matching (default 10)
-        window_post: years after t0 for outcome (default 10)
-        sig_idx: signature index to plot (default None, meaning all signatures)
-        sample_size: number of controls to sample for each treated (default 1000)
-        max_cases: maximum number of treated cases to process (default None, meaning all)
-        age_at_enroll: dict {eid: age} for age at enrollment
-        age_tolerance: age tolerance for matching (default 2 years)
-        eid_to_sex: dict {eid: sex} for sex at enrollment
-        eid_to_pgs: dict {eid: pgs} for polygenic scores. If provided, matching will incorporate PGS.
-        pgs_weight: float (0 to 1), weight to give PGS distance in matching. 0 means no weight, 1 means only PGS.
+    Uses NearestNeighbors for efficient matching over all eligible controls.
     """
+    from sklearn.neighbors import NearestNeighbors
     matched_pairs = []
     treated_eids = list(treated_time_idx.keys())
     n_treated = len(treated_eids)
@@ -74,97 +56,112 @@ def run_digital_twin_matching(
         treated_eids = treated_eids[:max_cases]
         n_treated = len(treated_eids)
 
-    for i, treated_eid in enumerate(treated_eids):
-        t0 = treated_time_idx[treated_eid]
+    # Prepare treated trajectories and indices
+    treated_trajs = []
+    valid_treated_indices = []
+    treated_t0s = []
+    for eid in treated_eids:
+        t0 = treated_time_idx[eid]
         try:
-            treated_idx = np.where(processed_ids == int(treated_eid))[0][0]
+            treated_idx = np.where(processed_ids == int(eid))[0][0]
         except Exception:
             continue
         if t0 < window:
             continue
-        # Get the treated's signature trajectory in the pre-t0 window (all signatures)
         traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten()
+        treated_trajs.append(traj_treated)
+        valid_treated_indices.append(treated_idx)
+        treated_t0s.append(t0)
 
-        # Get treated's PGS if available
-        pgs_treated = eid_to_pgs.get(int(treated_eid)) if eid_to_pgs else None
+    # For each treated, determine eligible controls (by age/sex if needed)
+    eligible_controls_list = []
+    for i, eid in enumerate(treated_eids):
+        t0 = treated_time_idx[eid]
+        # Get treated's covariate values
+        dm2_val = eid_to_dm2_prev.get(int(eid)) if eid_to_dm2_prev else None
+        antihtn_val = eid_to_antihtnbase.get(int(eid)) if eid_to_antihtnbase else None
+        dm1_val = eid_to_dm1_prev.get(int(eid)) if eid_to_dm1_prev else None
 
-        # Age filtering for controls
         if age_at_enroll is not None and eid_to_sex is not None:
-            treated_age = age_at_enroll.get(int(treated_eid), None)
-            treated_sex = eid_to_sex.get(int(treated_eid), None)
+            treated_age = age_at_enroll.get(int(eid), None)
+            treated_sex = eid_to_sex.get(int(eid), None)
             eligible_controls = [
-                eid for eid in untreated_eids
-                if (abs(age_at_enroll.get(int(eid), -999) - treated_age) <= age_tolerance)
-                and (eid_to_sex.get(int(eid), None) == treated_sex)
+                ceid for ceid in untreated_eids
+                if (abs(age_at_enroll.get(int(ceid), -999) - treated_age) <= age_tolerance)
+                and (eid_to_sex.get(int(ceid), None) == treated_sex)
             ]
         elif age_at_enroll is not None:
-            treated_age = age_at_enroll.get(int(treated_eid), None)
+            treated_age = age_at_enroll.get(int(eid), None)
             eligible_controls = [
-                eid for eid in untreated_eids
-                if abs(age_at_enroll.get(int(eid), -999) - treated_age) <= age_tolerance
+                ceid for ceid in untreated_eids
+                if abs(age_at_enroll.get(int(ceid), -999) - treated_age) <= age_tolerance
             ]
         else:
             eligible_controls = untreated_eids
 
-        # Randomly sample controls
-        if len(eligible_controls) > sample_size:
-            sampled_controls = random.sample(list(eligible_controls), sample_size)
-        else:
-            sampled_controls = eligible_controls
+        # Now filter for exact match on comorbidities
+        if eid_to_dm2_prev:
+            eligible_controls = [ceid for ceid in eligible_controls if eid_to_dm2_prev.get(int(ceid)) == dm2_val]
+        if eid_to_antihtnbase:
+            eligible_controls = [ceid for ceid in eligible_controls if eid_to_antihtnbase.get(int(ceid)) == antihtn_val]
+        if eid_to_dm1_prev:
+            eligible_controls = [ceid for ceid in eligible_controls if eid_to_dm1_prev.get(int(ceid)) == dm1_val]
 
-        control_trajs = []
+        eligible_controls_list.append(eligible_controls)
+
+    # For each treated, match to closest eligible control using NearestNeighbors
+    for i, (treated_idx, t0, eligible_controls) in enumerate(zip(valid_treated_indices, treated_t0s, eligible_controls_list)):
+        if len(eligible_controls) == 0:
+            continue
+        # Build control trajectories for eligible controls
         control_indices = []
+        control_trajs = []
         control_pgs_values = []
-        for eid in sampled_controls:
+        for ceid in eligible_controls:
             try:
-                idx = np.where(processed_ids == int(eid))[0][0]
+                cidx = np.where(processed_ids == int(ceid))[0][0]
             except Exception:
                 continue
             if t0 < window:
                 continue
-            traj_control = lambdas[idx, :, t0-window:t0].flatten()
+            traj_control = lambdas[cidx, :, t0-window:t0].flatten()
             control_trajs.append(traj_control)
-            control_indices.append(idx)
-
-            # If using PGS, skip controls who don't have a score
+            control_indices.append(cidx)
             if eid_to_pgs:
-                pgs_control = eid_to_pgs.get(int(eid))
-                if pgs_control is None:
-                    continue
+                pgs_control = eid_to_pgs.get(int(ceid))
                 control_pgs_values.append(pgs_control)
         if not control_trajs:
             continue
         control_trajs = np.array(control_trajs)
-
-        # If PGS data is provided, use the composite distance. Otherwise, use original method.
-        if eid_to_pgs and pgs_treated is not None and len(control_pgs_values) == len(control_trajs):
-            # 1. Calculate trajectory distances
-            traj_dists = np.linalg.norm(control_trajs - traj_treated, axis=1)
-
-            # 2. Calculate PGS distances
+        traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten().reshape(1, -1)
+        # If PGS is used, combine trajectory and PGS distance
+        if eid_to_pgs and pgs_weight > 0:
+            pgs_treated = eid_to_pgs.get(int(processed_ids[treated_idx]))
             control_pgs_values = np.array(control_pgs_values)
+            # Normalize trajectory and PGS distances
+            nn = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(control_trajs)
+            traj_dist, nn_idx = nn.kneighbors(traj_treated)
+            traj_dist = traj_dist.flatten()
+            # PGS distances
             pgs_dists = np.abs(control_pgs_values - pgs_treated)
-
-            # 3. Normalize both distances to prevent scale issues
-            std_traj = np.std(traj_dists)
+            # Normalize
+            std_traj = np.std(traj_dist)
             std_pgs = np.std(pgs_dists)
-            norm_traj_dists = traj_dists / std_traj if std_traj > 0 else np.zeros_like(traj_dists)
-            norm_pgs_dists = pgs_dists / std_pgs if std_pgs > 0 else np.zeros_like(pgs_dists)
-            
-            # 4. Combine distances with the specified weight
-            dists = (1 - pgs_weight) * norm_traj_dists + pgs_weight * norm_pgs_dists
+            norm_traj = traj_dist / std_traj if std_traj > 0 else traj_dist
+            norm_pgs = pgs_dists / std_pgs if std_pgs > 0 else pgs_dists
+            dists = (1 - pgs_weight) * norm_traj + pgs_weight * norm_pgs
+            best_match_idx = np.argmin(dists)
         else:
-            # Original distance calculation (trajectory only)
-            dists = np.linalg.norm(control_trajs - traj_treated, axis=1)
-
-        best_match_idx = np.argmin(dists)
+            # Only trajectory
+            nn = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(control_trajs)
+            _, nn_idx = nn.kneighbors(traj_treated)
+            best_match_idx = nn_idx[0][0]
         matched_pairs.append((treated_idx, control_indices[best_match_idx], t0))
-
-        if (i+1) % 500 == 0 or (i+1) == n_treated:
+        if (i+1) % 500 == 0 or (i+1) == len(valid_treated_indices):
             elapsed = time.time() - start_time
             avg_per = elapsed / (i+1)
-            remaining = avg_per * (n_treated - (i+1))
-            print(f"Processed {i+1}/{n_treated} treated. Elapsed: {elapsed/60:.1f} min. Est. remaining: {remaining/60:.1f} min.")
+            remaining = avg_per * (len(valid_treated_indices) - (i+1))
+            print(f"Processed {i+1}/{len(valid_treated_indices)} treated. Elapsed: {elapsed/60:.1f} min. Est. remaining: {remaining/60:.1f} min.")
 
     total_time = time.time() - start_time
     print(f"\nMatching complete. Total elapsed time: {total_time/60:.1f} min ({total_time:.1f} sec)")
