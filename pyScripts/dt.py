@@ -33,7 +33,9 @@ def run_digital_twin_matching(
     pgs_weight=0.5,
     eid_to_dm2_prev=None,
     eid_to_antihtnbase=None,
-    eid_to_dm1_prev=None
+    eid_to_dm1_prev=None,
+    eid_to_ldl_prs=None,
+    eid_to_cad_prs=None
 ):
     """
     Match each treated individual to a control by signature trajectory in the years prior to drug start (multivariate: all signatures),
@@ -81,6 +83,8 @@ def run_digital_twin_matching(
         dm2_val = eid_to_dm2_prev.get(int(eid)) if eid_to_dm2_prev else None
         antihtn_val = eid_to_antihtnbase.get(int(eid)) if eid_to_antihtnbase else None
         dm1_val = eid_to_dm1_prev.get(int(eid)) if eid_to_dm1_prev else None
+        ldl_prs = eid_to_ldl_prs.get(int(eid), 0) if eid_to_ldl_prs else 0
+        cad_prs = eid_to_cad_prs.get(int(eid), 0) if eid_to_cad_prs else 0
 
         if age_at_enroll is not None and eid_to_sex is not None:
             treated_age = age_at_enroll.get(int(eid), None)
@@ -213,6 +217,58 @@ def run_digital_twin_matching(
         'treated_event_rate': treated_event_rate,
         'control_event_rate': control_event_rate
     }
+
+
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
+
+def encode_smoking(status):
+    # One-hot encoding: [Never, Previous, Current]
+    if status == "Never":
+        return [1, 0, 0]
+    elif status == "Previous":
+        return [0, 1, 0]
+    elif status == "Current":
+        return [0, 0, 1]
+    else:
+        return [0, 0, 0]  # For missing/unknown
+
+def build_features(eids, t0s, processed_ids, lambdas, age_at_enroll, eid_to_sex, eid_to_dm2_prev, eid_to_antihtnbase, eid_to_dm1_prev, eid_to_smoke, eid_to_ldl_prs=None, eid_to_cad_prs=None):
+    features = []
+    indices = []
+    window = 10
+    n_signatures = lambdas.shape[1]
+    expected_length = n_signatures * window
+    for eid, t0 in zip(eids, t0s):
+        try:
+            idx = np.where(processed_ids == int(eid))[0][0]
+        except Exception:
+            continue
+        if t0 < window:
+            continue  # Not enough history
+        sig_traj = lambdas[idx, :, t0-window:t0].flatten()
+        if sig_traj.shape[0] != expected_length:
+            continue  # Skip if not the right length
+        age = age_at_enroll.get(int(eid), 0)
+        sex = 1 if eid_to_sex.get(int(eid), 'Male') == 'Male' else 0
+        dm2 = eid_to_dm2_prev.get(int(eid), 0)
+        antihtn = eid_to_antihtnbase.get(int(eid), 0)
+        dm1 = eid_to_dm1_prev.get(int(eid), 0)
+        smoke = encode_smoking(eid_to_smoke.get(int(eid), None))
+        ldl_prs = eid_to_ldl_prs.get(int(eid), 0) if eid_to_ldl_prs else 0
+        cad_prs = eid_to_cad_prs.get(int(eid), 0) if eid_to_cad_prs else 0
+        features.append(np.concatenate([
+            sig_traj, [age, sex, dm2, antihtn, dm1, ldl_prs, cad_prs] + smoke
+        ]))
+        indices.append(idx)
+    return np.array(features), indices
+
+# Example: get indices and t0s for treated and controls
+# treated_indices, treated_t0s = ...
+# control_indices, control_t0s = ...
+
 
 
 
