@@ -70,7 +70,8 @@ def run_digital_twin_matching(
             continue
         if t0 < window:
             continue
-        traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten()
+        t0_int = int(t0)
+        traj_treated = lambdas[treated_idx, :, t0_int-window:t0_int].flatten()
         treated_trajs.append(traj_treated)
         valid_treated_indices.append(treated_idx)
         treated_t0s.append(t0)
@@ -128,7 +129,8 @@ def run_digital_twin_matching(
                 continue
             if t0 < window:
                 continue
-            traj_control = lambdas[cidx, :, t0-window:t0].flatten()
+            t0_int = int(t0)
+            traj_control = lambdas[cidx, :, t0_int-window:t0_int].flatten()
             control_trajs.append(traj_control)
             control_indices.append(cidx)
             if eid_to_pgs:
@@ -137,7 +139,8 @@ def run_digital_twin_matching(
         if not control_trajs:
             continue
         control_trajs = np.array(control_trajs)
-        traj_treated = lambdas[treated_idx, :, t0-window:t0].flatten().reshape(1, -1)
+        t0_int = int(t0)
+        traj_treated = lambdas[treated_idx, :, t0_int-window:t0_int].flatten().reshape(1, -1)
         # If PGS is used, combine trajectory and PGS distance
         if eid_to_pgs and pgs_weight > 0:
             pgs_treated = eid_to_pgs.get(int(processed_ids[treated_idx]))
@@ -178,17 +181,18 @@ def run_digital_twin_matching(
 
     for treated_idx, control_idx, t0 in matched_pairs:
         t_end = min(lambdas.shape[2], t0 + window_post)
-        traj_treated = lambdas[treated_idx, :, t0:t_end]
-        traj_control = lambdas[control_idx, :, t0:t_end]
+        t0_int = int(t0)
+        traj_treated = lambdas[treated_idx, :, t0_int:t_end]
+        traj_control = lambdas[control_idx, :, t0_int:t_end]
         if traj_treated.shape[1] == window_post and traj_control.shape[1] == window_post:
             trajectories_treated.append(traj_treated)
             trajectories_control.append(traj_control)
             if is_torch:
-                diabetes_event_treated = (Y[treated_idx, diabetes_idx, t0:t_end] > 0).any().item()
-                diabetes_event_control = (Y[control_idx, diabetes_idx, t0:t_end] > 0).any().item()
+                diabetes_event_treated = (Y[treated_idx, diabetes_idx, t0_int:t_end] > 0).any().item()
+                diabetes_event_control = (Y[control_idx, diabetes_idx, t0_int:t_end] > 0).any().item()
             else:
-                diabetes_event_treated = np.any(Y[treated_idx, diabetes_idx, t0:t_end] > 0)
-                diabetes_event_control = np.any(Y[control_idx, diabetes_idx, t0:t_end] > 0)
+                diabetes_event_treated = np.any(Y[treated_idx, diabetes_idx, t0_int:t_end] > 0)
+                diabetes_event_control = np.any(Y[control_idx, diabetes_idx, t0_int:t_end] > 0)
             diabetes_events_treated.append(diabetes_event_treated)
             diabetes_events_control.append(diabetes_event_control)
         else:
@@ -234,12 +238,28 @@ def encode_smoking(status):
         return [0, 0, 1]
     else:
         return [0, 0, 0]  # For missing/unknown
+    
+    # Assuming your DataFrame is called ukb_pheno
+# And the relevant columns are named as in your screenshot
+def prev_condition(df, any_col, censor_age_col, enroll_age_col, new_col):
+    df[new_col] = ((df[any_col] == 2) & (df[censor_age_col] < df[enroll_age_col])).astype(int)
 
-def build_features(eids, t0s, processed_ids, lambdas, age_at_enroll, eid_to_sex, eid_to_dm2_prev, eid_to_antihtnbase, eid_to_dm1_prev, eid_to_smoke, eid_to_ldl_prs=None, eid_to_cad_prs=None):
+def get_time_index(yob, presc_date, time_grid):
+    if pd.isnull(yob) or pd.isnull(presc_date):
+        return None
+    if isinstance(presc_date, str):
+        presc_date = pd.to_datetime(presc_date, errors='coerce')
+    if pd.isnull(presc_date):
+        return None
+    age_at_presc = presc_date.year - yob
+    return int(np.argmin(np.abs(time_grid + 30 - age_at_presc)))
+
+def build_features(eids, t0s, processed_ids, thetas, covariate_dicts):
     features = []
     indices = []
+    kept_eids = []  # New: to store the eids that are actually used
     window = 10
-    n_signatures = lambdas.shape[1]
+    n_signatures = thetas.shape[1]
     expected_length = n_signatures * window
     for eid, t0 in zip(eids, t0s):
         try:
@@ -248,22 +268,28 @@ def build_features(eids, t0s, processed_ids, lambdas, age_at_enroll, eid_to_sex,
             continue
         if t0 < window:
             continue  # Not enough history
-        sig_traj = lambdas[idx, :, t0-window:t0].flatten()
+        t0_int = int(t0)
+        sig_traj = thetas[idx, :, t0_int-window:t0_int].flatten()
         if sig_traj.shape[0] != expected_length:
             continue  # Skip if not the right length
-        age = age_at_enroll.get(int(eid), 0)
-        sex = 1 if eid_to_sex.get(int(eid), 'Male') == 'Male' else 0
-        dm2 = eid_to_dm2_prev.get(int(eid), 0)
-        antihtn = eid_to_antihtnbase.get(int(eid), 0)
-        dm1 = eid_to_dm1_prev.get(int(eid), 0)
-        smoke = encode_smoking(eid_to_smoke.get(int(eid), None))
-        ldl_prs = eid_to_ldl_prs.get(int(eid), 0) if eid_to_ldl_prs else 0
-        cad_prs = eid_to_cad_prs.get(int(eid), 0) if eid_to_cad_prs else 0
+        age = covariate_dicts['age_at_enroll'].get(int(eid), 57)
+        sex = int(covariate_dicts['sex'].get(int(eid), 0))
+        dm2 = covariate_dicts['dm2_prev'].get(int(eid), 0)
+        antihtn = covariate_dicts['antihtnbase'].get(int(eid), 0)
+        dm1 = covariate_dicts['dm1_prev'].get(int(eid), 0)
+        smoke = encode_smoking(covariate_dicts['smoke'].get(int(eid), None))
+        ldl_prs = covariate_dicts.get('ldl_prs', {}).get(int(eid), 0)
+        cad_prs = covariate_dicts.get('cad_prs', {}).get(int(eid), 0)
+        tchol = covariate_dicts.get('tchol', {}).get(int(eid),0)
+        hdl = covariate_dicts.get('hdl', {}).get(int(eid),0 )
+        sbp = covariate_dicts.get('SBP', {}).get(int(eid), 0)
+        pce_goff = covariate_dicts.get('pce_goff', {}).get(int(eid), 0.09)
         features.append(np.concatenate([
-            sig_traj, [age, sex, dm2, antihtn, dm1, ldl_prs, cad_prs] + smoke
+            sig_traj, [age, sex, dm2, antihtn, dm1, ldl_prs, cad_prs, tchol, hdl, sbp, pce_goff] + smoke
         ]))
         indices.append(idx)
-    return np.array(features), indices
+        kept_eids.append(eid)  # New: keep track of which eids are included
+    return np.array(features), indices, kept_eids  # New: return kept_eids
 
 # Example: get indices and t0s for treated and controls
 # treated_indices, treated_t0s = ...
@@ -342,7 +368,8 @@ def run_digital_twin_matching_single_sig(
                 print(f"[Check] Treated EID {treated_eid} does not have enough history (t0={t0}, window={window}).")
             continue  # Not enough history
         # Get the treated's signature trajectory in the pre-t0 window
-        traj_treated = lambdas[treated_idx, sig_idx, t0-window:t0]  # shape: (window,)
+        t0_int = int(t0)
+        traj_treated = lambdas[treated_idx, sig_idx, t0_int-window:t0_int]  # shape: (window,)
         if i < 5:
             print(f"[Check] Treated idx: {treated_idx}, EID: {treated_eid}, Age: {age_at_enroll.get(int(treated_eid), None)}")
             print(f"[Check] Traj_treated shape: {traj_treated.shape}")
@@ -393,7 +420,8 @@ def run_digital_twin_matching_single_sig(
                     print(f"[Check] Control EID {eid} does not have enough history (t0={t0}, window={window}).")
                 continue  # Not enough history
             # Get control's signature trajectory in the same pre-t0 window
-            traj_control = lambdas[idx, sig_idx, t0-window:t0]
+            t0_int = int(t0)
+            traj_control = lambdas[idx, sig_idx, t0_int-window:t0_int]
             control_trajs.append(traj_control)
             control_indices.append(idx)
         if not control_trajs:
@@ -443,19 +471,20 @@ def run_digital_twin_matching_single_sig(
     for treated_idx, control_idx, t0 in matched_pairs:
         t_end = min(lambdas.shape[2], t0 + window_post)  # Define end of post-t0 window
         # Get post-t0 signature trajectories
-        traj_treated = lambdas[treated_idx, sig_idx, t0:t_end]
-        traj_control = lambdas[control_idx, sig_idx, t0:t_end]
+        t0_int = int(t0)
+        traj_treated = lambdas[treated_idx, sig_idx, t0_int:t_end]
+        traj_control = lambdas[control_idx, sig_idx, t0_int:t_end]
         # Only keep pairs with full-length post-t0 window
         if traj_treated.shape[0] == window_post and traj_control.shape[0] == window_post:
             trajectories_treated.append(traj_treated)
             trajectories_control.append(traj_control)
             # Check if diabetes event occurred in post-t0 window
             if is_torch:
-                diabetes_event_treated = (Y[treated_idx, diabetes_idx, t0:t_end] > 0).any().item()
-                diabetes_event_control = (Y[control_idx, diabetes_idx, t0:t_end] > 0).any().item()
+                diabetes_event_treated = (Y[treated_idx, diabetes_idx, t0_int:t_end] > 0).any().item()
+                diabetes_event_control = (Y[control_idx, diabetes_idx, t0_int:t_end] > 0).any().item()
             else:
-                diabetes_event_treated = np.any(Y[treated_idx, diabetes_idx, t0:t_end] > 0)
-                diabetes_event_control = np.any(Y[control_idx, diabetes_idx, t0:t_end] > 0)
+                diabetes_event_treated = np.any(Y[treated_idx, diabetes_idx, t0_int:t_end] > 0)
+                diabetes_event_control = np.any(Y[control_idx, diabetes_idx, t0_int:t_end] > 0)
             diabetes_events_treated.append(diabetes_event_treated)
             diabetes_events_control.append(diabetes_event_control)
         else:
