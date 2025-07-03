@@ -254,13 +254,15 @@ def get_time_index(yob, presc_date, time_grid):
     age_at_presc = presc_date.year - yob
     return int(np.argmin(np.abs(time_grid + 30 - age_at_presc)))
 
-def build_features(eids, t0s, processed_ids, thetas, covariate_dicts):
+def build_features(eids, t0s, processed_ids, thetas, covariate_dicts, sig_indices=None):
     features = []
     indices = []
-    kept_eids = []  # New: to store the eids that are actually used
+    kept_eids = []
     window = 10
     n_signatures = thetas.shape[1]
-    expected_length = n_signatures * window
+    if sig_indices is None:
+        sig_indices = list(range(n_signatures))
+    expected_length = len(sig_indices) * window
     for eid, t0 in zip(eids, t0s):
         try:
             idx = np.where(processed_ids == int(eid))[0][0]
@@ -269,7 +271,7 @@ def build_features(eids, t0s, processed_ids, thetas, covariate_dicts):
         if t0 < window:
             continue  # Not enough history
         t0_int = int(t0)
-        sig_traj = thetas[idx, :, t0_int-window:t0_int].flatten()
+        sig_traj = thetas[idx, sig_indices, t0_int-window:t0_int].flatten()
         if sig_traj.shape[0] != expected_length:
             continue  # Skip if not the right length
         age = covariate_dicts['age_at_enroll'].get(int(eid), 57)
@@ -288,12 +290,39 @@ def build_features(eids, t0s, processed_ids, thetas, covariate_dicts):
             sig_traj, [age, sex, dm2, antihtn, dm1, ldl_prs, cad_prs, tchol, hdl, sbp, pce_goff] + smoke
         ]))
         indices.append(idx)
-        kept_eids.append(eid)  # New: keep track of which eids are included
-    return np.array(features), indices, kept_eids  # New: return kept_eids
+        kept_eids.append(eid)
+    return np.array(features), indices, kept_eids
 
-# Example: get indices and t0s for treated and controls
-# treated_indices, treated_t0s = ...
-# control_indices, control_t0s = ...
+def build_features_no_sigs(eids, t0s, processed_ids, covariate_dicts):
+    features = []
+    indices = []
+    kept_eids = []
+    window = 10  # Still needed for consistency, but not used for sigs
+    for eid, t0 in zip(eids, t0s):
+        try:
+            idx = np.where(processed_ids == int(eid))[0][0]
+        except Exception:
+            continue
+        if t0 < window:
+            continue  # Not enough history
+        age = covariate_dicts['age_at_enroll'].get(int(eid), 57)
+        sex = int(covariate_dicts['sex'].get(int(eid), 0))
+        dm2 = covariate_dicts['dm2_prev'].get(int(eid), 0)
+        antihtn = covariate_dicts['antihtnbase'].get(int(eid), 0)
+        dm1 = covariate_dicts['dm1_prev'].get(int(eid), 0)
+        smoke = encode_smoking(covariate_dicts['smoke'].get(int(eid), None))
+        ldl_prs = covariate_dicts.get('ldl_prs', {}).get(int(eid), 0)
+        cad_prs = covariate_dicts.get('cad_prs', {}).get(int(eid), 0)
+        tchol = covariate_dicts.get('tchol', {}).get(int(eid), 0)
+        hdl = covariate_dicts.get('hdl', {}).get(int(eid), 0)
+        sbp = covariate_dicts.get('SBP', {}).get(int(eid), 0)
+        pce_goff = covariate_dicts.get('pce_goff', {}).get(int(eid), 0.09)
+        features.append(np.array([
+            age, sex, dm2, antihtn, dm1, ldl_prs, cad_prs, tchol, hdl, sbp, pce_goff, *smoke
+        ]))
+        indices.append(idx)
+        kept_eids.append(eid)
+    return np.array(features), indices, kept_eids
 
 
 
