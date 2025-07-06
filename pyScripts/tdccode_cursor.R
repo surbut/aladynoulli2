@@ -283,6 +283,10 @@ fit_time_dependent_cox <- function(Y_train,
         
         if (!is.null(current_pi_train)) {
           pi_diseases <- current_pi_train[i, disease_indices, t]
+          
+          stop(sprintf("NaN detected in pi_diseases for person %d (age at enrollment: %d, t_enroll: %d, year: %d)", 
+                       i, current_FH_train$age[i], t_enroll, t))
+          
           yearly_risk <- 1 - prod(1 - pi_diseases)
           tdc_data$noulli_risk[row_idx] <- yearly_risk
         }
@@ -494,6 +498,11 @@ test_time_dependent_cox <- function(Y_test,
         }
         if (!is.null(current_pi_test)) {
           pi_diseases <- current_pi_test[i, disease_indices, t]
+          if (any(is.na(pi_diseases))) {
+            stop(sprintf("NaN detected in pi_diseases for person %d (age at enrollment: %d, t_enroll: %d, year: %d)", 
+                         i, current_FH_train$age[i], t_enroll, t))
+          }
+          
           yearly_risk <- 1 - prod(1 - pi_diseases)
           tdc_data$noulli_risk[row_idx] <- yearly_risk
         }
@@ -876,3 +885,66 @@ legend("bottomright",
        lwd = 2)
 
 dev.off()
+####
+
+# repeat with the new pis:
+Y_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/ukb_Y_train.rds")
+
+
+pce_data = readRDS('/Users/sarahurbut/Library/Cloudstorage/Dropbox/pce_df_prevent.rds')
+FH_processed = read.csv('/Users/sarahurbut/Library/CloudStorage/Dropbox/baselinagefamh.csv')
+# Now we can use both pi files with the time-dependent Cox model
+pi_train_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_20000_30000.rds")
+
+# Fit time-dependent Cox models
+tdc_models <- fit_time_dependent_cox(
+  Y_train = Y_train,
+  FH_processed = FH_processed,
+  train_indices = 20001:30000,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 10,
+  pi_train = pi_train_full
+)
+
+saveRDS(object = tdc_models,file = "tdcmodels_leakagefree_75.rds")
+rm(Y_train)
+
+rm(pi_train_full)
+
+gc()
+
+Y_test=readRDS("ukb_Y_test.rds")
+pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000.rds")
+
+# Evaluate time-dependent Cox models
+tdc_auc_results <- test_time_dependent_cox(
+  Y_test = Y_test,
+  FH_processed = FH_processed,
+  test_indices = 0:10000,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 10,
+  fitted_models = tdc_models,
+  pi_test = pi_test_full
+)
+
+# Save results
+tdc_auc_df <- data.frame(
+  disease_group = names(tdc_auc_results[[1]]),
+  auc = unlist(tdc_auc_results[[1]])
+)
+
+tdc_c_df <- data.frame(
+  disease_group = names(tdc_auc_results[[2]]),
+  c = unlist(tdc_auc_results[[2]])
+)
+
+
+write.csv(tdc_auc_df, "~/Library/CloudStorage/Dropbox/auc_results_tdc_20000_30000train_0_10000test_noleak.csv", quote = FALSE)
+
+write.csv(tdc_c_df, "~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30000train_0_10000test_noleak.csv", quote = FALSE)
+
+
