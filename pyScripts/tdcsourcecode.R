@@ -1,6 +1,5 @@
 
-
-
+library(survival)
 disease_names = readRDS("~/aladynoulli2/pyScripts/ukb_model.rds")$disease_names[, 1]
 train_indices = 20001:30000
 major_diseases <- list(
@@ -112,13 +111,13 @@ disease_mapping = list(
 
 # Function for time-dependent Cox modeling
 fit_time_dependent_cox <- function(Y_train,
-                                 FH_processed,
-                                 train_indices,
-                                 disease_mapping,
-                                 major_diseases,
-                                 disease_names,
-                                 follow_up_duration_years = 10,
-                                 pi_train = NULL) {
+                                   FH_processed,
+                                   train_indices,
+                                   disease_mapping,
+                                   major_diseases,
+                                   disease_names,
+                                   follow_up_duration_years = 10,
+                                   pi_train = NULL) {
   fitted_models <- list()
   FH_train <- FH_processed[train_indices, ]
   
@@ -283,10 +282,6 @@ fit_time_dependent_cox <- function(Y_train,
         
         if (!is.null(current_pi_train)) {
           pi_diseases <- current_pi_train[i, disease_indices, t]
-          
-          stop(sprintf("NaN detected in pi_diseases for person %d (age at enrollment: %d, t_enroll: %d, year: %d)", 
-                       i, current_FH_train$age[i], t_enroll, t))
-          
           yearly_risk <- 1 - prod(1 - pi_diseases)
           tdc_data$noulli_risk[row_idx] <- yearly_risk
         }
@@ -355,14 +350,14 @@ fit_time_dependent_cox <- function(Y_train,
 #### Testing function
 # Function to evaluate time-dependent Cox models
 test_time_dependent_cox <- function(Y_test,
-                                  FH_processed,
-                                  test_indices,
-                                  disease_mapping,
-                                  major_diseases,
-                                  disease_names,
-                                  follow_up_duration_years = 10,
-                                  fitted_models,
-                                  pi_test = NULL) {
+                                    FH_processed,
+                                    test_indices,
+                                    disease_mapping,
+                                    major_diseases,
+                                    disease_names,
+                                    follow_up_duration_years = 10,
+                                    fitted_models,
+                                    pi_test = NULL) {
   auc_results <- list()
   concordance_results=list()
   tdc_data_list <- list()  # New list to store tdc_data for each disease
@@ -372,7 +367,7 @@ test_time_dependent_cox <- function(Y_test,
     fh_cols <- disease_mapping[[disease_group]]
     if (is.null(fh_cols)) fh_cols <- character(0)
     if (length(fh_cols) == 0)
-    cat(sprintf(" - %s: No FH columns, evaluating Sex only.\n", disease_group))
+      cat(sprintf(" - %s: No FH columns, evaluating Sex only.\n", disease_group))
     cat(sprintf(" - Evaluating time-dependent Cox for %s...\n", disease_group))
     
     target_sex_code <- NA
@@ -448,7 +443,7 @@ test_time_dependent_cox <- function(Y_test,
     if (length(fh_cols) > 0 && all(fh_cols %in% colnames(current_FH_test))) {
       tdc_data$fh <- logical(total_rows)
     }
-
+    
     
     if (!is.null(current_pi_test)) {
       tdc_data$noulli_risk <- numeric(total_rows)
@@ -492,17 +487,12 @@ test_time_dependent_cox <- function(Y_test,
         tdc_data$event[row_idx] <- event
         tdc_data$sex[row_idx] <- current_FH_test$sex[i]
         tdc_data$identifier[row_idx] <- current_FH_test$identifier[i]  # <-- assign here
-    #
+        #
         if (length(fh_cols) > 0 && all(fh_cols %in% colnames(current_FH_test))) {
           tdc_data$fh[row_idx] <- any(current_FH_test[i, fh_cols])
         }
         if (!is.null(current_pi_test)) {
           pi_diseases <- current_pi_test[i, disease_indices, t]
-          if (any(is.na(pi_diseases))) {
-            stop(sprintf("NaN detected in pi_diseases for person %d (age at enrollment: %d, t_enroll: %d, year: %d)", 
-                         i, current_FH_train$age[i], t_enroll, t))
-          }
-          
           yearly_risk <- 1 - prod(1 - pi_diseases)
           tdc_data$noulli_risk[row_idx] <- yearly_risk
         }
@@ -519,11 +509,11 @@ test_time_dependent_cox <- function(Y_test,
     print("Trimming unused rows...")
     start_time <- Sys.time()
     tdc_data <- tdc_data[1:(row_idx-1), ]
-
-  tdc_data$pce_score <- current_FH_test$pce_goff_fuull[match(tdc_data$identifier, current_FH_test$identifier)]
-  tdc_data$prevent_score <- current_FH_test$prevent_impute[match(tdc_data$identifier, current_FH_test$identifier)]
-
- tdc_data_list[[disease_group]] <- tdc_data
+    
+    tdc_data$pce_score <- current_FH_test$pce_goff_fuull[match(tdc_data$identifier, current_FH_test$identifier)]
+    tdc_data$prevent_score <- current_FH_test$prevent_impute[match(tdc_data$identifier, current_FH_test$identifier)]
+    
+    tdc_data_list[[disease_group]] <- tdc_data
     print(paste("Time for trimming:", Sys.time() - start_time))
     print("Data frame complete")
     print(paste("Number of events:", sum(tdc_data$event)))
@@ -540,10 +530,10 @@ test_time_dependent_cox <- function(Y_test,
     
     
     # Suppose tdc_data has columns: id, start, stop, event, predicted_risk
-surv_obj <- with(tdc_data, Surv(start, stop, event))
-c_index <- concordance(surv_obj ~ risk_scores, data = tdc_data,reverse=TRUE)$concordance
-print(sprintf("Time-dependent C-index: %.3f", c_index))
-
+    surv_obj <- with(tdc_data, Surv(start, stop, event))
+    c_index <- concordance(surv_obj ~ risk_scores, data = tdc_data,reverse=TRUE)$concordance
+    print(sprintf("Time-dependent C-index: %.3f", c_index))
+    
     # Calculate time-dependent AUC
     # For simplicity, we'll use the average risk score per person### NO we should use the concordance ... 
     person_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
@@ -556,7 +546,7 @@ print(sprintf("Time-dependent C-index: %.3f", c_index))
     concordance_results[[disease_group]]=c_index
   }
   
-    # Return all results including the tdc_data_list
+  # Return all results including the tdc_data_list
   return(list(auc_results = auc_results, 
               concordance_results = concordance_results,
               tdc_data_list = tdc_data_list))
@@ -564,387 +554,3 @@ print(sprintf("Time-dependent C-index: %.3f", c_index))
 
 # Example usage:
 # Load the time-varying probabilities
-
-
-Y_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/ukb_Y_train.rds")
-Y_test=readRDS("ukb_Y_test")
-
-# Fit time-dependent Cox models
-tdc_models <- fit_time_dependent_cox(
-  Y_train = Y_train,
-  FH_processed = FH_processed,
-  train_indices = 20001:30000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  pi_train = pi_train_full
-)
-
-
-
-pce_data = readRDS('/Users/sarahurbut/Library/Cloudstorage/Dropbox/pce_df_prevent.rds')
-
-FH_processed2=merge(FH_processed,pce_data[,c("id","pce_goff_fuull","prevent_impute")])
-# Evaluate time-dependent Cox models
-tdc_auc_results <- test_time_dependent_cox(
-  Y_test = Y_test,
-  FH_processed = FH_processed2,
-  test_indices = 0:10000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  fitted_models = tdc_models,
-  pi_test = pi_test_full
-)
-
-# Save results
-tdc_auc_df <- data.frame(
-  disease_group = names(tdc_auc_results),
-  auc = unlist(tdc_auc_results)
-)
-
-write.csv(tdc_auc_df, "~/Library/CloudStorage/Dropbox/auc_results_tdc_20000_30000train_0_10000test.csv", quote = FALSE)
-
-model_comp=read.csv("~/Library/CloudStorage/Dropbox/model_comparison_everything.csv")
-merge(model_comp,tdc_auc_df,by.x="Disease",by.y="disease_group")
-
-
-# Calculate time-varying probabilities for training set
-library(torch)
-
-# Load the model
-model <- torch::load_model("/Users/sarahurbut/Library/CloudStorage/Dropbox/resultshighamp/results/output_0_10000/model.pt")
-
-# Get parameters
-lambda_params <- model$model_state_dict$lambda_
-phi <- model$model_state_dict$phi
-kappa <- model$model_state_dict$kappa
-
-# Convert to numpy arrays
-lambda_np <- as.array(lambda_params)
-phi_np <- as.array(phi)
-kappa_np <- as.array(kappa)
-
-# Calculate theta using softmax
-exp_lambda <- exp(lambda_np)
-theta <- exp_lambda / rowSums(exp_lambda, dims = 2)
-
-# Calculate phi probabilities using sigmoid
-phi_prob <- 1 / (1 + exp(-phi_np))
-
-# Calculate pi for training set (20000-30000)
-pi_train_full <- array(0, dim = c(10000, dim(phi_np)[2], dim(lambda_np)[3]))
-for (i in 1:10000) {
-  idx <- i + 20000  # Adjust index for training set
-  pi_train_full[i,,] <- kappa_np * t(theta[idx,,] %*% phi_prob[,,])
-}
-
-# Save the calculated probabilities
-saveRDS(pi_train_full, "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_sex_20000_30000.rds")
-
-# Now we can use both pi files with the time-dependent Cox model
-pi_train_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_sex_20000_30000.rds")
-pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_sex_0_10000.rds")
-
-# Fit time-dependent Cox models
-tdc_models <- fit_time_dependent_cox(
-  Y_train = Y_train,
-  FH_processed = FH_processed,
-  train_indices = 20001:30000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  pi_train = pi_train_full
-)
-
-# Evaluate time-dependent Cox models
-tdc_auc_results <- test_time_dependent_cox(
-  Y_test = Y_test,
-  FH_processed = FH_processed,
-  test_indices = 0:10000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  fitted_models = tdc_models,
-  pi_test = pi_test_full
-)
-
-# Save results
-tdc_auc_df <- data.frame(
-  disease_group = names(tdc_auc_results[[1]]),
-  auc = unlist(tdc_auc_results[[1]])
-)
-
-tdc_c_df <- data.frame(
-  disease_group = names(tdc_auc_results[[2]]),
-  c = unlist(tdc_auc_results[[2]])
-)
-
-write.csv(tdc_auc_df, "~/Library/CloudStorage/Dropbox/auc_results_tdc_20000_30000train_0_10000test.csv", quote = FALSE)
-
-write.csv(tdc_c_df, "~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30000train_0_10000test.csv", quote = FALSE)
-
-
-#### 
-
-# Load your data
-# df <- read.csv('your_data.csv')  # Replace with your data loading code
-
-# Define predictors
-X <- df[, c('sex', 'family_history', 'pce_score', 'prevent_score')]  # Add PCE/prevent scores
-y <- df$event  # Your binary outcome
-
-# Fit logistic regression WITHOUT Aladynoulli
-model_without_noulli <- glm(event ~ sex + family_history + pce_score + prevent_score, 
-                            data = df, 
-                            family = binomial(link = "logit"))
-
-# Predict risk scores WITHOUT Aladynoulli
-risk_scores_without_noulli <- predict(model_without_noulli, type = "response")
-
-# Fit logistic regression WITH Aladynoulli
-model_with_noulli <- glm(event ~ sex + family_history + pce_score + prevent_score + noulli_risk, 
-                         data = df, 
-                         family = binomial(link = "logit"))
-
-# Predict risk scores WITH Aladynoulli
-risk_scores_with_noulli <- predict(model_with_noulli, type = "response")
-
-# Compute C-index for both models
-library(lifelines)
-
-c_index_without_noulli <- concordance_index(y, -risk_scores_without_noulli, event_observed = 1)
-c_index_with_noulli <- concordance_index(y, -risk_scores_with_noulli, event_observed = 1)
-
-cat(sprintf("C-index WITHOUT Aladynoulli: %.3f\n", c_index_without_noulli))
-cat(sprintf("C-index WITH Aladynoulli: %.3f\n", c_index_with_noulli))
-
-
-
-# Now you can easily plot ROC curves for any disease
-library(pROC)
-library(ggplot2)
-library(survival)
-# Example: Plot ROC curve for ASCVD
-disease <- "ASCVD"
-
-tdc_auc_results <- test_time_dependent_cox(
-  Y_test = Y_test,
-  FH_processed = FH_processed2,
-  test_indices = 0:10000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  fitted_models = tdc_models,
-  pi_test = pi_test_full
-)
-results=tdc_auc_results
-
-auc_results <- results$auc_results
-concordance_results <- results$concordance_results
-tdc_data_list <- results$tdc_data_list
-tdc_data <- tdc_data_list[[disease]]
-fitted_models=tdc_models
-risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
-person_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
-person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
-
-roc_obj <- roc(person_events$x, person_risks$x)
-plot(roc_obj, main = paste("ROC Curve for", disease))
-
-library(pROC)
-library(ggplot2)
-
-disease <- "ASCVD"
-tdc_data <- tdc_data_list[[disease]]
-
-# 1. Get per-person event status
-person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
-
-# 2. Get per-person risk scores for each model
-# Your model (Noulli)
-risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
-person_noulli_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
-
-# PREVENT (static, so just take the unique value per person)
-person_prevent_risks <- aggregate(tdc_data$prevent_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
-
-# PCE (static, so just take the unique value per person)
-person_pce_risks <- aggregate(tdc_data$pce_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
-
-# 3. Calculate ROC objects
-roc_noulli <- roc(person_events$x, person_noulli_risks$x)
-roc_prevent <- roc(person_events$x, person_prevent_risks$x)
-roc_pce <- roc(person_events$x, person_pce_risks$x)
-
-# 4. Plot all ROC curves together
-plot(roc_noulli, col = "blue", lwd = 2, main = paste("ROC Curves for", disease))
-lines(roc_prevent, col = "red", lwd = 2)
-lines(roc_pce, col = "green", lwd = 2)
-legend("bottomright",
-       legend = c(
-         sprintf("Noulli (AUC = %.3f)", auc(roc_noulli)),
-         sprintf("PREVENT (AUC = %.3f)", auc(roc_prevent)),
-         sprintf("PCE (AUC = %.3f)", auc(roc_pce))
-       ),
-       col = c("blue", "red", "green"),
-       lwd = 2)
-
-
-### males
-
-library(pROC)
-library(ggplot2)
-disease <- "ASCVD"
-tdc_data <- tdc_data_list[[disease]]
-disease <- "ASCVD"
-tdc_data <- tdc_data_list[[disease]]
-
-# 1. Get per-person event status
-
-tdc_data=tdc_data[tdc_data$sex==1,]
-person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
-
-# 2. Get per-person risk scores for each model
-# Your model (Noulli)
-risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
-person_noulli_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
-
-# PREVENT (static, so just take the unique value per person)
-person_prevent_risks <- aggregate(tdc_data$prevent_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
-
-# PCE (static, so just take the unique value per person)
-person_pce_risks <- aggregate(tdc_data$pce_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
-
-# 3. Calculate ROC objects
-roc_noulli <- roc(person_events$x, person_noulli_risks$x)
-roc_prevent <- roc(person_events$x, person_prevent_risks$x)
-roc_pce <- roc(person_events$x, person_pce_risks$x)
-
-
-pdf("MaleROC.pdf")
-# 4. Plot all ROC curves together
-plot(roc_noulli, col = "blue", lwd = 2, main = paste("ROC Curves for Males", disease))
-lines(roc_prevent, col = "red", lwd = 2)
-lines(roc_pce, col = "green", lwd = 2)
-legend("bottomright",
-       legend = c(
-         sprintf("Noulli (AUC = %.3f)", auc(roc_noulli)),
-         sprintf("PREVENT (AUC = %.3f)", auc(roc_prevent)),
-         sprintf("PCE (AUC = %.3f)", auc(roc_pce))
-       ),
-       col = c("blue", "red", "green"),
-       lwd = 2)
-
-dev.off()
-
-#### sex = 0 
-
-disease <- "ASCVD"
-tdc_data <- tdc_data_list[[disease]]
-tdc_data=tdc_data[tdc_data$sex==0,]
-person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
-
-# 2. Get per-person risk scores for each model
-# Your model (Noulli)
-risk_scores <- predict(fitted_models[[disease]], newdata = tdc_data, type = "risk")
-person_noulli_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
-
-# PREVENT (static, so just take the unique value per person)
-person_prevent_risks <- aggregate(tdc_data$prevent_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
-
-# PCE (static, so just take the unique value per person)
-person_pce_risks <- aggregate(tdc_data$pce_score, by = list(id = tdc_data$id), FUN = function(x) unique(x)[1])
-
-# 3. Calculate ROC objects
-
-surv_obj <- with(tdc_data, Surv(start, stop, event))
-# 3. Calculate ROC objects
-roc_noulli <- roc(person_events$x, person_noulli_risks$x)
-roc_prevent <- roc(person_events$x, person_prevent_risks$x)
-roc_pce <- roc(person_events$x, person_pce_risks$x)
-
-
-pdf("FeMaleROC.pdf")
-# 4. Plot all ROC curves together
-plot(roc_noulli, col = "blue", lwd = 2, main = paste("ROC Curves for Females", disease))
-lines(roc_prevent, col = "red", lwd = 2)
-lines(roc_pce, col = "green", lwd = 2)
-legend("bottomright",
-       legend = c(
-         sprintf("Noulli (AUC = %.3f)", auc(roc_noulli)),
-         sprintf("PREVENT (AUC = %.3f)", auc(roc_prevent)),
-         sprintf("PCE (AUC = %.3f)", auc(roc_pce))
-       ),
-       col = c("blue", "red", "green"),
-       lwd = 2)
-
-dev.off()
-####
-
-# repeat with the new pis:
-Y_train=readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/ukb_Y_train.rds")
-
-
-pce_data = readRDS('/Users/sarahurbut/Library/Cloudstorage/Dropbox/pce_df_prevent.rds')
-FH_processed = read.csv('/Users/sarahurbut/Library/CloudStorage/Dropbox/baselinagefamh.csv')
-# Now we can use both pi files with the time-dependent Cox model
-pi_train_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_20000_30000.rds")
-
-# Fit time-dependent Cox models
-tdc_models <- fit_time_dependent_cox(
-  Y_train = Y_train,
-  FH_processed = FH_processed,
-  train_indices = 20001:30000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  pi_train = pi_train_full
-)
-
-saveRDS(object = tdc_models,file = "tdcmodels_leakagefree_75.rds")
-rm(Y_train)
-
-rm(pi_train_full)
-
-gc()
-
-Y_test=readRDS("ukb_Y_test.rds")
-pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000.rds")
-
-# Evaluate time-dependent Cox models
-tdc_auc_results <- test_time_dependent_cox(
-  Y_test = Y_test,
-  FH_processed = FH_processed,
-  test_indices = 0:10000,
-  disease_mapping = disease_mapping,
-  major_diseases = major_diseases,
-  disease_names = disease_names,
-  follow_up_duration_years = 10,
-  fitted_models = tdc_models,
-  pi_test = pi_test_full
-)
-
-# Save results
-tdc_auc_df <- data.frame(
-  disease_group = names(tdc_auc_results[[1]]),
-  auc = unlist(tdc_auc_results[[1]])
-)
-
-tdc_c_df <- data.frame(
-  disease_group = names(tdc_auc_results[[2]]),
-  c = unlist(tdc_auc_results[[2]])
-)
-
-
-write.csv(tdc_auc_df, "~/Library/CloudStorage/Dropbox/auc_results_tdc_20000_30000train_0_10000test_noleak.csv", quote = FALSE)
-
-write.csv(tdc_c_df, "~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30000train_0_10000test_noleak.csv", quote = FALSE)
-
-
