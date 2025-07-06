@@ -3589,6 +3589,74 @@ def evaluate_major_diseases_wsex_with_bootstrap_dynamic(model, Y_100k, E_100k, d
     return results
 
 
+def evaluate_1year_auc_from_pi(pi, Y, disease_names, pce_df, disease_group='ASCVD', age_offset=0):
+    import numpy as np
+    from sklearn.metrics import roc_curve, auc
+
+    # Disease indices for the group
+    disease_map = {
+        'ASCVD': ['Myocardial infarction', 'Coronary atherosclerosis', 'Other acute and subacute forms of ischemic heart disease', 
+                  'Unstable angina (intermediate coronary syndrome)', 'Angina pectoris', 'Other chronic ischemic heart disease, unspecified'],
+        'Diabetes': ['Type 2 diabetes'],
+        'Atrial_Fib': ['Atrial fibrillation and flutter'],
+        'CKD': ['Chronic renal failure [CKD]', 'Chronic Kidney Disease, Stage III'],
+        'All_Cancers': ['Colon cancer', 'Cancer of bronchus; lung', 'Cancer of prostate', 'Malignant neoplasm of bladder', 'Secondary malignant neoplasm','Secondary malignant neoplasm of digestive systems', 'Secondary malignant neoplasm of liver'],
+        'Stroke': ['Cerebral artery occlusion, with cerebral infarction', 'Cerebral ischemia'],
+        'Heart_Failure': ['Congestive heart failure (CHF) NOS', 'Heart failure NOS'],
+        'Pneumonia': ['Pneumonia', 'Bacterial pneumonia', 'Pneumococcal pneumonia'],
+        'COPD': ['Chronic airway obstruction', 'Emphysema', 'Obstructive chronic bronchitis'],
+        'Osteoporosis': ['Osteoporosis NOS'],
+        'Anemia': ['Iron deficiency anemias, unspecified or not due to blood loss', 'Other anemias'],
+        'Colorectal_Cancer': ['Colon cancer', 'Malignant neoplasm of rectum, rectosigmoid junction, and anus'],
+        'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast'],
+        'Prostate_Cancer': ['Cancer of prostate'],
+        'Lung_Cancer': ['Cancer of bronchus; lung'],
+        'Bladder_Cancer': ['Malignant neoplasm of bladder'],
+        'Secondary_Cancer': ['Secondary malignant neoplasm', 'Secondary malignancy of lymph nodes', 'Secondary malignancy of respiratory organs', 'Secondary malignant neoplasm of digestive systems'],
+        'Depression': ['Major depressive disorder'],
+        'Anxiety': ['Anxiety disorder'],
+        'Bipolar_Disorder': ['Bipolar'],
+        'Rheumatoid_Arthritis': ['Rheumatoid arthritis'],
+        'Psoriasis': ['Psoriasis vulgaris'],
+        'Ulcerative_Colitis': ['Ulcerative colitis'],
+        'Crohns_Disease': ['Regional enteritis'],
+        'Asthma': ['Asthma'],
+        'Parkinsons': ["Parkinson's disease"],
+        'Multiple_Sclerosis': ['Multiple sclerosis'],
+        'Thyroid_Disorders': ['Thyrotoxicosis with or without goiter', 'Secondary hypothyroidism', 'Hypothyroidism NOS']
+    }
+    disease_list = disease_map[disease_group]
+    disease_indices = [i for i, name in enumerate(disease_names) if any(d.lower() in name.lower() for d in disease_list)]
+    print(disease_indices)
+    print([type(idx) for idx in disease_indices])
+    risks = []
+    outcomes = []
+    for i, row in pce_df.iterrows():
+        age = row['age']
+        t_enroll = int(age - 30)
+        t_pred = t_enroll + age_offset
+        if t_pred < 0 or t_pred >= pi.shape[2]:
+            continue
+        pi_diseases = pi[i, disease_indices, t_pred]
+        yearly_risk = 1 - np.prod(1 - pi_diseases)
+        risks.append(yearly_risk)
+        # Outcome: event in next year
+        event = 0
+        for d_idx in disease_indices:
+            if np.any(Y[i, d_idx, t_pred:t_pred+1] > 0):
+                event = 1
+                break
+        outcomes.append(event)
+    risks = np.array(risks)
+    outcomes = np.array(outcomes)
+    if len(np.unique(outcomes)) > 1:
+        fpr, tpr, _ = roc_curve(outcomes, risks)
+        auc_score = auc(fpr, tpr)
+    else:
+        auc_score = np.nan
+    print(f"AUC: {auc_score:.3f} (n={len(risks)})")
+    print(f"Events: {np.sum(outcomes)} ({100*np.mean(outcomes):.1f}%)")
+    return auc_score, risks, outcomes
 
 
 def evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year(model, Y_100k, E_100k, disease_names, pce_df, n_bootstraps=100, follow_up_duration_years=1, patient_indices=None):
@@ -3761,9 +3829,9 @@ def evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year(model, Y_100k, E_1
                  outcomes_np = outcomes_auc[processed_indices_auc_final].cpu().numpy()
                  n_processed = len(outcomes_np)
                  # For C-index, filter to processed indices
-                 age_enrolls_np = np.array(age_enrolls)[processed_indices_auc_final]
-                 age_at_events_np = np.array(age_at_events)[processed_indices_auc_final]
-                 event_indicators_np = np.array(event_indicators)[processed_indices_auc_final]
+                 age_enrolls_np = np.array(age_enrolls)
+                 age_at_events_np = np.array(age_at_events)
+                 event_indicators_np = np.array(event_indicators)
                  durations = age_at_events_np - age_enrolls_np
                  # Calculate C-index
                  from lifelines.utils import concordance_index

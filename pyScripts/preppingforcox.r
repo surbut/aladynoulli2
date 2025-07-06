@@ -53,3 +53,30 @@ pi_test=tensor_to_r(pi_test)
 saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
 
 ####
+
+
+pi_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000.pt",
+  weights_only = FALSE
+)
+
+
+pi_test=tensor_to_r(pi_test)
+
+saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000.rds")
+
+
+
+#####
+
+
+pi_train=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_20000_30000.pt",
+  weights_only = FALSE
+)
+
+
+
+pi_train=tensor_to_r(pi_train)
+
+saveRDS(pi_train,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_20000_30000.rds")
