@@ -408,3 +408,51 @@ class AladynSurvivalFixedPhi(nn.Module):
             
             else:
                 raise ValueError("Either new_G or new_indices must be provided") 
+            
+
+
+
+def plot_training_evolution(history_tuple):
+    losses, gradient_history = history_tuple
+    
+    plt.figure(figsize=(15, 5))
+    
+    # Plot loss
+    plt.subplot(1, 3, 1)
+    plt.plot(losses, label='Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss Evolution')
+    plt.yscale('log')
+    plt.legend()
+    
+    # Plot lambda gradients
+    plt.subplot(1, 3, 2)
+    lambda_norms = [torch.norm(g).item() for g in gradient_history['lambda_grad']]
+    plt.plot(lambda_norms, label='Lambda gradients')
+    plt.yscale('log')
+    plt.xlabel('Epoch')
+    plt.ylabel('Gradient norm')
+    plt.title('Lambda Gradient Evolution')
+    plt.legend()
+    
+    # Plot phi gradients
+    #plt.subplot(1, 3, 3)
+    #phi_norms = [torch.norm(g).item() for g in gradient_history['phi_grad']]
+    #plt.plot(phi_norms, label='Phi gradients')
+    #plt.yscale('log')
+    #plt.xlabel('Epoch')
+    #plt.ylabel('Gradient norm')
+    #plt.title('Phi Gradient Evolution')
+    #plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def subset_data(Y, E, G, start_index, end_index):
+    indices = list(range(start_index, end_index))
+    Y_subset = Y[indices]  # Changed from slice to index list
+    E_subset = E[indices]
+    G_subset = G[indices]
+    return Y_subset, E_subset, G_subset, indices

@@ -522,7 +522,35 @@ test_time_dependent_cox <- function(Y_test,
     print(paste("Number of people with events:", sum(tdc_data$event)))
     print(paste("Proportion of people with events:", sum(tdc_data$event)/length(unique(tdc_data$id))))
     
+    if(is.null(fitted_models)) {
+     
+    
+    target_sex_code <- NA
+    if (disease_group == "Breast_Cancer")
+      target_sex_code <- 0
+    if (disease_group == "Prostate_Cancer")
+      target_sex_code <- 1
+
+
+    # Fit time-dependent Cox model
+    formula_str <- "Surv(start, stop, event) ~ sex"
+    if ("fh" %in% colnames(tdc_data))
+      formula_str <- "Surv(start, stop, event) ~ sex + fh"
+    if (!is.na(target_sex_code)) {
+      formula_str <- if ("fh" %in% colnames(tdc_data))
+        "Surv(start, stop, event) ~ fh"
+      else
+        "Surv(start, stop, event) ~ 1"
+    }
+    if (!is.null(pi_train) && "noulli_risk" %in% colnames(tdc_data))
+      formula_str <- paste(formula_str, "+ noulli_risk")
+    
+    print(formula_str)
+    fit <- try(coxph(as.formula(formula_str), data = tdc_data, id = id), silent = TRUE)
+    }
+    
     fit <- fitted_models[[disease_group]]
+
     if (is.null(fit) || nrow(tdc_data) == 0) next
     
     # Predict risk scores
@@ -530,6 +558,7 @@ test_time_dependent_cox <- function(Y_test,
     
     
     # Suppose tdc_data has columns: id, start, stop, event, predicted_risk
+    surv_obj <- with(tdc_data, Surv(start, stop, event))
     surv_obj <- with(tdc_data, Surv(start, stop, event))
     c_index <- concordance(surv_obj ~ risk_scores, data = tdc_data,reverse=TRUE)$concordance
     print(sprintf("Time-dependent C-index: %.3f", c_index))
