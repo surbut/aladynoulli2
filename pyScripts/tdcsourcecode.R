@@ -542,13 +542,34 @@ test_time_dependent_cox <- function(Y_test,
       else
         "Surv(start, stop, event) ~ 1"
     }
-    if (!is.null(pi_train) && "noulli_risk" %in% colnames(tdc_data))
+    if (!is.null(pi_test) && "noulli_risk" %in% colnames(tdc_data))
       formula_str <- paste(formula_str, "+ noulli_risk")
     
     print(formula_str)
     fit <- try(coxph(as.formula(formula_str), data = tdc_data, id = id), silent = TRUE)
-    }
+
+    risk_scores <- predict(fit, newdata = tdc_data, type = "risk")
     
+    
+    # Suppose tdc_data has columns: id, start, stop, event, predicted_risk
+    surv_obj <- with(tdc_data, Surv(start, stop, event))
+    surv_obj <- with(tdc_data, Surv(start, stop, event))
+    c_index <- concordance(surv_obj ~ risk_scores, data = tdc_data,reverse=TRUE)$concordance
+    print(sprintf("Time-dependent C-index: %.3f", c_index))
+    
+    # Calculate time-dependent AUC
+    # For simplicity, we'll use the average risk score per person### NO we should use the concordance ... 
+    person_risks <- aggregate(risk_scores, by = list(id = tdc_data$id), FUN = mean)
+    person_events <- aggregate(tdc_data$event, by = list(id = tdc_data$id), FUN = max)
+    
+    roc_obj <- roc(person_events$x, person_risks$x)
+    auc_val <- auc(roc_obj)
+    print(sprintf("Time-dependent AUC for %s: %.3f", disease_group, auc_val))
+    auc_results[[disease_group]] <- auc_val
+    concordance_results[[disease_group]]=c_index
+
+    }
+
     fit <- fitted_models[[disease_group]]
 
     if (is.null(fit) || nrow(tdc_data) == 0) next
