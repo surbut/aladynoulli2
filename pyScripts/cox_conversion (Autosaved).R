@@ -988,9 +988,9 @@ plot_data_subset=plot_data%>%
 
 
 model_data <- parse_model_data("all_model_comp_withtdcox2.csv")
+c=read.csv("~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30000train_0_10000test.csv")
 
-
-model_data <- parse_model_data("allmodels.rds")
+model_data <- readRDS("allmodels.rds")
 
 model_data$tdc_cox_cstat <- as.numeric(model_data$tdc_cox_cstat)
 model_data$tdc_cox_lower <- as.numeric(model_data$tdc_cox_lower)
