@@ -17,7 +17,7 @@ import torch.nn.functional as F
 
 class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
     def __init__(self, N, D, T, K, P, G, Y, R,W,prevalence_t, init_sd_scaler, genetic_scale,
-                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False, learn_kappa=True, disable_warping=False):
+                 signature_references=None, healthy_reference=None, disease_names=None, flat_lambda=False, learn_kappa=True, disable_warping=False, true_beta_warp=None):
         super().__init__()
         # Basic dimensions and settings
         self.N, self.D, self.T, self.K = N, D, T, K
@@ -104,8 +104,22 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         self.disable_warping = disable_warping  # If True, disables warping (rho=1)
 
         with torch.no_grad():
-            self.beta_warp_nn.weight.normal_(0, 0.05)  # Keep random initialization
-            self.beta_warp_nn.bias.normal_(0, 0.05)   # Keep random initialization
+            if true_beta_warp is not None:
+                # Initialize with true beta_warp values
+                true_beta_tensor = torch.tensor(true_beta_warp, dtype=torch.float32)
+                if true_beta_tensor.shape[0] == self.P and true_beta_tensor.shape[1] == self.K_total:
+                    self.beta_warp_nn.weight.copy_(true_beta_tensor.T)  # Linear layer expects transposed
+                    self.beta_warp_nn.bias.zero_()
+                    print(f"Initialized beta_warp_nn with true values (shape: {true_beta_tensor.shape})")
+                else:
+                    print(f"Warning: true_beta_warp shape {true_beta_tensor.shape} doesn't match expected ({self.P}, {self.K_total})")
+                    # Fall back to random initialization
+                    self.beta_warp_nn.weight.normal_(0, 0.2)
+                    self.beta_warp_nn.bias.zero_()
+            else:
+                # Initialize with larger values to match typical beta_warp scale
+                self.beta_warp_nn.weight.normal_(0, 0.2)  # Increased from 0.05
+                self.beta_warp_nn.bias.zero_()  # Start with zero bias
 
     def initialize_params(self, psi_config=None, true_psi=None, **kwargs):
         """Initialize parameters with K disease clusters plus one healthy cluster"""
@@ -359,7 +373,15 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
                             torch.log(lr) * prevalence_scaling * (target_value - lambda_at_diagnosis)
                         )
                 
-        total_loss = total_data_loss + self.gpweight*gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T)
+        # Add warping regularization
+        warp_reg_loss = 0.0
+        if not self.disable_warping and hasattr(self, '_last_rho'):
+            # Encourage meaningful warping by penalizing rho values too close to 1
+            rho = self._last_rho
+            # L2 penalty on log(rho) to encourage deviation from 1
+            warp_reg_loss = 0.01 * torch.mean(torch.log(rho)**2)
+        
+        total_loss = total_data_loss + self.gpweight*gp_loss + self.lrtpen*signature_update_loss / (self.N * self.T) - warp_reg_loss
         
         return total_loss
 

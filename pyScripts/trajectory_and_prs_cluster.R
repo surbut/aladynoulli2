@@ -21,7 +21,7 @@ tensor_to_r <- function(tensor) {
 gen = read.csv("~/aladynoulli2/pyScripts/big_stuff/all_patient_genetics.csv")
 prs_names = read.csv("prs_names.csv")
 all_patient_diseases = data.frame(read.csv("~/aladynoulli2/pyScripts/all_patient_diseases.csv", fill = T))
-Y = data.frame(read.csv("~/aladynoulli2/pyScripts/big_stuff/Y_summed_400k.csv"))
+#Y = data.frame(read.csv("~/aladynoulli2/pyScripts/big_stuff/Y_summed_400k.csv"))
 sig_refs = read.csv("~/aladynoulli2/pyScripts/reference_thetas.csv", header = T)
 
 #all_thetas_tensor <- torch$load("big_stuff/all_patient_thetas_alltime.pt", weights_only =
@@ -29,7 +29,7 @@ sig_refs = read.csv("~/aladynoulli2/pyScripts/reference_thetas.csv", header = T)
 ## do not load data.table()
 # Convert to an R array
 all_thetas_array <- readRDS("all_thetas_array_time.rds")
-rm(all_thetas_tensor)
+#rm(all_thetas_tensor)
 mean_thetas = apply(all_thetas_array, c(1, 2), mean) ## should give you time averaged mean
 E=readRDS("E_full_tensor.rds")
 library(reshape2)
@@ -106,8 +106,8 @@ traj_func = function(disease_ix) {
   time_means_by_cluster_array = array(NA, dim = c(3, K, T))
   for (t in 1:T) {
     time_spec_theta = data.frame(time_theta[, , t]) #Nd x K for a given T
-    #time_spec_theta$cluster = clust$cluster #which cluster each person in
-    time_spec_theta$cluster = python_clusters$cluster #which cluster each person in
+    time_spec_theta$cluster = clust$cluster #which cluster each person in
+    #time_spec_theta$cluster = python_clusters$cluster #which cluster each person in
     time_means_by_cluster <- aggregate(. ~ cluster, data = time_spec_theta, FUN = mean) #get the time averaged theta for that cluster across singatures
     time_means_by_cluster_array[, , t] = as.matrix(time_means_by_cluster[,-1])
     time_diff_by_cluster[, , t] <- sweep(as.matrix(time_means_by_cluster[, -1]), 2, sig_refs[, t], "-")
@@ -116,7 +116,7 @@ traj_func = function(disease_ix) {
   }
   
   
-  m = melt(time_diff_by_cluster)
+  m = reshape2::melt(time_diff_by_cluster)
   names(m) = c("Cluster", "Sig", "Time", "Value")
   m$Sig = m$Sig - 1
   
@@ -191,7 +191,7 @@ traj_func = function(disease_ix) {
   p = data.frame(prs_means_by_cluster)
   prs_means_by_cluster$cluster = c(1:3)
   
-  m = melt(data.frame(prs_means_by_cluster), id.vars = "cluster")
+  m = reshape2::melt(data.frame(prs_means_by_cluster), id.vars = "cluster")
   
   library(ggsci)
   
@@ -210,6 +210,7 @@ traj_func = function(disease_ix) {
   library(ggplot2)
   library(reshape2)
   library(viridis)
+  
   
   # Assume: prs_means_by_cluster (clusters x PRS), goodgen (PRS matrix), clust$cluster (assignments), prs_names (vector of PRS names)
   
@@ -230,6 +231,11 @@ traj_func = function(disease_ix) {
       # Pooled standard deviation
       pooled_sd <- sqrt(((n_in - 1) * sd_in^2 + (n_out - 1) * sd_out^2) / (n_in + n_out - 2))
       d <- ifelse(pooled_sd > 0, (mean_in - mean_out) / pooled_sd, 0)
+      # Calculate p-value for this cluster/signature
+      pval <- tryCatch(
+        t.test(theta_df[in_idx, k], theta_df[out_idx, k])$p.value,
+        error = function(e) NA
+      )
       prs_long <- rbind(prs_long,
                         data.frame(
                           Cluster = c,
@@ -239,6 +245,8 @@ traj_func = function(disease_ix) {
                         ))
     }
   }
+  
+  write.csv(prs_long, paste0("signature_cohens_d_", name, ".csv"), row.names = FALSE)
   
   # For heatmap: tile fill = Mean, annotation = D
   p <- ggplot(prs_long, aes(
@@ -275,7 +283,84 @@ traj_func = function(disease_ix) {
   )
   
   
-  return(list(clusters=clust,tat=time_averaged_theta))
+  theta_df <- data.frame(time_averaged_theta)
+  theta_df$cluster <- clust$cluster
+
+K_sigs <- ncol(time_averaged_theta)
+n_clusters <- 3
+theta_long <- data.frame()
+
+for (c in 1:n_clusters) {
+  in_idx <- which(clust$cluster == c)
+  out_idx <- which(clust$cluster != c)
+  
+  for (k in 1:K_sigs) {
+    mean_in <- mean(theta_df[in_idx, k])
+    mean_out <- mean(theta_df[out_idx, k])
+    sd_in <- sd(theta_df[in_idx, k])
+    sd_out <- sd(theta_df[out_idx, k])
+    n_in <- length(in_idx)
+    n_out <- length(out_idx)
+    
+    # Pooled standard deviation
+    pooled_sd <- sqrt(((n_in - 1) * sd_in^2 + (n_out - 1) * sd_out^2) / (n_in + n_out - 2))
+    d <- ifelse(pooled_sd > 0, (mean_in - mean_out) / pooled_sd, 0)
+    
+    # Calculate p-value for this cluster/signature
+    pval <- tryCatch(
+      t.test(theta_df[in_idx, k], theta_df[out_idx, k])$p.value,
+      error = function(e) NA
+    )
+    
+    theta_long <- rbind(theta_long,
+                        data.frame(
+                          Cluster = c,
+                          Signature = k-1,  # 0-indexed signatures
+                          Mean = mean_in,
+                          D = d,
+                          pval = pval
+                        ))
+  }
+}
+
+# Print and save signature Cohen's d results
+print("Cohen's d for Disease Signatures:")
+print(theta_long)
+write.csv(theta_long, paste0("signature_cohens_d_", name, ".csv"), row.names = FALSE)
+
+# Make text bigger in plot
+p_sig <- ggplot(theta_long, aes(
+  x = as.factor(Cluster),
+  y = as.factor(Signature),
+  fill = D
+)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "blue",
+    high = "red",
+    mid = "white",
+    midpoint = 0
+  ) +
+  geom_text(aes(label = sprintf("%.2f", D)), size = 6, color = "black") +
+  labs(
+    x = "Cluster",
+    y = "Signature",
+    fill = "Mean",
+    title = paste0("Signature Cohen's D by Cluster ", name)
+  ) +
+  theme_minimal(base_size = 18) +
+  theme(axis.text.x = element_text(size = 16, angle = 0, hjust = 0.5),
+        axis.text.y = element_text(size = 16))
+
+print(p_sig)
+ggsave(plot = p_sig, filename = paste0("signature_cohens_d_", name, ".pdf"), dpi = 300)
+  
+  return(list(
+    clusters = clust,
+    tat = time_averaged_theta,
+    prs_cohens_d = prs_long,
+    signature_cohens_d = theta_long
+  ))
 }
 
 

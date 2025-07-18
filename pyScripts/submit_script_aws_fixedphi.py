@@ -149,19 +149,27 @@ class SurvivalModelTrainer:
         }
 
     def create_age_specific_events(self, E_original, pce_df_subset, age_offset):
-        """Create age-specific event times for given age offset."""
+        """Create age-specific event times for given age offset.
+        
+        Now uses fixed starting age of 40 (10 years from 30) and applies age_offset
+        for up to 30 years (so age_offset 0 = age 40, age_offset 30 = age 70).
+        """
         E_age_specific = E_original.clone()
         
         total_times_changed = 0
         max_cap_applied = 0
         min_cap_applied = float('inf')
         
+        # Fixed starting age is 40 (which is 10 years from 30)
+        fixed_starting_age = 40
+        time_since_30_fixed_start = fixed_starting_age - 30  # This is 10
+        
         for patient_idx, row in enumerate(pce_df_subset.itertuples()):
             if patient_idx >= E_age_specific.shape[0]:
                 break
                 
-            # Current age = enrollment age + age_offset
-            current_age = row.age + age_offset
+            # Current age = fixed starting age (40) + age_offset
+            current_age = fixed_starting_age + age_offset
             time_since_30 = max(0, current_age - 30)
             
             max_cap_applied = max(max_cap_applied, time_since_30)
@@ -180,7 +188,7 @@ class SurvivalModelTrainer:
             total_times_changed += times_changed
         
         # Log censoring verification
-        logger.info(f"Censoring for age offset {age_offset}:")
+        logger.info(f"Censoring for age offset {age_offset} (age {fixed_starting_age + age_offset}):")
         logger.info(f"  Total event times changed: {total_times_changed}")
         logger.info(f"  Max cap applied: {max_cap_applied:.1f}")
         logger.info(f"  Min cap applied: {min_cap_applied:.1f}")
@@ -266,7 +274,7 @@ class SurvivalModelTrainer:
                 'E': E_age_specific,
                 'prevalence_t': model.prevalence_t,
                 'logit_prevalence_t': model.logit_prev_t,
-                'training_history': history,
+                #'training_history': history,
                 'age_offset': age_offset,
                 'start_index': self.start_index,
                 'end_index': self.end_index
@@ -281,9 +289,14 @@ class SurvivalModelTrainer:
         
         return history
 
-    def train_all_ages(self, max_age_offset=10):
-        """Train models for all age offsets."""
+    def train_all_ages(self, max_age_offset=30):
+        """Train models for all age offsets.
+        
+        Now trains for age offsets 0-30, which corresponds to ages 40-70
+        (starting from fixed age 40, which is 10 years from 30).
+        """
         logger.info(f"Starting training for batch {self.start_index}-{self.end_index}")
+        logger.info(f"Training for age offsets 0-{max_age_offset} (ages 40-{40+max_age_offset})")
         
         # Load and prepare data once
         data = self.load_and_prepare_data()
@@ -292,7 +305,7 @@ class SurvivalModelTrainer:
         all_histories = {}
         
         for age_offset in range(0, max_age_offset + 1):
-            logger.info(f"\n=== Processing age offset {age_offset} years ===")
+            logger.info(f"\n=== Processing age offset {age_offset} years (age {40 + age_offset}) ===")
             
             try:
                 history = self.train_model_for_age(data, age_offset)
@@ -305,7 +318,6 @@ class SurvivalModelTrainer:
         # Save combined results
         summary_path = os.path.join(self.output_dir, f"training_summary_{self.start_index}_{self.end_index}.pt")
         torch.save({
-            'all_histories': all_histories,
             'start_index': self.start_index,
             'end_index': self.end_index,
             'data_shape': data['Y_subset'].shape
@@ -325,8 +337,8 @@ def main():
     parser.add_argument('--output_dir', type=str, 
                        default='/opt/ml/output/', 
                        help='Output directory for results')
-    parser.add_argument('--max_age_offset', type=int, default=10, 
-                       help='Maximum age offset to train for')
+    parser.add_argument('--max_age_offset', type=int, default=30, 
+                       help='Maximum age offset to train for (0-30 corresponds to ages 40-70)')
     parser.add_argument('--device', type=str, default='auto', 
                        choices=['auto', 'cpu', 'cuda'], 
                        help='Device to use for training')

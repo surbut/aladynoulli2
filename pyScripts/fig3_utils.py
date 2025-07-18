@@ -1286,7 +1286,8 @@ def analyze_age_onset_patterns_across_batches(
     disease_index: int = 114,
     early_threshold: int = 55,
     late_threshold: int = 65,
-    output_path: Optional[str] = None
+    output_path: Optional[str] = None,
+    return_stats: bool = True  # Add this parameter
 ):
     """
     Optimized version that loads each batch file only once
@@ -1294,7 +1295,7 @@ def analyze_age_onset_patterns_across_batches(
     batch_dirs = find_batch_dirs(results_base_dir)
     if not batch_dirs:
         print("Error: No batch directories found. Cannot proceed.")
-        return [], []
+        return [], [], {}
     
     print(f"\n--- Scanning {len(batch_dirs)} Batches for Early/Late Onset Patterns ---")
     
@@ -1350,7 +1351,7 @@ def analyze_age_onset_patterns_across_batches(
     
     if not all_early_onset or not all_late_onset:
         print("Insufficient data for analysis")
-        return [], []
+        return [], [], {}
     
     # Calculate statistics and prepare plotting data
     early_ages = [age for _, _, age in all_early_onset]
@@ -1449,7 +1450,70 @@ def analyze_age_onset_patterns_across_batches(
     else:
         plt.show()
     
-    return [idx for idx, _, _ in all_early_onset], [idx for idx, _, _ in all_late_onset]
+    # After calculating mean_theta and velocities, add:
+    if return_stats:
+        # Calculate mean theta for each group
+        early_mean_theta = np.mean(early_theta, axis=0)
+        late_mean_theta = np.mean(late_theta, axis=0)
+        
+        # Find the 5-year window before diagnosis for each group
+        early_mean_diagnosis_age = np.mean(early_ages)
+        late_mean_diagnosis_age = np.mean(late_ages)
+        
+        # Convert diagnosis ages to time indices (assuming age 30 = index 0)
+        early_diag_idx = int(early_mean_diagnosis_age - 30)
+        late_diag_idx = int(late_mean_diagnosis_age - 30)
+        
+        # Get the 5-year window before diagnosis
+        early_start_idx = max(0, early_diag_idx - 5)
+        late_start_idx = max(0, late_diag_idx - 5)
+        
+        # Calculate peak contributions in the pre-diagnosis window
+        early_sig5_peak = np.max(early_mean_theta[5, early_start_idx:early_diag_idx])
+        late_sig5_peak = np.max(late_mean_theta[5, late_start_idx:late_diag_idx])
+        
+        # Find ages at peak within the window
+        early_peak_idx = early_start_idx + np.argmax(early_mean_theta[5, early_start_idx:early_diag_idx])
+        late_peak_idx = late_start_idx + np.argmax(late_mean_theta[5, late_start_idx:late_diag_idx])
+        early_peak_age = time_points[early_peak_idx]
+        late_peak_age = time_points[late_peak_idx]
+        
+        # Calculate velocities in the 5 years before diagnosis
+        early_velocities = np.gradient(early_mean_theta, axis=1)
+        late_velocities = np.gradient(late_mean_theta, axis=1)
+        
+        # Get the velocity right before diagnosis (last 2-3 time points)
+        early_vel_pre_mi = np.mean(early_velocities[5, max(0, early_diag_idx-3):early_diag_idx])
+        late_vel_pre_mi = np.mean(late_velocities[5, max(0, late_diag_idx-3):late_diag_idx])
+        
+        # Also calculate the maximum velocity in the 5-year window
+        early_max_vel = np.max(early_velocities[5, early_start_idx:early_diag_idx])
+        late_max_vel = np.max(late_velocities[5, late_start_idx:late_diag_idx])
+        
+        stats = {
+            'early_peak_contribution': early_sig5_peak,
+            'late_peak_contribution': late_sig5_peak,
+            'early_peak_age': early_peak_age,
+            'late_peak_age': late_peak_age,
+            'early_velocity_pre_mi': early_vel_pre_mi,
+            'late_velocity_pre_mi': late_vel_pre_mi,
+            'early_max_velocity': early_max_vel,
+            'late_max_velocity': late_max_vel,
+            'early_diagnosis_age': early_mean_diagnosis_age,
+            'late_diagnosis_age': late_mean_diagnosis_age
+        }
+        
+        print("Early-onset signature peaks in 5-year window before diagnosis:")
+        for k in range(early_mean_theta.shape[0]):
+            peak = np.max(early_mean_theta[k, early_start_idx:early_diag_idx])
+            print(f"Signature {k}: peak={peak:.3f}")
+
+        print("Late-onset signature peaks in 5-year window before diagnosis:")
+        for k in range(late_mean_theta.shape[0]):
+            peak = np.max(late_mean_theta[k, late_start_idx:late_diag_idx])
+            print(f"Signature {k}: peak={peak:.3f}")
+        
+        return [idx for idx, _, _ in all_early_onset], [idx for idx, _, _ in all_late_onset], stats
 
 def plot_disease_signature_clusters_all_batches(disease_idx, batch_size=10000, n_batches=10, n_clusters=3, n_top_sigs=20, subtract_reference=True, output_path=None):
     """

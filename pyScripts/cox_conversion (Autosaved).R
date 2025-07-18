@@ -930,38 +930,23 @@ create_multidisease_comparison <- function(data_path) {
 
 # Alternative approach with facet_wrap for separate panels by disease
 create_faceted_forest_plot <- function(plot_data) {
-  # Limit to top 16 diseases by dynamic AUC
-  top_diseases <- plot_data %>%
-    filter(model == "Time-dependent Cox with Noulli c-stat") %>%
-    arrange(desc(Events)) %>%
-    head(16) %>%
-    pull(Disease)
-  
+  # Filter to specific diseases as you have it
   plot_data_subset <- plot_data %>%
-    filter(Disease %in% top_diseases)
-
-  plot_data_subset$Disease <- factor(plot_data_subset$Disease, levels = top_diseases)
-  
-
-
-      
-plot_data_subset=plot_data%>%
- filter(Disease %in% c("ASCVD","Diabetes","Breast_Cancer","COPD","Atrial_Fib","Prostate_Cancer","Osteoporosis",
+    filter(Disease %in% c("ASCVD","Diabetes","Breast_Cancer","COPD","Atrial_Fib","Prostate_Cancer","Osteoporosis",
                           "Parkinsons","CKD","Heart_Failure","Rheumatoid_Arthritis","Colorectal_Cancer"))
   
-  # Define colors for models, now including TD Cox
+  # Define colors for models with your new order
   model_colors <- c(
     "Aladynoulli 1-year" = "#222222", # Black or dark gray
-    "Time-dependent Cox with Noulli" = "#8E44AD",
-    "Time-dependent Cox with Noulli c-stat"="blue",# Purple
-    ##"Aladynoulli Dynamic" = "#4285F4",              # Blue
-    "Aladynoulli Static" = "#34A853",               # Green
-    "Cox with Noulli" = "#EA4335",                  # Red
-    "Cox without Noulli" = "#FBBC05"                # Yellow/Orange
+    "Median 1-year" = "#8E44AD",      # Purple
+    "Rolling 10-year" = "#4285F4",    # Blue
+    "Aladynoulli Static" = "#34A853", # Green
+    "Cox with Noulli" = "#EA4335",    # Red
+    "Cox without Noulli" = "#FBBC05"  # Yellow/Orange
   )
   
   # Create the faceted plot
-  p <- ggplot(plot_data, aes(x = model, y = auc, color = model)) +
+  p <- ggplot(plot_data_subset, aes(x = model, y = auc, color = model)) +
     geom_point(size = 2) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
     facet_wrap(~ Disease, scales = "free_y", ncol = 4) +
@@ -970,7 +955,7 @@ plot_data_subset=plot_data%>%
     scale_y_continuous(limits = c(0.3, 1), breaks = seq(0.3, 1, by = 0.1)) +
     labs(
       title = "Multi-Disease AUC Comparison",
-      subtitle = "Performance across top 16 diseases",
+      subtitle = "Performance across selected diseases",
       y = "AUC (95% CI)",
       x = NULL
     ) +
@@ -986,7 +971,6 @@ plot_data_subset=plot_data%>%
   return(p)
 }
 
-
 model_data <- parse_model_data("all_model_comp_withtdcox2.csv")
 c=read.csv("~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30000train_0_10000test.csv")
 
@@ -998,6 +982,8 @@ model_data$tdc_cox_upper <- as.numeric(model_data$tdc_cox_upper)
 
 plot_data <- prepare_forest_plot_data(model_data)
 
+
+
 plot_data=plot_data[-which(plot_data$model=="Aladynoulli Dynamic"),]
 # Add this line to also generate the faceted plot
 faceted_plot <- create_faceted_forest_plot(plot_data)
@@ -1005,3 +991,153 @@ ggsave("multidisease_faceted_plot.pdf", faceted_plot, width = 12, height = 12, d
 
 
 #############################
+
+
+model_data <- readRDS("allmodels.rds")
+df_rolling=read.csv("dynamic_10year_auc_result_rolling_no_leak_offset.csv")
+df_one_year=read.csv("rolling_1year_auc_summary_test1000.csv")
+
+m1=merge(model_data,df_rolling[,c("Disease","auc")],by = "Disease")
+names(m1)[27]="rolling_10year"
+m2=merge(m1,df_one_year[,c("Disease","median")],by = "Disease")
+names(m2)[28]="median_oneyear"
+saveRDS(m2,"totalmodels.rds")
+
+
+m3=m2[,c("Disease","Events","Rate","static_auc","static_lower","static_upper","cox_without_noulli","cox_without_lower",
+      "cox_without_upper","cox_with_noulli","cox_with_lower","cox_with_upper","one_year_auc","one_year_lower","one_year_upper",
+      
+      "rolling_10year","median_oneyear")]
+
+saveRDS(m3,"modelsforplotting.rds")
+
+write.table(m3,"m3forplot.txt",quote = FALSE,row.names = FALSE)
+
+
+# Add rolling_10year and median_oneyear values
+
+model_data=m3
+
+
+# Calculate CI for rolling_10year using the same formula
+rolling_10year_ci <- mapply(calc_cox_ci, 
+                            model_data$rolling_10year, 
+                            model_data$Events, 
+                            MoreArgs = list(total = 400000), 
+                            SIMPLIFY = FALSE)
+model_data$rolling_10year_lower <- sapply(rolling_10year_ci, function(x) x[1])
+model_data$rolling_10year_upper <- sapply(rolling_10year_ci, function(x) x[2])
+
+# Calculate CI for median_oneyear using the same formula
+median_oneyear_ci <- mapply(calc_cox_ci, 
+                            model_data$median_oneyear, 
+                            model_data$Events, 
+                            MoreArgs = list(total = 400000), 
+                            SIMPLIFY = FALSE)
+model_data$median_oneyear_lower <- sapply(median_oneyear_ci, function(x) x[1])
+model_data$median_oneyear_upper <- sapply(median_oneyear_ci, function(x) x[2])
+
+saveRDS(model_data,"modelsforplotting.rds")
+
+
+prepare_forest_plot_data <- function(model_data) {
+  long_data <- model_data %>%
+    pivot_longer(
+      cols = c("median_oneyear", "one_year_auc", "rolling_10year", "static_auc", "cox_with_noulli", "cox_without_noulli"),
+      names_to = "model",
+      values_to = "auc"
+    ) %>%
+    mutate(
+      lower = case_when(
+        model == "one_year_auc" ~ one_year_lower,
+        model == "static_auc" ~ static_lower,
+        model == "cox_with_noulli" ~ cox_with_lower,
+        model == "cox_without_noulli" ~ cox_without_lower,
+        model == "rolling_10year" ~ rolling_10year_lower,
+        model == "median_oneyear" ~ median_oneyear_lower
+      ),
+      upper = case_when(
+        model == "one_year_auc" ~ one_year_upper,
+        model == "static_auc" ~ static_upper,
+        model == "cox_with_noulli" ~ cox_with_upper,
+        model == "cox_without_noulli" ~ cox_without_upper,
+        model == "rolling_10year" ~ rolling_10year_upper,
+        model == "median_oneyear" ~ median_oneyear_upper
+      ),
+      model = case_when(
+        model == "median_oneyear" ~ "Median Aladynoulli 1-year",
+        model == "one_year_auc" ~ "Aladynoulli 1-year",
+        model == "rolling_10year" ~ "Rolling Aladynoulli 10-year",
+        model == "static_auc" ~ "Aladynoulli Static",
+        model == "cox_with_noulli" ~ "Cox with Aladynoulli",
+        model == "cox_without_noulli" ~ "Cox without Aladynoulli"
+      )
+    ) %>%
+    select(Disease, Events, Rate, model, auc, lower, upper)
+  
+  long_data$model <- factor(long_data$model, levels = c(
+    "Median Aladynoulli 1-year", 
+    "Aladynoulli 1-year",
+    "Rolling Aladynoulli 10-year",
+    "Aladynoulli Static",
+    "Cox with Aladynoulli",
+    "Cox without Aladynoulli"
+  ))
+  
+  disease_order <- model_data %>%
+    arrange(desc(rolling_10year)) %>%
+    pull(Disease)
+  
+  long_data$Disease <- factor(long_data$Disease, levels = disease_order)
+  
+  return(long_data)
+}
+
+create_faceted_forest_plot <- function(plot_data) {
+  plot_data_subset <- plot_data %>%
+   filter(Disease %in% c("ASCVD","Diabetes","All_Cancers","Breast_Cancer",
+                         "COPD","Atrial_Fib","Prostate_Cancer","Osteoporosis",
+                         "Parkinsons","CKD","Depression","Multiple_Sclerosis","Ulcerative_Colitis","Bladder_Cancer",
+                          "Heart_Failure","Rheumatoid_Arthritis","Colorectal_Cancer","Crohns_Disease","Secondary_Cancer","Bipolar_Disorder"))
+  
+  model_colors <- c(
+    "Median Aladynoulli 1-year" = "#E41A1C",      # Red
+    "Aladynoulli 1-year" = "#888888",             # Grey
+    "Rolling Aladynoulli 10-year" = "#222222",    # Black
+    "Aladynoulli Static" = "#984EA3",             # Mauve/Purple
+    "Cox with Aladynoulli" = "#FFD700",           # Goldenrod
+    "Cox without Aladynoulli" = "#CAB2D6"         # Light purple
+  )
+  
+  p <- ggplot(plot_data_subset, aes(x = model, y = auc, color = model)) +
+    geom_point(size = 2) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+    facet_wrap(~ Disease, scales = "free_y", ncol = 4) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray70") +
+    scale_color_manual(values = model_colors) +
+    scale_y_continuous(limits = c(0.3, 1), breaks = seq(0.3, 1, by = 0.1)) +
+    labs(
+      title = "Multi-Disease AUC Comparison",
+      subtitle = "Performance across selected diseases",
+      y = "AUC (95% CI)",
+      x = NULL
+    ) +
+    theme_classic() +
+    theme(
+      legend.position = "top",
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+      strip.text = element_text(face = "bold"),
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 12)
+    )
+  
+  return(p)
+}
+
+model_data=readRDS("modelsforplotting.rds")
+fp=prepare_forest_plot_data(model_data)
+p=create_faceted_forest_plot(fp)
+p
+
+ggsave("multidisease_faceted_plot_try2.pdf", p, width = 12, height = 12, dpi = 300)
+

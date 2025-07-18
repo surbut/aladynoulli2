@@ -200,7 +200,15 @@ def generate_clustered_survival_data_warp(N=1000, D=20, T=50, K=5, P=5, warping=
     if warping:
         beta_warp = np.random.normal(0, beta_warp_sd, size=(P, K))
         eta = G @ beta_warp  # [N, K]
-        rho = np.exp(eta)    # [N, K]
+        
+        # Constrain rho to reasonable range [0.2, 5.0] to avoid extreme time distortions
+        eta_clipped = np.clip(eta, -1.6, 1.6)  # exp(-1.6) ≈ 0.2, exp(1.6) ≈ 5.0
+        rho = np.exp(eta_clipped)    # [N, K]
+        
+        # Report if clipping was needed
+        clipped_fraction = np.mean(np.abs(eta) > 1.6)
+        if clipped_fraction > 0.01:
+            print(f"Warning: {clipped_fraction:.1%} of eta values were clipped to prevent extreme rho")
     else:
         rho = np.ones((N, K))
 

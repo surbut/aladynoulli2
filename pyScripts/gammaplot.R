@@ -12,13 +12,14 @@ library(cowplot)
 
 # Read data
 ukb_params <- readRDS("~/Library/CloudStorage/Dropbox/ukb_params.rds")
-prs_names <- read.csv("prs_names.csv",header = F)[,1]
+prs_names <- read.csv("prs_names.csv",header = T)[,1]
 
 # Create main gamma dataframe
 gamma_df <- data.frame(ukb_params$gamma)
 names(gamma_df) <- as.character(0:20)
 
 gamma_df$prs <- prs_names
+
 
 # Get PRS-signature significance data if available
 # If not available, we'll assume a threshold based on effect size
@@ -33,6 +34,43 @@ if(exists("gamma_pvals")) {
 gamma_melted <- reshape2::melt(gamma_df, id.vars="prs", variable.name="signature", value.name="effect")
 gamma_melted$signature <- paste0("Sig ", gamma_melted$signature)
 
+
+
+#### do with python csv
+
+library(data.table)
+f <- fread("gamma_associations.csv")
+# Example: Add asterisks for significance in your plot
+f$star <- ifelse(f$significant, "*", "")
+
+# Example: Use -log10(p_value) for color scale
+f$logp <- -log10(f$p_value)
+
+prs_names <- read.csv("prs_names.csv", header = TRUE)[,1]
+
+# Create a mapping data.table
+prs_map <- data.table(
+  prs = paste0("PRS_", seq_along(prs_names)),
+  real_prs = prs_names
+)
+
+f <- merge(f, prs_map, by = "prs")
+f$signature <- gsub("Signature ", "Sig ", f$signature)
+
+gamma_melted <- data.frame(
+  prs = f$real_prs,
+  signature = f$signature,
+  effect = f$effect_mean,
+  se=f$effect_se,
+  pval=f$p_value,
+  significance=f$significant
+)
+
+
+
+
+
+#######
 # Add disease category grouping to PRSs if known
 # This is a placeholder - you should modify based on your knowledge of the disease categories
 disease_categories <- data.frame(
@@ -50,9 +88,7 @@ disease_categories <- data.frame(
 gamma_melted <- merge(gamma_melted, disease_categories, by="prs")
 
 # Create a version focusing on top effects
-top_associations <- gamma_melted %>%
-  arrange(desc(abs(effect))) %>%
-  head(30)
+top_associations <- gamma_melted[gamma_melted$significance==TRUE,]
 
 # Category colors
 category_colors <- c(
@@ -70,7 +106,7 @@ p1 <- ggplot(top_associations, aes(x=reorder(paste(prs, "-", signature), abs(eff
   geom_bar(stat="identity") +
   scale_fill_manual(values=category_colors) +
   coord_flip() +
-  labs(title="Top PRS-Signature Associations", 
+  labs(title="Top PRS-Signature Associations, Significant at P<6.6e-5", 
        x="", 
        y="Effect Size") +
   theme_minimal() +
@@ -92,7 +128,8 @@ significant_effects$prs <- factor(
   levels = disease_categories %>% 
     arrange(category) %>% 
     pull(prs)
-)
+)p1
+
 
 p2 <- ggplot(significant_effects, aes(x=signature, y=prs, fill=effect)) +
   geom_tile() +
@@ -159,3 +196,12 @@ print(p1)
 print(p2)
 print(p_full)
 print(main_figure)
+
+# Count significant associations
+n_significant <- sum(significance, na.rm = TRUE)
+total_tests <- nrow(gamma_df) * 21  # 21 signatures
+significance_rate <- n_significant / total_tests
+
+# Add to manuscript: 
+# "Genetic analysis identified X significant PRS-signature associations 
+# out of Y total tests (Z% significance rate)"

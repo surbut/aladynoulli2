@@ -888,6 +888,23 @@ def plot_gamma_heatmap_with_stats(base_dir, batch_size=10000, n_batches=10, outp
     else:
         plt.show()
     
+    # After calculating gamma_mean, gamma_sem, p_values, and significant
+    rows = []
+    for i, prs in enumerate(row_labels):
+        for j, sig in enumerate(col_labels):
+            rows.append({
+                "prs": prs,
+                "signature": sig,
+                "effect_mean": gamma_mean[i, j],
+                "effect_se": gamma_sem[i, j],
+                "p_value": p_values[i, j],
+                "significant": p_values[i, j] < bonferroni_threshold
+            })
+
+    df = pd.DataFrame(rows)
+    df.to_csv("gamma_associations.csv", index=False)
+    print("Saved CSV to gamma_associations.csv")
+    
     # Return the computed statistics
     return {
         'gamma_mean': gamma_mean,
