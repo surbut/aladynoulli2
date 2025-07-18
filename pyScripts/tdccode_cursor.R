@@ -660,6 +660,8 @@ tdc_models <- fit_time_dependent_cox(
   pi_train = pi_train_full
 )
 
+tdc_models=readRDS("~/Library/CloudStorage/Dropbox/tdcmodels.rds")
+
 # Evaluate time-dependent Cox models
 tdc_auc_results <- test_time_dependent_cox(
   Y_test = Y_test,
@@ -947,4 +949,32 @@ write.csv(tdc_auc_df, "~/Library/CloudStorage/Dropbox/auc_results_tdc_20000_3000
 
 write.csv(tdc_c_df, "~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30000train_0_10000test_noleak.csv", quote = FALSE)
 
+##### 
 
+source("tdcsourcecode.R")
+
+#pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000.rds")
+pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000_fixedphi.rds")
+
+# Evaluate time-dependent Cox models
+tdc_auc_results <- test_time_dependent_cox(
+  Y_test = Y_test,
+  FH_processed = FH_processed,
+  test_indices = 0:10000,
+  disease_mapping = disease_mapping,
+  major_diseases = major_diseases,
+  disease_names = disease_names,
+  follow_up_duration_years = 7,
+  fitted_models = NULL,
+  pi_test = pi_test_full)
+  
+
+tdc_auc_df <- data.frame(
+  disease_group = names(tdc_auc_results[[1]]),
+  auc = unlist(tdc_auc_results[[1]])
+)
+
+tdc_c_df <- data.frame(
+  disease_group = names(tdc_auc_results[[2]]),
+  c = unlist(tdc_auc_results[[2]])
+)
