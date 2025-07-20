@@ -21,7 +21,7 @@ ggplot(plot_data, aes(x = Method, y = C_index)) +
            fill = c("#2E86AB", "#A23B72", "#F18F01", "#C73E1D"), 
            alpha = 0.8) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2, color = "black") +
-  coord_flip() +  # Horizontal bars
+  # Horizontal bars
   ylim(0, 0.9) +
   labs(
     title = "Comparison of prediction models using bootstrap",
