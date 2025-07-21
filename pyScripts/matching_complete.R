@@ -331,7 +331,7 @@ m.out_standard <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv2 +
 # Select top signatures based on variance and clinical relevance
 # Use only baseline signatures (t0) to avoid collider bias
 m.out_sigs_minimal <- matchit(treated ~ age_for_matching + Sex + pce_goff + 
-                             sig_1_t0 + sig_2_t0 + sig_3_t0 + sig_4_t0 + sig_5_t0,
+                             sig_16_t0 + sig_6_t0 + sig_1_t0,
                              data = matching_data_complete,
                              method = "nearest",
                              ratio = 1,
