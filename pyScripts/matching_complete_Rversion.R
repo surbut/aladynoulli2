@@ -175,7 +175,7 @@ matching_data$age_for_matching <- ifelse(matching_data$treated == 1,
 matching_data$baseline_time_idx <- round(matching_data$baseline_age - 30 + 1)  # +1 for R indexing
 
 # Faster way: Vectorized signature extraction
-get_signature_trajectories <- function(eids, time_indices, thetas_array, processed_ids, n_years_before = 10, n_years_after = 0) {
+get_signature_trajectories <- function(eids, time_indices, thetas_array, processed_ids, n_years_before = 10, n_years_after = 5) {
   start_time <- Sys.time()
   print(paste("Starting signature extraction at:", start_time))
   
@@ -255,7 +255,7 @@ signature_trajectories <- get_signature_trajectories(
   thetas_array = thetas_all_time,
   processed_ids = processed_ids,
   n_years_before = 10,
-  n_years_after = 0
+  n_years_after = 5
 )
 print(paste("Total signature extraction time:", round(difftime(Sys.time(), signature_start_time, units="secs"), 2), "seconds"))
 
@@ -281,23 +281,14 @@ for(i in sample_patients) {
   print(paste("  Sig1 after range:", round(range(sig_after, na.rm=TRUE), 3)))
 }
 
-# Create composite ASCVD outcome (diseases 113-117)
-matching_data$ascvd_event <- ifelse(
-  matching_data$disease_113 == 1 | 
-  matching_data$disease_114 == 1 | 
-  matching_data$disease_115 == 1 | 
-  matching_data$disease_116 == 1 | 
-  matching_data$disease_117 == 1, 1, 0
-)
-
 # Create survival data with age as time scale
 matching_data$time1 <- matching_data$baseline_age  # Start time (age at baseline)
-matching_data$time2 <- matching_data$ascvd_censor_age  # End time (age at ASCVD or censoring)
-matching_data$event <- matching_data$ascvd_event  # 1 = ASCVD event, 0 = censored
+matching_data$time2 <- matching_data$Cad_censor_age  # End time (age at CAD or censoring)
+matching_data$event <- ifelse(matching_data$Cad_Any == 2, 1, 0)  # 1 = CAD event, 0 = censored
 
 # Check survival data
-print(paste("ASCVD events in treated:", sum(matching_data$event[matching_data$treated == 1])))
-print(paste("ASCVD events in controls:", sum(matching_data$event[matching_data$treated == 0])))
+print(paste("CAD events in treated:", sum(matching_data$event[matching_data$treated == 1])))
+print(paste("CAD events in controls:", sum(matching_data$event[matching_data$treated == 0])))
 print(paste("Mean follow-up time (years):", round(mean(matching_data$time2 - matching_data$time1, na.rm=TRUE), 2)))
 
 # 2. Combine with baseline covariates
@@ -336,11 +327,12 @@ m.out_standard <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv2 +
                          ratio = 1,
                          caliper = 0.2)
 
-# 3. SIGNATURE-ENHANCED: Add key trajectory signatures
-# Use 10-year trajectory BEFORE baseline (like Python)
-m.out_sigs_minimal <- matchit(treated ~ age_for_matching + Sex + pce_goff + 
-                             sig_1_t_9 + sig_1_t_8 + sig_1_t_7 + sig_1_t_6 + sig_1_t_5 + sig_1_t_4 + sig_1_t_3 + sig_1_t_2 + sig_1_t_1 + sig_1_t0 +
-                             sig_5_t_9 + sig_5_t_8 + sig_5_t_7 + sig_5_t_6 + sig_5_t_5 + sig_5_t_4 + sig_5_t_3 + sig_5_t_2 + sig_5_t_1 + sig_5_t0,
+# 3. SIGNATURE-ENHANCED: Add key signatures only
+# Select top signatures based on variance and clinical relevance
+# Use only baseline signatures (t0) to avoid collider bias
+m.out_sigs_minimal <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv2 + 
+                                dm_before_treat + htn_before_treat+
+                             sig_16_t0 + sig_6_t0 + sig_1_t0,
                              data = matching_data_complete,
                              method = "nearest",
                              ratio = 1,
@@ -356,15 +348,18 @@ m.out_comprehensive <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv
                               caliper = 0.2)
 
 # 5. EXHAUSTIVE MATCHING: Try everything possible
-# Use trajectory matching with exact matching on key variables
+# Use optimal matching with exact matching on key variables
 m.out_exhaustive <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv2 + 
                            dm_before_treat + htn_before_treat + hyperlip_before_treat + pce_goff +
-                           sig_1_t_9 + sig_1_t_8 + sig_1_t_7 + sig_1_t_6 + sig_1_t_5 + sig_1_t_4 + sig_1_t_3 + sig_1_t_2 + sig_1_t_1 + sig_1_t0 +
-                           sig_5_t_9 + sig_5_t_8 + sig_5_t_7 + sig_5_t_6 + sig_5_t_5 + sig_5_t_4 + sig_5_t_3 + sig_5_t_2 + sig_5_t_1 + sig_5_t0,
+                           sig_1_t0 + sig_2_t0 + sig_3_t0 + sig_4_t0 + sig_5_t0 + sig_6_t0 + sig_7_t0 + sig_8_t0 + sig_9_t0 + sig_10_t0 +
+                           sig_11_t0 + sig_12_t0 + sig_13_t0 + sig_14_t0 + sig_15_t0 + sig_16_t0 + sig_17_t0 + sig_18_t0 + sig_19_t0 + sig_20_t0 + sig_21_t0,
                            data = matching_data_complete,
                            method = "nearest",
                            ratio = 1,
-                           exact = c("Sex", "dm_before_treat", "htn_before_treat"))
+                           caliper = 0.2)
+                           #method = "optimal",
+                           #ratio = 1,
+                           #exact = c("Sex", "dm_before_treat", "htn_before_treat"))
 
 # 6. AGGRESSIVE CALIPER: Very tight matching
 m.out_aggressive <- matchit(treated ~ age_for_matching + Sex + pce_goff,
