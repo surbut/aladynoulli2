@@ -286,6 +286,14 @@ matching_data$time1 <- matching_data$baseline_age  # Start time (age at baseline
 matching_data$time2 <- matching_data$Cad_censor_age  # End time (age at CAD or censoring)
 matching_data$event <- ifelse(matching_data$Cad_Any == 2, 1, 0)  # 1 = CAD event, 0 = censored
 
+
+
+# Create survival data with age as time scale
+matching_data$time1 <- matching_data$baseline_age  # Start time (age at baseline)
+matching_data$time2 <- matching_data$Cad_censor_age  # End time (age at CAD or censoring)
+matching_data$event <- ifelse(matching_data$Cad_Any == 2, 1, 0)  # 1 = CAD event, 0 = censored
+
+
 # Check survival data
 print(paste("CAD events in treated:", sum(matching_data$event[matching_data$treated == 1])))
 print(paste("CAD events in controls:", sum(matching_data$event[matching_data$treated == 0])))
