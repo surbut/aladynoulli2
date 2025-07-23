@@ -192,9 +192,14 @@ get_signature_trajectories <- function(eids, time_indices, thetas_array, process
   trajectories <- matrix(NA, nrow = n_patients, ncol = n_total_timepoints)
   
   # Create column names
-  before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t", rep(-(n_years_before-1):0, n_signatures))
-  after_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_after), "_t", rep(1:n_years_after, n_signatures))
-  colnames(trajectories) <- c(before_cols, after_cols)
+  if(n_years_after > 0) {
+    before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t_", rep(-(n_years_before-1):0, n_signatures))
+    after_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_after), "_t_", rep(1:n_years_after, n_signatures))
+    colnames(trajectories) <- c(before_cols, after_cols)
+  } else {
+    before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t_", rep(-(n_years_before-1):0, n_signatures))
+    colnames(trajectories) <- before_cols
+  }
   
   # Find indices in processed_ids for each eid
   eid_match_time <- Sys.time()
@@ -227,13 +232,18 @@ get_signature_trajectories <- function(eids, time_indices, thetas_array, process
       before_end <- valid_time_idx[i]
       before_traj <- thetas_array[valid_eid_idx[i], , before_start:before_end]
       
-      # Extract after baseline (t1 to t5)
-      after_start <- valid_time_idx[i] + 1
-      after_end <- valid_time_idx[i] + n_years_after
-      after_traj <- thetas_array[valid_eid_idx[i], , after_start:after_end]
+      # Extract after baseline (t1 to t5) - only if n_years_after > 0
+      if(n_years_after > 0) {
+        after_start <- valid_time_idx[i] + 1
+        after_end <- valid_time_idx[i] + n_years_after
+        after_traj <- thetas_array[valid_eid_idx[i], , after_start:after_end]
+        # Combine and store
+        full_traj <- c(as.vector(t(before_traj)), as.vector(t(after_traj)))
+      } else {
+        # Only before baseline
+        full_traj <- as.vector(t(before_traj))
+      }
       
-      # Combine and store
-      full_traj <- c(as.vector(before_traj), as.vector(after_traj))
       trajectories[which(valid_indices)[i], ] <- full_traj
     }
     
@@ -275,11 +285,30 @@ for(i in sample_patients) {
   baseline_age <- matching_data$baseline_age[i]
   time_idx <- matching_data$baseline_time_idx[i]
   sig_before <- signature_trajectories[i, 1:10]  # First 10 values (sig_1_t-9 to sig_1_t0)
-  sig_after <- signature_trajectories[i, 211:220]  # First 10 post-baseline values (sig_1_t1 to sig_1_t5)
+  sig_real <- thetas_all_time[i,1,(baseline_age-10):baseline_age]  # First 10 post-baseline values (sig_1_t1 to sig_1_t5)
   print(paste("Patient", eid, "- Age:", round(baseline_age,1), "- Time idx:", time_idx))
   print(paste("  Sig1 before range:", round(range(sig_before, na.rm=TRUE), 3)))
   print(paste("  Sig1 after range:", round(range(sig_after, na.rm=TRUE), 3)))
 }
+
+### test 
+sample id = X
+> grep(matching_data$eid,pattern="2168601")
+[1] 54326
+> processed_ids[eid_indices[54326]]
+[1] 2168601
+> processed_ids[eid_indices[54326]]
+[1] 2168601
+> thetas_all_time[2168601,1,25]
+Error in thetas_all_time[2168601, 1, 25] : subscript out of bounds
+> eid_indices[54326]
+[1] 94989
+> thetas_all_time[94989,1,25]
+[1] 0.01873308
+> thetas_all_time[94989,1,25:34]
+ [1] 0.01873308 0.01927709 0.01975153 0.02019142 0.02062517 0.02110248 0.02167034 0.02247664 0.02364661 0.02517195
+> signature_trajectories[54326,]
+
 
 # Create composite ASCVD outcome (diseases 113-117)
 matching_data$ascvd_event <- ifelse(
@@ -289,6 +318,23 @@ matching_data$ascvd_event <- ifelse(
   matching_data$disease_116 == 1 | 
   matching_data$disease_117 == 1, 1, 0
 )
+
+# Calculate ASCVD censor age properly
+matching_data$ascvd_censor_age <- NA
+
+for(i in 1:nrow(matching_data)) {
+  if(matching_data$ascvd_event[i] == 1) {
+    # ASCVD event occurred - find first occurrence
+    # For now, use baseline age + 5 as approximation
+    # TODO: Find exact first occurrence in disease array
+    matching_data$ascvd_censor_age[i] <- matching_data$baseline_age[i] + 5
+  } else {
+    # No ASCVD event - censor at end of follow-up (2023 - birth year)
+    birth_year <- matching_data$Birthdate[i]
+    end_followup_age <- 2023 - birth_year
+    matching_data$ascvd_censor_age[i] <- end_followup_age
+  }
+}
 
 # Create survival data with age as time scale
 matching_data$time1 <- matching_data$baseline_age  # Start time (age at baseline)

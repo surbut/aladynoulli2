@@ -84,7 +84,7 @@ saveRDS(pi_train,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage
 ###
 
 pi_train=torch$load(
-  "/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000_fixedphi.pt",
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_full_leakage_free_0_10000_fixedphi.pt",
   weights_only = FALSE
 )
 
@@ -92,4 +92,4 @@ pi_train=torch$load(
 
 pi_train=tensor_to_r(pi_train)
 
-saveRDS(pi_train,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000_fixedphi.rds")
+saveRDS(pi_train,"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_full_leakage_free_0_10000_fixedphi.rds")
