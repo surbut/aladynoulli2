@@ -193,11 +193,11 @@ get_signature_trajectories <- function(eids, time_indices, thetas_array, process
   
   # Create column names
   if(n_years_after > 0) {
-    before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t_", rep(-(n_years_before-1):0, n_signatures))
+    before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t_", rep((n_years_before-1):0, n_signatures))
     after_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_after), "_t_", rep(1:n_years_after, n_signatures))
     colnames(trajectories) <- c(before_cols, after_cols)
   } else {
-    before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t_", rep(-(n_years_before-1):0, n_signatures))
+    before_cols <- paste0("sig_", rep(1:n_signatures, each = n_years_before), "_t_", rep((n_years_before-1):0, n_signatures))
     colnames(trajectories) <- before_cols
   }
   
@@ -292,22 +292,15 @@ for(i in sample_patients) {
 }
 
 ### test 
-sample id = X
-> grep(matching_data$eid,pattern="2168601")
-[1] 54326
-> processed_ids[eid_indices[54326]]
-[1] 2168601
-> processed_ids[eid_indices[54326]]
-[1] 2168601
-> thetas_all_time[2168601,1,25]
-Error in thetas_all_time[2168601, 1, 25] : subscript out of bounds
-> eid_indices[54326]
-[1] 94989
-> thetas_all_time[94989,1,25]
-[1] 0.01873308
-> thetas_all_time[94989,1,25:34]
- [1] 0.01873308 0.01927709 0.01975153 0.02019142 0.02062517 0.02110248 0.02167034 0.02247664 0.02364661 0.02517195
-> signature_trajectories[54326,]
+sample_id = "1000474"
+pid=grep(matching_data$eid,pattern=sample_id)
+theta_id=eid_indices[pid]
+oid=processed_ids[eid_indices[pid]]
+
+thetas_all_time[theta_id,1,(matching_data[pid,baseline_time_idx-9]):matching_data[pid,baseline_time_idx]]
+
+signature_trajectories[pid,1:10]
+
 
 
 # Create composite ASCVD outcome (diseases 113-117)
@@ -384,13 +377,13 @@ m.out_standard <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv2 +
 
 # 3. SIGNATURE-ENHANCED: Add key trajectory signatures
 # Use 10-year trajectory BEFORE baseline (like Python)
-m.out_sigs_minimal <- matchit(treated ~ age_for_matching + Sex + pce_goff + 
-                             sig_1_t_9 + sig_1_t_8 + sig_1_t_7 + sig_1_t_6 + sig_1_t_5 + sig_1_t_4 + sig_1_t_3 + sig_1_t_2 + sig_1_t_1 + sig_1_t0 +
-                             sig_5_t_9 + sig_5_t_8 + sig_5_t_7 + sig_5_t_6 + sig_5_t_5 + sig_5_t_4 + sig_5_t_3 + sig_5_t_2 + sig_5_t_1 + sig_5_t0,
+m.out_sigs_minimal <- matchit(treated ~ age_for_matching + Sex + pce_goff + dm_before_treat + htn_before_treat+hyperlip_before_treat+
+                             sig_1_t_9 + sig_1_t_8 + sig_1_t_7 + sig_1_t_6 + sig_1_t_5 + sig_1_t_4 + sig_1_t_3 + sig_1_t_2 + sig_1_t_1 + sig_1_t_0 +
+                             sig_5_t_9 + sig_5_t_8 + sig_5_t_7 + sig_5_t_6 + sig_5_t_5 + sig_5_t_4 + sig_5_t_3 + sig_5_t_2 + sig_5_t_1 + sig_5_t_0,
                              data = matching_data_complete,
                              method = "nearest",
                              ratio = 1,
-                             caliper = 0.25)
+                             exact = c("Sex", "dm_before_treat"))
 
 # 4. COMPREHENSIVE: All true confounders (avoiding mediators)
 # Include all variables that predict treatment but aren't affected by it
@@ -405,8 +398,8 @@ m.out_comprehensive <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv
 # Use trajectory matching with exact matching on key variables
 m.out_exhaustive <- matchit(treated ~ age_for_matching + Sex + SmokingStatusv2 + 
                            dm_before_treat + htn_before_treat + hyperlip_before_treat + pce_goff +
-                           sig_1_t_9 + sig_1_t_8 + sig_1_t_7 + sig_1_t_6 + sig_1_t_5 + sig_1_t_4 + sig_1_t_3 + sig_1_t_2 + sig_1_t_1 + sig_1_t0 +
-                           sig_5_t_9 + sig_5_t_8 + sig_5_t_7 + sig_5_t_6 + sig_5_t_5 + sig_5_t_4 + sig_5_t_3 + sig_5_t_2 + sig_5_t_1 + sig_5_t0,
+                           sig_1_t_9 + sig_1_t_8 + sig_1_t_7 + sig_1_t_6 + sig_1_t_5 + sig_1_t_4 + sig_1_t_3 + sig_1_t_2 + sig_1_t_1 + sig_1_t_0 +
+                           sig_5_t_9 + sig_5_t_8 + sig_5_t_7 + sig_5_t_6 + sig_5_t_5 + sig_5_t_4 + sig_5_t_3 + sig_5_t_2 + sig_5_t_1 + sig_5_t_0,
                            data = matching_data_complete,
                            method = "nearest",
                            ratio = 1,
