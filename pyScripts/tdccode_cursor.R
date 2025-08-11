@@ -951,10 +951,10 @@ write.csv(tdc_c_df, "~/Library/CloudStorage/Dropbox/c_index_results_tdc_20000_30
 
 ##### 
 
-source("tdcsourcecode.R")
+source("/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/dataforyi_july21/tdcsourcecode.R")
 
 #pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000.rds")
-pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_full_leakage_free_0_10000_fixedphi.rds")
+pi_test_full <- readRDS("/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/dataforyi_july21//pi_full_leakage_free_0_10000_fixedphi.rds")
 
 # Evaluate time-dependent Cox models
 tdc_auc_results <- test_time_dependent_cox(
@@ -964,7 +964,7 @@ tdc_auc_results <- test_time_dependent_cox(
   disease_mapping = disease_mapping,
   major_diseases = major_diseases,
   disease_names = disease_names,
-  follow_up_duration_years = 7,
+  follow_up_duration_years = 10,
   fitted_models = NULL,
   pi_test = pi_test_full)
   

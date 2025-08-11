@@ -11,7 +11,7 @@ import matplotlib.ticker as mticker
 
 def load_model():
     """Load the model and return necessary components"""
-    model = torch.load('/Users/sarahurbut/Library/Cloudstorage/Dropbox/resultshighamp/results/output_0_10000/model.pt')
+    model = torch.load('/Users/sarahurbut/Library/Cloudstorage/Dropbox-Personal/resultshighamp/results/output_0_10000/model.pt')
     return {
         'model_state_dict': model['model_state_dict'],
         'clusters': np.array(model['clusters']),

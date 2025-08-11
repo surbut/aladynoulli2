@@ -59,7 +59,7 @@ hyperchol <- read_gwas_data("/Users/sarahurbut/Library/CloudStorage/DB_backup_51
 mi <- read_gwas_data("/Users/sarahurbut/Library/CloudStorage/DB_backup_5132025941p/tetgwas/result/10_loci/Myocardial_infarction_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
 acute_ihd <- read_gwas_data("/Users/sarahurbut/Library/CloudStorage/DB_backup_5132025941p/tetgwas/result/10_loci/Other_acute_and_subacute_forms_of_ischemic_heart_disease_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
 chronic_ihd <- read_gwas_data("/Users/sarahurbut/Library/CloudStorage/DB_backup_5132025941p/tetgwas/result/10_loci/Other_chronic_ischemic_heart_disease,_unspecified_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
-sig5 <- read_gwas_data("/Users/sarahurbut/Library/CloudStorage/Dropbox/result326/10_loci/SIG5_AUC_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
+sig5 <- read_gwas_data("/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/result326/10_loci/SIG5_AUC_ukb_eur_regenie_af1.sig.lead.sumstats.txt")
 
 # Add source information
 angina$source <- "Angina"
