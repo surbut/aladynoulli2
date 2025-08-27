@@ -175,9 +175,9 @@ class LocalSurvivalTrainer:
     def create_age_specific_events(self, E_original, age_offset):
         """Create age-specific event times for given age offset.
         
-        This function implements the censoring logic with 10-year lead-up:
+        This function implements the censoring logic:
         - For age_offset N, we're predicting at age 40 + N
-        - We use data from age (30 + N) to (40 + N) for prediction
+        - We use data from age 30 to (40 + N) for prediction
         - Events are censored at min(actual_event_age, 40 + N)
         - All times are relative to age 30 (so age 30 = time 0)
         """
@@ -189,19 +189,14 @@ class LocalSurvivalTrainer:
         
         # Fixed starting age is 40 (which is 10 years from 30)
         fixed_starting_age = 40
-        lead_up_years = 10
         
         for patient_idx in range(E_age_specific.shape[0]):
                 
             # Current prediction age = fixed starting age (40) + age_offset
             prediction_age = fixed_starting_age + age_offset
             
-            # Start of lead-up period = prediction_age - lead_up_years
-            lead_up_start_age = prediction_age - lead_up_years
-            
             # Convert to times relative to age 30
             prediction_time = prediction_age - 30
-            lead_up_start_time = lead_up_start_age - 30
             
             max_cap_applied = max(max_cap_applied, prediction_time)
             min_cap_applied = min(min_cap_applied, prediction_time)
@@ -215,31 +210,23 @@ class LocalSurvivalTrainer:
                 torch.full_like(E_age_specific[patient_idx, :], prediction_time)
             )
             
-            # Also filter out events that happened before the lead-up period
-            # (events before lead_up_start_time are set to 0 or very small value)
-            E_age_specific[patient_idx, :] = torch.where(
-                E_age_specific[patient_idx, :] < lead_up_start_time,
-                torch.zeros_like(E_age_specific[patient_idx, :]),
-                E_age_specific[patient_idx, :]
-            )
-            
             times_changed = torch.sum(E_age_specific[patient_idx, :] != original_times).item()
             total_times_changed += times_changed
         
         # Log censoring verification
         logger.info(f"Censoring for age offset {age_offset} (prediction at age {fixed_starting_age + age_offset}):")
-        logger.info(f"  Lead-up period: age {fixed_starting_age + age_offset - lead_up_years} to {fixed_starting_age + age_offset}")
-        logger.info(f"  Time window: {lead_up_start_time:.1f} to {prediction_time:.1f}")
+        logger.info(f"  Using data from age 30 to {fixed_starting_age + age_offset}")
+        logger.info(f"  Time window: 0 to {prediction_time:.1f}")
         logger.info(f"  Total event times changed: {total_times_changed}")
         logger.info(f"  Max cap applied: {max_cap_applied:.1f}")
         logger.info(f"  Min cap applied: {min_cap_applied:.1f}")
         
         # Test verification for a few patients
-        self.verify_censoring(E_age_specific, age_offset, prediction_time, lead_up_start_time)
+        self.verify_censoring(E_age_specific, age_offset, prediction_time, 0)
         
         return E_age_specific
 
-    def verify_censoring(self, E_age_specific, age_offset, prediction_time, lead_up_start_time):
+    def verify_censoring(self, E_age_specific, age_offset, prediction_time, min_time):
         """Verify that censoring was applied correctly."""
         logger.info("  Verifying censoring for test patients...")
         
@@ -257,13 +244,6 @@ class LocalSurvivalTrainer:
                     logger.warning(f"      WARNING: Max time {max_time:.1f} exceeds cap {prediction_time:.1f}!")
                 else:
                     logger.info(f"      ✓ Censoring applied correctly")
-                
-                # Check if lead-up filtering was applied
-                min_nonzero_time = torch.min(E_age_specific[test_idx, :][E_age_specific[test_idx, :] > 0]).item() if torch.any(E_age_specific[test_idx, :] > 0) else float('inf')
-                if min_nonzero_time < lead_up_start_time - 0.01:
-                    logger.warning(f"      WARNING: Found event at time {min_nonzero_time:.1f} before lead-up start {lead_up_start_time:.1f}!")
-                else:
-                    logger.info(f"      ✓ Lead-up filtering applied correctly")
 
     def train_model_for_age(self, data, age_offset):
         """Train model for specific age offset."""
@@ -384,11 +364,10 @@ class LocalSurvivalTrainer:
         # Store training histories
         all_histories = {}
         
-        for age_offset in range(15, max_age_offset + 1):
+        for age_offset in range(19, max_age_offset + 1):
             prediction_age = 40 + age_offset
-            lead_up_start = 30 + age_offset
             logger.info(f"\n=== Processing age offset {age_offset} years ===")
-            logger.info(f"  Prediction at age {prediction_age} using data from age {lead_up_start} to {prediction_age}")
+            logger.info(f"  Prediction at age {prediction_age} using data from age 30 to {prediction_age}")
             
             try:
                 history = self.train_model_for_age(data, age_offset)
