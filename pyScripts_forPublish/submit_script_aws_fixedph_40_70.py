@@ -151,7 +151,7 @@ class SurvivalModelTrainer:
             'pce_df_subset': pce_df_subset
         }
 
-    def create_age_specific_events(self, E_original, pce_df_subset, age_offset):
+    def create_age_specific_events(self, E_original, pce_df_subset, age_offset, starting_age=40)::
         """Create age-specific event times for given age offset.
         
         Now uses fixed starting age of 40 (10 years from 30) and applies age_offset
@@ -164,7 +164,7 @@ class SurvivalModelTrainer:
         min_cap_applied = float('inf')
         
         # Fixed starting age is 40 (which is 10 years from 30)
-        fixed_starting_age = 40
+        fixed_starting_age = starting_age
         time_since_30_fixed_start = fixed_starting_age - 30  # This is 10
         
         for patient_idx, row in enumerate(pce_df_subset.itertuples()):
