@@ -1,0 +1,46 @@
+{
+  "jobDefinitionName": "aladyn-model-job",
+  "type": "container",
+  "containerProperties": {
+    "image": "390402571136.dkr.ecr.us-west-2.amazonaws.com/aladyn-model:latest",
+    "vcpus": 32,
+    "memory": 131072,
+    "command": [
+      "python",
+      "pyScripts/submit_script_aws_fixedph_40_70.py",
+      "--start_index", "Ref::start_index",
+      "--end_index", "Ref::end_index",
+      "--base_data_path", "/data/input",
+      "--output_dir", "/data/output",
+      "--age", "Ref::age"
+    ],
+    "environment": [
+      { "name": "PYTHONPATH", "value": "/app:/app/pyScripts" }
+    ],
+    "mountPoints": [
+      {
+        "sourceVolume": "efs-volume",
+        "containerPath": "/data",
+        "readOnly": false
+      }
+    ],
+    "volumes": [
+      {
+        "name": "efs-volume",
+        "efsVolumeConfiguration": {
+          "fileSystemId": "fs-0e9ec67f160e069ab",
+          "rootDirectory": "/",
+          "transitEncryption": "ENABLED"
+        }
+      }
+    ],
+    "jobRoleArn": "arn:aws:iam::390402571136:role/ecsTaskExecutionRole"
+  },
+  "retryStrategy": { "attempts": 9 },
+  "parameters": {
+    "start_index": "0",
+    "end_index": "10000",
+    "age": "40"
+  },
+  "platformCapabilities": ["EC2"]
+}

@@ -116,7 +116,8 @@ class SurvivalModelTrainer:
         gc.collect()
         
         # Load references
-        refs = torch.load(os.path.join(self.base_data_path, 'reference_trajectories.pt'), weights_only=False)
+        refs_path = os.path.join(self.base_data_path, 'reference_trajectories.pt')
+        refs = torch.load(refs_path, weights_only=False)
         signature_refs = refs['signature_refs']
         
         # Load demographic data
@@ -196,16 +197,16 @@ class SurvivalModelTrainer:
 
     def train_model_for_age(self, data, age_offset):
         """Train model for specific age offset."""
-        logger.info(f"Training model for age offset {age_offset} years")
-        
+        logger.info(f"Training model for age offset {age_offset} years (age {40 + age_offset})")
+
         # Set seeds for reproducibility
         self.set_random_seeds()
-        
+
         # Create age-specific event times
         E_age_specific = self.create_age_specific_events(
             data['E_subset'], data['pce_df_subset'], age_offset
         )
-        
+
         # Initialize model
         model = AladynSurvivalFixedPhi(
             N=data['Y_subset'].shape[0],
@@ -226,72 +227,75 @@ class SurvivalModelTrainer:
             healthy_reference=True,
             disease_names=data['essentials']['disease_names']
         )
-        
+
         # Verify phi and psi match
         if np.allclose(model.phi.cpu().numpy(), data['phi_total']):
             logger.info("phi matches phi_total!")
         else:
             logger.warning("phi does NOT match phi_total!")
-            
+
         if np.allclose(model.psi.cpu().numpy(), data['psi_total']):
             logger.info("psi matches psi_total!")
         else:
             logger.warning("psi does NOT match psi_total!")
-        
+
         # Train model with profiling
         profiler = cProfile.Profile()
         profiler.enable()
-        
+
         history = model.fit(
             E_age_specific,
             num_epochs=200,
             learning_rate=1e-1,
             lambda_reg=1e-2
         )
-        
+
         profiler.disable()
-        
-        # Log profiling results
         stats = pstats.Stats(profiler).sort_stats(SortKey.CUMULATIVE)
         stats.print_stats(20)
-        
+
         # Generate and save predictions
         with torch.no_grad():
             pi, _, _ = model.forward()
-            
+
+            # --- unique per-age outputs ---
+            age_label = f"age_{40 + age_offset}"
+            # self.output_dir is already ensured in __init__, but ensure again just in case
+            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+
             # Save predictions
-            pi_filename = f"pi_enroll_fixedphi_age_offset_{age_offset}_sex_{self.start_index}_{self.end_index}.pt"
+            pi_filename = f"pi_enroll_fixedphi_{age_label}_sex_{self.start_index}_{self.end_index}.pt"
             pi_path = os.path.join(self.output_dir, pi_filename)
             torch.save(pi, pi_path)
             logger.info(f"Saved predictions to {pi_path}")
-            
+
             # Save model
-            model_filename = f"model_enroll_fixedphi_age_offset_{age_offset}_sex_{self.start_index}_{self.end_index}.pt"
+            model_filename = f"model_enroll_fixedphi_{age_label}_sex_{self.start_index}_{self.end_index}.pt"
             model_path = os.path.join(self.output_dir, model_filename)
             torch.save({
                 'model_state_dict': model.state_dict(),
                 'E': E_age_specific,
                 'prevalence_t': model.prevalence_t,
                 'logit_prevalence_t': model.logit_prev_t,
-                #'training_history': history,
+                # 'training_history': history,
                 'age_offset': age_offset,
                 'start_index': self.start_index,
                 'end_index': self.end_index
             }, model_path)
             logger.info(f"Saved model to {model_path}")
-        
+
         # Clean up memory
         del pi, model, E_age_specific
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
-        
+
         return history
 
     def train_all_ages(self, max_age_offset=30):
         """Train models for all age offsets.
         
-        Now trains for age offsets 0-30, which corresponds to ages 40-70
+        Now trains for age offsets 0-39, which corresponds to ages 40-79
         (starting from fixed age 40, which is 10 years from 30).
         """
         logger.info(f"Starting training for batch {self.start_index}-{self.end_index}")
@@ -330,29 +334,49 @@ def main():
     parser = argparse.ArgumentParser(description='Train survival models for age-specific predictions')
     parser.add_argument('--start_index', type=int, default=0, help='Starting index for data subset')
     parser.add_argument('--end_index', type=int, default=10000, help='Ending index for data subset')
-    parser.add_argument('--base_data_path', type=str, 
-                       default='/opt/ml/input/data/', 
+    parser.add_argument('--base_data_path', type=str,
+                       default='/opt/ml/input/data/',
                        help='Base path for input data')
-    parser.add_argument('--output_dir', type=str, 
-                       default='/opt/ml/output/', 
+    parser.add_argument('--output_dir', type=str,
+                       default='/opt/ml/output/',
                        help='Output directory for results')
-    parser.add_argument('--max_age_offset', type=int, default=30, 
+    parser.add_argument('--max_age_offset', type=int, default=39,
                        help='Maximum age offset to train for (0-30 corresponds to ages 40-70)')
-    parser.add_argument('--device', type=str, default='auto', 
-                       choices=['auto', 'cpu', 'cuda'], 
+    parser.add_argument('--device', type=str, default='auto',
+                       choices=['auto', 'cpu', 'cuda'],
                        help='Device to use for training')
-    
+
+    # NEW: single-age flags
+    parser.add_argument('--age_offset', type=int, default=None,
+                        help='If set, train only this single age offset (0..30 -> ages 40..70)')
+    parser.add_argument('--age', type=int, default=None,
+                        help='If set, train only this exact age (40..70). Overrides --age_offset.')
+
     args = parser.parse_args()
-    
+
+    # Map --age to --age_offset if provided (40..70 -> 0..30), and validate range
+    if args.age is not None:
+        args.age_offset = int(args.age) - 40
+    if args.age_offset is not None and not (0 <= args.age_offset <= 39):
+        logger.error(f"age_offset must be 0..39 (got {args.age_offset})")
+        sys.exit(2)
+
+    # If running a single age, write into an age-specific subfolder to avoid collisions
+    if args.age_offset is not None:
+        age = 40 + args.age_offset
+        args.output_dir = os.path.join(args.output_dir, f"age_{age}")
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
     # Set device
     if args.device == 'auto':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     else:
         device = args.device
-    
+
     logger.info(f"Using device: {device}")
     logger.info(f"Training for indices {args.start_index} to {args.end_index}")
-    
+    logger.info(f"Output directory: {args.output_dir}")
+
     # Initialize trainer
     trainer = SurvivalModelTrainer(
         base_data_path=args.base_data_path,
@@ -360,15 +384,20 @@ def main():
         start_index=args.start_index,
         end_index=args.end_index
     )
-    
-    # Run training
+
+    # Run training: single age if provided, otherwise the full sweep
     try:
-        histories = trainer.train_all_ages(max_age_offset=args.max_age_offset)
-        logger.info("Training completed successfully!")
-        
+        if args.age_offset is not None:
+            data = trainer.load_and_prepare_data()
+            trainer.train_model_for_age(data, args.age_offset)
+            logger.info(f"Completed single age (offset={args.age_offset}, age={40 + args.age_offset})")
+        else:
+            histories = trainer.train_all_ages(max_age_offset=args.max_age_offset)
+            logger.info("Training completed successfully!")
     except Exception as e:
         logger.error(f"Training failed: {e}")
         sys.exit(1)
+
 
 
 if __name__ == "__main__":
