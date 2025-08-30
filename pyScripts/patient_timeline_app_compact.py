@@ -13,7 +13,7 @@ def load_model():
     """Load the model and return necessary components"""
     st.cache_data.clear()
     #model = torch.load('/Users/sarahurbut/Library/Cloudstorage/Dropbox-Personal/resultshighamp/results/output_0_10000/model.pt')
-    model = torch.load('/Users/sarahurbut/Library/Cloudstorage/Dropbox-Personal/app_mi_patients_compact.pt')
+    model = torch.load('app_mi_patients_compact.pt')
     return {
         'model_state_dict': model['model_state_dict'],
         'clusters': np.array(model['clusters']),
@@ -27,19 +27,30 @@ def load_prs_names(path='prs_names.csv'):
 
 class PatientTimelineVisualizer:
     def __init__(self, model_data, prs_names=None):
-        # Extract model parameters
-        self.lambda_ = model_data['model_state_dict']['lambda_'].detach().numpy()
-        self.phi = model_data['model_state_dict']['phi'].detach().numpy()
-        self.psi = model_data['model_state_dict']['psi'].detach().numpy()
+        # Extract model parameters and ensure they're numpy arrays
+        self.lambda_ = model_data['model_state_dict']['lambda_']
+        self.phi = model_data['model_state_dict']['phi']
+        self.psi = model_data['model_state_dict']['psi']
         self.G = model_data['G']
         self.gamma = model_data['model_state_dict'].get('gamma', None)
-        if self.gamma is not None:
+        
+        # Convert any remaining tensors to numpy
+        if hasattr(self.lambda_, 'detach'):
+            self.lambda_ = self.lambda_.detach().numpy()
+        if hasattr(self.phi, 'detach'):
+            self.phi = self.phi.detach().numpy()
+        if hasattr(self.psi, 'detach'):
+            self.psi = self.psi.detach().numpy()
+        if self.gamma is not None and hasattr(self.gamma, 'detach'):
             self.gamma = self.gamma.detach().numpy()
+        if self.G is not None and hasattr(self.G, 'detach'):
+            self.G = self.G.detach().numpy()
         
         # Store disease names
         self.disease_names = model_data['disease_names']
         if hasattr(self.disease_names, 'values'):
             self.disease_names = self.disease_names.values.tolist()
+        
         # Clean up disease names for display
         def _clean_name(name):
             if isinstance(name, str):
@@ -61,7 +72,7 @@ class PatientTimelineVisualizer:
         
         # Store Y if available
         self.Y = model_data.get('Y', None)
-        if self.Y is not None and torch.is_tensor(self.Y):
+        if self.Y is not None and hasattr(self.Y, 'detach'):
             self.Y = self.Y.detach().numpy()
         
         # Store PRS names
@@ -532,33 +543,39 @@ class PatientTimelineVisualizer:
         """Stacked barplot of overall genetic effect for each signature for the selected patient, colored by PRS feature contribution."""
         if self.G is None or self.gamma is None:
             return None
-        # Ensure arrays are numpy
+        
+        # Ensure arrays are numpy (no more .detach() calls needed)
         G_row = self.G[person_idx]
         gamma = self.gamma
-        if hasattr(G_row, 'detach'):
-            G_row = G_row.detach().cpu().numpy()
-        if hasattr(gamma, 'detach'):
-            gamma = gamma.detach().cpu().numpy()
-        if hasattr(G_row, 'numpy') and not isinstance(G_row, np.ndarray):
-            G_row = G_row.numpy()
-        if hasattr(gamma, 'numpy') and not isinstance(gamma, np.ndarray):
-            gamma = gamma.numpy()
+        
+        # Convert to numpy if they're not already
+        if not isinstance(G_row, np.ndarray):
+            G_row = np.array(G_row)
+        if not isinstance(gamma, np.ndarray):
+            gamma = np.array(gamma)
+        
         K = gamma.shape[1]
         P = gamma.shape[0]
+        
         # Each PRS feature's contribution to each signature
         contrib = G_row[:, None] * gamma  # shape: (P, K)
         total = np.sum(contrib, axis=0)  # shape: (K,)
+        
         # Avoid division by zero
         total[total == 0] = 1e-12
         frac = contrib / total  # shape: (P, K)
+        
         fig, ax = plt.subplots(figsize=(12, 5))
         bottom = np.zeros(K)
+        
         # Use a color palette for PRS features
         palette = sns.color_palette('tab20', P)
         labels = self.prs_names if self.prs_names and len(self.prs_names) == P else [f'PRS {p}' for p in range(P)]
+        
         for p in range(P):
             ax.bar(np.arange(K), contrib[p], bottom=bottom, color=palette[p], label=labels[p], width=0.8)
             bottom += contrib[p]
+        
         ax.set_xticks(np.arange(K))
         ax.set_xticklabels([f'Sig {k}' for k in range(K)], rotation=45, ha='right')
         ax.set_ylabel('Genetic Effect (sum of PRS contributions)')
@@ -660,12 +677,27 @@ def main():
     
     # Find MI disease index
 # With this more robust version:
+    # Find MI disease index
     mi_idx = None
     for i, name in enumerate(visualizer.disease_names):
-        name_lower = str(name).lower()
-        if any(term in name_lower for term in ["myocardial infarction", "mi", "heart attack", "cardiac"]):
+        # Handle DataFrame format - extract the actual name value
+        if hasattr(name, 'item'):
+            name_str = str(name.item())
+        elif hasattr(name, 'values'):
+            name_str = str(name.values[0])
+        else:
+            name_str = str(name)
+        
+        name_lower = name_str.lower()
+        # More specific MI detection - avoid false positives
+        if any(term in name_lower for term in ["myocardial infarction", "heart attack"]):
             mi_idx = i
-            print(f"Found MI at index {i}: {name}")
+            print(f"Found MI at index {i}: {name_str}")
+            break
+        # Only check "mi" if it's a standalone term, not part of other words
+        elif " mi " in f" {name_lower} " or name_lower == "mi":
+            mi_idx = i
+            print(f"Found MI at index {i}: {name_str}")
             break
 
     # Debug: show what we found
@@ -676,25 +708,18 @@ def main():
         print("WARNING: Could not find MI disease index!")
         print("Available disease names:")
         for i, name in enumerate(visualizer.disease_names):
-            if "cardio" in str(name).lower() or "heart" in str(name).lower():
-                print(f"  {i}: {name}")
+            # Handle DataFrame format for display too
+            if hasattr(name, 'item'):
+                name_str = str(name.item())
+            elif hasattr(name, 'values'):
+                name_str = str(name.values[0])
 
     # --- Filter to only multi-morbid MI patients with MI diagnosis near sig 5 peak ---
  
 
     good_patients = list(range(visualizer.N)) #fallback to all patients if none with MI
     
-    """
-    if mi_idx is not None and visualizer.Y is not None:
-        good_patients = find_good_mi_overlap_patients(visualizer.Y, visualizer.psi, mi_idx, sig_idx=5, window=3, min_diseases=2)
-    if not good_patients:
-        # fallback: all MI patients
-        for n in range(visualizer.N):
-            if np.any(visualizer.Y[n, mi_idx, :] > 0.5):
-                good_patients.append(n)
-    if not good_patients:
-        good_patients = list(range(visualizer.N))  # fallback to all patients if none with MI
-"""
+
 
     # Default to first good patient, or 0
     default_person_idx = good_patients[0] if good_patients else 0
@@ -789,7 +814,7 @@ def main():
         #        st.pyplot(fig)
         #st.markdown("---")
         st.header("Counterfactual Signature Trajectory (PRS=0)")
-        person_idx_cf = st.number_input("Patient Index", min_value=0, max_value=visualizer.N-1, value=536)
+        person_idx_cf = st.number_input("Patient Index", min_value=0, max_value=visualizer.N-1, value=1)
         signature_idx_cf = st.number_input("Signature Index", min_value=0, max_value=visualizer.K-1, value=5)
         fig_cf = visualizer.counterfactual_signature_trajectory(person_idx_cf, signature_idx_cf)
         if fig_cf:
@@ -835,30 +860,36 @@ def main():
         st.pyplot(fig)
 
     with tab5:
-        st.markdown("### Risk Summary & Event Analysis")
-        # Only show diseases with at least one diagnosis event for this patient
-        if visualizer.Y is not None:
-            patient_diagnosed_diseases = [d for d in range(visualizer.D) if np.any(visualizer.Y[person_idx, d, :] > 0.5)]
-        else:
-            patient_diagnosed_diseases = []
-        if not patient_diagnosed_diseases:
-            st.info("This patient has no diagnosis events.")
-        else:
-            # Disease selection (only those diagnosed in this patient)
-            disease_idx = st.selectbox(
-                "Select Disease for Analysis",
-                options=patient_diagnosed_diseases,
-                format_func=lambda x: visualizer.disease_names[x]
-            )
-            disease_name = visualizer.disease_names[disease_idx]
-            # Prevalence in dataset
+            st.markdown("### Risk Summary & Event Analysis")
+            # Only show diseases with at least one diagnosis event for this patient
             if visualizer.Y is not None:
-                disease_prevalence = np.sum(visualizer.Y.sum(axis=2) > 0, axis=0)
-                n_patients_with_event = int(disease_prevalence[disease_idx])
+                patient_diagnosed_diseases = [d for d in range(visualizer.D) if np.any(visualizer.Y[person_idx, d, :] > 0.5)]
             else:
-                n_patients_with_event = 0
-            st.markdown(f"**{n_patients_with_event} patients** in the dataset have at least one diagnosis event for **{disease_name}**.")
-            # Get disease probabilities
+                patient_diagnosed_diseases = []
+            if not patient_diagnosed_diseases:
+                st.info("This patient has no diagnosis events.")
+            else:
+                # Find MI disease index for this patient (use the global mi_idx we found earlier)
+                mi_disease_idx = None
+                if mi_idx is not None and mi_idx in patient_diagnosed_diseases:
+                    mi_disease_idx = mi_idx
+                
+                # Disease selection (default to MI if available, otherwise first diagnosed disease)
+                default_disease_idx = mi_disease_idx if mi_disease_idx is not None else patient_diagnosed_diseases[0]
+                disease_idx = st.selectbox(
+                    "Select Disease for Analysis",
+                    options=patient_diagnosed_diseases,
+                    index=patient_diagnosed_diseases.index(default_disease_idx),
+                    format_func=lambda x: visualizer.disease_names[x]
+                )
+                disease_name = visualizer.disease_names[disease_idx]
+                # Prevalence in dataset
+                if visualizer.Y is not None:
+                    disease_prevalence = np.sum(visualizer.Y.sum(axis=2) > 0, axis=0)
+                    n_patients_with_event = int(disease_prevalence[disease_idx])
+                else:
+                    n_patients_with_event = 0
+
             pi_t = visualizer.compute_disease_probabilities(person_idx)
             disease_probs = pi_t[:, disease_idx]
             epsilon = 1e-10
