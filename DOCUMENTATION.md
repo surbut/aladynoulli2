@@ -4,11 +4,11 @@ This document provides a comprehensive overview of all documentation and materia
 
 ## 📋 Complete Documentation Package
 
-Please have a look at our key notebooks [Here](pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) for [Here](pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) an understandng of how this works.
+Please have a look at our key notebooks for discovery [here](pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) and prediction [Here](pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) an understandng of how this works.
 
 ### 1. Source Code and Software
 - **Main Repository**: Complete source code with version control
-- **Core Model Implementation**: The core model code is [here](pyScripts_forPublish/clust_huge_amp.py) and [here](clust_huge_ampfixedPhi.py) implemented using external (fixed) phi for prediction.
+- **Core Model Implementation**: The core model code is [here](pyScripts_forPublish/clust_huge_amp.py) and [here](pyScripts_forPublish/clust_huge_amp_fixedPhi.py) implemented using external (fixed) phi for prediction.
 - **Discovery Notebook**: [Here](pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb). Fitting the model for full discovery 
 - **Prediction Notebook**: [Here](pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) 
 - **Additional Tools**: Streamlit app, AWS submission scripts
@@ -112,7 +112,7 @@ pyScripts_forPublish/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/aladynoulli2.git
+   git clone https://github.com/surbut/aladynoulli2.git
    cd aladynoulli2
    ```
 
