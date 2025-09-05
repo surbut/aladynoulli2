@@ -85,7 +85,7 @@ Where:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/aladynoulli2.git
+   git clone https://github.com/surbut/aladynoulli2.git
    cd aladynoulli2
    ```
 
