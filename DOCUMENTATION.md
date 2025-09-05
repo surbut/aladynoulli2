@@ -7,7 +7,7 @@ This document provides a comprehensive overview of all documentation and materia
 Please have a look at our key notebooks for discovery [here](pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) and prediction [Here](pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) an understandng of how this works.
 
 ### 1. Source Code and Software
-- **Main Repository**: Complete source code with version control
+- **Main Repository**: Complete source code with [version control](https://github.com/surbut/aladynoulli2)
 - **Core Model Implementation**: The core model code is [here](pyScripts_forPublish/clust_huge_amp.py) and [here](pyScripts_forPublish/clust_huge_amp_fixedPhi.py) implemented using external (fixed) phi for prediction.
 - **Discovery Notebook**: [Here](pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb). Fitting the model for full discovery 
 - **Prediction Notebook**: [Here](pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) 
@@ -139,7 +139,7 @@ pyScripts_forPublish/
 - **Python Version**: 3.8+
 - **PyTorch Version**: 1.9+
 - **Last Updated**: December 2024
-- **Repository**: https://github.com/yourusername/aladynoulli2
+- **Repository**: https://github.com/surbut/aladynoulli2
 
 ## 🔗 Additional Resources
 
