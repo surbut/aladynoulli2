@@ -11,7 +11,7 @@
 
 
 
-<title>README</title>
+<title>DOCUMENTATION</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -352,199 +352,126 @@ display: none;
 </div>
 
 
-<div id="aladynoulli-a-bayesian-survival-model-for-disease-trajectory-prediction" class="section level1">
-<h1>Aladynoulli: A Bayesian Survival Model for Disease Trajectory
-Prediction</h1>
-<p><a href="https://opensource.org/licenses/MIT"><img role="img" aria-label="License: MIT" src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MiIgaGVpZ2h0PSIyMCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJMaWNlbnNlOiBNSVQiPjx0aXRsZT5MaWNlbnNlOiBNSVQ8L3RpdGxlPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDI9IjAiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiYmIiIHN0b3Atb3BhY2l0eT0iLjEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3Atb3BhY2l0eT0iLjEiLz48L2xpbmVhckdyYWRpZW50PjxjbGlwUGF0aCBpZD0iciI+PHJlY3Qgd2lkdGg9IjgyIiBoZWlnaHQ9IjIwIiByeD0iMyIgZmlsbD0iI2ZmZiIvPjwvY2xpcFBhdGg+PGcgY2xpcC1wYXRoPSJ1cmwoI3IpIj48cmVjdCB3aWR0aD0iNTEiIGhlaWdodD0iMjAiIGZpbGw9IiM1NTUiLz48cmVjdCB4PSI1MSIgd2lkdGg9IjMxIiBoZWlnaHQ9IjIwIiBmaWxsPSIjZGZiMzE3Ii8+PHJlY3Qgd2lkdGg9IjgyIiBoZWlnaHQ9IjIwIiBmaWxsPSJ1cmwoI3MpIi8+PC9nPjxnIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJWZXJkYW5hLEdlbmV2YSxEZWphVnUgU2FucyxzYW5zLXNlcmlmIiB0ZXh0LXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiBmb250LXNpemU9IjExMCI+PHRleHQgYXJpYS1oaWRkZW49InRydWUiIHg9IjI2NSIgeT0iMTUwIiBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgdGV4dExlbmd0aD0iNDEwIj5MaWNlbnNlPC90ZXh0Pjx0ZXh0IHg9IjI2NSIgeT0iMTQwIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgZmlsbD0iI2ZmZiIgdGV4dExlbmd0aD0iNDEwIj5MaWNlbnNlPC90ZXh0Pjx0ZXh0IGFyaWEtaGlkZGVuPSJ0cnVlIiB4PSI2NTUiIHk9IjE1MCIgZmlsbD0iIzAxMDEwMSIgZmlsbC1vcGFjaXR5PSIuMyIgdHJhbnNmb3JtPSJzY2FsZSguMSkiIHRleHRMZW5ndGg9IjIxMCI+TUlUPC90ZXh0Pjx0ZXh0IHg9IjY1NSIgeT0iMTQwIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgZmlsbD0iI2ZmZiIgdGV4dExlbmd0aD0iMjEwIj5NSVQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="License: MIT" /></a> <a href="https://www.python.org/downloads/"><img role="img" aria-label="Python 3.8+" src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4NiIgaGVpZ2h0PSIyMCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJweXRob246IDMuOCsiPjx0aXRsZT5weXRob246IDMuOCs8L3RpdGxlPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDI9IjAiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiYmIiIHN0b3Atb3BhY2l0eT0iLjEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3Atb3BhY2l0eT0iLjEiLz48L2xpbmVhckdyYWRpZW50PjxjbGlwUGF0aCBpZD0iciI+PHJlY3Qgd2lkdGg9Ijg2IiBoZWlnaHQ9IjIwIiByeD0iMyIgZmlsbD0iI2ZmZiIvPjwvY2xpcFBhdGg+PGcgY2xpcC1wYXRoPSJ1cmwoI3IpIj48cmVjdCB3aWR0aD0iNDkiIGhlaWdodD0iMjAiIGZpbGw9IiM1NTUiLz48cmVjdCB4PSI0OSIgd2lkdGg9IjM3IiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDA3ZWM2Ii8+PHJlY3Qgd2lkdGg9Ijg2IiBoZWlnaHQ9IjIwIiBmaWxsPSJ1cmwoI3MpIi8+PC9nPjxnIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJWZXJkYW5hLEdlbmV2YSxEZWphVnUgU2FucyxzYW5zLXNlcmlmIiB0ZXh0LXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiBmb250LXNpemU9IjExMCI+PHRleHQgYXJpYS1oaWRkZW49InRydWUiIHg9IjI1NSIgeT0iMTUwIiBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgdGV4dExlbmd0aD0iMzkwIj5weXRob248L3RleHQ+PHRleHQgeD0iMjU1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiBmaWxsPSIjZmZmIiB0ZXh0TGVuZ3RoPSIzOTAiPnB5dGhvbjwvdGV4dD48dGV4dCBhcmlhLWhpZGRlbj0idHJ1ZSIgeD0iNjY1IiB5PSIxNTAiIGZpbGw9IiMwMTAxMDEiIGZpbGwtb3BhY2l0eT0iLjMiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSIyNzAiPjMuOCs8L3RleHQ+PHRleHQgeD0iNjY1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiBmaWxsPSIjZmZmIiB0ZXh0TGVuZ3RoPSIyNzAiPjMuOCs8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Python 3.8+" /></a> <a href="https://pytorch.org/"><img role="img" aria-label="PyTorch" src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MCIgaGVpZ2h0PSIyMCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJQeVRvcmNoOiAxLjkrIj48dGl0bGU+UHlUb3JjaDogMS45KzwvdGl0bGU+PGxpbmVhckdyYWRpZW50IGlkPSJzIiB4Mj0iMCIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2JiYiIgc3RvcC1vcGFjaXR5PSIuMSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1vcGFjaXR5PSIuMSIvPjwvbGluZWFyR3JhZGllbnQ+PGNsaXBQYXRoIGlkPSJyIj48cmVjdCB3aWR0aD0iOTAiIGhlaWdodD0iMjAiIHJ4PSIzIiBmaWxsPSIjZmZmIi8+PC9jbGlwUGF0aD48ZyBjbGlwLXBhdGg9InVybCgjcikiPjxyZWN0IHdpZHRoPSI1MyIgaGVpZ2h0PSIyMCIgZmlsbD0iIzU1NSIvPjxyZWN0IHg9IjUzIiB3aWR0aD0iMzciIGhlaWdodD0iMjAiIGZpbGw9IiNlMDVkNDQiLz48cmVjdCB3aWR0aD0iOTAiIGhlaWdodD0iMjAiIGZpbGw9InVybCgjcykiLz48L2c+PGcgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IlZlcmRhbmEsR2VuZXZhLERlamFWdSBTYW5zLHNhbnMtc2VyaWYiIHRleHQtcmVuZGVyaW5nPSJnZW9tZXRyaWNQcmVjaXNpb24iIGZvbnQtc2l6ZT0iMTEwIj48dGV4dCBhcmlhLWhpZGRlbj0idHJ1ZSIgeD0iMjc1IiB5PSIxNTAiIGZpbGw9IiMwMTAxMDEiIGZpbGwtb3BhY2l0eT0iLjMiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSI0MzAiPlB5VG9yY2g8L3RleHQ+PHRleHQgeD0iMjc1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiBmaWxsPSIjZmZmIiB0ZXh0TGVuZ3RoPSI0MzAiPlB5VG9yY2g8L3RleHQ+PHRleHQgYXJpYS1oaWRkZW49InRydWUiIHg9IjcwNSIgeT0iMTUwIiBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgdGV4dExlbmd0aD0iMjcwIj4xLjkrPC90ZXh0Pjx0ZXh0IHg9IjcwNSIgeT0iMTQwIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgZmlsbD0iI2ZmZiIgdGV4dExlbmd0aD0iMjcwIj4xLjkrPC90ZXh0PjwvZz48L3N2Zz4=" alt="PyTorch" /></a></p>
-<p>A comprehensive Bayesian survival model for predicting disease
-trajectories using genetic and clinical data. This repository contains
-the complete implementation of the Aladynoulli model as described in our
-preprint.</p>
-<p><strong>Preprint</strong>: <a href="https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1">medRxiv</a></p>
-<div id="quick-start" class="section level2">
-<h2>🚀 Quick Start</h2>
-<div id="installation" class="section level3">
-<h3>Installation</h3>
-<pre class="bash"><code>git clone https://github.com/yourusername/aladynoulli2.git
-cd aladynoulli2
-pip install -r requirements.txt</code></pre>
-<p>For detailed installation instructions, see <a href="INSTALLATION.md">INSTALLATION.md</a>.</p>
-</div>
-</div>
-<div id="table-of-contents" class="section level2">
-<h2>📋 Table of Contents</h2>
+<div id="documentation-for-peer-review" class="section level1">
+<h1>Documentation for Peer Review</h1>
+<p>This document provides a comprehensive overview of all documentation
+and materials provided for the peer review of the Aladynoulli
+software.</p>
+<div id="complete-documentation-package" class="section level2">
+<h2>📋 Complete Documentation Package</h2>
+<p>Please have a look at our key notebooks <a href="pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb">Here</a>
+for <a href="pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb">Here</a>
+an understandng of how this works.</p>
+<div id="source-code-and-software" class="section level3">
+<h3>1. Source Code and Software</h3>
 <ul>
-<li><a href="#overview">Overview</a></li>
-<li><a href="#model-architecture">Model Architecture</a></li>
-<li><a href="#installation">Installation</a></li>
-<li><a href="#usage">Usage</a></li>
-<li><a href="#documentation">Documentation</a></li>
-<li><a href="#citation">Citation</a></li>
-<li><a href="#license">License</a></li>
-<li><a href="#contact">Contact</a></li>
+<li><p><strong>Main Repository</strong>: Complete source code with
+version control</p></li>
+<li><p><strong>Core Model Implementation</strong>: The core model code
+is <a href="pyScripts_forPublish/clust_huge_amp.py">here</a> and <a href="clust_huge_ampfixedPhi.py">here</a> implemented using external
+(fixed) phi for prediction.</p></li>
+<li><p><strong>Discovery Notebook</strong>: <a href="pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb">Here</a>.
+Fitting the model for full discovery</p></li>
+<li><p><strong>Prediction Notebook</strong>: <a href="pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb">Here</a></p></li>
+<li><p><strong>Additional Tools</strong>: Streamlit app, AWS submission
+scripts</p></li>
+<li><p>Streamlit app code is <a href="pyScripts_forPublish/patient_timeline_app">here</a> and hosted <a href="http://44.250.38.1:8501" class="uri">http://44.250.38.1:8501</a></p></li>
+<li><p>submission scripts for AWS with fixed phi over 30 years are <a href="pyScripts_forPublish/submit_script_aws_fixedph_40_70.py">here</a></p></li>
+<li><p>submission scripts for AWS basic are <a href="pyScripts_forPublish/submit_script.py">here</a></p></li>
 </ul>
 </div>
-<div id="overview" class="section level2">
-<h2>🔬 Overview</h2>
-<p>Aladynoulli is a Bayesian survival model that predicts disease
-trajectories by modeling:</p>
+<div id="installation-and-dependencies" class="section level3">
+<h3>2. Installation and Dependencies</h3>
 <ul>
-<li><strong>Disease signatures</strong>: Latent disease states that
-capture shared patterns across diseases</li>
-<li><strong>Genetic effects</strong>: Individual-specific genetic
-contributions to disease risk</li>
-<li><strong>Temporal dynamics</strong>: Time-varying disease
-probabilities using Gaussian processes</li>
-<li><strong>Censoring</strong>: Proper handling of incomplete follow-up
-data</li>
+<li><strong>Requirements File</strong>: <code>requirements.txt</code>
+(complete Python dependencies)</li>
+<li><strong>System Requirements</strong>: OS compatibility, hardware
+requirements, install time estimates</li>
 </ul>
-<div id="key-features" class="section level3">
-<h3>Key Features</h3>
+</div>
+<div id="documentation-files" class="section level3">
+<h3>3. Documentation Files</h3>
 <ul>
-<li>✅ <strong>Scalable</strong>: Handles large-scale genetic and
-clinical datasets</li>
-<li>✅ <strong>Flexible</strong>: Supports both discovery and prediction
-modes</li>
-<li>✅ <strong>Robust</strong>: Proper Bayesian uncertainty
-quantification</li>
-<li>✅ <strong>Fast</strong>: GPU-accelerated training and
-inference</li>
-<li>✅ <strong>Reproducible</strong>: Complete code and data processing
-pipelines</li>
+<li><strong>README.md</strong>: Comprehensive project overview and usage
+instructions</li>
+<li><strong>LICENSE</strong>: MIT License (open source compatible)</li>
+<li><strong>This File</strong>: Complete documentation inventory</li>
+</ul>
+</div>
+<div id="demo-and-testing" class="section level3">
+<h3>4. Demo and Testing</h3>
+<ul>
+<li><strong>Demo Script</strong>:
+<code>pyScripts/newsm_3_71.ipynb</code> (runs with synthetic data,
+includes timing)</li>
+<li><strong>Example Data</strong>: Synthetic data generation for
+testing</li>
+<li><strong>Performance Benchmarks</strong>: Runtime estimates for
+different configurations</li>
 </ul>
 </div>
 </div>
-<div id="model-architecture" class="section level2">
-<h2>🏗️ Model Architecture</h2>
-<p>The model consists of several key components:</p>
-<div id="core-components" class="section level3">
-<h3>Core Components</h3>
-<ol style="list-style-type: decimal">
-<li><strong>Signature States (K)</strong>: Latent disease signatures
-that capture shared patterns</li>
-<li><strong>Genetic Effects (γ)</strong>: Individual-specific genetic
-contributions</li>
-<li><strong>Temporal Dynamics (λ)</strong>: Time-varying signature
-proportions using GPs</li>
-<li><strong>Disease Probabilities (φ)</strong>: Signature-specific
-disease probabilities</li>
-<li><strong>Censoring Matrix (E)</strong>: Event times and censoring
-information</li>
-</ol>
-</div>
-<div id="mathematical-framework" class="section level3">
-<h3>Mathematical Framework</h3>
-<p>The model predicts disease probability at time t as:</p>
-<pre><code>π_i,d,t = κ × Σ_k θ_i,k,t × φ_k,d,t</code></pre>
-<p>Where: - <code>θ_i,k,t</code> = softmax(λ_i,k,t) (signature
-proportions) - <code>λ_i,k,t</code> ~ GP(μ_k + G_i γ_k, K_λ) (temporal
-dynamics) - <code>φ_k,d,t</code> = sigmoid(ψ_k,d + GP(μ_φ, K_φ))
-(disease probabilities)</p>
-</div>
-</div>
-<div id="installation-1" class="section level2">
-<h2>📦 Installation</h2>
-<div id="system-requirements" class="section level3">
-<h3>System Requirements</h3>
+<div id="technical-specifications" class="section level2">
+<h2>🔧 Technical Specifications</h2>
+<div id="programming-language" class="section level3">
+<h3>Programming Language</h3>
 <ul>
-<li><strong>Python</strong>: 3.8 or higher</li>
+<li><strong>Primary</strong>: Python 3.8+</li>
+<li><strong>Dependencies</strong>: PyTorch, NumPy, SciPy, scikit-learn,
+matplotlib, pandas</li>
+<li><strong>Optional</strong>: R (for RDS file support)</li>
+</ul>
+</div>
+<div id="operating-system-support" class="section level3">
+<h3>Operating System Support</h3>
+<ul>
+<li><strong>macOS</strong>: 10.14+ (tested on macOS 12+)</li>
+<li><strong>Linux</strong>: Ubuntu 18.04+ (tested on Ubuntu 20.04+)</li>
+</ul>
+</div>
+<div id="hardware-requirements" class="section level3">
+<h3>Hardware Requirements</h3>
+<ul>
+<li><strong>CPU</strong>: Multi-core processor (4+ cores
+recommended)</li>
 <li><strong>RAM</strong>: 8GB minimum, 16GB+ recommended</li>
 <li><strong>Storage</strong>: 5GB free space</li>
-<li><strong>GPU</strong>: Optional but recommended (NVIDIA CUDA)</li>
+<li><strong>GPU</strong>: Optional but recommended (NVIDIA CUDA
+support)</li>
 </ul>
 </div>
-<div id="step-by-step-installation" class="section level3">
-<h3>Step-by-Step Installation</h3>
-<ol style="list-style-type: decimal">
-<li><p><strong>Clone the repository</strong>:</p>
-<pre class="bash"><code>git clone https://github.com/yourusername/aladynoulli2.git
-cd aladynoulli2</code></pre></li>
-<li><p><strong>Create virtual environment</strong>:</p>
-<pre class="bash"><code>conda create -n aladynoulli python=3.9
-conda activate aladynoulli</code></pre></li>
-<li><p><strong>Install dependencies</strong>:</p>
-<pre class="bash"><code>pip install -r requirements.txt</code></pre></li>
-</ol>
-<p>For detailed installation instructions, see <a href="INSTALLATION.md">INSTALLATION.md</a> and <a href="pyScripts_forPublish/DOCUMENTATION.md">Documentation.md</a></p>
 </div>
+<div id="installation-and-runtime-information" class="section level2">
+<h2>⏱️ Installation and Runtime Information</h2>
+<div id="typical-installation-time" class="section level3">
+<h3>Typical Installation Time</h3>
+<table>
+<thead>
+<tr class="header">
+<th>System</th>
+<th>Install Time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Modern laptop (8GB RAM, SSD)</td>
+<td>5-10 minutes</td>
+</tr>
+<tr class="even">
+<td>High-end workstation (32GB RAM, NVMe SSD)</td>
+<td>3-5 minutes</td>
+</tr>
+<tr class="odd">
+<td>Cloud instance (AWS EC2 t3.medium)</td>
+<td>8-12 minutes</td>
+</tr>
+<tr class="even">
+<td>GPU-enabled system (with CUDA)</td>
+<td>10-15 minutes</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div id="usage" class="section level2">
-<h2>💻 Usage</h2>
-<div id="discovery-mode" class="section level3">
-<h3>Discovery Mode</h3>
-<p>For full model discovery and signature learning:</p>
-<pre class="python"><code># Run the discovery notebook
-jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb</code></pre>
-</div>
-<div id="prediction-mode" class="section level3">
-<h3>Prediction Mode</h3>
-<p>For prediction using pre-trained signatures:</p>
-<pre class="python"><code># Run the prediction notebook
-jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb</code></pre>
-</div>
-<div id="programmatic-usage" class="section level3">
-<h3>Programmatic Usage</h3>
-<pre class="python"><code>from pyScripts_forPublish.clust_huge_amp import *
-
-# Initialize model
-
-model = AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(
-    N=Y_100k.shape[0], 
-    D=Y_100k.shape[1], 
-    T=Y_100k.shape[2], 
-    K=20,
-    P=G_with_sex.shape[1],
-    init_sd_scaler=1e-1,
-    G=G_with_sex, 
-    Y=Y_100k,
-    genetic_scale=1,
-    W=0.0001,
-    R=0,
-    prevalence_t=essentials[&#39;prevalence_t&#39;],
-    signature_references=signature_refs,  # Only pass signature refs
-    healthy_reference=True,  # Explicitly set to None
-    disease_names=essentials[&#39;disease_names&#39;]
-)
-
-# Train model
-history = model.fit(event_times, num_epochs=200)
-
-# Make predictions
-pi, theta, phi = model.forward()</code></pre>
-</div>
-</div>
-<div id="documentation" class="section level2">
-<h2>📚 Documentation</h2>
-<div id="core-scripts" class="section level3">
-<h3>Core Scripts</h3>
-<ul>
-<li><strong>Main Model</strong>: <a href="pyScripts_forPublish/clust_huge_amp_fixedPhi.py"><code>pyScripts_forPublish/clust_huge_amp_fixedPhi.py</code></a></li>
-<li><strong>Discovery Notebook</strong>: <a href="pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb"><code>pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb</code></a></li>
-<li><strong>Prediction Notebook</strong>: <a href="pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb"><code>pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb</code></a></li>
-</ul>
-</div>
-<div id="additional-tools" class="section level3">
-<h3>Additional Tools</h3>
-<ul>
-<li><strong>Streamlit App</strong>: <a href="pyScripts_forPublish/patient_timeline_app"><code>pyScripts_forPublish/patient_timeline_app</code></a></li>
-<li><strong>AWS Scripts</strong>: <a href="pyScripts_forPublish/submit_script_aws_fixedph_40_70.py"><code>pyScripts_forPublish/submit_script_aws_fixedph_40_70.py</code></a></li>
-<li><strong>Demo Script</strong>: <a href="pyScripts_forPublish/newsm_3_71.ipynb"><code>pyScripts_forPublish/newsm_3_71.ipynb</code></a></li>
-</ul>
-</div>
-<div id="data-requirements" class="section level3">
-<h3>Data Requirements</h3>
-<p>The model requires the following data files: -
-<code>Y_tensor.pt</code>: Disease outcome tensor (N × D × T) -
-<code>E_matrix.pt</code>: Censoring matrix (N × D) -
-<code>G_matrix.pt</code>: Genetic data matrix (N × P) -
-<code>model_essentials.pt</code>: Model configuration -
-<code>reference_trajectories.pt</code>: Reference trajectories -
-<code>initial_psi_400k.pt</code>: Initial psi parameters -
-<code>initial_clusters_400k.pt</code>: Initial cluster assignments</p>
-</div>
-</div>
-<div id="performance" class="section level2">
-<h2>⏱️ Performance</h2>
 <div id="typical-runtime-10000-individuals-50-diseases-50-time-points" class="section level3">
 <h3>Typical Runtime (10,000 individuals, 50 diseases, 50 time
 points)</h3>
@@ -575,61 +502,122 @@ points)</h3>
 </tbody>
 </table>
 </div>
-<div id="scalability" class="section level3">
-<h3>Scalability</h3>
+</div>
+<div id="data-requirements" class="section level2">
+<h2>📊 Data Requirements</h2>
+<div id="required-data-files" class="section level3">
+<h3>Required Data Files</h3>
+<p>The model requires the following data files (not included in
+repository due to size): - <code>Y_tensor.pt</code>: Disease outcome
+tensor (N × D × T) - <code>E_matrix.pt</code>: Censoring matrix (N × D)
+- <code>G_matrix.pt</code>: Genetic data matrix (N × P) -
+<code>model_essentials.pt</code>: Model configuration -
+<code>reference_trajectories.pt</code>: Reference trajectories -
+<code>initial_psi_400k.pt</code>: Initial psi parameters -
+<code>initial_clusters_400k.pt</code>: Initial cluster assignments</p>
+</div>
+<div id="data-format-specifications" class="section level3">
+<h3>Data Format Specifications</h3>
 <ul>
-<li><strong>Individuals</strong>: Tested up to 400,000</li>
-<li><strong>Diseases</strong>: Tested up to 400</li>
-<li><strong>Time Points</strong>: Tested up to 70</li>
-<li><strong>Genetic Features</strong>: Tested up to 1M SNPs</li>
+<li><strong>Y_tensor.pt</strong>: Binary tensor (0/1) indicating disease
+presence</li>
+<li><strong>E_matrix.pt</strong>: Integer tensor indicating
+event/censoring times</li>
+<li><strong>G_matrix.pt</strong>: Float tensor of genetic features
+(standardized)</li>
+<li><strong>All files</strong>: PyTorch tensors saved with
+<code>torch.save()</code></li>
 </ul>
-<p>This will: 1. Generate synthetic data 2. Train a small model 3.
-Generate predictions 4. Create visualizations 5. Report timing
-information</p>
 </div>
 </div>
-<div id="results" class="section level2">
-<h2>📊 Results</h2>
-<p>The model has been validated on: - UK Biobank data (500,000+
-individuals) - Multiple disease categories - Cross-validation studies -
-External validation cohorts</p>
+<div id="code-organization" class="section level2">
+<h2>🔍 Code Organization</h2>
+<div id="core-files" class="section level3">
+<h3>Core Files</h3>
+<pre><code>pyScripts_forPublish/
+|── clust_huge_amp.py          # Main model implementation
+├── clust_huge_amp_fixedPhi.py  # Main model implementation with fixed phi
+├── aladynoulli_fit_for_understanding_and_discovery.ipynb  # Discovery mode
+├── aladynoulli_fit_for_prediction.ipynb                   # Prediction mode
+├── submit_script_aws_fixedph_40_70.py  # AWS submission script
+└── submit_script.py                     # Basic submission script</code></pre>
 </div>
-<div id="contributing" class="section level2">
-<h2>🤝 Contributing</h2>
-<p>We welcome contributions! Please see our contributing guidelines for
-details.</p>
+<div id="supporting-files" class="section level3">
+<h3>Supporting Files</h3>
+<pre><code>├── requirements.txt                     # Python dependencies
+├── INSTALLATION.md                     # Installation guide
+├── LICENSE                             # MIT License
+├── README.md                           # Project overview
+└── DOCUMENTATION.md                    # This file</code></pre>
 </div>
-<div id="citation" class="section level2">
-<h2>📄 Citation</h2>
-<p>If you use this code in your research, please cite:</p>
-<pre class="bibtex"><code>@article{urbut2024aladynoulli,
-  title={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},
-  author={Urbut, Sarah and others},
-  journal={medRxiv},
-  year={2024},
-  doi={10.1101/2024.09.29.24314557}
-}</code></pre>
 </div>
-<div id="license" class="section level2">
-<h2>📜 License</h2>
-<p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
+<div id="quick-start-for-reviewers" class="section level2">
+<h2>🚀 Quick Start for Reviewers</h2>
+<ol style="list-style-type: decimal">
+<li><p><strong>Clone the repository</strong>:</p>
+<pre class="bash"><code>git clone https://github.com/yourusername/aladynoulli2.git
+cd aladynoulli2</code></pre></li>
+<li><p><strong>Install dependencies</strong>:</p>
+<pre class="bash"><code>pip install -r requirements.txt</code></pre></li>
+<li><p><strong>Explore the sourcecode</strong>:</p>
+<pre class="bash"><code>  pyScripts_forPublish/clust_huge_amp
+  pyScripts_forPublish/clust_huge_amp_fixedPhi</code></pre></li>
+<li><p><strong>Explore the notebooks</strong>:</p>
+<pre class="bash"><code>jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb
+jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb</code></pre></li>
+</ol>
 </div>
-<div id="contact" class="section level2">
-<h2>📞 Contact</h2>
+<div id="version-information" class="section level2">
+<h2>📝 Version Information</h2>
 <ul>
-<li><strong>Author</strong>: Sarah Urbut</li>
-<li><strong>Email</strong>: <a href="mailto:surbut@mgh.harvard.edu" class="email">surbut@mgh.harvard.edu</a></li>
+<li><strong>Software Version</strong>: 1.0.0</li>
+<li><strong>Python Version</strong>: 3.8+</li>
+<li><strong>PyTorch Version</strong>: 1.9+</li>
+<li><strong>Last Updated</strong>: December 2024</li>
+<li><strong>Repository</strong>: <a href="https://github.com/yourusername/aladynoulli2" class="uri">https://github.com/yourusername/aladynoulli2</a></li>
+</ul>
+</div>
+<div id="additional-resources" class="section level2">
+<h2>🔗 Additional Resources</h2>
+<ul>
+<li><strong>Preprint</strong>: <a href="https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1" class="uri">https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1</a></li>
+<li><strong>Contact</strong>: <a href="mailto:surbut@mgh.harvard.edu" class="email">surbut@mgh.harvard.edu</a></li>
 <li><strong>Institution</strong>: Massachusetts General Hospital</li>
 </ul>
 </div>
-<div id="acknowledgments" class="section level2">
-<h2>🙏 Acknowledgments</h2>
-<p>We thank the UK Biobank participants and the research community for
-making this work possible.</p>
+<div id="peer-review-checklist" class="section level2">
+<h2>✅ Peer Review Checklist</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" checked></input>Complete source code
+provided</label></li>
+<li><label><input type="checkbox" checked></input>Installation guide with
+OS requirements</label></li>
+<li><label><input type="checkbox" checked></input>Software dependencies
+listed</label></li>
+<li><label><input type="checkbox" checked></input>Demo script with example
+data</label></li>
+<li><label><input type="checkbox" checked></input>Typical runtime
+information</label></li>
+<li><label><input type="checkbox" checked></input>Open source license
+(MIT)</label></li>
+<li><label><input type="checkbox" checked></input>Comprehensive
+documentation</label></li>
+<li><label><input type="checkbox" checked></input>Version information
+provided</label></li>
+<li><label><input type="checkbox" checked></input>Contact information
+provided</label></li>
+</ul>
+</div>
+<div id="support" class="section level2">
+<h2>📞 Support</h2>
+<p>For questions or issues during peer review: - <strong>Email</strong>:
+<a href="mailto:surbut@mgh.harvard.edu" class="email">surbut@mgh.harvard.edu</a> - <strong>Response
+Time</strong>: Within 24 hours - <strong>Availability</strong>:
+Monday-Friday, 9 AM - 5 PM EST</p>
 <hr />
-<p><strong>Note</strong>: This software is provided for research
-purposes. Please ensure you have appropriate data use agreements and
-ethical approvals before using with real patient data.</p>
+<p><strong>Note</strong>: This documentation package has been prepared
+specifically for peer review and editorial assessment. All materials are
+complete and ready for evaluation.</p>
 </div>
 </div>
 
