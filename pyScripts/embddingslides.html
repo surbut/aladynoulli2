@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Embedding</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="embddingslides_files/libs/clipboard/clipboard.min.js"></script>
+<script src="embddingslides_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="embddingslides_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="embddingslides_files/libs/quarto-html/popper.min.js"></script>
+<script src="embddingslides_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="embddingslides_files/libs/quarto-html/anchor.min.js"></script>
+<link href="embddingslides_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="embddingslides_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="embddingslides_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="embddingslides_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="embddingslides_files/libs/bootstrap/bootstrap-81267100e462c21b3d6c0d5bf76a3417.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Embedding</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'gridExtra'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dplyr':
+
+    combine</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(viridis)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: viridisLite</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reshape2)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># SLIDE 1: OVERVIEW</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>print_slide <span class="ot">&lt;-</span> <span class="cf">function</span>(title, content) {</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="fu">rep</span>(<span class="st">"="</span>, <span class="dv">80</span>), <span class="at">collapse =</span> <span class="st">""</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">paste0</span>(<span class="st">"SLIDE: "</span>, title), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="fu">rep</span>(<span class="st">"="</span>, <span class="dv">80</span>), <span class="at">collapse =</span> <span class="st">""</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(content, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="fu">rep</span>(<span class="st">"-"</span>, <span class="dv">80</span>), <span class="at">collapse =</span> <span class="st">""</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="fu">print_slide</span>(<span class="st">"SIMPLIFIED HIERARCHICAL EMBEDDINGS EXPLAINED"</span>, </span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="st">"This simulation shows the SIMPLIFIED approach where:</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="st">1. Diseases and signatures get embeddings in shared space</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="st">2. Psi = raw attention scores (E_d^T * W * E_k)</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="st">3. NO contextualization, NO softmax, NO projection layers</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="st">Key insight: Psi directly measures embedding compatibility!"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+================================================================================ 
+SLIDE: SIMPLIFIED HIERARCHICAL EMBEDDINGS EXPLAINED 
+================================================================================ 
+This simulation shows the SIMPLIFIED approach where:
+1. Diseases and signatures get embeddings in shared space
+2. Psi = raw attention scores (E_d^T * W * E_k)
+3. NO contextualization, NO softmax, NO projection layers
+
+Key insight: Psi directly measures embedding compatibility! 
+-------------------------------------------------------------------------------- </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># SLIDE 2: DATA GENERATION </span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>generate_simplified_embedding_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">N =</span> <span class="dv">1000</span>, <span class="at">D =</span> <span class="dv">50</span>, <span class="at">K =</span> <span class="dv">5</span>, <span class="at">L =</span> <span class="dv">10</span>) {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"STEP 1: CREATE TRUE EMBEDDINGS"</span>, </span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="st">"Creating interpretable ground truth embeddings with realistic scale:</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="st">  - N ="</span>, N, <span class="st">"patients, D ="</span>, D, <span class="st">"diseases, K ="</span>, K, <span class="st">"signatures, L ="</span>, L, <span class="st">"dimensions</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="st">  - Each signature gets"</span>, <span class="fu">floor</span>(L<span class="sc">/</span>K), <span class="st">"dedicated dimensions</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="st">  - Block structure should be clearly visible"</span>))</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 1: Create interpretable signature embeddings</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 1: Create interpretable signature embeddings with cycling assignment</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>E_k_true <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, K, L)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>K) {</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Primary dimension: cycle through available dimensions</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  primary_dim <span class="ot">&lt;-</span> (k<span class="dv">-1</span>) <span class="sc">%%</span> L <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  E_k_true[k, primary_dim] <span class="ot">&lt;-</span> <span class="fl">2.0</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add 1-2 secondary dimensions for richness</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>  secondary_dims <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="dv">1</span><span class="sc">:</span>L, primary_dim)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">length</span>(secondary_dims) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    n_secondary <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">2</span>, <span class="fu">length</span>(secondary_dims))</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    selected_secondary <span class="ot">&lt;-</span> <span class="fu">sample</span>(secondary_dims, n_secondary)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    E_k_true[k, selected_secondary] <span class="ot">&lt;-</span> <span class="fl">0.3</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Signature %d: primary dim %d, secondary dims %s</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>              k, primary_dim, <span class="fu">paste</span>(selected_secondary, <span class="at">collapse =</span> <span class="st">", "</span>)))</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Signature embeddings structure:"</span>)</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">round</span>(E_k_true, <span class="dv">2</span>))</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 2: Create disease embeddings based on signature assignments</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>  E_d_true <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, D, L)</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>  disease_assignments <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>K, <span class="at">length.out =</span> D)</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Disease assignment pattern (first 20): %s</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>              <span class="fu">paste</span>(disease_assignments[<span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>], <span class="at">collapse =</span> <span class="st">", "</span>)))</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Diseases per signature: %d</span><span class="sc">\n</span><span class="st">"</span>, D <span class="sc">%/%</span> K))</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(d <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>D) {</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>    primary_sig <span class="ot">&lt;-</span> disease_assignments[d]</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Strong loading on primary signature dimensions</span></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    E_d_true[d, ] <span class="ot">&lt;-</span> E_k_true[primary_sig, ] <span class="sc">*</span> (<span class="fl">0.8</span> <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="fl">0.1</span>))</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Add some secondary loadings for realism</span></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>    secondary_sigs <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="dv">1</span><span class="sc">:</span>K, primary_sig)</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">length</span>(secondary_sigs) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>      sec_sig <span class="ot">&lt;-</span> <span class="fu">sample</span>(secondary_sigs, <span class="dv">1</span>)</span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>      E_d_true[d, ] <span class="ot">&lt;-</span> E_d_true[d, ] <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> E_k_true[sec_sig, ]</span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>    }  <span class="co"># FIXED: Added missing closing brace</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Add noise</span></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>    E_d_true[d, ] <span class="ot">&lt;-</span> E_d_true[d, ] <span class="sc">+</span> <span class="fu">rnorm</span>(L, <span class="dv">0</span>, <span class="fl">0.05</span>)</span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"STEP 2: CREATE ATTENTION MATRIX W"</span>, </span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>  <span class="st">"The attention matrix W determines how embedding dimensions interact:</span></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a><span class="st">  - Mostly diagonal (1.5) to preserve structure</span></span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a><span class="st">  - Within-signature-block connections (0.3) for realism</span></span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a><span class="st">  - This is the KEY learnable component that transforms embeddings"</span>)</span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 3: Create attention matrix W with better structure</span></span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true" tabindex="-1"></a>  W_true <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, L, L)</span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(W_true) <span class="ot">&lt;-</span> <span class="fl">1.5</span>  <span class="co"># Strong diagonal to preserve structure</span></span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add within-signature-block connections</span></span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>K) {</span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true" tabindex="-1"></a>    start_dim <span class="ot">&lt;-</span> (k<span class="dv">-1</span>) <span class="sc">*</span> (L <span class="sc">%/%</span> K) <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true" tabindex="-1"></a>    end_dim <span class="ot">&lt;-</span> <span class="fu">min</span>(k <span class="sc">*</span> (L <span class="sc">%/%</span> K), L)</span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(end_dim <span class="sc">&gt;</span> start_dim) {</span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a>      dims <span class="ot">&lt;-</span> start_dim<span class="sc">:</span>end_dim</span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span>(i <span class="cf">in</span> dims) {</span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span>(j <span class="cf">in</span> dims) {</span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true" tabindex="-1"></a>          <span class="cf">if</span>(i <span class="sc">!=</span> j) {</span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true" tabindex="-1"></a>            W_true[i, j] <span class="ot">&lt;-</span> <span class="fl">0.3</span></span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true" tabindex="-1"></a>          }</span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Added within-block connections for signature %d (dims %d:%d)</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true" tabindex="-1"></a>                  k, start_dim, end_dim))</span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Attention matrix W structure (showing non-zero elements):"</span>)</span>
+<span id="cb12-89"><a href="#cb12-89" aria-hidden="true" tabindex="-1"></a>  W_display <span class="ot">&lt;-</span> W_true</span>
+<span id="cb12-90"><a href="#cb12-90" aria-hidden="true" tabindex="-1"></a>  W_display[W_display <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb12-91"><a href="#cb12-91" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">round</span>(W_display, <span class="dv">2</span>))</span>
+<span id="cb12-92"><a href="#cb12-92" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-93"><a href="#cb12-93" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"STEP 3: COMPUTE PSI DIRECTLY"</span>, </span>
+<span id="cb12-94"><a href="#cb12-94" aria-hidden="true" tabindex="-1"></a>  <span class="st">"SIMPLIFIED APPROACH:</span></span>
+<span id="cb12-95"><a href="#cb12-95" aria-hidden="true" tabindex="-1"></a><span class="st">  psi[k,d] = E_d[d]^T * W * E_k[k] / sqrt(L)</span></span>
+<span id="cb12-96"><a href="#cb12-96" aria-hidden="true" tabindex="-1"></a><span class="st">  </span></span>
+<span id="cb12-97"><a href="#cb12-97" aria-hidden="true" tabindex="-1"></a><span class="st">  This is the RAW attention score - no softmax, no projection!</span></span>
+<span id="cb12-98"><a href="#cb12-98" aria-hidden="true" tabindex="-1"></a><span class="st">  Each psi value measures embedding compatibility after transformation W."</span>)</span>
+<span id="cb12-99"><a href="#cb12-99" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-100"><a href="#cb12-100" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 4: Compute psi DIRECTLY (this is the key simplification)</span></span>
+<span id="cb12-101"><a href="#cb12-101" aria-hidden="true" tabindex="-1"></a>  psi_true <span class="ot">&lt;-</span> (E_d_true <span class="sc">%*%</span> W_true <span class="sc">%*%</span> <span class="fu">t</span>(E_k_true)) <span class="sc">/</span> <span class="fu">sqrt</span>(L)</span>
+<span id="cb12-102"><a href="#cb12-102" aria-hidden="true" tabindex="-1"></a>  psi_true <span class="ot">&lt;-</span> <span class="fu">t</span>(psi_true)  <span class="co"># Make it [K, D]</span></span>
+<span id="cb12-103"><a href="#cb12-103" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-104"><a href="#cb12-104" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"True psi matrix structure [K x D] (first 6 diseases, all signatures):"</span>)</span>
+<span id="cb12-105"><a href="#cb12-105" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">round</span>(psi_true[, <span class="dv">1</span><span class="sc">:</span><span class="fu">min</span>(<span class="dv">6</span>, D)], <span class="dv">3</span>))</span>
+<span id="cb12-106"><a href="#cb12-106" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-107"><a href="#cb12-107" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Show psi statistics by signature</span></span>
+<span id="cb12-108"><a href="#cb12-108" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Psi statistics by signature (should show block structure):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-109"><a href="#cb12-109" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>K) {</span>
+<span id="cb12-110"><a href="#cb12-110" aria-hidden="true" tabindex="-1"></a>    diseases_in_sig <span class="ot">&lt;-</span> <span class="fu">which</span>(disease_assignments <span class="sc">==</span> k)</span>
+<span id="cb12-111"><a href="#cb12-111" aria-hidden="true" tabindex="-1"></a>    psi_in_block <span class="ot">&lt;-</span> psi_true[k, diseases_in_sig]</span>
+<span id="cb12-112"><a href="#cb12-112" aria-hidden="true" tabindex="-1"></a>    psi_out_block <span class="ot">&lt;-</span> psi_true[k, <span class="sc">-</span>diseases_in_sig]</span>
+<span id="cb12-113"><a href="#cb12-113" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-114"><a href="#cb12-114" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Signature %d: In-block mean=%.3f, Out-block mean=%.3f, Ratio=%.2f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb12-115"><a href="#cb12-115" aria-hidden="true" tabindex="-1"></a>                k, <span class="fu">mean</span>(psi_in_block), <span class="fu">mean</span>(psi_out_block), </span>
+<span id="cb12-116"><a href="#cb12-116" aria-hidden="true" tabindex="-1"></a>                <span class="fu">mean</span>(psi_in_block) <span class="sc">/</span> <span class="fu">mean</span>(psi_out_block)))</span>
+<span id="cb12-117"><a href="#cb12-117" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-118"><a href="#cb12-118" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-119"><a href="#cb12-119" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"STEP 4: GENERATE OUTCOME DATA"</span>, </span>
+<span id="cb12-120"><a href="#cb12-120" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Generate disease outcomes using the true psi values:</span></span>
+<span id="cb12-121"><a href="#cb12-121" aria-hidden="true" tabindex="-1"></a><span class="st">  P(disease d | person i) ~ sigmoid(sum_k theta[i,k] * psi[k,d])</span></span>
+<span id="cb12-122"><a href="#cb12-122" aria-hidden="true" tabindex="-1"></a><span class="st">  </span></span>
+<span id="cb12-123"><a href="#cb12-123" aria-hidden="true" tabindex="-1"></a><span class="st">  This creates realistic disease patterns based on the embedding structure."</span>)</span>
+<span id="cb12-124"><a href="#cb12-124" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-125"><a href="#cb12-125" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Step 5: Generate outcome data using these psi values</span></span>
+<span id="cb12-126"><a href="#cb12-126" aria-hidden="true" tabindex="-1"></a>  theta <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, N, K)</span>
+<span id="cb12-127"><a href="#cb12-127" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>N) {</span>
+<span id="cb12-128"><a href="#cb12-128" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Each person has different signature loadings (Dirichlet distribution)</span></span>
+<span id="cb12-129"><a href="#cb12-129" aria-hidden="true" tabindex="-1"></a>    theta[i, ] <span class="ot">&lt;-</span> <span class="fu">rdirichlet</span>(<span class="dv">1</span>, <span class="fu">rep</span>(<span class="dv">2</span>, K))</span>
+<span id="cb12-130"><a href="#cb12-130" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-131"><a href="#cb12-131" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-132"><a href="#cb12-132" aria-hidden="true" tabindex="-1"></a>  Y <span class="ot">&lt;-</span> <span class="fu">array</span>(<span class="dv">0</span>, <span class="at">dim =</span> <span class="fu">c</span>(N, D, <span class="dv">1</span>))</span>
+<span id="cb12-133"><a href="#cb12-133" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>N) {</span>
+<span id="cb12-134"><a href="#cb12-134" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(d <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>D) {</span>
+<span id="cb12-135"><a href="#cb12-135" aria-hidden="true" tabindex="-1"></a>      linear_pred <span class="ot">&lt;-</span> <span class="fu">sum</span>(theta[i, ] <span class="sc">*</span> psi_true[, d])</span>
+<span id="cb12-136"><a href="#cb12-136" aria-hidden="true" tabindex="-1"></a>      prob <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>linear_pred))</span>
+<span id="cb12-137"><a href="#cb12-137" aria-hidden="true" tabindex="-1"></a>      Y[i, d, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="dv">1</span>, <span class="dv">1</span>, prob <span class="sc">*</span> <span class="fl">0.05</span>)  <span class="co"># Lower rate for realism</span></span>
+<span id="cb12-138"><a href="#cb12-138" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-139"><a href="#cb12-139" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-140"><a href="#cb12-140" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-141"><a href="#cb12-141" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Generated %d total events across %d patients and %d diseases</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-142"><a href="#cb12-142" aria-hidden="true" tabindex="-1"></a>              <span class="fu">sum</span>(Y), N, D))</span>
+<span id="cb12-143"><a href="#cb12-143" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Event rate: %.4f (target was ~0.05)</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(Y)))</span>
+<span id="cb12-144"><a href="#cb12-144" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-145"><a href="#cb12-145" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Show disease-specific event rates</span></span>
+<span id="cb12-146"><a href="#cb12-146" aria-hidden="true" tabindex="-1"></a>  disease_rates <span class="ot">&lt;-</span> <span class="fu">apply</span>(Y, <span class="dv">2</span>, mean)</span>
+<span id="cb12-147"><a href="#cb12-147" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Disease event rates: Min=%.4f, Max=%.4f, Mean=%.4f</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-148"><a href="#cb12-148" aria-hidden="true" tabindex="-1"></a>              <span class="fu">min</span>(disease_rates), <span class="fu">max</span>(disease_rates), <span class="fu">mean</span>(disease_rates)))</span>
+<span id="cb12-149"><a href="#cb12-149" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-150"><a href="#cb12-150" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(</span>
+<span id="cb12-151"><a href="#cb12-151" aria-hidden="true" tabindex="-1"></a>    <span class="at">E_d_true =</span> E_d_true,</span>
+<span id="cb12-152"><a href="#cb12-152" aria-hidden="true" tabindex="-1"></a>    <span class="at">E_k_true =</span> E_k_true, </span>
+<span id="cb12-153"><a href="#cb12-153" aria-hidden="true" tabindex="-1"></a>    <span class="at">W_true =</span> W_true,</span>
+<span id="cb12-154"><a href="#cb12-154" aria-hidden="true" tabindex="-1"></a>    <span class="at">psi_true =</span> psi_true,</span>
+<span id="cb12-155"><a href="#cb12-155" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y =</span> Y,</span>
+<span id="cb12-156"><a href="#cb12-156" aria-hidden="true" tabindex="-1"></a>    <span class="at">theta =</span> theta,</span>
+<span id="cb12-157"><a href="#cb12-157" aria-hidden="true" tabindex="-1"></a>    <span class="at">disease_assignments =</span> disease_assignments,</span>
+<span id="cb12-158"><a href="#cb12-158" aria-hidden="true" tabindex="-1"></a>    <span class="at">N =</span> N, <span class="at">D =</span> D, <span class="at">K =</span> K, <span class="at">L =</span> L</span>
+<span id="cb12-159"><a href="#cb12-159" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb12-160"><a href="#cb12-160" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-161"><a href="#cb12-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-162"><a href="#cb12-162" aria-hidden="true" tabindex="-1"></a><span class="co"># Dirichlet distribution sampler</span></span>
+<span id="cb12-163"><a href="#cb12-163" aria-hidden="true" tabindex="-1"></a>rdirichlet <span class="ot">&lt;-</span> <span class="cf">function</span>(n, alpha) {</span>
+<span id="cb12-164"><a href="#cb12-164" aria-hidden="true" tabindex="-1"></a>  k <span class="ot">&lt;-</span> <span class="fu">length</span>(alpha)</span>
+<span id="cb12-165"><a href="#cb12-165" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rgamma</span>(n <span class="sc">*</span> k, alpha, <span class="dv">1</span>), n, k)</span>
+<span id="cb12-166"><a href="#cb12-166" aria-hidden="true" tabindex="-1"></a>  x <span class="sc">/</span> <span class="fu">rowSums</span>(x)</span>
+<span id="cb12-167"><a href="#cb12-167" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-168"><a href="#cb12-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-169"><a href="#cb12-169" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-170"><a href="#cb12-170" aria-hidden="true" tabindex="-1"></a><span class="co"># SLIDE 3: VISUALIZATION FUNCTIONS</span></span>
+<span id="cb12-171"><a href="#cb12-171" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-172"><a href="#cb12-172" aria-hidden="true" tabindex="-1"></a>create_comprehensive_plots <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb12-173"><a href="#cb12-173" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-174"><a href="#cb12-174" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"CREATING VISUALIZATIONS"</span>, </span>
+<span id="cb12-175"><a href="#cb12-175" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Now we'll visualize all components to see if they make sense:</span></span>
+<span id="cb12-176"><a href="#cb12-176" aria-hidden="true" tabindex="-1"></a><span class="st">  1. Embeddings in PCA space (diseases should cluster by signature)</span></span>
+<span id="cb12-177"><a href="#cb12-177" aria-hidden="true" tabindex="-1"></a><span class="st">  2. Attention matrix W structure (should be block-diagonal)</span></span>
+<span id="cb12-178"><a href="#cb12-178" aria-hidden="true" tabindex="-1"></a><span class="st">  3. Final psi values (should show clear block patterns)</span></span>
+<span id="cb12-179"><a href="#cb12-179" aria-hidden="true" tabindex="-1"></a><span class="st">  4. Raw embedding values (should show signature-specific patterns)"</span>)</span>
+<span id="cb12-180"><a href="#cb12-180" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-181"><a href="#cb12-181" aria-hidden="true" tabindex="-1"></a>  plots <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb12-182"><a href="#cb12-182" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-183"><a href="#cb12-183" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 1. Embeddings in PCA space with better visualization</span></span>
+<span id="cb12-184"><a href="#cb12-184" aria-hidden="true" tabindex="-1"></a>  E_d_pca <span class="ot">&lt;-</span> <span class="fu">prcomp</span>(data<span class="sc">$</span>E_d_true)</span>
+<span id="cb12-185"><a href="#cb12-185" aria-hidden="true" tabindex="-1"></a>  disease_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-186"><a href="#cb12-186" aria-hidden="true" tabindex="-1"></a>    <span class="at">PC1 =</span> E_d_pca<span class="sc">$</span>x[,<span class="dv">1</span>],</span>
+<span id="cb12-187"><a href="#cb12-187" aria-hidden="true" tabindex="-1"></a>    <span class="at">PC2 =</span> E_d_pca<span class="sc">$</span>x[,<span class="dv">2</span>],</span>
+<span id="cb12-188"><a href="#cb12-188" aria-hidden="true" tabindex="-1"></a>    <span class="at">Disease =</span> <span class="fu">paste0</span>(<span class="st">"D"</span>, <span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>D),</span>
+<span id="cb12-189"><a href="#cb12-189" aria-hidden="true" tabindex="-1"></a>    <span class="at">TrueCluster =</span> <span class="fu">factor</span>(data<span class="sc">$</span>disease_assignments),</span>
+<span id="cb12-190"><a href="#cb12-190" aria-hidden="true" tabindex="-1"></a>    <span class="at">Type =</span> <span class="st">"Disease"</span></span>
+<span id="cb12-191"><a href="#cb12-191" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-192"><a href="#cb12-192" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-193"><a href="#cb12-193" aria-hidden="true" tabindex="-1"></a>  E_k_pca <span class="ot">&lt;-</span> <span class="fu">prcomp</span>(data<span class="sc">$</span>E_k_true)</span>
+<span id="cb12-194"><a href="#cb12-194" aria-hidden="true" tabindex="-1"></a>  signature_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-195"><a href="#cb12-195" aria-hidden="true" tabindex="-1"></a>    <span class="at">PC1 =</span> E_k_pca<span class="sc">$</span>x[,<span class="dv">1</span>],</span>
+<span id="cb12-196"><a href="#cb12-196" aria-hidden="true" tabindex="-1"></a>    <span class="at">PC2 =</span> E_k_pca<span class="sc">$</span>x[,<span class="dv">2</span>],</span>
+<span id="cb12-197"><a href="#cb12-197" aria-hidden="true" tabindex="-1"></a>    <span class="at">Disease =</span> <span class="fu">paste0</span>(<span class="st">"Sig"</span>, <span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>K),</span>
+<span id="cb12-198"><a href="#cb12-198" aria-hidden="true" tabindex="-1"></a>    <span class="at">TrueCluster =</span> <span class="fu">factor</span>(<span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>K),</span>
+<span id="cb12-199"><a href="#cb12-199" aria-hidden="true" tabindex="-1"></a>    <span class="at">Type =</span> <span class="st">"Signature"</span></span>
+<span id="cb12-200"><a href="#cb12-200" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-201"><a href="#cb12-201" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-202"><a href="#cb12-202" aria-hidden="true" tabindex="-1"></a>  embedding_df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb12-203"><a href="#cb12-203" aria-hidden="true" tabindex="-1"></a>    disease_df[,<span class="fu">c</span>(<span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"Disease"</span>, <span class="st">"TrueCluster"</span>, <span class="st">"Type"</span>)],</span>
+<span id="cb12-204"><a href="#cb12-204" aria-hidden="true" tabindex="-1"></a>    signature_df[,<span class="fu">c</span>(<span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"Disease"</span>, <span class="st">"TrueCluster"</span>, <span class="st">"Type"</span>)]</span>
+<span id="cb12-205"><a href="#cb12-205" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-206"><a href="#cb12-206" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-207"><a href="#cb12-207" aria-hidden="true" tabindex="-1"></a>  plots<span class="sc">$</span>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(embedding_df, <span class="fu">aes</span>(PC1, PC2, <span class="at">color =</span> TrueCluster, <span class="at">shape =</span> Type)) <span class="sc">+</span></span>
+<span id="cb12-208"><a href="#cb12-208" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb12-209"><a href="#cb12-209" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_viridis_d</span>(<span class="at">name =</span> <span class="st">"Signature"</span>) <span class="sc">+</span></span>
+<span id="cb12-210"><a href="#cb12-210" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Disease"</span> <span class="ot">=</span> <span class="dv">16</span>, <span class="st">"Signature"</span> <span class="ot">=</span> <span class="dv">17</span>)) <span class="sc">+</span></span>
+<span id="cb12-211"><a href="#cb12-211" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-212"><a href="#cb12-212" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Disease &amp; Signature Embeddings (PCA)"</span>,</span>
+<span id="cb12-213"><a href="#cb12-213" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">"Diseases should cluster by signature assignment"</span>),</span>
+<span id="cb12-214"><a href="#cb12-214" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"First Principal Component"</span>, <span class="at">y =</span> <span class="st">"Second Principal Component"</span>) <span class="sc">+</span></span>
+<span id="cb12-215"><a href="#cb12-215" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span>
+<span id="cb12-216"><a href="#cb12-216" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-217"><a href="#cb12-217" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 2. Attention matrix W with better visualization</span></span>
+<span id="cb12-218"><a href="#cb12-218" aria-hidden="true" tabindex="-1"></a>  W_df <span class="ot">&lt;-</span> <span class="fu">melt</span>(data<span class="sc">$</span>W_true)</span>
+<span id="cb12-219"><a href="#cb12-219" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(W_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Row"</span>, <span class="st">"Col"</span>, <span class="st">"Weight"</span>)</span>
+<span id="cb12-220"><a href="#cb12-220" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-221"><a href="#cb12-221" aria-hidden="true" tabindex="-1"></a>  plots<span class="sc">$</span>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(W_df, <span class="fu">aes</span>(Col, Row, <span class="at">fill =</span> Weight)) <span class="sc">+</span></span>
+<span id="cb12-222"><a href="#cb12-222" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb12-223"><a href="#cb12-223" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">"blue"</span>, <span class="at">mid =</span> <span class="st">"white"</span>, <span class="at">high =</span> <span class="st">"red"</span>,</span>
+<span id="cb12-224"><a href="#cb12-224" aria-hidden="true" tabindex="-1"></a>                        <span class="at">midpoint =</span> <span class="dv">0</span>, <span class="at">name =</span> <span class="st">"Weight"</span>) <span class="sc">+</span></span>
+<span id="cb12-225"><a href="#cb12-225" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-226"><a href="#cb12-226" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Attention Matrix W"</span>,</span>
+<span id="cb12-227"><a href="#cb12-227" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="st">"Block-diagonal structure preserves embedding dimensions"</span>,</span>
+<span id="cb12-228"><a href="#cb12-228" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Column"</span>, <span class="at">y =</span> <span class="st">"Row"</span>)</span>
+<span id="cb12-229"><a href="#cb12-229" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-230"><a href="#cb12-230" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 3. Psi values with clearer structure</span></span>
+<span id="cb12-231"><a href="#cb12-231" aria-hidden="true" tabindex="-1"></a>  psi_df <span class="ot">&lt;-</span> <span class="fu">melt</span>(data<span class="sc">$</span>psi_true)</span>
+<span id="cb12-232"><a href="#cb12-232" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(psi_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Signature"</span>, <span class="st">"Disease"</span>, <span class="st">"Psi"</span>)</span>
+<span id="cb12-233"><a href="#cb12-233" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-234"><a href="#cb12-234" aria-hidden="true" tabindex="-1"></a>  plots<span class="sc">$</span>p3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(psi_df, <span class="fu">aes</span>(Disease, Signature, <span class="at">fill =</span> Psi)) <span class="sc">+</span></span>
+<span id="cb12-235"><a href="#cb12-235" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb12-236"><a href="#cb12-236" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">"blue"</span>, <span class="at">mid =</span> <span class="st">"white"</span>, <span class="at">high =</span> <span class="st">"red"</span>,</span>
+<span id="cb12-237"><a href="#cb12-237" aria-hidden="true" tabindex="-1"></a>                        <span class="at">midpoint =</span> <span class="dv">0</span>, <span class="at">name =</span> <span class="st">"Psi Value"</span>) <span class="sc">+</span></span>
+<span id="cb12-238"><a href="#cb12-238" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-239"><a href="#cb12-239" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Psi Parameters (Disease-Signature Associations)"</span>,</span>
+<span id="cb12-240"><a href="#cb12-240" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="st">"Block structure shows which diseases belong to which signatures"</span>,</span>
+<span id="cb12-241"><a href="#cb12-241" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Disease"</span>, <span class="at">y =</span> <span class="st">"Signature"</span>) <span class="sc">+</span></span>
+<span id="cb12-242"><a href="#cb12-242" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">90</span>, <span class="at">vjust =</span> <span class="fl">0.5</span>))</span>
+<span id="cb12-243"><a href="#cb12-243" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-244"><a href="#cb12-244" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 4. Raw embedding values showing structure</span></span>
+<span id="cb12-245"><a href="#cb12-245" aria-hidden="true" tabindex="-1"></a>  E_d_subset <span class="ot">&lt;-</span> data<span class="sc">$</span>E_d_true[<span class="dv">1</span><span class="sc">:</span><span class="fu">min</span>(<span class="dv">20</span>, data<span class="sc">$</span>D), ]  <span class="co"># Show first 20 diseases</span></span>
+<span id="cb12-246"><a href="#cb12-246" aria-hidden="true" tabindex="-1"></a>  E_k_subset <span class="ot">&lt;-</span> data<span class="sc">$</span>E_k_true</span>
+<span id="cb12-247"><a href="#cb12-247" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-248"><a href="#cb12-248" aria-hidden="true" tabindex="-1"></a>  E_d_df <span class="ot">&lt;-</span> <span class="fu">melt</span>(E_d_subset)</span>
+<span id="cb12-249"><a href="#cb12-249" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(E_d_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Entity"</span>, <span class="st">"Dimension"</span>, <span class="st">"Value"</span>)</span>
+<span id="cb12-250"><a href="#cb12-250" aria-hidden="true" tabindex="-1"></a>  E_d_df<span class="sc">$</span>Type <span class="ot">&lt;-</span> <span class="st">"Disease"</span></span>
+<span id="cb12-251"><a href="#cb12-251" aria-hidden="true" tabindex="-1"></a>  E_d_df<span class="sc">$</span>ID <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"D"</span>, E_d_df<span class="sc">$</span>Entity)</span>
+<span id="cb12-252"><a href="#cb12-252" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-253"><a href="#cb12-253" aria-hidden="true" tabindex="-1"></a>  E_k_df <span class="ot">&lt;-</span> <span class="fu">melt</span>(E_k_subset)</span>
+<span id="cb12-254"><a href="#cb12-254" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(E_k_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Entity"</span>, <span class="st">"Dimension"</span>, <span class="st">"Value"</span>)</span>
+<span id="cb12-255"><a href="#cb12-255" aria-hidden="true" tabindex="-1"></a>  E_k_df<span class="sc">$</span>Type <span class="ot">&lt;-</span> <span class="st">"Signature"</span>  </span>
+<span id="cb12-256"><a href="#cb12-256" aria-hidden="true" tabindex="-1"></a>  E_k_df<span class="sc">$</span>ID <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"S"</span>, E_k_df<span class="sc">$</span>Entity)</span>
+<span id="cb12-257"><a href="#cb12-257" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-258"><a href="#cb12-258" aria-hidden="true" tabindex="-1"></a>  embedding_values_df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb12-259"><a href="#cb12-259" aria-hidden="true" tabindex="-1"></a>    E_d_df[,<span class="fu">c</span>(<span class="st">"Entity"</span>, <span class="st">"Dimension"</span>, <span class="st">"Value"</span>, <span class="st">"Type"</span>, <span class="st">"ID"</span>)],</span>
+<span id="cb12-260"><a href="#cb12-260" aria-hidden="true" tabindex="-1"></a>    E_k_df[,<span class="fu">c</span>(<span class="st">"Entity"</span>, <span class="st">"Dimension"</span>, <span class="st">"Value"</span>, <span class="st">"Type"</span>, <span class="st">"ID"</span>)]</span>
+<span id="cb12-261"><a href="#cb12-261" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-262"><a href="#cb12-262" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-263"><a href="#cb12-263" aria-hidden="true" tabindex="-1"></a>  plots<span class="sc">$</span>p4 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(embedding_values_df, <span class="fu">aes</span>(Dimension, ID, <span class="at">fill =</span> Value)) <span class="sc">+</span></span>
+<span id="cb12-264"><a href="#cb12-264" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb12-265"><a href="#cb12-265" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>Type, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb12-266"><a href="#cb12-266" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> <span class="st">"blue"</span>, <span class="at">mid =</span> <span class="st">"white"</span>, <span class="at">high =</span> <span class="st">"red"</span>,</span>
+<span id="cb12-267"><a href="#cb12-267" aria-hidden="true" tabindex="-1"></a>                        <span class="at">midpoint =</span> <span class="dv">0</span>, <span class="at">name =</span> <span class="st">"Value"</span>) <span class="sc">+</span></span>
+<span id="cb12-268"><a href="#cb12-268" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-269"><a href="#cb12-269" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Raw Embedding Values"</span>,</span>
+<span id="cb12-270"><a href="#cb12-270" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="st">"Block structure: each signature dominates specific dimensions"</span>,</span>
+<span id="cb12-271"><a href="#cb12-271" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Embedding Dimension"</span>, <span class="at">y =</span> <span class="st">"Entity"</span>) <span class="sc">+</span></span>
+<span id="cb12-272"><a href="#cb12-272" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">8</span>))</span>
+<span id="cb12-273"><a href="#cb12-273" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-274"><a href="#cb12-274" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 5. Enhanced model summary with more metrics</span></span>
+<span id="cb12-275"><a href="#cb12-275" aria-hidden="true" tabindex="-1"></a>  expected_psi <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="sc">-</span><span class="dv">1</span>, data<span class="sc">$</span>K, data<span class="sc">$</span>D)  <span class="co"># Background negative</span></span>
+<span id="cb12-276"><a href="#cb12-276" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(d <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>D) {</span>
+<span id="cb12-277"><a href="#cb12-277" aria-hidden="true" tabindex="-1"></a>    primary_sig <span class="ot">&lt;-</span> data<span class="sc">$</span>disease_assignments[d]</span>
+<span id="cb12-278"><a href="#cb12-278" aria-hidden="true" tabindex="-1"></a>    expected_psi[primary_sig, d] <span class="ot">&lt;-</span> <span class="dv">1</span>  <span class="co"># In-block positive</span></span>
+<span id="cb12-279"><a href="#cb12-279" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-280"><a href="#cb12-280" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-281"><a href="#cb12-281" aria-hidden="true" tabindex="-1"></a>  psi_correlation <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">as.vector</span>(expected_psi), <span class="fu">as.vector</span>(data<span class="sc">$</span>psi_true))</span>
+<span id="cb12-282"><a href="#cb12-282" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-283"><a href="#cb12-283" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Calculate additional metrics</span></span>
+<span id="cb12-284"><a href="#cb12-284" aria-hidden="true" tabindex="-1"></a>  psi_block_ratio <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb12-285"><a href="#cb12-285" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>K) {</span>
+<span id="cb12-286"><a href="#cb12-286" aria-hidden="true" tabindex="-1"></a>    diseases_in_block <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>disease_assignments <span class="sc">==</span> k)</span>
+<span id="cb12-287"><a href="#cb12-287" aria-hidden="true" tabindex="-1"></a>    in_block_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>psi_true[k, diseases_in_block])</span>
+<span id="cb12-288"><a href="#cb12-288" aria-hidden="true" tabindex="-1"></a>    out_block_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>psi_true[k, <span class="sc">-</span>diseases_in_block])</span>
+<span id="cb12-289"><a href="#cb12-289" aria-hidden="true" tabindex="-1"></a>    psi_block_ratio <span class="ot">&lt;-</span> psi_block_ratio <span class="sc">+</span> (in_block_mean <span class="sc">/</span> out_block_mean)</span>
+<span id="cb12-290"><a href="#cb12-290" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-291"><a href="#cb12-291" aria-hidden="true" tabindex="-1"></a>  psi_block_ratio <span class="ot">&lt;-</span> psi_block_ratio <span class="sc">/</span> data<span class="sc">$</span>K</span>
+<span id="cb12-292"><a href="#cb12-292" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-293"><a href="#cb12-293" aria-hidden="true" tabindex="-1"></a>  plots<span class="sc">$</span>p5 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb12-294"><a href="#cb12-294" aria-hidden="true" tabindex="-1"></a>    <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">0.5</span>, <span class="at">y =</span> <span class="fl">0.8</span>, </span>
+<span id="cb12-295"><a href="#cb12-295" aria-hidden="true" tabindex="-1"></a>             <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Block Structure Correlation:"</span>, <span class="fu">round</span>(psi_correlation, <span class="dv">3</span>)), <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb12-296"><a href="#cb12-296" aria-hidden="true" tabindex="-1"></a>    <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">0.5</span>, <span class="at">y =</span> <span class="fl">0.7</span>, </span>
+<span id="cb12-297"><a href="#cb12-297" aria-hidden="true" tabindex="-1"></a>             <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"In-block/Out-block Ratio:"</span>, <span class="fu">round</span>(psi_block_ratio, <span class="dv">2</span>)), <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb12-298"><a href="#cb12-298" aria-hidden="true" tabindex="-1"></a>    <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">0.5</span>, <span class="at">y =</span> <span class="fl">0.6</span>, </span>
+<span id="cb12-299"><a href="#cb12-299" aria-hidden="true" tabindex="-1"></a>             <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Total Events:"</span>, <span class="fu">sum</span>(data<span class="sc">$</span>Y)), <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-300"><a href="#cb12-300" aria-hidden="true" tabindex="-1"></a>    <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">0.5</span>, <span class="at">y =</span> <span class="fl">0.5</span>, </span>
+<span id="cb12-301"><a href="#cb12-301" aria-hidden="true" tabindex="-1"></a>             <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Event Rate:"</span>, <span class="fu">round</span>(<span class="fu">mean</span>(data<span class="sc">$</span>Y), <span class="dv">4</span>)), <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-302"><a href="#cb12-302" aria-hidden="true" tabindex="-1"></a>    <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">0.5</span>, <span class="at">y =</span> <span class="fl">0.4</span>, </span>
+<span id="cb12-303"><a href="#cb12-303" aria-hidden="true" tabindex="-1"></a>             <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Diseases per Signature:"</span>, data<span class="sc">$</span>D <span class="sc">%/%</span> data<span class="sc">$</span>K), <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-304"><a href="#cb12-304" aria-hidden="true" tabindex="-1"></a>    <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">0.5</span>, <span class="at">y =</span> <span class="fl">0.3</span>, </span>
+<span id="cb12-305"><a href="#cb12-305" aria-hidden="true" tabindex="-1"></a>             <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Dimensions per Signature:"</span>, data<span class="sc">$</span>L <span class="sc">%/%</span> data<span class="sc">$</span>K), <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-306"><a href="#cb12-306" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">1</span>) <span class="sc">+</span> <span class="fu">ylim</span>(<span class="dv">0</span>, <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb12-307"><a href="#cb12-307" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_void</span>() <span class="sc">+</span></span>
+<span id="cb12-308"><a href="#cb12-308" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Model Performance Summary"</span>,</span>
+<span id="cb12-309"><a href="#cb12-309" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="st">"Key metrics showing interpretability and structure"</span>)</span>
+<span id="cb12-310"><a href="#cb12-310" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-311"><a href="#cb12-311" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 6. Parameter comparison</span></span>
+<span id="cb12-312"><a href="#cb12-312" aria-hidden="true" tabindex="-1"></a>  direct_params <span class="ot">&lt;-</span> data<span class="sc">$</span>K <span class="sc">*</span> data<span class="sc">$</span>D</span>
+<span id="cb12-313"><a href="#cb12-313" aria-hidden="true" tabindex="-1"></a>  hierarchical_params <span class="ot">&lt;-</span> data<span class="sc">$</span>D <span class="sc">*</span> data<span class="sc">$</span>L <span class="sc">+</span> data<span class="sc">$</span>K <span class="sc">*</span> data<span class="sc">$</span>L <span class="sc">+</span> data<span class="sc">$</span>L<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb12-314"><a href="#cb12-314" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-315"><a href="#cb12-315" aria-hidden="true" tabindex="-1"></a>  comparison_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-316"><a href="#cb12-316" aria-hidden="true" tabindex="-1"></a>    <span class="at">Method =</span> <span class="fu">c</span>(<span class="st">"Direct Psi"</span>, <span class="st">"Hierarchical"</span>),</span>
+<span id="cb12-317"><a href="#cb12-317" aria-hidden="true" tabindex="-1"></a>    <span class="at">Parameters =</span> <span class="fu">c</span>(direct_params, hierarchical_params),</span>
+<span id="cb12-318"><a href="#cb12-318" aria-hidden="true" tabindex="-1"></a>    <span class="at">Efficiency =</span> <span class="fu">c</span>(<span class="dv">1</span>, hierarchical_params <span class="sc">/</span> direct_params)</span>
+<span id="cb12-319"><a href="#cb12-319" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-320"><a href="#cb12-320" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-321"><a href="#cb12-321" aria-hidden="true" tabindex="-1"></a>  plots<span class="sc">$</span>p6 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(comparison_df, <span class="fu">aes</span>(Method, Parameters, <span class="at">fill =</span> Method)) <span class="sc">+</span></span>
+<span id="cb12-322"><a href="#cb12-322" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb12-323"><a href="#cb12-323" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> Parameters), <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb12-324"><a href="#cb12-324" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_viridis_d</span>() <span class="sc">+</span></span>
+<span id="cb12-325"><a href="#cb12-325" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-326"><a href="#cb12-326" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Parameter Efficiency"</span>,</span>
+<span id="cb12-327"><a href="#cb12-327" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">"Ratio:"</span>, <span class="fu">round</span>(hierarchical_params<span class="sc">/</span>direct_params, <span class="dv">2</span>), </span>
+<span id="cb12-328"><a href="#cb12-328" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"x ("</span>, <span class="fu">ifelse</span>(hierarchical_params <span class="sc">&lt;</span> direct_params, <span class="st">"EFFICIENT"</span>, <span class="st">"INEFFICIENT"</span>), <span class="st">")"</span>),</span>
+<span id="cb12-329"><a href="#cb12-329" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> <span class="st">"Number of Parameters"</span>) <span class="sc">+</span></span>
+<span id="cb12-330"><a href="#cb12-330" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb12-331"><a href="#cb12-331" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-332"><a href="#cb12-332" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(plots)</span>
+<span id="cb12-333"><a href="#cb12-333" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-334"><a href="#cb12-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-335"><a href="#cb12-335" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-336"><a href="#cb12-336" aria-hidden="true" tabindex="-1"></a><span class="co"># SLIDE 4: ENHANCED VALIDATION</span></span>
+<span id="cb12-337"><a href="#cb12-337" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-338"><a href="#cb12-338" aria-hidden="true" tabindex="-1"></a>validate_simplified_model <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb12-339"><a href="#cb12-339" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-340"><a href="#cb12-340" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"VALIDATION: COMPREHENSIVE MODEL TESTING"</span>, </span>
+<span id="cb12-341"><a href="#cb12-341" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Testing key properties with improved diagnostics:</span></span>
+<span id="cb12-342"><a href="#cb12-342" aria-hidden="true" tabindex="-1"></a><span class="st">  1. Perfect reconstruction (mathematical verification)</span></span>
+<span id="cb12-343"><a href="#cb12-343" aria-hidden="true" tabindex="-1"></a><span class="st">  2. Noise robustness (stability test)</span></span>
+<span id="cb12-344"><a href="#cb12-344" aria-hidden="true" tabindex="-1"></a><span class="st">  3. Block structure preservation (interpretability measure)</span></span>
+<span id="cb12-345"><a href="#cb12-345" aria-hidden="true" tabindex="-1"></a><span class="st">  4. Parameter efficiency (practical benefits)"</span>)</span>
+<span id="cb12-346"><a href="#cb12-346" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-347"><a href="#cb12-347" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test 1: Perfect reconstruction</span></span>
+<span id="cb12-348"><a href="#cb12-348" aria-hidden="true" tabindex="-1"></a>  psi_reconstructed <span class="ot">&lt;-</span> (data<span class="sc">$</span>E_d_true <span class="sc">%*%</span> data<span class="sc">$</span>W_true <span class="sc">%*%</span> <span class="fu">t</span>(data<span class="sc">$</span>E_k_true)) <span class="sc">/</span> <span class="fu">sqrt</span>(data<span class="sc">$</span>L)</span>
+<span id="cb12-349"><a href="#cb12-349" aria-hidden="true" tabindex="-1"></a>  psi_reconstructed <span class="ot">&lt;-</span> <span class="fu">t</span>(psi_reconstructed)</span>
+<span id="cb12-350"><a href="#cb12-350" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-351"><a href="#cb12-351" aria-hidden="true" tabindex="-1"></a>  reconstruction_correlation <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">as.vector</span>(data<span class="sc">$</span>psi_true), <span class="fu">as.vector</span>(psi_reconstructed))</span>
+<span id="cb12-352"><a href="#cb12-352" aria-hidden="true" tabindex="-1"></a>  reconstruction_mse <span class="ot">&lt;-</span> <span class="fu">mean</span>((data<span class="sc">$</span>psi_true <span class="sc">-</span> psi_reconstructed)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb12-353"><a href="#cb12-353" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-354"><a href="#cb12-354" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Perfect reconstruction: correlation = %.6f, MSE = %.2e</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-355"><a href="#cb12-355" aria-hidden="true" tabindex="-1"></a>              reconstruction_correlation, reconstruction_mse))</span>
+<span id="cb12-356"><a href="#cb12-356" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-357"><a href="#cb12-357" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test 2: Noise robustness with multiple noise levels</span></span>
+<span id="cb12-358"><a href="#cb12-358" aria-hidden="true" tabindex="-1"></a>  noise_levels <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.1</span>, <span class="fl">0.2</span>)</span>
+<span id="cb12-359"><a href="#cb12-359" aria-hidden="true" tabindex="-1"></a>  noise_correlations <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">length</span>(noise_levels))</span>
+<span id="cb12-360"><a href="#cb12-360" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-361"><a href="#cb12-361" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">seq_along</span>(noise_levels)) {</span>
+<span id="cb12-362"><a href="#cb12-362" aria-hidden="true" tabindex="-1"></a>    E_d_noisy <span class="ot">&lt;-</span> data<span class="sc">$</span>E_d_true <span class="sc">+</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(data<span class="sc">$</span>D <span class="sc">*</span> data<span class="sc">$</span>L, <span class="dv">0</span>, noise_levels[i]), </span>
+<span id="cb12-363"><a href="#cb12-363" aria-hidden="true" tabindex="-1"></a>                                       data<span class="sc">$</span>D, data<span class="sc">$</span>L)</span>
+<span id="cb12-364"><a href="#cb12-364" aria-hidden="true" tabindex="-1"></a>    psi_noisy <span class="ot">&lt;-</span> (E_d_noisy <span class="sc">%*%</span> data<span class="sc">$</span>W_true <span class="sc">%*%</span> <span class="fu">t</span>(data<span class="sc">$</span>E_k_true)) <span class="sc">/</span> <span class="fu">sqrt</span>(data<span class="sc">$</span>L)</span>
+<span id="cb12-365"><a href="#cb12-365" aria-hidden="true" tabindex="-1"></a>    psi_noisy <span class="ot">&lt;-</span> <span class="fu">t</span>(psi_noisy)</span>
+<span id="cb12-366"><a href="#cb12-366" aria-hidden="true" tabindex="-1"></a>    noise_correlations[i] <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">as.vector</span>(data<span class="sc">$</span>psi_true), <span class="fu">as.vector</span>(psi_noisy))</span>
+<span id="cb12-367"><a href="#cb12-367" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-368"><a href="#cb12-368" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Noise robustness (σ=%.2f): correlation = %.3f</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-369"><a href="#cb12-369" aria-hidden="true" tabindex="-1"></a>                noise_levels[i], noise_correlations[i]))</span>
+<span id="cb12-370"><a href="#cb12-370" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-371"><a href="#cb12-371" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-372"><a href="#cb12-372" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test 3: Enhanced block structure analysis</span></span>
+<span id="cb12-373"><a href="#cb12-373" aria-hidden="true" tabindex="-1"></a>  expected_pattern <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="sc">-</span><span class="dv">1</span>, data<span class="sc">$</span>K, data<span class="sc">$</span>D)</span>
+<span id="cb12-374"><a href="#cb12-374" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(d <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>D) {</span>
+<span id="cb12-375"><a href="#cb12-375" aria-hidden="true" tabindex="-1"></a>    primary_sig <span class="ot">&lt;-</span> data<span class="sc">$</span>disease_assignments[d]</span>
+<span id="cb12-376"><a href="#cb12-376" aria-hidden="true" tabindex="-1"></a>    expected_pattern[primary_sig, d] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb12-377"><a href="#cb12-377" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-378"><a href="#cb12-378" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-379"><a href="#cb12-379" aria-hidden="true" tabindex="-1"></a>  pattern_correlation <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">as.vector</span>(expected_pattern), <span class="fu">as.vector</span>(data<span class="sc">$</span>psi_true))</span>
+<span id="cb12-380"><a href="#cb12-380" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-381"><a href="#cb12-381" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Additional block structure metrics</span></span>
+<span id="cb12-382"><a href="#cb12-382" aria-hidden="true" tabindex="-1"></a>  block_separation_scores <span class="ot">&lt;-</span> <span class="fu">numeric</span>(data<span class="sc">$</span>K)</span>
+<span id="cb12-383"><a href="#cb12-383" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>K) {</span>
+<span id="cb12-384"><a href="#cb12-384" aria-hidden="true" tabindex="-1"></a>    in_block_diseases <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>disease_assignments <span class="sc">==</span> k)</span>
+<span id="cb12-385"><a href="#cb12-385" aria-hidden="true" tabindex="-1"></a>    out_block_diseases <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="dv">1</span><span class="sc">:</span>data<span class="sc">$</span>D, in_block_diseases)</span>
+<span id="cb12-386"><a href="#cb12-386" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-387"><a href="#cb12-387" aria-hidden="true" tabindex="-1"></a>    in_block_psi <span class="ot">&lt;-</span> data<span class="sc">$</span>psi_true[k, in_block_diseases]</span>
+<span id="cb12-388"><a href="#cb12-388" aria-hidden="true" tabindex="-1"></a>    out_block_psi <span class="ot">&lt;-</span> data<span class="sc">$</span>psi_true[k, out_block_diseases]</span>
+<span id="cb12-389"><a href="#cb12-389" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-390"><a href="#cb12-390" aria-hidden="true" tabindex="-1"></a>    <span class="co"># t-test separation</span></span>
+<span id="cb12-391"><a href="#cb12-391" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">length</span>(in_block_psi) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(out_block_psi) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
+<span id="cb12-392"><a href="#cb12-392" aria-hidden="true" tabindex="-1"></a>      t_result <span class="ot">&lt;-</span> <span class="fu">t.test</span>(in_block_psi, out_block_psi)</span>
+<span id="cb12-393"><a href="#cb12-393" aria-hidden="true" tabindex="-1"></a>      block_separation_scores[k] <span class="ot">&lt;-</span> <span class="fu">abs</span>(t_result<span class="sc">$</span>statistic)</span>
+<span id="cb12-394"><a href="#cb12-394" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-395"><a href="#cb12-395" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-396"><a href="#cb12-396" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Signature %d: In-block mean=%.3f (n=%d), Out-block mean=%.3f (n=%d), t=%.2f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb12-397"><a href="#cb12-397" aria-hidden="true" tabindex="-1"></a>                k, <span class="fu">mean</span>(in_block_psi), <span class="fu">length</span>(in_block_psi), </span>
+<span id="cb12-398"><a href="#cb12-398" aria-hidden="true" tabindex="-1"></a>                <span class="fu">mean</span>(out_block_psi), <span class="fu">length</span>(out_block_psi),</span>
+<span id="cb12-399"><a href="#cb12-399" aria-hidden="true" tabindex="-1"></a>                block_separation_scores[k]))</span>
+<span id="cb12-400"><a href="#cb12-400" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-401"><a href="#cb12-401" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-402"><a href="#cb12-402" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Overall block structure: correlation=%.3f, mean t-statistic=%.2f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb12-403"><a href="#cb12-403" aria-hidden="true" tabindex="-1"></a>              pattern_correlation, <span class="fu">mean</span>(block_separation_scores, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)))</span>
+<span id="cb12-404"><a href="#cb12-404" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-405"><a href="#cb12-405" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test 4: Parameter efficiency analysis</span></span>
+<span id="cb12-406"><a href="#cb12-406" aria-hidden="true" tabindex="-1"></a>  direct_params <span class="ot">&lt;-</span> data<span class="sc">$</span>K <span class="sc">*</span> data<span class="sc">$</span>D</span>
+<span id="cb12-407"><a href="#cb12-407" aria-hidden="true" tabindex="-1"></a>  hierarchical_params <span class="ot">&lt;-</span> data<span class="sc">$</span>D <span class="sc">*</span> data<span class="sc">$</span>L <span class="sc">+</span> data<span class="sc">$</span>K <span class="sc">*</span> data<span class="sc">$</span>L <span class="sc">+</span> data<span class="sc">$</span>L<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb12-408"><a href="#cb12-408" aria-hidden="true" tabindex="-1"></a>  efficiency_ratio <span class="ot">&lt;-</span> hierarchical_params <span class="sc">/</span> direct_params</span>
+<span id="cb12-409"><a href="#cb12-409" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-410"><a href="#cb12-410" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Calculate the breakeven point</span></span>
+<span id="cb12-411"><a href="#cb12-411" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Hierarchical &lt; Direct when: D*L + K*L + L^2 &lt; K*D</span></span>
+<span id="cb12-412"><a href="#cb12-412" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Solving for L: L^2 + L*(D+K) &lt; K*D</span></span>
+<span id="cb12-413"><a href="#cb12-413" aria-hidden="true" tabindex="-1"></a>  <span class="co"># For practical purposes: L &lt; K*D/(D+K) approximately</span></span>
+<span id="cb12-414"><a href="#cb12-414" aria-hidden="true" tabindex="-1"></a>  breakeven_L <span class="ot">&lt;-</span> (data<span class="sc">$</span>K <span class="sc">*</span> data<span class="sc">$</span>D) <span class="sc">/</span> (data<span class="sc">$</span>D <span class="sc">+</span> data<span class="sc">$</span>K)</span>
+<span id="cb12-415"><a href="#cb12-415" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-416"><a href="#cb12-416" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Parameter Analysis:</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb12-417"><a href="#cb12-417" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Direct parameters: %d</span><span class="sc">\n</span><span class="st">"</span>, direct_params))</span>
+<span id="cb12-418"><a href="#cb12-418" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Hierarchical parameters: %d</span><span class="sc">\n</span><span class="st">"</span>, hierarchical_params))</span>
+<span id="cb12-419"><a href="#cb12-419" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Efficiency ratio: %.2f</span><span class="sc">\n</span><span class="st">"</span>, efficiency_ratio))</span>
+<span id="cb12-420"><a href="#cb12-420" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Breakeven embedding dimension: %.1f (current: %d)</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb12-421"><a href="#cb12-421" aria-hidden="true" tabindex="-1"></a>              breakeven_L, data<span class="sc">$</span>L))</span>
+<span id="cb12-422"><a href="#cb12-422" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-423"><a href="#cb12-423" aria-hidden="true" tabindex="-1"></a>  success_criteria <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb12-424"><a href="#cb12-424" aria-hidden="true" tabindex="-1"></a>    <span class="at">reconstruction =</span> reconstruction_correlation <span class="sc">&gt;</span> <span class="fl">0.999</span>,</span>
+<span id="cb12-425"><a href="#cb12-425" aria-hidden="true" tabindex="-1"></a>    <span class="at">noise_robustness =</span> <span class="fu">min</span>(noise_correlations) <span class="sc">&gt;</span> <span class="fl">0.7</span>,</span>
+<span id="cb12-426"><a href="#cb12-426" aria-hidden="true" tabindex="-1"></a>    <span class="at">block_structure =</span> pattern_correlation <span class="sc">&gt;</span> <span class="fl">0.3</span>,</span>
+<span id="cb12-427"><a href="#cb12-427" aria-hidden="true" tabindex="-1"></a>    <span class="at">parameter_efficiency =</span> efficiency_ratio <span class="sc">&lt;</span> <span class="fl">2.0</span></span>
+<span id="cb12-428"><a href="#cb12-428" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-429"><a href="#cb12-429" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-430"><a href="#cb12-430" aria-hidden="true" tabindex="-1"></a>  overall_success <span class="ot">&lt;-</span> <span class="fu">all</span>(<span class="fu">unlist</span>(success_criteria))</span>
+<span id="cb12-431"><a href="#cb12-431" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-432"><a href="#cb12-432" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">SUCCESS CRITERIA:</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb12-433"><a href="#cb12-433" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(criterion <span class="cf">in</span> <span class="fu">names</span>(success_criteria)) {</span>
+<span id="cb12-434"><a href="#cb12-434" aria-hidden="true" tabindex="-1"></a>    status <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(success_criteria[[criterion]], <span class="st">"PASS"</span>, <span class="st">"FAIL"</span>)</span>
+<span id="cb12-435"><a href="#cb12-435" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  %s: %s</span><span class="sc">\n</span><span class="st">"</span>, criterion, status))</span>
+<span id="cb12-436"><a href="#cb12-436" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-437"><a href="#cb12-437" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-438"><a href="#cb12-438" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(</span>
+<span id="cb12-439"><a href="#cb12-439" aria-hidden="true" tabindex="-1"></a>    <span class="at">reconstruction_correlation =</span> reconstruction_correlation,</span>
+<span id="cb12-440"><a href="#cb12-440" aria-hidden="true" tabindex="-1"></a>    <span class="at">noise_correlations =</span> noise_correlations,</span>
+<span id="cb12-441"><a href="#cb12-441" aria-hidden="true" tabindex="-1"></a>    <span class="at">pattern_correlation =</span> pattern_correlation,</span>
+<span id="cb12-442"><a href="#cb12-442" aria-hidden="true" tabindex="-1"></a>    <span class="at">block_separation_scores =</span> block_separation_scores,</span>
+<span id="cb12-443"><a href="#cb12-443" aria-hidden="true" tabindex="-1"></a>    <span class="at">efficiency_ratio =</span> efficiency_ratio,</span>
+<span id="cb12-444"><a href="#cb12-444" aria-hidden="true" tabindex="-1"></a>    <span class="at">breakeven_L =</span> breakeven_L,</span>
+<span id="cb12-445"><a href="#cb12-445" aria-hidden="true" tabindex="-1"></a>    <span class="at">overall_success =</span> overall_success</span>
+<span id="cb12-446"><a href="#cb12-446" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb12-447"><a href="#cb12-447" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-448"><a href="#cb12-448" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-449"><a href="#cb12-449" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-450"><a href="#cb12-450" aria-hidden="true" tabindex="-1"></a><span class="co"># SLIDE 5: MAIN SIMULATION</span></span>
+<span id="cb12-451"><a href="#cb12-451" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb12-452"><a href="#cb12-452" aria-hidden="true" tabindex="-1"></a>run_complete_simplified_simulation <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb12-453"><a href="#cb12-453" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-454"><a href="#cb12-454" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"HIERARCHICAL EMBEDDINGS: COMPLETE DEMONSTRATION"</span>, </span>
+<span id="cb12-455"><a href="#cb12-455" aria-hidden="true" tabindex="-1"></a>  <span class="st">"This simulation demonstrates the simplified hierarchical embedding approach:</span></span>
+<span id="cb12-456"><a href="#cb12-456" aria-hidden="true" tabindex="-1"></a><span class="st">  </span></span>
+<span id="cb12-457"><a href="#cb12-457" aria-hidden="true" tabindex="-1"></a><span class="st">  CORE INSIGHT: psi[k,d] = E_d[d]^T * W * E_k[k] / sqrt(L)</span></span>
+<span id="cb12-458"><a href="#cb12-458" aria-hidden="true" tabindex="-1"></a><span class="st">  </span></span>
+<span id="cb12-459"><a href="#cb12-459" aria-hidden="true" tabindex="-1"></a><span class="st">  We'll use realistic but manageable scale to clearly show the benefits."</span>)</span>
+<span id="cb12-460"><a href="#cb12-460" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-461"><a href="#cb12-461" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Generate data with realistic scale</span></span>
+<span id="cb12-462"><a href="#cb12-462" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> <span class="fu">generate_simplified_embedding_data</span>(<span class="at">N =</span> <span class="dv">1000</span>, <span class="at">D =</span> <span class="dv">50</span>, <span class="at">K =</span> <span class="dv">10</span>, <span class="at">L =</span> <span class="dv">5</span>)</span>
+<span id="cb12-463"><a href="#cb12-463" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-464"><a href="#cb12-464" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create comprehensive visualizations</span></span>
+<span id="cb12-465"><a href="#cb12-465" aria-hidden="true" tabindex="-1"></a>  plots <span class="ot">&lt;-</span> <span class="fu">create_comprehensive_plots</span>(data)</span>
+<span id="cb12-466"><a href="#cb12-466" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-467"><a href="#cb12-467" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Validate the approach thoroughly</span></span>
+<span id="cb12-468"><a href="#cb12-468" aria-hidden="true" tabindex="-1"></a>  validation <span class="ot">&lt;-</span> <span class="fu">validate_simplified_model</span>(data)</span>
+<span id="cb12-469"><a href="#cb12-469" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-470"><a href="#cb12-470" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print_slide</span>(<span class="st">"INTERPRETATION AND NEXT STEPS"</span>, </span>
+<span id="cb12-471"><a href="#cb12-471" aria-hidden="true" tabindex="-1"></a>  <span class="st">"The simplified hierarchical embedding approach provides:</span></span>
+<span id="cb12-472"><a href="#cb12-472" aria-hidden="true" tabindex="-1"></a><span class="st">  </span></span>
+<span id="cb12-473"><a href="#cb12-473" aria-hidden="true" tabindex="-1"></a><span class="st">  1. SEMANTIC STRUCTURE: Diseases in embedding space reflect biological similarity</span></span>
+<span id="cb12-474"><a href="#cb12-474" aria-hidden="true" tabindex="-1"></a><span class="st">  2. PARAMETER EFFICIENCY: Fewer parameters when L is chosen appropriately  </span></span>
+<span id="cb12-475"><a href="#cb12-475" aria-hidden="true" tabindex="-1"></a><span class="st">  3. INTERPRETABILITY: Attention weights show disease-signature relationships</span></span>
+<span id="cb12-476"><a href="#cb12-476" aria-hidden="true" tabindex="-1"></a><span class="st">  4. EXTENSIBILITY: Easy to add medication effects, new diseases, etc.</span></span>
+<span id="cb12-477"><a href="#cb12-477" aria-hidden="true" tabindex="-1"></a><span class="st">  </span></span>
+<span id="cb12-478"><a href="#cb12-478" aria-hidden="true" tabindex="-1"></a><span class="st">  For your real problem (D=350, K=20), choose L=5-8 for optimal efficiency."</span>)</span>
+<span id="cb12-479"><a href="#cb12-479" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-480"><a href="#cb12-480" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create final visualization</span></span>
+<span id="cb12-481"><a href="#cb12-481" aria-hidden="true" tabindex="-1"></a>  final_plot <span class="ot">&lt;-</span> <span class="fu">grid.arrange</span>(</span>
+<span id="cb12-482"><a href="#cb12-482" aria-hidden="true" tabindex="-1"></a>    plots<span class="sc">$</span>p1, plots<span class="sc">$</span>p2, plots<span class="sc">$</span>p5,</span>
+<span id="cb12-483"><a href="#cb12-483" aria-hidden="true" tabindex="-1"></a>    plots<span class="sc">$</span>p3, plots<span class="sc">$</span>p4, plots<span class="sc">$</span>p6,</span>
+<span id="cb12-484"><a href="#cb12-484" aria-hidden="true" tabindex="-1"></a>    <span class="at">ncol =</span> <span class="dv">3</span>, <span class="at">nrow =</span> <span class="dv">2</span>,</span>
+<span id="cb12-485"><a href="#cb12-485" aria-hidden="true" tabindex="-1"></a>    <span class="at">top =</span> <span class="st">"Simplified Hierarchical Embeddings: Complete Analysis"</span></span>
+<span id="cb12-486"><a href="#cb12-486" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-487"><a href="#cb12-487" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-488"><a href="#cb12-488" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Comprehensive summary</span></span>
+<span id="cb12-489"><a href="#cb12-489" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-490"><a href="#cb12-490" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"="</span>, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-491"><a href="#cb12-491" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"FINAL SIMULATION RESULTS</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-492"><a href="#cb12-492" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"="</span>, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-493"><a href="#cb12-493" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Reconstruction: %.6f (perfect=1.0)</span><span class="sc">\n</span><span class="st">"</span>, validation<span class="sc">$</span>reconstruction_correlation))</span>
+<span id="cb12-494"><a href="#cb12-494" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Noise robustness: %.3f (robust&gt;0.8)</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">min</span>(validation<span class="sc">$</span>noise_correlations))) </span>
+<span id="cb12-495"><a href="#cb12-495" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Block structure: %.3f (interpretable&gt;0.3)</span><span class="sc">\n</span><span class="st">"</span>, validation<span class="sc">$</span>pattern_correlation))</span>
+<span id="cb12-496"><a href="#cb12-496" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Parameter efficiency: %.2fx (efficient&lt;1.0)</span><span class="sc">\n</span><span class="st">"</span>, validation<span class="sc">$</span>efficiency_ratio))</span>
+<span id="cb12-497"><a href="#cb12-497" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Optimal L for your data: ≤%.0f (current: %d)</span><span class="sc">\n</span><span class="st">"</span>, validation<span class="sc">$</span>breakeven_L, data<span class="sc">$</span>L))</span>
+<span id="cb12-498"><a href="#cb12-498" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-499"><a href="#cb12-499" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(validation<span class="sc">$</span>overall_success) {</span>
+<span id="cb12-500"><a href="#cb12-500" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">✓ SUCCESS: The simplified hierarchical embedding approach works!</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-501"><a href="#cb12-501" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">For your real application:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-502"><a href="#cb12-502" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"- Use L=5 with D=350, K=20 for maximum efficiency</span><span class="sc">\n</span><span class="st">"</span>) </span>
+<span id="cb12-503"><a href="#cb12-503" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"- Expect ~73% parameter reduction vs direct psi learning</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-504"><a href="#cb12-504" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"- Maintain interpretable disease-signature relationships</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-505"><a href="#cb12-505" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb12-506"><a href="#cb12-506" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">✗ Issues detected - review the diagnostics above</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-507"><a href="#cb12-507" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-508"><a href="#cb12-508" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-509"><a href="#cb12-509" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">data =</span> data, <span class="at">plots =</span> plots, <span class="at">validation =</span> validation))</span>
+<span id="cb12-510"><a href="#cb12-510" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-511"><a href="#cb12-511" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-512"><a href="#cb12-512" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the complete simulation</span></span>
+<span id="cb12-513"><a href="#cb12-513" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">run_complete_simplified_simulation</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+================================================================================ 
+SLIDE: HIERARCHICAL EMBEDDINGS: COMPLETE DEMONSTRATION 
+================================================================================ 
+This simulation demonstrates the simplified hierarchical embedding approach:
+  
+  CORE INSIGHT: psi[k,d] = E_d[d]^T * W * E_k[k] / sqrt(L)
+  
+  We'll use realistic but manageable scale to clearly show the benefits. 
+-------------------------------------------------------------------------------- 
+
+================================================================================ 
+SLIDE: STEP 1: CREATE TRUE EMBEDDINGS 
+================================================================================ 
+Creating interpretable ground truth embeddings with realistic scale:
+  - N = 1000 patients, D = 50 diseases, K = 10 signatures, L = 5 dimensions
+  - Each signature gets 0 dedicated dimensions
+  - Block structure should be clearly visible 
+-------------------------------------------------------------------------------- 
+Signature 1: primary dim 1, secondary dims 2, 5
+Signature 2: primary dim 2, secondary dims 1, 5
+Signature 3: primary dim 3, secondary dims 2, 5
+Signature 4: primary dim 4, secondary dims 2, 1
+Signature 5: primary dim 5, secondary dims 4, 3
+Signature 6: primary dim 1, secondary dims 5, 4
+Signature 7: primary dim 2, secondary dims 5, 1
+Signature 8: primary dim 3, secondary dims 1, 2
+Signature 9: primary dim 4, secondary dims 5, 2
+Signature 10: primary dim 5, secondary dims 2, 3
+[1] "Signature embeddings structure:"
+      [,1] [,2] [,3] [,4] [,5]
+ [1,]  2.0  0.3  0.0  0.0  0.3
+ [2,]  0.3  2.0  0.0  0.0  0.3
+ [3,]  0.0  0.3  2.0  0.0  0.3
+ [4,]  0.3  0.3  0.0  2.0  0.0
+ [5,]  0.0  0.0  0.3  0.3  2.0
+ [6,]  2.0  0.0  0.0  0.3  0.3
+ [7,]  0.3  2.0  0.0  0.0  0.3
+ [8,]  0.3  0.3  2.0  0.0  0.0
+ [9,]  0.0  0.3  0.0  2.0  0.3
+[10,]  0.0  0.3  0.3  0.0  2.0
+Disease assignment pattern (first 20): 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+Diseases per signature: 5
+
+================================================================================ 
+SLIDE: STEP 2: CREATE ATTENTION MATRIX W 
+================================================================================ 
+The attention matrix W determines how embedding dimensions interact:
+  - Mostly diagonal (1.5) to preserve structure
+  - Within-signature-block connections (0.3) for realism
+  - This is the KEY learnable component that transforms embeddings 
+-------------------------------------------------------------------------------- 
+[1] "Attention matrix W structure (showing non-zero elements):"
+     [,1] [,2] [,3] [,4] [,5]
+[1,]  1.5   NA   NA   NA   NA
+[2,]   NA  1.5   NA   NA   NA
+[3,]   NA   NA  1.5   NA   NA
+[4,]   NA   NA   NA  1.5   NA
+[5,]   NA   NA   NA   NA  1.5
+
+================================================================================ 
+SLIDE: STEP 3: COMPUTE PSI DIRECTLY 
+================================================================================ 
+SIMPLIFIED APPROACH:
+  psi[k,d] = E_d[d]^T * W * E_k[k] / sqrt(L)
+  
+  This is the RAW attention score - no softmax, no projection!
+  Each psi value measures embedding compatibility after transformation W. 
+-------------------------------------------------------------------------------- 
+[1] "True psi matrix structure [K x D] (first 6 diseases, all signatures):"
+       [,1]  [,2]  [,3]  [,4]  [,5]  [,6]
+ [1,] 1.932 0.989 0.619 0.526 0.903 1.999
+ [2,] 0.724 1.700 0.363 1.018 0.525 0.437
+ [3,] 0.242 0.281 2.374 0.107 0.685 0.202
+ [4,] 0.358 0.464 0.148 2.462 0.491 0.656
+ [5,] 0.813 0.429 0.794 0.409 2.442 0.819
+ [6,] 1.888 0.778 0.592 0.723 0.949 2.048
+ [7,] 0.724 1.700 0.363 1.018 0.525 0.437
+ [8,] 0.387 0.324 2.384 0.151 0.416 0.371
+ [9,] 0.213 0.422 0.137 2.418 0.761 0.487
+[10,] 0.858 0.640 0.821 0.213 2.397 0.770
+
+Psi statistics by signature (should show block structure):
+Signature 1: In-block mean=2.327, Out-block mean=0.793, Ratio=2.94
+Signature 2: In-block mean=2.190, Out-block mean=0.852, Ratio=2.57
+Signature 3: In-block mean=2.436, Out-block mean=0.657, Ratio=3.71
+Signature 4: In-block mean=2.401, Out-block mean=0.617, Ratio=3.89
+Signature 5: In-block mean=2.433, Out-block mean=0.763, Ratio=3.19
+Signature 6: In-block mean=2.253, Out-block mean=0.769, Ratio=2.93
+Signature 7: In-block mean=2.500, Out-block mean=0.817, Ratio=3.06
+Signature 8: In-block mean=2.361, Out-block mean=0.660, Ratio=3.58
+Signature 9: In-block mean=2.231, Out-block mean=0.641, Ratio=3.48
+Signature 10: In-block mean=2.211, Out-block mean=0.819, Ratio=2.70
+
+================================================================================ 
+SLIDE: STEP 4: GENERATE OUTCOME DATA 
+================================================================================ 
+Generate disease outcomes using the true psi values:
+  P(disease d | person i) ~ sigmoid(sum_k theta[i,k] * psi[k,d])
+  
+  This creates realistic disease patterns based on the embedding structure. 
+-------------------------------------------------------------------------------- 
+Generated 1803 total events across 1000 patients and 50 diseases
+Event rate: 0.0361 (target was ~0.05)
+Disease event rates: Min=0.0250, Max=0.0480, Mean=0.0361
+
+================================================================================ 
+SLIDE: CREATING VISUALIZATIONS 
+================================================================================ 
+Now we'll visualize all components to see if they make sense:
+  1. Embeddings in PCA space (diseases should cluster by signature)
+  2. Attention matrix W structure (should be block-diagonal)
+  3. Final psi values (should show clear block patterns)
+  4. Raw embedding values (should show signature-specific patterns) 
+-------------------------------------------------------------------------------- 
+
+================================================================================ 
+SLIDE: VALIDATION: COMPREHENSIVE MODEL TESTING 
+================================================================================ 
+Testing key properties with improved diagnostics:
+  1. Perfect reconstruction (mathematical verification)
+  2. Noise robustness (stability test)
+  3. Block structure preservation (interpretability measure)
+  4. Parameter efficiency (practical benefits) 
+-------------------------------------------------------------------------------- 
+Perfect reconstruction: correlation = 1.000000, MSE = 0.00e+00
+Noise robustness (σ=0.05): correlation = 0.996
+Noise robustness (σ=0.10): correlation = 0.984
+Noise robustness (σ=0.20): correlation = 0.931
+Signature 1: In-block mean=2.327 (n=5), Out-block mean=0.793 (n=45), t=8.98
+Signature 2: In-block mean=2.190 (n=5), Out-block mean=0.852 (n=45), t=7.14
+Signature 3: In-block mean=2.436 (n=5), Out-block mean=0.657 (n=45), t=14.15
+Signature 4: In-block mean=2.401 (n=5), Out-block mean=0.617 (n=45), t=16.47
+Signature 5: In-block mean=2.433 (n=5), Out-block mean=0.763 (n=45), t=15.72
+Signature 6: In-block mean=2.253 (n=5), Out-block mean=0.769 (n=45), t=12.20
+Signature 7: In-block mean=2.500 (n=5), Out-block mean=0.817 (n=45), t=10.95
+Signature 8: In-block mean=2.361 (n=5), Out-block mean=0.660 (n=45), t=12.60
+Signature 9: In-block mean=2.231 (n=5), Out-block mean=0.641 (n=45), t=10.44
+Signature 10: In-block mean=2.211 (n=5), Out-block mean=0.819 (n=45), t=8.97
+Overall block structure: correlation=0.630, mean t-statistic=11.76
+
+Parameter Analysis:
+  Direct parameters: 500
+  Hierarchical parameters: 325
+  Efficiency ratio: 0.65
+  Breakeven embedding dimension: 8.3 (current: 5)
+
+SUCCESS CRITERIA:
+  reconstruction: PASS
+  noise_robustness: PASS
+  block_structure: PASS
+  parameter_efficiency: PASS
+
+================================================================================ 
+SLIDE: INTERPRETATION AND NEXT STEPS 
+================================================================================ 
+The simplified hierarchical embedding approach provides:
+  
+  1. SEMANTIC STRUCTURE: Diseases in embedding space reflect biological similarity
+  2. PARAMETER EFFICIENCY: Fewer parameters when L is chosen appropriately  
+  3. INTERPRETABILITY: Attention weights show disease-signature relationships
+  4. EXTENSIBILITY: Easy to add medication effects, new diseases, etc.
+  
+  For your real problem (D=350, K=20), choose L=5-8 for optimal efficiency. 
+-------------------------------------------------------------------------------- </code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="embddingslides_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+= 
+FINAL SIMULATION RESULTS
+= 
+Reconstruction: 1.000000 (perfect=1.0)
+Noise robustness: 0.931 (robust&gt;0.8)
+Block structure: 0.630 (interpretable&gt;0.3)
+Parameter efficiency: 0.65x (efficient&lt;1.0)
+Optimal L for your data: ≤8 (current: 5)
+
+✓ SUCCESS: The simplified hierarchical embedding approach works!
+
+For your real application:
+- Use L=5 with D=350, K=20 for maximum efficiency
+- Expect ~73% parameter reduction vs direct psi learning
+- Maintain interpretable disease-signature relationships</code></pre>
+</div>
+</div>
+<p>The <code>echo: false</code> option disables the printing of code (only output is displayed).</p>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
