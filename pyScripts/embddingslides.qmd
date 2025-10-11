@@ -131,22 +131,15 @@ sim_data <- generate_simplified_embedding_data(N = 1000, D = 50, K = 5, L = 10)
 
 ## Motivation: Current Psi Learning
 
-:::: {.columns}
-
+::::: columns
 ::: {.column width="50%"}
-**Current approach:**
-- Learn $\psi \in \mathbb{R}^{K \times D}$ directly
-- $\psi_{k,d}$ = association strength between signature $k$ and disease $d$
+**Current approach:** - Learn $\psi \in \mathbb{R}^{K \times D}$ directly - $\psi_{k,d}$ = association strength between signature $k$ and disease $d$
 :::
 
 ::: {.column width="50%"}
-**Problems:**
-- No semantic structure between diseases
-- Difficult to generalize to new diseases
-- No interpretable disease relationships
+**Problems:** - No semantic structure between diseases - Difficult to generalize to new diseases - No interpretable disease relationships
 :::
-
-::::
+:::::
 
 ## Simplified Hierarchical Embedding Approach
 
@@ -166,41 +159,36 @@ flowchart LR
 
 ## Mathematical Formulation: Direct Approach
 
-:::: {.columns}
-
+::::: columns
 ::: {.column width="50%"}
-**Step 1: Disease and Signature Embeddings**
-$$E_d \in \mathbb{R}^L \quad \text{(disease embeddings)}$$
-$$E_k \in \mathbb{R}^L \quad \text{(signature embeddings)}$$
+**Step 1: Disease and Signature Embeddings** $$E_d \in \mathbb{R}^L \quad \text{(disease embeddings)}$$ $$E_k \in \mathbb{R}^L \quad \text{(signature embeddings)}$$
 :::
 
 ::: {.column width="50%"}
-**Step 2: Direct Psi Computation**
-$$\psi_{k,d} = \frac{E_d^T W_a E_k}{\sqrt{L}} \in \mathbb{R}$$
+**Step 2: Direct Psi Computation** $$\psi_{k,d} = \frac{E_d^T W_a E_k}{\sqrt{L}} \in \mathbb{R}$$
 
 where $W_a \in \mathbb{R}^{L \times L}$ is learnable.
 :::
+:::::
 
-::::
-
-::: {.callout-note}
+::: callout-note
 ## Key Insight
+
 Skip attention softmax and contextualization - use raw attention scores directly as ψ values.
 :::
 
 ## Tensor Dimensions
 
-| Variable | Shape | Description |
-|----------|-------|-------------|
-| $E_d$ | [D, L] | Disease embeddings |
-| $E_k$ | [K, L] | Signature embeddings |
-| $W_a$ | [L, L] | Attention interaction matrix |
-| $\psi$ | [K, D] | Final association strengths |
+| Variable | Shape    | Description                  |
+|----------|----------|------------------------------|
+| $E_d$    | \[D, L\] | Disease embeddings           |
+| $E_k$    | \[K, L\] | Signature embeddings         |
+| $W_a$    | \[L, L\] | Attention interaction matrix |
+| $\psi$   | \[K, D\] | Final association strengths  |
 
-- $D$ = number of diseases
-- $K$ = number of signatures
-- $L$ = embedding dimension
-
+-   $D$ = number of diseases
+-   $K$ = number of signatures
+-   $L$ = embedding dimension
 
 ## Visualizing the embeddings of Sigs and Diseases
 
@@ -208,12 +196,12 @@ Skip attention softmax and contextualization - use raw attention scores directly
 ggplot(reshape2::melt(sim_data$E_d_true),aes(x=Var1,y=Var2,fill = value))+geom_tile()+labs(x="Disease",y="Embedding")+scale_fill_gradient2()
 ```
 
-
 ## Visualizing the embeddings of Sigs and Diseases
 
 ```{r embeddings_raw3}
 ggplot(reshape2::melt(sim_data$E_k_true),aes(x=Var1,y=Var2,fill = value))+geom_tile()+labs(x="Signature",y="Embedding")+scale_fill_viridis()
 ```
+
 ## Disease Embeddings Visualization
 
 ```{r embeddings-pca}
@@ -312,31 +300,26 @@ ggplot(psi_df, aes(Disease, Signature, fill = Psi)) +
 
 ## Direct Embedding Interpretation
 
-:::: {.columns}
-
+::::: columns
 ::: {.column width="50%"}
-**What $E_d$ tells us:**
-Each disease is represented by an $L$-dimensional vector capturing its biological characteristics.
+**What** $E_d$ tells us: Each disease is represented by an $L$-dimensional vector capturing its biological characteristics.
 
-**What $E_k$ tells us:**
-Each signature is represented by an $L$-dimensional vector capturing pathway characteristics.
+**What** $E_k$ tells us: Each signature is represented by an $L$-dimensional vector capturing pathway characteristics.
 :::
 
 ::: {.column width="50%"}
-**What $W_a$ tells us:**
-Learns which disease features should interact with which signature features.
+**What** $W_a$ tells us: Learns which disease features should interact with which signature features.
 
-**What $\psi_{k,d}$ tells us:**
-Direct measure of how strongly disease $d$ associates with signature $k$ after $W_a$ transformation.
+**What** $\psi_{k,d}$ tells us: Direct measure of how strongly disease $d$ associates with signature $k$ after $W_a$ transformation.
 :::
-
-::::
+:::::
 
 ## Implementation in PyTorch
 
-::: {.callout-note}
+::: callout-note
 ## Key Components
-```python
+
+``` python
 # Embeddings
 self.disease_embeddings = nn.Embedding(D, L)
 self.signature_embeddings = nn.Embedding(K, L)
@@ -346,7 +329,7 @@ self.attention_matrix = nn.Parameter(torch.randn(L, L))
 ```
 :::
 
-```python
+``` python
 def compute_psi_from_embeddings(self):
     E_d = self.disease_embeddings(torch.arange(D))  # [D, L]
     E_k = self.signature_embeddings(torch.arange(K))  # [K, L]
@@ -395,42 +378,27 @@ ggplot(comparison_df, aes(Method, Parameters, fill = Method)) +
 
 ## Advantages Over Direct Psi Learning
 
-:::: {.columns}
-
+:::::: columns
 ::: {.column width="33%"}
-**Parameter Efficiency:**
-- Direct: $O(D \times K)$
-- Hierarchical: $O(D \times L + K \times L + L^2)$
-- When $L \ll D$, much more efficient
+**Parameter Efficiency:** - Direct: $O(D \times K)$ - Hierarchical: $O(D \times L + K \times L + L^2)$ - When $L \ll D$, much more efficient
 :::
 
 ::: {.column width="33%"}
-**Generalization:**
-- New diseases without retraining signatures
-- Learned embeddings capture semantic relationships
-- Attention weights reveal interpretable associations
+**Generalization:** - New diseases without retraining signatures - Learned embeddings capture semantic relationships - Attention weights reveal interpretable associations
 :::
 
 ::: {.column width="33%"}
-**Regularization:**
-- Embedding space provides smooth representations
-- Attention encourages sparse associations
-- Implicit regularization through shared representations
+**Regularization:** - Embedding space provides smooth representations - Attention encourages sparse associations - Implicit regularization through shared representations
 :::
-
-::::
+::::::
 
 ## Extension: Medication Effects
 
-**Medication-Aware Embeddings:**
-$$E_d(m) = E_d^{base} + M_d^{med} \cdot m_d$$
-$$E_k(m) = E_k^{base} + E_k^{med} \cdot m_k$$
+**Medication-Aware Embeddings:** $$E_d(m) = E_d^{base} + M_d^{med} \cdot m_d$$ $$E_k(m) = E_k^{base} + E_k^{med} \cdot m_k$$
 
-**Medication-Aware Attention:**
-$$A_{d,k}(m) = \text{softmax}_k\left(\frac{E_d(m)^T W_a E_k(m)}{\sqrt{L}}\right)$$
+**Medication-Aware Attention:** $$A_{d,k}(m) = \text{softmax}_k\left(\frac{E_d(m)^T W_a E_k(m)}{\sqrt{L}}\right)$$
 
-**Medication-Aware Psi:**
-$$\psi_{k,d}(m) = W_\psi^T C_{d,k}(m) + b_\psi + W_{med}^T m_d$$
+**Medication-Aware Psi:** $$\psi_{k,d}(m) = W_\psi^T C_{d,k}(m) + b_\psi + W_{med}^T m_d$$
 
 ## Model Validation
 
@@ -482,54 +450,34 @@ ggplot(metrics_df, aes(x = Metric, y = as.numeric(Value))) +
 
 ## Key Benefits Summary
 
-:::: {.columns}
-
+::::: columns
 ::: {.column width="50%"}
-**Semantic Structure:**
-- Diseases with similar embeddings have similar psi values
-- Learned relationships are interpretable
-- Attention weights reveal disease-signature associations
+**Semantic Structure:** - Diseases with similar embeddings have similar psi values - Learned relationships are interpretable - Attention weights reveal disease-signature associations
 :::
 
 ::: {.column width="50%"}
-**Model-Based Approach:**
-- Maintains principled probabilistic framework
-- Embeddings provide regularization
-- Can incorporate external knowledge
+**Model-Based Approach:** - Maintains principled probabilistic framework - Embeddings provide regularization - Can incorporate external knowledge
 :::
+:::::
 
-::::
+------------------------------------------------------------------------
 
----
-
-**Scalability:**
-- Efficient parameter usage
-- Easy to add new diseases
-- Handles large-scale datasets
+**Scalability:** - Efficient parameter usage - Easy to add new diseases - Handles large-scale datasets
 
 ## Summary & Next Steps
 
-:::: {.columns}
-
+::::: columns
 ::: {.column width="50%"}
-**What We've Accomplished:**
-- Replaced direct $\psi$ learning with hierarchical embeddings
-- Used attention mechanism to relate diseases to signatures
-- Created contextualized representations for each disease-signature pair
-- Maintained model-based approach while adding interpretability
+**What We've Accomplished:** - Replaced direct $\psi$ learning with hierarchical embeddings - Used attention mechanism to relate diseases to signatures - Created contextualized representations for each disease-signature pair - Maintained model-based approach while adding interpretability
 :::
 
 ::: {.column width="50%"}
-**Next Steps:**
-- Implement in our existing model (clust_gp)
-- Experiment with different embedding dimensions
-- Add medication effects
-- Validate on our dataset
+**Next Steps:** - Implement in our existing model (clust_gp) - Experiment with different embedding dimensions - Add medication effects - Validate on our dataset
 :::
+:::::
 
-::::
-
-::: {.callout-tip}
+::: callout-tip
 ## For Your Real Application
+
 With D=350, K=20, use L=5-8 for optimal parameter efficiency while maintaining interpretability.
 :::
