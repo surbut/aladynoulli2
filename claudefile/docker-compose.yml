@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  training:
+    build:
+      context: ..
+      dockerfile: claudefile/Dockerfile
+    image: aladynoulli-training:latest
+    container_name: aladynoulli-trainer
+
+    volumes:
+      # Mount your data directory (adjust path as needed)
+      - ${DATA_DIR:-/data}:/data
+      # Mount results directory
+      - ${RESULTS_DIR:-./results}:/results
+      # Mount logs directory
+      - ${LOGS_DIR:-./logs}:/logs
+      # Mount pyScripts for development (optional, comment out for production)
+      - ../pyScripts:/app/pyScripts
+
+    environment:
+      # Python settings
+      - PYTHONUNBUFFERED=1
+      - TORCH_HOME=/data/torch_cache
+
+      # Training parameters (can be overridden)
+      - START_INDEX=${START_INDEX:-0}
+      - END_INDEX=${END_INDEX:-10000}
+      - MAX_AGE_OFFSET=${MAX_AGE_OFFSET:-30}
+      - NUM_EPOCHS=${NUM_EPOCHS:-200}
+      - LEARNING_RATE=${LEARNING_RATE:-0.1}
+
+      # AWS credentials (if needed for S3 access)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+
+    # Use GPU if available
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    command: python pyScripts/local_survival_training.py
+
+    # Restart policy
+    restart: "no"
+
+# Optional: Add a Jupyter service for interactive development
+  jupyter:
+    build:
+      context: ..
+      dockerfile: claudefile/Dockerfile
+    image: aladynoulli-training:latest
+    container_name: aladynoulli-jupyter
+
+    volumes:
+      - ${DATA_DIR:-/data}:/data
+      - ${RESULTS_DIR:-./results}:/results
+      - ../pyScripts:/app/pyScripts
+      - ../notebooks:/app/notebooks
+
+    ports:
+      - "8888:8888"
+
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+
+    restart: "no"
