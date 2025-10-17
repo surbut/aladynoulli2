@@ -41,6 +41,15 @@ We thank the reviewers for their thoughtful and constructive feedback. We have s
 - [ ] Three-way comparison: Clinical vs. PRS vs. Aladynoulli
 - **Status**: Have clinical scores, need to run formal comparisons
 
+* points to signautres to explain the processes, intuitive physiological
+** transitions: metabolic to cardiovascular, inflammatory to cancer, 
+
+* what icds are contributing to the example, rich and complicated, perfectly transparent
+* exactly what it is that is going the perfectly transparent, the generative model, the parameters, the signatures
+
+** ways to automatically create a dumbed down version 
+   * for example it is easy to create 
+
 ---
 
 # REVIEWER #1: Human Genetics, Disease Risk
