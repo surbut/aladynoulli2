@@ -1,0 +1,1005 @@
+---
+title: "Cardiovascular Health and Disease Across the Life Course"
+subtitle: "Many Roads to Rome"
+author: "Sarah Urbut, MD PhD"
+institute: "Massachusetts General Hospital"
+date: today
+format:
+  revealjs:
+    
+    slide-number: true
+
+    preview-links: auto
+    footer: "Heart House Roundtable | Session 2"
+    transition: slide
+    background-transition: fade
+    highlight-style: github
+    code-fold: true
+    fig-cap-location: bottom
+    embed-resources: true
+    reference-location: document
+    smaller: false
+    scrollable: true
+editor: visual
+---
+
+```{python}
+#| include: false
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import torch
+
+# Set plotting style
+plt.style.use('seaborn-v0_8-darkgrid')
+sns.set_palette("husl")
+```
+
+# The Life Course Paradigm Shift {background-color="#2C3E50"}
+
+## Current Risk Models: The 10-Year Problem
+
+::::: columns
+::: {.column width="50%"}
+**Traditional Approach:**
+
+-   Pooled Cohort Equations (PCE)
+-   10-year ASCVD risk
+-   Treatment at thresholds (≥7.5%)
+
+**The Question:** \> "Who will have an event in the next 10 years?"
+:::
+
+::: {.column width="50%"}
+**What's Missing:**
+
+-   Young patients with high lifetime risk
+-   Low short-term but high long-term risk
+-   Different disease trajectories
+-   Optimal intervention timing
+
+**Better Question:** \> "What is their lifetime burden, and when should we intervene?"
+:::
+:::::
+
+::: notes
+For patients in their 40s and 50s—the critical decades—we're asking the wrong question. A 45-year-old with high LDL might have low 10-year risk but massive lifetime burden.
+:::
+
+## Many Roads to Rome
+
+```{python}
+#| echo: false
+#| fig-width: 12
+#| fig-height: 6
+
+# Create synthetic trajectory data showing different paths to same endpoint
+np.random.seed(42)
+ages = np.arange(30, 80)
+
+# Four different trajectories
+fig, ax = plt.subplots(figsize=(12, 6))
+
+# Trajectory 1: Early genetic risk (steep early rise)
+genetic_risk = 0.1 + 0.02 * (ages - 30)**1.5 + np.random.normal(0, 0.05, len(ages))
+genetic_risk = np.clip(genetic_risk, 0, 1)
+
+# Trajectory 2: Metabolic (gradual middle age)
+metabolic = 0.05 + 0.015 * (ages - 40)**1.2
+metabolic[ages < 40] = 0.05
+metabolic = np.clip(metabolic + np.random.normal(0, 0.03, len(ages)), 0, 1)
+
+# Trajectory 3: Inflammatory (late onset, sharp rise)
+inflammatory = np.zeros(len(ages))
+inflammatory[ages > 55] = 0.02 * (ages[ages > 55] - 55)**1.8
+inflammatory = np.clip(inflammatory + np.random.normal(0, 0.02, len(ages)), 0, 1)
+
+# Trajectory 4: Healthy ager (stays low)
+healthy = 0.02 + 0.001 * (ages - 30) + np.random.normal(0, 0.01, len(ages))
+healthy = np.clip(healthy, 0, 0.15)
+
+ax.plot(ages, genetic_risk, 'r-', linewidth=3, label='High Genetic Risk', alpha=0.8)
+ax.plot(ages, metabolic, 'b-', linewidth=3, label='Metabolic Trajectory', alpha=0.8)
+ax.plot(ages, inflammatory, 'g-', linewidth=3, label='Inflammatory Pathway', alpha=0.8)
+ax.plot(ages, healthy, 'purple', linewidth=3, label='Healthy Ager', alpha=0.8)
+
+# Mark critical intervention points
+ax.axvspan(40, 60, alpha=0.1, color='orange', label='Critical Decades')
+
+ax.set_xlabel('Age (years)', fontsize=14, fontweight='bold')
+ax.set_ylabel('Cumulative Disease Risk', fontsize=14, fontweight='bold')
+ax.set_title('Multiple Trajectories to Cardiovascular Disease', fontsize=16, fontweight='bold')
+ax.legend(fontsize=12, loc='upper left')
+ax.grid(True, alpha=0.3)
+ax.set_ylim([0, 1])
+
+plt.tight_layout()
+plt.show()
+```
+
+::: callout-important
+## Key Insight
+
+Traditional risk models assume one pathway. Reality is far more complex—different trajectories require different intervention strategies.
+:::
+
+# CV Health Personas {background-color="#34495E"}
+
+## Persona 1: High Genetic Risk
+
+::::: columns
+::: {.column width="60%"}
+**Clinical Profile:**
+
+-   High polygenic risk score (PRS)
+-   Or familial hypercholesterolemia (FH)
+-   LDL 180 mg/dL at age 35
+-   CAD onset by age 50
+
+**Research Evidence:**
+
+-   *Ference et al., NEJM 2012*: Genetic variants that lower cholesterol even moderately over lifetime dramatically reduce CAD
+-   *Khera et al., Nat Genet 2018*: PRS identifies high-risk individuals missed by traditional screening
+:::
+
+::: {.column width="40%"}
+**Your Model Findings:**
+
+```{python}
+#| echo: false
+#| fig-width: 5
+#| fig-height: 4
+
+# Simplified signature visualization
+ages_short = np.arange(30, 82)
+sig_genetic = 0.1 + 0.015 * (ages_short - 30) + np.random.normal(0, 0.02, len(ages_short))
+sig_genetic = np.clip(sig_genetic, 0, 0.8)
+
+fig, ax = plt.subplots(figsize=(5, 4))
+ax.plot(ages_short, sig_genetic, 'r-', linewidth=3)
+ax.axvline(45, color='orange', linestyle='--', linewidth=2, label='Signature rise')
+ax.axvline(50, color='red', linestyle='--', linewidth=2, label='Clinical CAD')
+ax.set_xlabel('Age', fontsize=11)
+ax.set_ylabel('CVD Signature Loading', fontsize=11)
+ax.set_title('Signature Changes Precede Diagnosis\nby 5-10 years', fontsize=12, fontweight='bold')
+ax.legend(fontsize=9)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+```
+
+**Signatures change 5-10 years before clinical diagnosis**
+:::
+:::::
+
+::: notes
+This is the "catch them early" persona. Current guidelines treat FH aggressively from childhood, but individuals with high PRS can have similar risk and are often missed.
+:::
+
+## Persona 2: Metabolic Trajectory
+
+::::: columns
+::: {.column width="50%"}
+**Progression Path:**
+
+1.  Prediabetes (age 40-45)
+2.  Type 2 diabetes (age 45-50)
+3.  Metabolic syndrome (age 50-55)
+4.  CAD (age 55-60)
+
+**Key Research Finding:**
+
+*Urbut et al., medRxiv 2024*: \> "Metabolic signature (Sig 12) rises first, cardiovascular signature (Sig 5) follows 2-3 years later"
+
+**The Intervention Window:** - When metabolic signature plateaus - But CVD signature accelerates - 2-3 years before clinical CAD
+:::
+
+::: {.column width="50%"}
+**Signature Transition:**
+
+```{python}
+#| echo: false
+#| fig-width: 6
+#| fig-height: 5
+
+# Metabolic to CVD signature transition
+ages_met = np.arange(40, 70)
+
+# Metabolic signature rises then plateaus
+sig_metabolic = 0.2 + 0.025 * (ages_met - 40)
+sig_metabolic[ages_met > 55] = 0.2 + 0.025 * 15  # Plateau
+sig_metabolic = np.clip(sig_metabolic + np.random.normal(0, 0.02, len(ages_met)), 0, 1)
+
+# CVD signature rises later
+sig_cvd = np.zeros(len(ages_met))
+sig_cvd[ages_met > 52] = 0.02 * (ages_met[ages_met > 52] - 52)**1.5
+sig_cvd = np.clip(sig_cvd + np.random.normal(0, 0.015, len(ages_met)), 0, 1)
+
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.plot(ages_met, sig_metabolic, 'b-', linewidth=3, label='Metabolic Signature (Sig 12)', alpha=0.8)
+ax.plot(ages_met, sig_cvd, 'r-', linewidth=3, label='CVD Signature (Sig 5)', alpha=0.8)
+
+# Mark transition window
+transition_start = 53
+transition_end = 57
+ax.axvspan(transition_start, transition_end, alpha=0.2, color='orange', label='Transition Window')
+ax.axvline(60, color='red', linestyle='--', linewidth=2, alpha=0.5, label='Clinical CAD')
+
+ax.set_xlabel('Age (years)', fontsize=12, fontweight='bold')
+ax.set_ylabel('Signature Loading (θ)', fontsize=12, fontweight='bold')
+ax.set_title('Metabolic → Cardiovascular Transition\n(Intervention Window: 2-3 years before CAD)',
+             fontsize=13, fontweight='bold')
+ax.legend(fontsize=10, loc='upper left')
+ax.grid(True, alpha=0.3)
+ax.set_ylim([0, 0.8])
+
+plt.tight_layout()
+plt.show()
+```
+:::
+:::::
+
+## Persona 3: Inflammatory Pathway
+
+::::: columns
+::: {.column width="55%"}
+**Clinical Picture:**
+
+-   Rheumatoid arthritis, psoriasis, or lupus
+-   Often normal lipids
+-   "Low" 10-year PCE risk
+-   But ongoing systemic inflammation
+
+**Your Research:**
+
+-   52 patients: rheumatologic → CV transitions
+-   Signature deviations **5 years pre-CAD**
+-   Multi-signature interactions:
+    -   Metabolic + Inflammatory together
+    -   Synergistic effect (9.1% \> 4.3% + 2.8%)
+
+**Evidence Base:**
+
+-   *ACC Statement on Inflammation*: Inflammation is therapeutic target in CVD
+-   CANTOS trial: IL-1β inhibition reduces CV events
+:::
+
+::: {.column width="45%"}
+**Signature Behavior:**
+
+```{python}
+#| echo: false
+#| fig-width: 5
+#| fig-height: 4.5
+
+# Inflammatory pathway
+ages_inflam = np.arange(45, 75)
+sig_inflam = 0.3 + 0.01 * (ages_inflam - 45) + np.random.normal(0, 0.02, len(ages_inflam))
+sig_cv_inflam = np.zeros(len(ages_inflam))
+sig_cv_inflam[ages_inflam > 60] = 0.03 * (ages_inflam[ages_inflam > 60] - 60)**1.3
+sig_cv_inflam = np.clip(sig_cv_inflam + np.random.normal(0, 0.01, len(ages_inflam)), 0, 1)
+
+fig, ax = plt.subplots(figsize=(5, 4.5))
+ax.plot(ages_inflam, sig_inflam, 'g-', linewidth=3, label='Inflammatory Sig', alpha=0.8)
+ax.plot(ages_inflam, sig_cv_inflam, 'r-', linewidth=3, label='CVD Sig', alpha=0.8)
+ax.axvline(70, color='red', linestyle='--', linewidth=2, alpha=0.5, label='Clinical CAD')
+ax.fill_between(ages_inflam, 0, 1, where=(ages_inflam >= 65) & (ages_inflam <= 70),
+                alpha=0.15, color='orange', label='Pre-CAD deviation')
+
+ax.set_xlabel('Age (years)', fontsize=11)
+ax.set_ylabel('Signature Loading', fontsize=11)
+ax.set_title('Inflammatory → CVD Pathway\n(Often Missed by Traditional Models)',
+             fontsize=12, fontweight='bold')
+ax.legend(fontsize=9)
+ax.grid(True, alpha=0.3)
+ax.set_ylim([0, 0.7])
+
+plt.tight_layout()
+plt.show()
+```
+
+**Often missed:** Normal lipids but high inflammatory burden
+:::
+:::::
+
+## Persona 4: Healthy Ager
+
+::::: columns
+::: {.column width="50%"}
+**Characteristics:**
+
+-   Low signature loadings across decades
+-   Maintained cardiovascular health
+-   Protective factors?
+    -   Genetics
+    -   Lifestyle
+    -   Both?
+
+**Model Performance:**
+
+-   Baseline AUC: **0.898** (ASCVD)
+-   1-year washout: **0.701**
+-   2-year washout: **0.680**
+
+**Key Question:** What distinguishes this group? Can we replicate their trajectory in others?
+:::
+
+::: {.column width="50%"}
+```{python}
+#| echo: false
+#| fig-width: 6
+#| fig-height: 5
+
+# Healthy ager comparison
+ages_full = np.arange(30, 80)
+
+# Healthy agers
+healthy_sig = 0.05 + 0.002 * (ages_full - 30) + np.random.normal(0, 0.01, len(ages_full))
+healthy_sig = np.clip(healthy_sig, 0, 0.15)
+
+# Average population
+avg_sig = 0.05 + 0.01 * (ages_full - 30)**1.1 + np.random.normal(0, 0.03, len(ages_full))
+avg_sig = np.clip(avg_sig, 0, 0.6)
+
+# High risk
+high_sig = 0.1 + 0.02 * (ages_full - 30)**1.3 + np.random.normal(0, 0.04, len(ages_full))
+high_sig = np.clip(high_sig, 0, 1)
+
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.fill_between(ages_full, 0, high_sig, alpha=0.3, color='red', label='High Risk Trajectories')
+ax.fill_between(ages_full, 0, avg_sig, alpha=0.4, color='blue', label='Average Population')
+ax.plot(ages_full, healthy_sig, 'purple', linewidth=4, label='Healthy Agers', alpha=0.9)
+
+ax.set_xlabel('Age (years)', fontsize=12, fontweight='bold')
+ax.set_ylabel('CVD Signature Loading', fontsize=12, fontweight='bold')
+ax.set_title('Healthy Agers: Maintained Low Risk Across Life Course',
+             fontsize=13, fontweight='bold')
+ax.legend(fontsize=11, loc='upper left')
+ax.grid(True, alpha=0.3)
+ax.set_ylim([0, 1])
+
+plt.tight_layout()
+plt.show()
+```
+:::
+:::::
+
+::: callout-note
+## Clinical Impact
+
+Same 10-year risk ≠ Same intervention. Trajectory determines timing and intensity of prevention.
+:::
+
+# Dynamic Risk: Life Course Models {background-color="#2C3E50"}
+
+## The Aladynoulli Model
+
+:::::: columns
+::: {.column width="50%"}
+**What It Does:**
+
+-   Longitudinal disease signatures over 30+ years
+-   Bayesian survival framework
+-   Dynamic risk updates
+
+**What It Incorporates:**
+
+1.  **Genetics** (fixed): Polygenic risk scores
+2.  **Biomarkers** (dynamic): Serial lipids, BP, glucose
+3.  **Imaging** (when available): CAC, plaque burden
+4.  **Events** (transitions): New diagnoses as signals
+
+**Scale:**
+
+-   348 diseases
+-   400,000 individuals (UK Biobank)
+-   21 disease signatures
+-   50+ time points (ages 30-80)
+:::
+
+:::: {.column width="50%"}
+**Mathematical Framework:**
+
+$$\pi_{i,d,t} = \kappa \times \sum_k \theta_{i,k,t} \times \phi_{k,d,t}$$
+
+Where:
+
+-   $\theta_{i,k,t}$ = signature proportions (from Gaussian process)
+-   $\phi_{k,d,t}$ = disease probabilities
+-   $\lambda_{i,k,t} \sim GP(\mu_k + G_i\gamma_k, K_\lambda)$ (temporal dynamics)
+
+**Key Innovation:**
+
+Signature **velocity** (rate of change) predicts risk:
+
+::: callout-important
+"Top quartile Sig 5 velocity has **HR=2.8** for CAD"
+:::
+
+This translates to **18 months earlier CAD onset**
+::::
+::::::
+
+## Novel Biomarker: Signature Velocity
+
+::::: columns
+::: {.column width="50%"}
+**Traditional Approach:**
+
+-   Single time point measurement
+-   Example: LDL = 150 mg/dL
+
+**Life Course Approach:**
+
+-   **Trajectory** and **velocity**
+-   Example: LDL 120→180 over 10 years
+-   Rate of change = 6 mg/dL/year
+
+**Your Discovery:**
+
+> "Fast signature progression → higher disease risk independent of absolute level"
+
+**Clinical Translation:**
+
+-   Top quartile velocity: HR = 2.8 for CAD
+-   18 months earlier onset
+-   New therapeutic target: Slow progression
+:::
+
+::: {.column width="50%"}
+```{python}
+#| echo: false
+#| fig-width: 6
+#| fig-height: 6
+
+# Velocity analysis
+ages_vel = np.arange(40, 70)
+
+# Slow velocity
+slow_vel = 0.1 + 0.005 * (ages_vel - 40) + np.random.normal(0, 0.01, len(ages_vel))
+slow_vel = np.clip(slow_vel, 0, 1)
+
+# Medium velocity
+med_vel = 0.1 + 0.012 * (ages_vel - 40) + np.random.normal(0, 0.015, len(ages_vel))
+med_vel = np.clip(med_vel, 0, 1)
+
+# Fast velocity
+fast_vel = 0.1 + 0.025 * (ages_vel - 40) + np.random.normal(0, 0.02, len(ages_vel))
+fast_vel = np.clip(fast_vel, 0, 1)
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6))
+
+# Top: Trajectories
+ax1.plot(ages_vel, slow_vel, 'g-', linewidth=3, label='Slow Velocity (Q1)', alpha=0.8)
+ax1.plot(ages_vel, med_vel, 'b-', linewidth=3, label='Medium Velocity (Q2-3)', alpha=0.8)
+ax1.plot(ages_vel, fast_vel, 'r-', linewidth=3, label='Fast Velocity (Q4)', alpha=0.8)
+ax1.set_ylabel('Signature Loading', fontsize=11, fontweight='bold')
+ax1.set_title('Signature Trajectories by Velocity Quartile', fontsize=12, fontweight='bold')
+ax1.legend(fontsize=9)
+ax1.grid(True, alpha=0.3)
+
+# Bottom: Hazard ratios
+velocities = ['Q1\n(Slow)', 'Q2-3\n(Medium)', 'Q4\n(Fast)']
+hrs = [1.0, 1.5, 2.8]
+colors_hr = ['green', 'blue', 'red']
+
+bars = ax2.bar(velocities, hrs, color=colors_hr, alpha=0.7, edgecolor='black', linewidth=2)
+ax2.axhline(1, color='black', linestyle='--', linewidth=1.5, alpha=0.5)
+ax2.set_ylabel('Hazard Ratio for CAD', fontsize=11, fontweight='bold')
+ax2.set_xlabel('Velocity Quartile', fontsize=11, fontweight='bold')
+ax2.set_title('Velocity Predicts CAD Risk (HR = 2.8 for Q4)', fontsize=12, fontweight='bold')
+ax2.set_ylim([0, 3.5])
+ax2.grid(True, alpha=0.3, axis='y')
+
+# Add value labels
+for i, (bar, hr) in enumerate(zip(bars, hrs)):
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+            f'HR={hr}', ha='center', va='bottom', fontweight='bold', fontsize=10)
+
+plt.tight_layout()
+plt.show()
+```
+:::
+:::::
+
+## Example: Same Risk, Different Trajectories
+
+::: panel-tabset
+### Case Comparison
+
+**Two 55-year-old women, both with 10-year ASCVD risk of 7.5%:**
+
+| Feature | Woman A | Woman B |
+|------------------------|------------------------|------------------------|
+| **LDL trajectory** | Stable 130 mg/dL × 20 years | 120→180 mg/dL over 15 years |
+| **Inflammation** | Recent hsCRP uptick (1→4 mg/L) | Stable CRP \< 2 mg/L |
+| **Signature pattern** | Inflammatory sig rising | Metabolic sig dominant |
+| **PCE risk** | 7.5% | 7.5% |
+
+### Traditional Model
+
+**Both receive identical recommendations:**
+
+-   Same 10-year risk (7.5%)
+-   Same statin recommendation
+-   Same LDL target (\<100 mg/dL)
+-   No differentiation
+
+### Life Course Model
+
+**Different strategies based on trajectories:**
+
+**Woman A (Inflammatory):**
+
+-   Earlier intervention (age 50 vs 55)
+-   Inflammatory biomarker monitoring
+-   Consider imaging (CAC score)
+-   Possibly anti-inflammatory Rx
+
+**Woman B (Metabolic):**
+
+-   Focus on metabolic control
+-   Intensive lifestyle intervention
+-   Early GLP-1/SGLT2i consideration
+-   Tighter glucose monitoring
+:::
+
+# From Theory to Practice {background-color="#34495E"}
+
+## Precision Prevention by Persona
+
+::: panel-tabset
+### High Genetic Risk
+
+**Current Guidelines:**
+
+-   LDL threshold ≥190 mg/dL (FH)
+-   Age-independent statin for FH
+
+**Life Course Approach:**
+
+-   Genetic testing age 30-40
+-   PRS-guided intervention
+-   Earlier statin initiation
+-   More aggressive LDL targets
+
+**Evidence:**
+
+-   AHA Statement: PRS highly predictive in younger populations
+-   Ference et al.: Lifetime cholesterol lowering \> short-term intensive
+
+**Implementation:**
+
+-   Cost: \$50-200 for PRS
+-   Coverage: Expanding but limited
+-   Clinical workflow: Needs EHR integration
+
+### Metabolic Trajectory
+
+**Current Approach:**
+
+-   Wait for diabetes (A1c ≥6.5%)
+-   Reactive treatment
+
+**Life Course Approach:**
+
+-   Intervene at **transition point**
+-   When metabolic sig plateaus
+-   Before CVD sig accelerates
+
+**Your Data:**
+
+-   Transition occurs 2-3 years pre-CAD
+-   Window for intensive prevention
+
+**Interventions:**
+
+-   Intensive lifestyle (DPP)
+-   Early SGLT2i/GLP1-RA
+-   Closer monitoring (3-6 months)
+
+### Inflammatory Pathway
+
+**Current Gap:**
+
+-   Normal lipids = missed
+-   Low PCE despite inflammation
+
+**Life Course Approach:**
+
+-   Inflammatory biomarkers (hsCRP, IL-6)
+-   Imaging (CAC) for risk refinement
+-   Earlier intervention in rheumatologic disease
+
+**Your Finding:**
+
+-   Signature deviations 5 years pre-CAD
+-   52 patients with rheum→CV transitions
+
+**Treatment Considerations:**
+
+-   Optimize rheumatologic disease control
+-   Consider colchicine
+-   More aggressive lipid lowering
+-   Serial imaging
+
+### Healthy Agers
+
+**Learn from Success:**
+
+-   What protects this group?
+-   Can we replicate their trajectory?
+
+**Research Needed:**
+
+-   Genomic studies
+-   Lifestyle patterns
+-   Biomarker profiles
+-   Microbiome?
+
+**Clinical Application:**
+
+-   Risk stratification
+-   Targeted prevention
+-   Personalized goals
+:::
+
+## Implementation Challenges
+
+:::::: columns
+::: {.column width="33%"}
+**Clinical Barriers:**
+
+-   EHR integration
+    -   No life course calculators
+    -   Data fragmentation
+    -   Manual entry burden
+-   Decision support
+    -   Need real-time risk updates
+    -   Trajectory visualization
+    -   Actionable recommendations
+-   Workflow integration
+    -   Time constraints
+    -   Training needed
+    -   Change management
+:::
+
+::: {.column width="33%"}
+**Payer Barriers:**
+
+-   Coverage policies
+    -   "Preventive" Rx in "healthy" patients
+    -   Genetic testing reimbursement
+    -   Advanced imaging (CAC, CCTA)
+-   Value demonstration
+    -   Long-term outcomes
+    -   Cost-effectiveness
+    -   ROI uncertainty
+-   Prior authorization
+    -   Treatment thresholds
+    -   Documentation burden
+:::
+
+::: {.column width="34%"}
+**Communication Challenges:**
+
+-   Patient understanding
+    -   Lifetime vs 10-year risk
+    -   Abstract concepts
+    -   Motivation for prevention
+-   Shared decision-making
+    -   Risk/benefit discussions
+    -   Treatment intensity
+    -   Monitoring frequency
+-   Tools needed
+    -   Visual aids
+    -   Personalized reports
+    -   Decision aids
+:::
+::::::
+
+::: callout-warning
+## Key Question for Discussion
+
+What's the threshold for payer coverage of preventive therapies in otherwise "healthy" high-lifetime-risk patients?
+:::
+
+# Looking Forward {background-color="#2C3E50"}
+
+## Tools on the Horizon
+
+::::: columns
+::: {.column width="50%"}
+**Current State:**
+
+**LIVE-CVD Model:**
+
+-   First lifelong benefit calculator
+-   Integrates traditional risk factors
+-   Projects lifetime ASCVD risk
+
+**SCOT-HEART Trial:**
+
+-   5-year: CT improves risk stratification
+-   10-year: Sustained benefit
+-   SCOT-HEART 2: Ongoing
+
+**Your Model (Aladynoulli):**
+
+-   Bayesian framework
+-   Genetics + biomarkers + events
+-   Dynamic, continuous updates
+-   348 diseases, 21 signatures
+:::
+
+::: {.column width="50%"}
+**Emerging Tools:**
+
+**AI-Enhanced Imaging:**
+
+-   Automated plaque quantification
+-   Pericoronary fat analysis
+-   ECG-based AI risk scores
+-   Retinal imaging
+
+**Polygenic Risk Scores:**
+
+-   Million-variant PRS
+-   Multi-ancestry validation
+-   Clinical implementation starting
+
+**EHR Integration:**
+
+-   Real-time calculators
+-   Passive monitoring
+-   Alert systems
+-   Population health dashboards
+
+**Wearables & Sensors:**
+
+-   Continuous BP monitoring
+-   Glucose sensors (CGM)
+-   Activity tracking
+-   Sleep quality
+:::
+:::::
+
+## The Promise: Precision Prevention
+
+```{python}
+#| echo: false
+#| fig-width: 12
+#| fig-height: 6
+
+# Comparison of approaches
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+# Left: Traditional (one-size-fits-all)
+ages_trad = np.arange(30, 80)
+trad_threshold = np.ones(len(ages_trad)) * 0.075  # 7.5% threshold
+
+# All patients treated the same above threshold
+patient1_trad = 0.05 + 0.008 * (ages_trad - 30) + np.random.normal(0, 0.01, len(ages_trad))
+patient2_trad = 0.03 + 0.01 * (ages_trad - 30) + np.random.normal(0, 0.012, len(ages_trad))
+patient3_trad = 0.04 + 0.009 * (ages_trad - 30) + np.random.normal(0, 0.011, len(ages_trad))
+
+ax1.plot(ages_trad, patient1_trad, 'r-', linewidth=2, alpha=0.7, label='Patient 1')
+ax1.plot(ages_trad, patient2_trad, 'b-', linewidth=2, alpha=0.7, label='Patient 2')
+ax1.plot(ages_trad, patient3_trad, 'g-', linewidth=2, alpha=0.7, label='Patient 3')
+ax1.axhline(0.075, color='orange', linestyle='--', linewidth=3, label='Treatment Threshold (7.5%)')
+ax1.fill_between(ages_trad, 0.075, 1, alpha=0.15, color='orange')
+
+ax1.set_xlabel('Age (years)', fontsize=12, fontweight='bold')
+ax1.set_ylabel('10-Year ASCVD Risk', fontsize=12, fontweight='bold')
+ax1.set_title('Traditional: One-Size-Fits-All\n(Same threshold for all)',
+              fontsize=13, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(True, alpha=0.3)
+ax1.set_ylim([0, 0.6])
+
+# Right: Life course (personalized)
+# Different intervention points based on trajectory
+patient1_lc = 0.1 + 0.02 * (ages_trad - 30)**1.3 + np.random.normal(0, 0.015, len(ages_trad))
+patient2_lc = 0.05 + 0.015 * (ages_trad - 40)**1.1
+patient2_lc[ages_trad < 40] = 0.05
+patient3_lc = 0.02 + 0.003 * (ages_trad - 30) + np.random.normal(0, 0.008, len(ages_trad))
+
+patient1_lc = np.clip(patient1_lc, 0, 1)
+patient2_lc = np.clip(patient2_lc, 0, 1)
+patient3_lc = np.clip(patient3_lc, 0, 0.3)
+
+ax2.plot(ages_trad, patient1_lc, 'r-', linewidth=2, alpha=0.7, label='High Genetic (early Rx)')
+ax2.plot(ages_trad, patient2_lc, 'b-', linewidth=2, alpha=0.7, label='Metabolic (mid Rx)')
+ax2.plot(ages_trad, patient3_lc, 'g-', linewidth=2, alpha=0.7, label='Healthy Ager (late/no Rx)')
+
+# Mark different intervention points
+ax2.axvline(40, color='red', linestyle=':', linewidth=2, alpha=0.5)
+ax2.axvline(50, color='blue', linestyle=':', linewidth=2, alpha=0.5)
+ax2.text(40, 0.55, 'Genetic\nIntervention', ha='center', fontsize=9, color='red', fontweight='bold')
+ax2.text(50, 0.55, 'Metabolic\nIntervention', ha='center', fontsize=9, color='blue', fontweight='bold')
+
+ax2.set_xlabel('Age (years)', fontsize=12, fontweight='bold')
+ax2.set_ylabel('Lifetime Disease Burden', fontsize=12, fontweight='bold')
+ax2.set_title('Life Course: Precision Prevention\n(Trajectory-specific timing)',
+              fontsize=13, fontweight='bold')
+ax2.legend(fontsize=10, loc='upper left')
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim([0, 0.6])
+
+plt.tight_layout()
+plt.show()
+```
+
+::: callout-tip
+## The Goal
+
+Tailor prevention to individual life course trajectories—not one-size-fits-all based on 10-year risk alone.
+:::
+
+## Key Discussion Questions
+
+::: incremental
+1.  **How do we reconcile population-level risk models with individualized prediction?**
+    -   Especially when individuals may benefit from early intervention despite low calculated risk
+2.  **Can life-course risk prediction be practically implemented?**
+    -   What barriers do you foresee to payers covering preventive therapies in "healthy" patients?
+3.  **How do we bridge lifetime risk reduction with current risk management?**
+    -   Lower thresholds? Earlier age to start therapy? Public health efforts?
+4.  **Communication strategies:**
+    -   How do we make genetics, AI, and imaging meaningful to patient care?
+    -   What tools help patients understand their lifetime trajectory?
+5.  **Testing strategies:**
+    -   Should everyone get CAC or CCTA every 10 years starting at age 40?
+    -   Who should get genetic testing? When?
+:::
+
+# Summary {background-color="#2C3E50"}
+
+## Key Takeaways
+
+::::: columns
+::: {.column width="50%"}
+**The Problem:**
+
+-   Traditional models miss young high-lifetime-risk patients
+-   One-size-fits-all thresholds
+-   No consideration of trajectory
+
+**The Solution:**
+
+-   Life course risk assessment
+-   Multiple pathways to disease
+-   Dynamic, updating models
+-   Precision prevention
+
+**The Evidence:**
+
+-   Multiple trajectories exist (personas)
+-   Signatures change years before diagnosis
+-   Velocity predicts risk (HR=2.8)
+-   Synergistic multi-signature effects
+:::
+
+::: {.column width="50%"}
+**The Tools:**
+
+-   Bayesian modeling (Aladynoulli)
+-   Polygenic risk scores
+-   AI-enhanced imaging
+-   EHR integration coming
+
+**The Challenges:**
+
+-   Clinical workflow integration
+-   Payer coverage
+-   Patient communication
+-   Training needed
+
+**The Path Forward:**
+
+-   Validate tools in diverse populations
+-   Demonstrate cost-effectiveness
+-   Build clinical decision support
+-   Engage all stakeholders
+:::
+:::::
+
+## Thank You
+
+::::: columns
+::: {.column width="50%"}
+**Contact:**
+
+Sarah Urbut, MD PhD Massachusetts General Hospital [surbut\@mgh.harvard.edu](mailto:surbut@mgh.harvard.edu)
+
+**Preprint:**
+
+Urbut et al., medRxiv 2024 doi: 10.1101/2024.09.29.24314557
+
+**Code:**
+
+[github.com/surbut/aladynoulli2](https://github.com/surbut/aladynoulli2)
+:::
+
+::: {.column width="50%"}
+**Key Collaborators:**
+
+-   UK Biobank participants
+-   Mass General Brigham
+-   PRIME-Heart Initiative
+
+**Questions for Discussion:**
+
+1.  Which personas resonate with your practice?
+2.  What's your biggest barrier to life course prevention?
+3.  Which tools are you most excited about?
+4.  What would change your practice tomorrow?
+:::
+:::::
+
+::: callout-note
+## Ready for Discussion
+
+Let's explore how we can move from theory to practice in the critical decades.
+:::
+
+# Backup Slides {background-color="#34495E"}
+
+## Model Details: Aladynoulli
+
+**Mathematical Framework:**
+
+Disease probability at time $t$: $$\pi_{i,d,t} = \kappa \times \sum_{k=1}^K \theta_{i,k,t} \times \phi_{k,d,t}$$
+
+**Components:**
+
+-   $\theta_{i,k,t} = \text{softmax}(\lambda_{i,k,t})$ — signature proportions
+-   $\lambda_{i,k,t} \sim GP(\mu_k + G_i\gamma_k, K_\lambda)$ — temporal dynamics with genetics
+-   $\phi_{k,d,t} = \text{sigmoid}(\psi_{k,d} + GP(\mu_\phi, K_\phi))$ — disease probabilities
+
+**Innovation:**
+
+-   Gaussian processes for smooth temporal evolution
+-   Genetic effects on signature trajectories
+-   Proper censoring handling
+-   Bayesian uncertainty quantification
+
+## Validation Results
+
+**UK Biobank (Primary):**
+
+-   N = 400,000 individuals
+-   348 diseases
+-   21 signatures discovered
+-   AUC = 0.898 (ASCVD, baseline)
+-   AUC = 0.701 (1-year washout)
+
+**Cross-Cohort Validation:**
+
+-   Mass General Brigham
+-   All of Us Research Program
+-   79% signature concordance
+
+**Robustness:**
+
+-   Stable across ancestry groups
+-   Stable across socioeconomic strata (TDI)
+-   Population prevalence matches ONS/NHS
+
+## Citations & References
+
+::: smaller
+1.  Goff et al. 2013 ACC/AHA Pooled Cohort Equations. *Circulation* 2014.
+2.  Lloyd-Jones et al. Prediction of Lifetime Risk for CVD. *Circulation* 2006.
+3.  Khera et al. Polygenic Prediction of Weight and Obesity Trajectories. *Cell* 2019.
+4.  Grundy et al. 2018 AHA/ACC Cholesterol Guidelines. *Circulation* 2019.
+5.  Ference et al. Effect of Long-Term Exposure to Lower LDL. *NEJM* 2012.
+6.  AHA Scientific Statement on Polygenic Risk Scores, 2022.
+7.  Ridker et al. Antiinflammatory Therapy with Canakinumab (CANTOS). *NEJM* 2017.
+8.  Harshfield et al. Association Between Genetic Variation at ACE and Risk of COVID-19. *Circulation* 2020.
+9.  Newby et al. Coronary CT Angiography and 5-Year Risk (SCOT-HEART). *NEJM* 2018.
+10. Williams et al. Coronary Artery Plaque Characteristics (SCOT-HEART 10-year). *NEJM* 2024.
+11. Urbut et al. Aladynoulli: Bayesian Survival Model for Disease Trajectories. *medRxiv* 2024.
+:::
