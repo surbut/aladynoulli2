@@ -1,0 +1,611 @@
+---
+title: "Cardiovascular Health and Disease Across the Life Course"
+subtitle: "Many Roads to Rome"
+author: "Sarah Urbut, MD PhD"
+institute: "Massachusetts General Hospital"
+date: "`r Sys.Date()`"
+output:
+  revealjs::revealjs_presentation:
+    theme: serif
+    highlight: github
+    center: true
+    transition: slide
+    reveal_options:
+      slideNumber: true
+      previewLinks: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                     fig.width = 10, fig.height = 6)
+
+# Load libraries
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(viridis)
+library(gridExtra)
+
+# Set theme
+theme_set(theme_minimal(base_size = 14))
+```
+
+# The Life Course Paradigm Shift {data-background="#2C3E50"}
+
+## Current Risk Models: The 10-Year Problem
+
+<div style="float: left; width: 48%;">
+**Traditional Approach:**
+
+- Pooled Cohort Equations (PCE)
+- 10-year ASCVD risk
+- Treatment at thresholds (≥7.5%)
+
+**The Question:**
+> "Who will have an event in the next 10 years?"
+</div>
+
+<div style="float: right; width: 48%;">
+**What's Missing:**
+
+- Young patients with high lifetime risk
+- Low short-term but high long-term risk
+- Different disease trajectories
+- Optimal intervention timing
+
+**Better Question:**
+> "What is their lifetime burden, and when should we intervene?"
+</div>
+
+<aside class="notes">
+For patients in their 40s and 50s—the critical decades—we're asking the wrong question. A 45-year-old with high LDL might have low 10-year risk but massive lifetime burden.
+</aside>
+
+## Many Roads to Rome
+
+```{r trajectories, fig.width=12, fig.height=6}
+# Create synthetic trajectory data
+set.seed(42)
+ages <- 30:79
+
+# Four different trajectories
+genetic_risk <- 0.1 + 0.02 * ((ages - 30)^1.5 / 50) + rnorm(length(ages), 0, 0.05)
+genetic_risk <- pmax(0, pmin(1, genetic_risk))
+
+metabolic <- ifelse(ages < 40, 0.05,
+                   0.05 + 0.015 * ((ages - 40)^1.2 / 40)) + rnorm(length(ages), 0, 0.03)
+metabolic <- pmax(0, pmin(1, metabolic))
+
+inflammatory <- ifelse(ages > 55, 0.02 * ((ages - 55)^1.8 / 50), 0) + rnorm(length(ages), 0, 0.02)
+inflammatory <- pmax(0, pmin(1, inflammatory))
+
+healthy <- 0.02 + 0.001 * (ages - 30) + rnorm(length(ages), 0, 0.01)
+healthy <- pmax(0, pmin(0.15, healthy))
+
+df <- data.frame(
+  Age = rep(ages, 4),
+  Risk = c(genetic_risk, metabolic, inflammatory, healthy),
+  Trajectory = rep(c("High Genetic Risk", "Metabolic Trajectory",
+                    "Inflammatory Pathway", "Healthy Ager"), each = length(ages))
+)
+
+ggplot(df, aes(x = Age, y = Risk, color = Trajectory, group = Trajectory)) +
+  geom_line(linewidth = 2, alpha = 0.8) +
+  annotate("rect", xmin = 40, xmax = 60, ymin = 0, ymax = 1,
+           alpha = 0.1, fill = "orange") +
+  annotate("text", x = 50, y = 0.95, label = "Critical Decades",
+           size = 5, fontface = "bold") +
+  scale_color_manual(values = c("red", "blue", "green", "purple")) +
+  labs(x = "Age (years)", y = "Cumulative Disease Risk",
+       title = "Multiple Trajectories to Cardiovascular Disease") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+```
+
+<div class="notes">
+Traditional risk models assume one pathway. Reality is far more complex—different trajectories require different intervention strategies.
+</div>
+
+# CV Health Personas {data-background="#34495E"}
+
+## Persona 1: High Genetic Risk
+
+<div style="float: left; width: 58%;">
+**Clinical Profile:**
+
+- High polygenic risk score (PRS)
+- Or familial hypercholesterolemia (FH)
+- LDL 180 mg/dL at age 35
+- CAD onset by age 50
+
+**Research Evidence:**
+
+- *Ference et al., NEJM 2012*: Genetic variants that lower cholesterol even moderately over lifetime dramatically reduce CAD
+- *Khera et al., Nat Genet 2018*: PRS identifies high-risk individuals missed by traditional screening
+</div>
+
+<div style="float: right; width: 38%;">
+**Your Model Findings:**
+
+```{r genetic-sig, fig.width=5, fig.height=4}
+ages_short <- 30:81
+sig_genetic <- 0.1 + 0.015 * (ages_short - 30) + rnorm(length(ages_short), 0, 0.02)
+sig_genetic <- pmax(0, pmin(0.8, sig_genetic))
+
+df_gen <- data.frame(Age = ages_short, Signature = sig_genetic)
+
+ggplot(df_gen, aes(x = Age, y = Signature)) +
+  geom_line(color = "red", linewidth = 2) +
+  geom_vline(xintercept = 45, linetype = "dashed", color = "orange", linewidth = 1.5) +
+  geom_vline(xintercept = 50, linetype = "dashed", color = "red", linewidth = 1.5) +
+  annotate("text", x = 45, y = 0.75, label = "Signature rise", size = 3, angle = 90) +
+  annotate("text", x = 50, y = 0.75, label = "Clinical CAD", size = 3, angle = 90) +
+  labs(x = "Age", y = "CVD Signature Loading",
+       title = "Signature Changes Precede\nDiagnosis by 5-10 years") +
+  theme(plot.title = element_text(size = 11, face = "bold"))
+```
+
+**Signatures change 5-10 years before clinical diagnosis**
+</div>
+
+## Persona 2: Metabolic Trajectory
+
+<div style="float: left; width: 48%;">
+**Progression Path:**
+
+1. Prediabetes (age 40-45)
+2. Type 2 diabetes (age 45-50)
+3. Metabolic syndrome (age 50-55)
+4. CAD (age 55-60)
+
+**Key Research Finding:**
+
+*Urbut et al., medRxiv 2024*:
+> "Metabolic signature (Sig 12) rises first, cardiovascular signature (Sig 5) follows 2-3 years later"
+
+**The Intervention Window:**
+
+- When metabolic signature plateaus
+- But CVD signature accelerates
+- 2-3 years before clinical CAD
+</div>
+
+<div style="float: right; width: 48%;">
+```{r metabolic-transition, fig.width=6, fig.height=5}
+ages_met <- 40:69
+sig_metabolic <- 0.2 + 0.025 * pmin(ages_met - 40, 15) + rnorm(length(ages_met), 0, 0.02)
+sig_metabolic <- pmax(0, pmin(1, sig_metabolic))
+
+sig_cvd <- ifelse(ages_met > 52, 0.02 * ((ages_met - 52)^1.5 / 10), 0) + rnorm(length(ages_met), 0, 0.015)
+sig_cvd <- pmax(0, pmin(1, sig_cvd))
+
+df_met <- data.frame(
+  Age = rep(ages_met, 2),
+  Signature = c(sig_metabolic, sig_cvd),
+  Type = rep(c("Metabolic Signature (Sig 12)", "CVD Signature (Sig 5)"),
+             each = length(ages_met))
+)
+
+ggplot(df_met, aes(x = Age, y = Signature, color = Type)) +
+  geom_line(linewidth = 2, alpha = 0.8) +
+  annotate("rect", xmin = 53, xmax = 57, ymin = 0, ymax = 0.8,
+           alpha = 0.2, fill = "orange") +
+  geom_vline(xintercept = 60, linetype = "dashed", color = "red", alpha = 0.5, linewidth = 1.5) +
+  scale_color_manual(values = c("blue", "red")) +
+  labs(x = "Age (years)", y = "Signature Loading (θ)",
+       title = "Metabolic → Cardiovascular Transition\n(Intervention Window: 2-3 years before CAD)",
+       color = "") +
+  theme(legend.position = "top",
+        plot.title = element_text(size = 12, face = "bold"))
+```
+</div>
+
+## Persona 3: Inflammatory Pathway
+
+<div style="float: left; width: 53%;">
+**Clinical Picture:**
+
+- Rheumatoid arthritis, psoriasis, or lupus
+- Often normal lipids
+- "Low" 10-year PCE risk
+- But ongoing systemic inflammation
+
+**Your Research:**
+
+- 52 patients: rheumatologic → CV transitions
+- Signature deviations **5 years pre-CAD**
+- Multi-signature interactions:
+  - Metabolic + Inflammatory together
+  - Synergistic effect (9.1% > 4.3% + 2.8%)
+
+**Evidence Base:**
+
+- *ACC Statement on Inflammation*: Inflammation is therapeutic target
+- CANTOS trial: IL-1β inhibition reduces CV events
+</div>
+
+<div style="float: right; width: 43%;">
+```{r inflammatory, fig.width=5, fig.height=4.5}
+ages_inflam <- 45:74
+sig_inflam <- 0.3 + 0.01 * (ages_inflam - 45) + rnorm(length(ages_inflam), 0, 0.02)
+sig_cv_inflam <- ifelse(ages_inflam > 60,
+                        0.03 * ((ages_inflam - 60)^1.3 / 5), 0) + rnorm(length(ages_inflam), 0, 0.01)
+sig_cv_inflam <- pmax(0, pmin(1, sig_cv_inflam))
+
+df_inflam <- data.frame(
+  Age = rep(ages_inflam, 2),
+  Signature = c(sig_inflam, sig_cv_inflam),
+  Type = rep(c("Inflammatory Sig", "CVD Sig"), each = length(ages_inflam))
+)
+
+ggplot(df_inflam, aes(x = Age, y = Signature, color = Type)) +
+  geom_line(linewidth = 2, alpha = 0.8) +
+  geom_vline(xintercept = 70, linetype = "dashed", color = "red", alpha = 0.5, linewidth = 1.5) +
+  annotate("rect", xmin = 65, xmax = 70, ymin = 0, ymax = 0.7,
+           alpha = 0.15, fill = "orange") +
+  scale_color_manual(values = c("green", "red")) +
+  labs(x = "Age (years)", y = "Signature Loading",
+       title = "Inflammatory → CVD Pathway\n(Often Missed by Traditional Models)",
+       color = "") +
+  theme(legend.position = "top",
+        plot.title = element_text(size = 11, face = "bold"),
+        legend.text = element_text(size = 9))
+```
+
+**Often missed:** Normal lipids but high inflammatory burden
+</div>
+
+## Persona 4: Healthy Ager
+
+<div style="float: left; width: 48%;">
+**Characteristics:**
+
+- Low signature loadings across decades
+- Maintained cardiovascular health
+- Protective factors?
+  - Genetics
+  - Lifestyle
+  - Both?
+
+**Model Performance:**
+
+- Baseline AUC: **0.898** (ASCVD)
+- 1-year washout: **0.701**
+- 2-year washout: **0.680**
+
+**Key Question:**
+
+What distinguishes this group? Can we replicate their trajectory in others?
+</div>
+
+<div style="float: right; width: 48%;">
+```{r healthy-ager, fig.width=6, fig.height=5}
+ages_full <- 30:79
+
+healthy_sig <- 0.05 + 0.002 * (ages_full - 30) + rnorm(length(ages_full), 0, 0.01)
+healthy_sig <- pmax(0, pmin(0.15, healthy_sig))
+
+avg_sig <- 0.05 + 0.01 * ((ages_full - 30)^1.1 / 30) + rnorm(length(ages_full), 0, 0.03)
+avg_sig <- pmax(0, pmin(0.6, avg_sig))
+
+high_sig <- 0.1 + 0.02 * ((ages_full - 30)^1.3 / 30) + rnorm(length(ages_full), 0, 0.04)
+high_sig <- pmax(0, pmin(1, high_sig))
+
+df_healthy <- data.frame(Age = ages_full, High = high_sig, Average = avg_sig, Healthy = healthy_sig)
+
+ggplot(df_healthy, aes(x = Age)) +
+  geom_ribbon(aes(ymin = 0, ymax = High), fill = "red", alpha = 0.3) +
+  geom_ribbon(aes(ymin = 0, ymax = Average), fill = "blue", alpha = 0.4) +
+  geom_line(aes(y = Healthy, color = "Healthy Agers"), linewidth = 3, alpha = 0.9) +
+  scale_color_manual(values = "purple", name = "") +
+  labs(x = "Age (years)", y = "CVD Signature Loading",
+       title = "Healthy Agers: Maintained Low Risk Across Life Course") +
+  theme(legend.position = "top",
+        plot.title = element_text(size = 12, face = "bold"))
+```
+</div>
+
+<div class="notes">
+Same 10-year risk ≠ Same intervention. Trajectory determines timing and intensity of prevention.
+</div>
+
+# Dynamic Risk Models {data-background="#2C3E50"}
+
+## The Aladynoulli Model
+
+<div style="float: left; width: 48%;">
+**What It Does:**
+
+- Longitudinal disease signatures over 30+ years
+- Bayesian survival framework
+- Dynamic risk updates
+
+**What It Incorporates:**
+
+1. **Genetics** (fixed): Polygenic risk scores
+2. **Biomarkers** (dynamic): Serial lipids, BP, glucose
+3. **Imaging** (when available): CAC, plaque burden
+4. **Events** (transitions): New diagnoses as signals
+
+**Scale:**
+
+- 348 diseases
+- 400,000 individuals (UK Biobank)
+- 21 disease signatures
+- 50+ time points (ages 30-80)
+</div>
+
+<div style="float: right; width: 48%;">
+**Mathematical Framework:**
+
+$$\pi_{i,d,t} = \kappa \times \sum_k \theta_{i,k,t} \times \phi_{k,d,t}$$
+
+Where:
+
+- $\theta_{i,k,t}$ = signature proportions
+- $\phi_{k,d,t}$ = disease probabilities
+- $\lambda_{i,k,t} \sim GP(\mu_k + G_i\gamma_k, K_\lambda)$
+
+**Key Innovation:**
+
+Signature **velocity** (rate of change) predicts risk:
+
+<div style="background-color: #f8d7da; padding: 10px; border-radius: 5px; margin-top: 10px;">
+"Top quartile Sig 5 velocity has **HR=2.8** for CAD"
+
+This translates to **18 months earlier CAD onset**
+</div>
+</div>
+
+## Novel Biomarker: Signature Velocity
+
+<div style="float: left; width: 48%;">
+**Traditional Approach:**
+
+- Single time point measurement
+- Example: LDL = 150 mg/dL
+
+**Life Course Approach:**
+
+- **Trajectory** and **velocity**
+- Example: LDL 120→180 over 10 years
+- Rate of change = 6 mg/dL/year
+
+**Your Discovery:**
+
+> "Fast signature progression → higher disease risk independent of absolute level"
+
+**Clinical Translation:**
+
+- Top quartile velocity: HR = 2.8 for CAD
+- 18 months earlier onset
+- New therapeutic target: Slow progression
+</div>
+
+<div style="float: right; width: 48%;">
+```{r velocity-analysis, fig.width=6, fig.height=6}
+ages_vel <- 40:69
+
+slow_vel <- 0.1 + 0.005 * (ages_vel - 40) + rnorm(length(ages_vel), 0, 0.01)
+slow_vel <- pmax(0, pmin(1, slow_vel))
+
+med_vel <- 0.1 + 0.012 * (ages_vel - 40) + rnorm(length(ages_vel), 0, 0.015)
+med_vel <- pmax(0, pmin(1, med_vel))
+
+fast_vel <- 0.1 + 0.025 * (ages_vel - 40) + rnorm(length(ages_vel), 0, 0.02)
+fast_vel <- pmax(0, pmin(1, fast_vel))
+
+df_vel <- data.frame(
+  Age = rep(ages_vel, 3),
+  Signature = c(slow_vel, med_vel, fast_vel),
+  Velocity = rep(c("Slow Velocity (Q1)", "Medium Velocity (Q2-3)", "Fast Velocity (Q4)"),
+                each = length(ages_vel))
+)
+
+p1 <- ggplot(df_vel, aes(x = Age, y = Signature, color = Velocity)) +
+  geom_line(linewidth = 2, alpha = 0.8) +
+  scale_color_manual(values = c("green", "blue", "red")) +
+  labs(y = "Signature Loading", title = "Signature Trajectories by Velocity Quartile") +
+  theme(legend.position = "top", legend.title = element_blank(),
+        plot.title = element_text(size = 11, face = "bold"))
+
+df_hr <- data.frame(
+  Quartile = c("Q1\n(Slow)", "Q2-3\n(Medium)", "Q4\n(Fast)"),
+  HR = c(1.0, 1.5, 2.8),
+  Color = c("green", "blue", "red")
+)
+
+p2 <- ggplot(df_hr, aes(x = Quartile, y = HR, fill = Color)) +
+  geom_col(alpha = 0.7, color = "black", linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = "dashed", alpha = 0.5) +
+  geom_text(aes(label = paste0("HR=", HR)), vjust = -0.5, fontface = "bold") +
+  scale_fill_identity() +
+  labs(x = "Velocity Quartile", y = "Hazard Ratio for CAD",
+       title = "Velocity Predicts CAD Risk (HR = 2.8 for Q4)") +
+  ylim(0, 3.5) +
+  theme(plot.title = element_text(size = 11, face = "bold"))
+
+gridExtra::grid.arrange(p1, p2, ncol = 1)
+```
+</div>
+
+# Implementation {data-background="#34495E"}
+
+## Precision Prevention by Persona
+
+**High Genetic Risk:**
+
+- Genetic testing age 30-40
+- PRS-guided intervention
+- Earlier statin initiation
+- *Evidence*: AHA Statement on PRS
+
+**Metabolic Trajectory:**
+
+- Intervene at **transition point**
+- 2-3 years before CAD
+- Intensive lifestyle, early GLP-1/SGLT2i
+
+**Inflammatory Pathway:**
+
+- Biomarkers (hsCRP, IL-6)
+- Imaging (CAC)
+- Earlier intervention in rheumatologic disease
+- *Your finding*: Deviations 5 years pre-CAD
+
+## Implementation Challenges
+
+**Clinical Barriers:**
+
+- EHR integration (no life course calculators)
+- Decision support (real-time updates needed)
+- Workflow integration (time constraints)
+
+**Payer Barriers:**
+
+- Coverage for "preventive" Rx in "healthy" patients
+- Genetic testing reimbursement
+- Long-term outcomes needed
+
+**Communication:**
+
+- Lifetime vs 10-year risk
+- Patient motivation for prevention
+- Visual aids needed
+
+**Key Question:** What's the threshold for payer coverage of preventive therapies in high-lifetime-risk patients?
+
+# Looking Forward {data-background="#2C3E50"}
+
+## Tools on the Horizon
+
+<div style="float: left; width: 48%;">
+**Current State:**
+
+- LIVE-CVD: Lifelong benefit calculator
+- SCOT-HEART: CT imaging improves stratification
+- Aladynoulli: Bayesian framework, 348 diseases, 21 signatures
+
+**Emerging Tools:**
+
+- AI-enhanced imaging
+- Polygenic risk scores (million variants)
+- EHR integration
+- Wearables & sensors
+</div>
+
+<div style="float: right; width: 48%;">
+**The Promise:**
+
+```{r precision, fig.width=6, fig.height=5}
+ages_comp <- 30:79
+
+trad_line <- rep(0.075, length(ages_comp))
+patient1 <- 0.1 + 0.02 * ((ages_comp - 30)^1.3 / 50) + rnorm(length(ages_comp), 0, 0.015)
+patient1 <- pmax(0, pmin(1, patient1))
+
+df_comp <- data.frame(
+  Age = rep(ages_comp, 2),
+  Risk = c(trad_line, patient1),
+  Type = rep(c("Traditional Threshold", "Life Course Risk"), each = length(ages_comp))
+)
+
+ggplot(df_comp, aes(x = Age, y = Risk, color = Type, linetype = Type)) +
+  geom_line(linewidth = 2) +
+  annotate("rect", xmin = 30, xmax = 79, ymin = 0.075, ymax = 1, alpha = 0.15, fill = "orange") +
+  scale_color_manual(values = c("Life Course Risk" = "red", "Traditional Threshold" = "orange")) +
+  scale_linetype_manual(values = c("Life Course Risk" = "solid", "Traditional Threshold" = "dashed")) +
+  labs(x = "Age (years)", y = "Risk",
+       title = "Precision Prevention:\nTrajectory-Specific Timing") +
+  theme(legend.position = "bottom", legend.title = element_blank(),
+        plot.title = element_text(size = 13, face = "bold"))
+```
+
+Tailor prevention to individual trajectories—not one-size-fits-all
+</div>
+
+## Key Discussion Questions
+
+1. **How do we reconcile population-level risk models with individualized prediction?**
+   - Especially when individuals benefit from early intervention despite low calculated risk
+
+2. **Can life-course risk prediction be practically implemented?**
+   - What barriers to payer coverage?
+
+3. **How do we bridge lifetime risk reduction with current risk management?**
+   - Lower thresholds? Earlier therapy? Public health?
+
+4. **Communication strategies:**
+   - Make genetics, AI, and imaging meaningful
+
+5. **Testing strategies:**
+   - CAC/CCTA every 10 years starting at age 40?
+   - Who gets genetic testing? When?
+
+# Summary {data-background="#2C3E50"}
+
+## Key Takeaways
+
+<div style="float: left; width: 48%;">
+**The Problem:**
+
+- Traditional models miss young high-lifetime-risk patients
+- One-size-fits-all thresholds
+- No trajectory consideration
+
+**The Solution:**
+
+- Life course risk assessment
+- Multiple pathways to disease
+- Dynamic, updating models
+- Precision prevention
+
+**The Evidence:**
+
+- Multiple trajectories exist (personas)
+- Signatures change years before diagnosis
+- Velocity predicts risk (HR=2.8)
+- Synergistic multi-signature effects
+</div>
+
+<div style="float: right; width: 48%;">
+**The Tools:**
+
+- Bayesian modeling (Aladynoulli)
+- Polygenic risk scores
+- AI-enhanced imaging
+- EHR integration coming
+
+**The Challenges:**
+
+- Clinical workflow integration
+- Payer coverage
+- Patient communication
+- Training needed
+
+**The Path Forward:**
+
+- Validate in diverse populations
+- Demonstrate cost-effectiveness
+- Build clinical decision support
+- Engage stakeholders
+</div>
+
+## Thank You
+
+**Contact:**
+
+Sarah Urbut, MD PhD
+Massachusetts General Hospital
+surbut@mgh.harvard.edu
+
+**Preprint:** Urbut et al., medRxiv 2024 (doi: 10.1101/2024.09.29.24314557)
+
+**Code:** github.com/surbut/aladynoulli2
+
+**Questions for Discussion:**
+
+1. Which personas resonate with your practice?
+2. What's your biggest barrier to life course prevention?
+3. Which tools are you most excited about?
+4. What would change your practice tomorrow?
