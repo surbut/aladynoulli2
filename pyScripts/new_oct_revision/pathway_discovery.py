@@ -58,7 +58,7 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
     - thetas: Full signature loadings array
     - disease_names: List of disease names
     - n_pathways: Number of pathways to discover
-    - method: 'average_loading' or 'trajectory_similarity'
+    - method: 'average_loading', 'trajectory_similarity', or 'deviation_from_reference'
     """
     print(f"=== DISCOVERING PATHWAYS TO {target_disease_name.upper()} ===")
     print(f"Method: {method}")
@@ -192,6 +192,56 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
         print(f"Created {trajectory_features.shape[1]} trajectory features per patient (PRE-disease dynamics)")
         print(f"Kept {len(valid_patients)} patients with sufficient pre-disease history")
     
+    elif method == 'deviation_from_reference':
+        # Method 3: DEVIATION from population reference BEFORE disease
+        # This addresses the concern that age-matched patterns might dominate
+        # We want to find what makes pathways DIFFERENT from typical age-related changes
+        
+        print(f"\n--- COMPUTING POPULATION REFERENCE FOR DEVIATION-BASED CLUSTERING ---")
+        
+        # Calculate population reference (average signature trajectory across all patients)
+        print(f"Computing population-level signature reference from all {N} patients...")
+        population_reference = np.mean(thetas, axis=0)  # Shape: (K, T)
+        print(f"Population reference shape: {population_reference.shape}")
+        
+        trajectory_features = []
+        valid_patients = []
+        
+        for patient_info in patient_trajectories:
+            trajectory = patient_info['trajectory']
+            age_at_disease = patient_info['age_at_disease']
+            
+            # Get pre-disease trajectory (5 years before disease)
+            cutoff_idx = age_at_disease - 30  # Time index at disease onset
+            lookback_idx = max(0, cutoff_idx - 5)  # Look back 5 years
+            
+            if cutoff_idx > 5:  # Need at least 5 years of pre-disease history
+                # Get pre-disease trajectory for this patient
+                pre_disease_traj = trajectory[:, lookback_idx:cutoff_idx]  # Shape: (K, 5)
+                
+                # Get corresponding population reference for same time window
+                ref_traj = population_reference[:, lookback_idx:cutoff_idx]  # Shape: (K, 5)
+                
+                # Calculate DEVIATION from reference (averaged over 5 years)
+                deviation = pre_disease_traj - ref_traj  # Shape: (K, 5)
+                avg_deviation = np.mean(deviation, axis=1)  # Average over time: Shape (K,)
+                
+                # Also include variance in deviation (instability)
+                deviation_variance = np.var(deviation, axis=1)  # Shape: (K,)
+                
+                # Combine average deviation + variance in deviation
+                features = np.concatenate([avg_deviation, deviation_variance])
+                
+                trajectory_features.append(features)
+                valid_patients.append(patient_info)
+        
+        trajectory_features = np.array(trajectory_features)
+        patient_trajectories = valid_patients
+        print(f"Created {trajectory_features.shape[1]} features per patient (DEVIATION from reference)")
+        print(f"  - {K} features: average deviation per signature")
+        print(f"  - {K} features: variance in deviation per signature")
+        print(f"Kept {len(valid_patients)} patients with sufficient pre-disease history")
+    
     # Standardize features
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(trajectory_features)
@@ -220,22 +270,28 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
     }
 
 def compare_clustering_methods(target_disease_name, Y, thetas, disease_names, n_pathways=4):
-    """Compare both clustering methods for the same disease"""
+    """Compare all three clustering methods for the same disease"""
     print(f"=== COMPARING CLUSTERING METHODS FOR {target_disease_name.upper()} ===")
     
-    # Method 1: Average loading
+    # Method 1: Average loading (raw signature values)
     print("\n1. Clustering by Average Signature Loading:")
     pathway_data_avg = discover_disease_pathways(
         target_disease_name, Y, thetas, disease_names, n_pathways, method='average_loading'
     )
     
-    # Method 2: Trajectory similarity
+    # Method 2: Trajectory similarity (dynamics + variance)
     print("\n2. Clustering by Trajectory Similarity:")
     pathway_data_traj = discover_disease_pathways(
         target_disease_name, Y, thetas, disease_names, n_pathways, method='trajectory_similarity'
     )
     
-    return pathway_data_avg, pathway_data_traj
+    # Method 3: Deviation from reference (age-independent differences)
+    print("\n3. Clustering by Deviation from Population Reference:")
+    pathway_data_dev = discover_disease_pathways(
+        target_disease_name, Y, thetas, disease_names, n_pathways, method='deviation_from_reference'
+    )
+    
+    return pathway_data_avg, pathway_data_traj, pathway_data_dev
 
 if __name__ == "__main__":
     # Load full data

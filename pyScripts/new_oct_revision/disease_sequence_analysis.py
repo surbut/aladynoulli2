@@ -139,16 +139,41 @@ def find_disease_sequences_before_target(icd_data, target_icd_codes, processed_i
     icd_data_filtered = icd_data[icd_data['eid'].isin(processed_ids)].copy()
     print(f"Filtered to {len(icd_data_filtered)} diagnoses in analysis cohort")
     
-    # Convert age to numeric
-    icd_data_filtered['age_numeric'] = pd.to_numeric(
-        icd_data_filtered['age_diag'].astype(str).str.extract('([\d.]+)')[0], 
-        errors='coerce'
-    )
+    # Convert age to numeric (handle different formats)
+    # age_diag might be "81.51088 days" or just a number
+    def parse_age(age_str):
+        """Parse age from various formats"""
+        if pd.isna(age_str):
+            return np.nan
+        
+        age_str = str(age_str).strip()
+        
+        # Try to extract numeric part
+        import re
+        match = re.search(r'([\d.]+)', age_str)
+        if match:
+            age_val = float(match.group(1))
+            
+            # If it says "days", convert to years
+            if 'day' in age_str.lower():
+                age_val = age_val / 365.25
+            
+            return age_val
+        
+        return np.nan
+    
+    icd_data_filtered['age_numeric'] = icd_data_filtered['age_diag'].apply(parse_age)
+    
+    # Drop rows with missing age or diagnosis code
+    icd_data_filtered = icd_data_filtered.dropna(subset=['age_numeric', 'diag_icd10'])
+    print(f"After removing missing data: {len(icd_data_filtered)} diagnoses")
+    
+    # Ensure diag_icd10 is string type
+    icd_data_filtered['diag_icd10'] = icd_data_filtered['diag_icd10'].astype(str)
     
     # Find patients with target disease
-    target_patients = icd_data_filtered[
-        icd_data_filtered['diag_icd10'].str.startswith(tuple(target_icd_codes))
-    ].copy()
+    target_mask = icd_data_filtered['diag_icd10'].str.startswith(tuple(target_icd_codes), na=False)
+    target_patients = icd_data_filtered[target_mask].copy()
     
     print(f"Found {len(target_patients)} target disease diagnoses")
     print(f"In {len(target_patients['eid'].unique())} unique patients")
@@ -475,4 +500,5 @@ def analyze_disease_sequences_for_target(target_disease_name, target_icd_codes,
 if __name__ == "__main__":
     print("Disease Sequence Analysis Script")
     print("Analyzes granular disease sequences before target disease onset")
+
 

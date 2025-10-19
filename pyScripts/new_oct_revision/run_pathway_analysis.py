@@ -29,20 +29,28 @@ def run_complete_pathway_analysis(target_disease, n_pathways=4):
     print("\n1. LOADING FULL DATASET")
     Y, thetas, disease_names, processed_ids = load_full_data()
     
-    # Step 2: Discover pathways using both methods
+    # Step 2: Discover pathways using all three methods
     print(f"\n2. DISCOVERING PATHWAYS TO {target_disease.upper()}")
-    pathway_data_avg, pathway_data_traj = compare_clustering_methods(
+    pathway_data_avg, pathway_data_traj, pathway_data_dev = compare_clustering_methods(
         target_disease, Y, thetas, disease_names, n_pathways=n_pathways
     )
     
-    if pathway_data_avg is None or pathway_data_traj is None:
+    if pathway_data_avg is None or pathway_data_traj is None or pathway_data_dev is None:
         print(f"❌ Could not discover pathways for {target_disease}")
         return None
     
-    # Step 3: Interrogate both pathway methods
+    # Step 3: Interrogate all three pathway methods
     print(f"\n3. INTERROGATING PATHWAYS")
+    
+    # Compare first two methods (existing function)
     results_avg, results_traj = compare_pathway_methods(
         pathway_data_avg, pathway_data_traj, Y, thetas, disease_names
+    )
+    
+    # Interrogate deviation method separately
+    print(f"\n3c. DEVIATION FROM REFERENCE METHOD:")
+    results_dev = interrogate_disease_pathways(
+        pathway_data_dev, Y, thetas, disease_names
     )
     
     # Step 4: Integrate medications with pathways
@@ -66,6 +74,15 @@ def run_complete_pathway_analysis(target_disease, n_pathways=4):
     if medication_results_traj is not None:
         visualize_medication_pathway_integration(medication_results_traj, pathway_data_traj)
     
+    # Try with deviation method (most interesting - removes age effects)
+    print("\n4c. Deviation from Reference Method:")
+    medication_results_dev = integrate_medications_with_pathways(
+        pathway_data_dev, Y, thetas, disease_names, processed_ids
+    )
+    
+    if medication_results_dev is not None:
+        visualize_medication_pathway_integration(medication_results_dev, pathway_data_dev)
+    
     # Step 5: Analyze PRS differences by pathway
     print(f"\n5. ANALYZING PRS DIFFERENCES BY PATHWAY")
     
@@ -77,6 +94,10 @@ def run_complete_pathway_analysis(target_disease, n_pathways=4):
     print("\n5b. Trajectory Similarity Method:")
     prs_results_traj = analyze_prs_by_pathway(pathway_data_traj, processed_ids)
     
+    # Analyze PRS for deviation method (most interesting)
+    print("\n5c. Deviation from Reference Method:")
+    prs_results_dev = analyze_prs_by_pathway(pathway_data_dev, processed_ids)
+    
     # Step 6: Analyze granular disease patterns
     print(f"\n6. ANALYZING GRANULAR DISEASE PATTERNS")
     
@@ -87,6 +108,10 @@ def run_complete_pathway_analysis(target_disease, n_pathways=4):
     # Analyze granular diseases for trajectory similarity method
     print("\n6b. Trajectory Similarity Method:")
     granular_results_traj = analyze_granular_diseases_by_pathway(pathway_data_traj, Y, disease_names)
+    
+    # Analyze granular diseases for deviation method (most interesting)
+    print("\n6c. Deviation from Reference Method:")
+    granular_results_dev = analyze_granular_diseases_by_pathway(pathway_data_dev, Y, disease_names)
     
     # Step 7: Analyze disease sequences using granular ICD-10 data (optional)
     print(f"\n7. ANALYZING DISEASE SEQUENCES FROM GRANULAR ICD-10 DATA")
@@ -132,14 +157,19 @@ def run_complete_pathway_analysis(target_disease, n_pathways=4):
     return {
         'pathway_data_avg': pathway_data_avg,
         'pathway_data_traj': pathway_data_traj,
+        'pathway_data_dev': pathway_data_dev,
         'results_avg': results_avg,
         'results_traj': results_traj,
+        'results_dev': results_dev,
         'medication_results_avg': medication_results_avg,
         'medication_results_traj': medication_results_traj,
+        'medication_results_dev': medication_results_dev,
         'prs_results_avg': prs_results_avg,
         'prs_results_traj': prs_results_traj,
+        'prs_results_dev': prs_results_dev,
         'granular_results_avg': granular_results_avg,
         'granular_results_traj': granular_results_traj,
+        'granular_results_dev': granular_results_dev,
         'sequence_results': sequence_results
     }
 
