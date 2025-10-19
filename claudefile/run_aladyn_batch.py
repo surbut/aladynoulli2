@@ -163,14 +163,12 @@ def main():
     initial_psi = torch.load(args.data_dir + 'initial_psi_400k.pt', weights_only=False)
     initial_clusters = torch.load(args.data_dir + 'initial_clusters_400k.pt', weights_only=False)
 
-    # Subset clusters for this batch
-    initial_clusters_batch = initial_clusters[args.start_index:args.end_index]
-
+ 
     model.initialize_params(true_psi=initial_psi)
-    model.clusters = initial_clusters_batch
+    model.clusters = initial_clusters
 
     # Verify clusters match
-    clusters_match = np.array_equal(initial_clusters_batch, model.clusters)
+    clusters_match = np.array_equal(initial_clusters, model.clusters)
     print(f"Clusters match exactly: {clusters_match}")
 
     # Train the model
