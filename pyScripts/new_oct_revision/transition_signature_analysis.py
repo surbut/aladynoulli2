@@ -125,222 +125,226 @@ def find_disease_transitions(Y, disease_names, target_disease_name,
     }
 
 
-def analyze_signature_patterns_by_transition(transition_data, thetas, disease_names):
+def analyze_signature_patterns_by_transition(transition_data, thetas, disease_names, window_years=10):
     """
-    Analyze signature patterns for each transition group - NORMALIZED BY REFERENCE
+    Analyze signature patterns for each transition group - PER-TIMEPOINT DEVIATIONS
+    For each timepoint, calculate mean signature loading per group, then deviation from reference
     """
-    print(f"\n=== ANALYZING SIGNATURE PATTERNS BY TRANSITION (REFERENCE-NORMALIZED) ===")
+    print(f"\n=== ANALYZING SIGNATURE PATTERNS BY TRANSITION (PER-TIMEPOINT) ===")
     
     transition_groups = transition_data['transition_groups']
+    K, T = thetas.shape[1], thetas.shape[2]
     
-    # Calculate population reference (average signature trajectory across all patients)
-    print("Computing population reference for normalization...")
+    # Calculate population reference (sig_refs in R)
+    print("Computing population reference (sig_refs)...")
     population_reference = np.mean(thetas, axis=0)  # Shape: (K, T)
     print(f"Population reference shape: {population_reference.shape}")
     
-    # Calculate signature trajectories for each transition group
-    group_signature_analysis = {}
+    # Initialize arrays like R: time_diff_by_cluster[cluster, sig, time]
+    n_groups = len([g for g in transition_groups.values() if len(g) > 0])
+    time_diff_by_cluster = np.full((n_groups, K, T), np.nan)
+    time_means_by_cluster_array = np.full((n_groups, K, T), np.nan)
     
+    # Create group mapping
+    group_names = []
+    group_to_idx = {}
+    idx = 0
+    for group_name, patients in transition_groups.items():
+        if len(patients) > 0:
+            group_names.append(group_name)
+            group_to_idx[group_name] = idx
+            idx += 1
+    
+    print(f"Processing {len(group_names)} transition groups...")
+    
+    # For each timepoint t (like R loop) - BUT FOCUS ON PRE-DISEASE PERIOD
+    for t in range(T):
+        # Get signature loadings for all patients at time t
+        time_spec_theta = thetas[:, :, t]  # Shape: (N, K) - all patients, all signatures at time t
+        
+        # Calculate mean signature loading per group at time t
+        for group_name, patients in transition_groups.items():
+            if len(patients) == 0:
+                continue
+                
+            group_idx = group_to_idx[group_name]
+            
+            # Filter patients to only those who have the target disease at age 30+t
+            # AND focus on the pre-disease period (before their target disease onset)
+            valid_patients = []
+            for patient_info in patients:
+                patient_id = patient_info['patient_id']
+                age_at_target = patient_info['age_at_target']
+                target_time_idx = age_at_target - 30
+                
+                # Only include this patient if:
+                # 1. Current time t is before their target disease onset
+                # 2. We have enough pre-disease history (at least window_years before)
+                if t < target_time_idx and t >= max(0, target_time_idx - window_years):
+                    valid_patients.append(patient_id)
+            
+            if len(valid_patients) > 0:
+                # Get signature loadings for valid patients in this group at time t
+                group_theta_t = time_spec_theta[valid_patients, :]  # Shape: (n_valid_patients, K)
+                
+                # Calculate mean across valid patients in this group
+                time_means_by_cluster_array[group_idx, :, t] = np.mean(group_theta_t, axis=0)
+                
+                # Calculate deviation from reference: sweep(..., 2, sig_refs[, t], "-")
+                time_diff_by_cluster[group_idx, :, t] = time_means_by_cluster_array[group_idx, :, t] - population_reference[:, t]
+    
+    # Create results structure
+    group_signature_analysis = {}
     for group_name, patients in transition_groups.items():
         if len(patients) == 0:
             continue
             
-        print(f"\nAnalyzing {group_name} ({len(patients)} patients)...")
+        group_idx = group_to_idx[group_name]
         
-        # Get signature trajectories for patients in this group
-        group_deviations = []
-        valid_patients = []
+        # Get the full deviation trajectory for this group
+        group_deviation_traj = time_diff_by_cluster[group_idx, :, :]  # Shape: (K, T)
         
-        for patient_info in patients:
-            patient_id = patient_info['patient_id']
-            age_at_target = patient_info['age_at_target']
-            
-            # Get signature trajectory
-            theta_patient = thetas[patient_id, :, :]  # Shape: (K, T)
-            
-            # Get pre-disease period (5 years before target)
-            target_time_idx = age_at_target - 30
-            lookback_idx = max(0, target_time_idx - 5)
-            
-            if target_time_idx > 5:
-                # Get pre-disease trajectory for this patient
-                pre_disease_traj = theta_patient[:, lookback_idx:target_time_idx]  # Shape: (K, 5)
-                
-                # Get corresponding population reference for same time window
-                ref_traj = population_reference[:, lookback_idx:target_time_idx]  # Shape: (K, 5)
-                
-                # Calculate DEVIATION from reference (averaged over 5 years)
-                deviation = pre_disease_traj - ref_traj  # Shape: (K, 5)
-                avg_deviation = np.mean(deviation, axis=1)  # Average over time: Shape (K,)
-                
-                group_deviations.append(avg_deviation)
-                valid_patients.append(patient_info)
+        # Calculate summary statistics
+        mean_deviations = np.mean(group_deviation_traj, axis=1)  # Average over time
+        std_deviations = np.std(group_deviation_traj, axis=1)
         
-        if group_deviations:
-            group_deviations = np.array(group_deviations)  # Shape: (n_patients, K)
-            
-            # Calculate statistics on DEVIATIONS (not raw loadings)
-            mean_deviations = np.mean(group_deviations, axis=0)
-            std_deviations = np.std(group_deviations, axis=0)
-            
-            # Find most elevated signatures (by deviation from reference)
-            signature_elevations = []
-            for sig_idx in range(len(mean_deviations)):
-                deviation = mean_deviations[sig_idx]
-                signature_elevations.append({
-                    'signature_idx': sig_idx,
-                    'mean_deviation': deviation,
-                    'std_deviation': std_deviations[sig_idx],
-                    'elevation_score': abs(deviation)  # Use absolute deviation for ranking
-                })
-            
-            # Sort by absolute deviation (most different from reference)
-            signature_elevations.sort(key=lambda x: x['elevation_score'], reverse=True)
-            
-            group_signature_analysis[group_name] = {
-                'n_patients': len(valid_patients),
-                'mean_deviations': mean_deviations,
-                'std_deviations': std_deviations,
-                'top_signatures': signature_elevations[:10],  # Top 10
-                'deviations': group_deviations
-            }
-            
-            print(f"  Top 5 signatures (by deviation from reference):")
-            for i, sig_info in enumerate(signature_elevations[:5]):
-                deviation = sig_info['mean_deviation']
-                direction = "↑" if deviation > 0 else "↓"
-                print(f"    {i+1}. Signature {sig_info['signature_idx']}: {deviation:+.4f} ± {sig_info['std_deviation']:.4f} {direction}")
+        # Find most elevated signatures
+        signature_elevations = []
+        for sig_idx in range(K):
+            deviation = mean_deviations[sig_idx]
+            signature_elevations.append({
+                'signature_idx': sig_idx,
+                'mean_deviation': deviation,
+                'std_deviation': std_deviations[sig_idx],
+                'elevation_score': abs(deviation)
+            })
+        
+        signature_elevations.sort(key=lambda x: x['elevation_score'], reverse=True)
+        
+        group_signature_analysis[group_name] = {
+            'n_patients': len(patients),
+            'mean_deviations': mean_deviations,
+            'std_deviations': std_deviations,
+            'top_signatures': signature_elevations[:10],
+            'deviation_trajectory': group_deviation_traj,  # Full K x T trajectory
+            'group_idx': group_idx
+        }
+        
+        print(f"\n{group_name} ({len(patients)} patients):")
+        print(f"  Top 5 signatures (by deviation from reference):")
+        for i, sig_info in enumerate(signature_elevations[:5]):
+            deviation = sig_info['mean_deviation']
+            direction = "↑" if deviation > 0 else "↓"
+            print(f"    {i+1}. Signature {sig_info['signature_idx']}: {deviation:+.4f} ± {sig_info['std_deviation']:.4f} {direction}")
     
-    return group_signature_analysis
+    return {
+        'group_signature_analysis': group_signature_analysis,
+        'time_diff_by_cluster': time_diff_by_cluster,
+        'time_means_by_cluster_array': time_means_by_cluster_array,
+        'population_reference': population_reference,
+        'group_names': group_names,
+        'group_to_idx': group_to_idx
+    }
 
 
 def visualize_transition_signature_patterns(transition_data, signature_analysis):
     """
     Create visualizations comparing signature patterns across transition groups
+    MATCHING R STACKED AREA PLOT LOGIC
     """
-    print(f"\n=== CREATING TRANSITION SIGNATURE VISUALIZATIONS ===")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from collections import defaultdict
     
-    transition_groups = transition_data['transition_groups']
-    group_names = [name for name, patients in transition_groups.items() if len(patients) > 0]
+    print(f"\n=== CREATING TRANSITION SIGNATURE VISUALIZATIONS (R-STYLE) ===")
     
-    if len(group_names) < 2:
-        print("Need at least 2 transition groups for comparison")
+    # Extract data
+    group_signature_analysis = signature_analysis['group_signature_analysis']
+    time_diff_by_cluster = signature_analysis['time_diff_by_cluster']
+    group_names = signature_analysis['group_names']
+    group_to_idx = signature_analysis['group_to_idx']
+    
+    if len(group_names) == 0:
+        print("No groups to visualize")
         return
     
-    # Create figure with multiple subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle(f'Signature Patterns by Disease Transition to {transition_data["target_disease"].title()}', 
-                 fontsize=16, fontweight='bold')
+    K, T = time_diff_by_cluster.shape[1], time_diff_by_cluster.shape[2]
     
-    # 1. Mean signature deviations by group
-    ax1 = axes[0, 0]
+    # Create the main stacked area plot (like R)
+    fig, axes = plt.subplots(len(group_names), 1, figsize=(14, 4*len(group_names)))
+    if len(group_names) == 1:
+        axes = [axes]
     
-    K = len(signature_analysis[group_names[0]]['mean_deviations'])
-    x_pos = np.arange(K)
-    width = 0.8 / len(group_names)
+    fig.suptitle('Signature Deviations from Reference by Transition Group', fontsize=16, fontweight='bold')
     
-    colors = plt.cm.tab10(np.linspace(0, 1, len(group_names)))
+    # Colors for signatures (like R viridis)
+    sig_colors = plt.cm.viridis(np.linspace(0, 1, K))
     
     for i, group_name in enumerate(group_names):
-        if group_name in signature_analysis:
-            mean_deviations = signature_analysis[group_name]['mean_deviations']
-            ax1.bar(x_pos + i * width, mean_deviations, width, 
-                   label=group_name, color=colors[i], alpha=0.7)
-    
-    ax1.set_xlabel('Signature Index')
-    ax1.set_ylabel('Mean Deviation from Reference')
-    ax1.set_title('Mean Signature Deviations by Transition Group')
-    ax1.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # 2. Top signatures heatmap
-    ax2 = axes[0, 1]
-    
-    # Create matrix of top signatures for each group
-    top_sigs_matrix = []
-    group_labels = []
-    
-    for group_name in group_names:
-        if group_name in signature_analysis:
-            top_sigs = signature_analysis[group_name]['top_signatures'][:5]  # Top 5
-            sig_values = [sig['mean_deviation'] for sig in top_sigs]
-            top_sigs_matrix.append(sig_values)
-            group_labels.append(group_name)
-    
-    if top_sigs_matrix:
-        top_sigs_matrix = np.array(top_sigs_matrix)
-        im = ax2.imshow(top_sigs_matrix, cmap='RdYlBu_r', aspect='auto')
-        ax2.set_yticks(range(len(group_labels)))
-        ax2.set_yticklabels(group_labels)
-    ax2.set_xlabel('Rank (Top 5 Signatures)')
-    ax2.set_title('Top Signature Deviations by Group')
-    plt.colorbar(im, ax=ax2, label='Mean Deviation')
-    
-    # 3. Signature elevation comparison
-    ax3 = axes[1, 0]
-    
-    # Compare specific signatures across groups
-    signature_comparison = defaultdict(list)
-    group_names_clean = []
-    
-    for group_name in group_names:
-        if group_name in signature_analysis:
-            group_names_clean.append(group_name)
-            mean_deviations = signature_analysis[group_name]['mean_deviations']
-            for sig_idx in range(min(K, 10)):  # First 10 signatures
-                signature_comparison[sig_idx].append(mean_deviations[sig_idx])
-    
-    # Plot signature comparisons
-    x_pos = np.arange(len(group_names_clean))
-    for sig_idx in range(min(K, 5)):  # First 5 signatures
-        values = signature_comparison[sig_idx]
-        ax3.plot(x_pos, values, marker='o', linewidth=2, label=f'Sig {sig_idx}')
-    
-    ax3.set_xlabel('Transition Group')
-    ax3.set_ylabel('Mean Signature Deviation')
-    ax3.set_title('Signature Deviation Comparison Across Groups')
-    ax3.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-    ax3.set_xticks(x_pos)
-    ax3.set_xticklabels(group_names_clean, rotation=45, ha='right')
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    
-    # 4. Group size and diversity
-    ax4 = axes[1, 1]
-    
-    group_sizes = []
-    group_diversities = []  # Standard deviation as proxy for diversity
-    
-    for group_name in group_names:
-        if group_name in signature_analysis:
-            n_patients = signature_analysis[group_name]['n_patients']
-            std_deviations = signature_analysis[group_name]['std_deviations']
-            diversity = np.mean(std_deviations)  # Average standard deviation
-            
-            group_sizes.append(n_patients)
-            group_diversities.append(diversity)
-    
-    # Create scatter plot
-    scatter = ax4.scatter(group_sizes, group_diversities, 
-                         c=colors[:len(group_sizes)], s=100, alpha=0.7)
-    
-    # Add labels
-    for i, group_name in enumerate(group_names_clean):
-        ax4.annotate(group_name, (group_sizes[i], group_diversities[i]), 
-                    xytext=(5, 5), textcoords='offset points', fontsize=8)
-    
-    ax4.set_xlabel('Number of Patients')
-    ax4.set_ylabel('Signature Diversity (Mean Std)')
-    ax4.set_title('Group Size vs. Signature Diversity')
-    ax4.grid(True, alpha=0.3)
+        ax = axes[i]
+        group_idx = group_to_idx[group_name]
+        n_patients = group_signature_analysis[group_name]['n_patients']
+        
+        # Get deviation trajectory for this group: Shape (K, T)
+        group_deviations = time_diff_by_cluster[group_idx, :, :]
+        
+        # Create stacked area plot
+        time_points = np.arange(T) + 30  # Age 30 to 30+T
+        
+        # Stack signatures (like R geom_area with position="stack")
+        cumulative = np.zeros(T)
+        
+        for sig_idx in range(K):
+            sig_values = group_deviations[sig_idx, :]
+            ax.fill_between(time_points, cumulative, cumulative + sig_values, 
+                           color=sig_colors[sig_idx], alpha=0.8, 
+                           label=f'Sig {sig_idx}' if sig_idx < 10 else '')  # Only label first 10
+            cumulative += sig_values
+        
+        # Add zero line
+        ax.axhline(y=0, color='black', linestyle='-', alpha=0.5, linewidth=0.8)
+        
+        ax.set_title(f'{group_name} (n={n_patients})', fontweight='bold', fontsize=12)
+        ax.set_xlabel('Age')
+        ax.set_ylabel('Signature Deviation from Reference')
+        ax.grid(True, alpha=0.3)
+        
+        # Only show legend for first subplot to avoid clutter
+        if i == 0:
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
     
     plt.tight_layout()
-    plt.savefig('/Users/sarahurbut/aladynoulli2/pyScripts/new_oct_revision/transition_signature_analysis.png', 
-                dpi=150, bbox_inches='tight')
-    print('✅ Saved transition signature analysis plot')
+    plt.show()
     
-    return fig
+    # Create summary comparison plot
+    fig2, ax = plt.subplots(1, 1, figsize=(12, 8))
+    
+    # Plot mean deviations for each group
+    x_pos = np.arange(len(group_names))
+    width = 0.8 / K
+    
+    for sig_idx in range(min(K, 10)):  # First 10 signatures
+        sig_deviations = []
+        for group_name in group_names:
+            mean_dev = group_signature_analysis[group_name]['mean_deviations'][sig_idx]
+            sig_deviations.append(mean_dev)
+        
+        ax.bar(x_pos + sig_idx * width, sig_deviations, width, 
+               label=f'Sig {sig_idx}', alpha=0.8)
+    
+    ax.set_xlabel('Transition Group')
+    ax.set_ylabel('Mean Signature Deviation')
+    ax.set_title('Mean Signature Deviations by Group')
+    ax.set_xticks(x_pos + width * (K-1) / 2)
+    ax.set_xticklabels(group_names, rotation=45, ha='right')
+    ax.axhline(y=0, color='black', linestyle='-', alpha=0.5)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print(f"✅ Created R-style visualizations for {len(group_names)} transition groups")
 
 
 def run_transition_analysis(target_disease, transition_diseases, Y, thetas, disease_names, processed_ids=None):
