@@ -180,7 +180,8 @@ def analyze_signature_patterns_by_transition(transition_data, thetas, disease_na
                 # Only include this patient if:
                 # 1. Current time t is before their target disease onset
                 # 2. We have enough pre-disease history (at least window_years before)
-                if t < target_time_idx and t >= max(0, target_time_idx - window_years):
+                # FIXED: Make the filtering much less restrictive - just check if t < target_time_idx
+                if t < target_time_idx:
                     valid_patients.append(patient_id)
             
             if len(valid_patients) > 0:
@@ -193,6 +194,20 @@ def analyze_signature_patterns_by_transition(transition_data, thetas, disease_na
                 # Calculate deviation from reference: sweep(..., 2, sig_refs[, t], "-")
                 time_diff_by_cluster[group_idx, :, t] = time_means_by_cluster_array[group_idx, :, t] - population_reference[:, t]
     
+    # DEBUG: Print some statistics about the filtering
+    print(f"\nDEBUG: Filtering statistics:")
+    for group_name, patients in transition_groups.items():
+        if len(patients) == 0:
+            continue
+        group_idx = group_to_idx[group_name]
+        non_nan_count = np.sum(~np.isnan(time_diff_by_cluster[group_idx, 0, :]))
+        print(f"  {group_name}: {non_nan_count}/{T} timepoints have valid data")
+        
+        # Additional debugging for first few patients
+        if group_name == "rheumatoid arthritis" and len(patients) > 0:
+            print(f"    Sample patient ages at target: {[p['age_at_target'] for p in patients[:3]]}")
+            print(f"    Sample target time indices: {[(p['age_at_target'] - 30) for p in patients[:3]]}")
+    
     # Create results structure
     group_signature_analysis = {}
     for group_name, patients in transition_groups.items():
@@ -204,9 +219,9 @@ def analyze_signature_patterns_by_transition(transition_data, thetas, disease_na
         # Get the full deviation trajectory for this group
         group_deviation_traj = time_diff_by_cluster[group_idx, :, :]  # Shape: (K, T)
         
-        # Calculate summary statistics
-        mean_deviations = np.mean(group_deviation_traj, axis=1)  # Average over time
-        std_deviations = np.std(group_deviation_traj, axis=1)
+        # Calculate summary statistics - handle NaN values properly
+        mean_deviations = np.nanmean(group_deviation_traj, axis=1)  # Average over time, ignoring NaNs
+        std_deviations = np.nanstd(group_deviation_traj, axis=1)    # Std over time, ignoring NaNs
         
         # Find most elevated signatures
         signature_elevations = []
