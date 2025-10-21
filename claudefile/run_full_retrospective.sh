@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run full retrospective characterization on all 400k samples with PCs
 # Processes in 10k batches sequentially
-
+# nohup ./run_full_retrospective.sh > retrospective_full.log 2>&1 &
 set -e  # Exit on error
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
