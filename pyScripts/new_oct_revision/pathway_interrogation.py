@@ -377,6 +377,7 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
         possible_paths = [
             '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/prs_scores.csv',
             '/Users/sarahurbut/aladynoulli2/data_for_running/prs_scores.csv',
+            '/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/all_patient_genetics.csv',
             '/Users/sarahurbut/aladynoulli2/pyScripts/prs_scores.csv'
         ]
         
@@ -392,7 +393,7 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
     
     if prs_file_path is None:
         print("❌ PRS file not found. Please specify the path to your PRS scores file.")
-        print("Expected format: CSV with columns 'eid' and various PRS scores")
+        print("Expected format: CSV with columns 'PatientID' and various PRS scores")
         return None
     
     try:
@@ -418,7 +419,10 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
     pathway_eids = [pathway_to_eid[pid] for pid in pathway_patient_ids if pid in pathway_to_eid]
     
     # Filter PRS data to pathway patients
-    pathway_prs = prs_data[prs_data['eid'].isin(pathway_eids)].copy()
+    # Note: PRS file uses PatientID format like "0_0", "0_1", etc.
+    # This corresponds to patient_index_0, so we can use pathway_patient_ids directly
+    pathway_patient_ids_str = [f"{pid}_0" for pid in pathway_patient_ids]
+    pathway_prs = prs_data[prs_data['PatientID'].isin(pathway_patient_ids_str)].copy()
     
     if len(pathway_prs) == 0:
         print("❌ No PRS data found for pathway patients")
@@ -426,15 +430,16 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
     
     print(f"Found PRS data for {len(pathway_prs)} pathway patients")
     
-    # Create reverse mapping: eid -> pathway_patient_id
-    eid_to_pathway = {eid: pid for pid, eid in pathway_to_eid.items()}
+    # Create reverse mapping: patient_id -> pathway_patient_id
+    patient_id_to_pathway = {pid: pid for pid in pathway_patient_ids}
     
     # Add pathway labels to PRS data
-    pathway_prs['pathway'] = pathway_prs['eid'].map(eid_to_pathway)
+    pathway_prs['patient_id'] = pathway_prs['PatientID'].str.split('_').str[0].astype(int)
+    pathway_prs['pathway'] = pathway_prs['patient_id'].map(patient_id_to_pathway)
     pathway_prs = pathway_prs.dropna(subset=['pathway'])
     
-    # Get PRS columns (exclude eid and pathway)
-    prs_columns = [col for col in pathway_prs.columns if col not in ['eid', 'pathway']]
+    # Get PRS columns (exclude PatientID, patient_id, and pathway)
+    prs_columns = [col for col in pathway_prs.columns if col not in ['PatientID', 'patient_id', 'pathway']]
     
     print(f"Analyzing {len(prs_columns)} PRS scores across {pathway_prs['pathway'].nunique()} pathways")
     

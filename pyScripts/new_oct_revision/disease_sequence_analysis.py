@@ -268,13 +268,13 @@ def find_disease_sequences_before_target(icd_data, target_icd_codes, processed_i
 
 
 def link_sequences_to_signatures(sequences_df, thetas, processed_ids, 
-                                 signature_threshold=0.5):
+                                 signature_threshold=0.1):
     """
-    Link disease sequences to signature patterns
+    Link disease sequences to signature patterns using DEVIATIONS from population average
     
-    For each sequence, identify which signatures were elevated before target disease
+    For each sequence, identify which signatures were elevated relative to age-matched population
     """
-    print(f"\n=== LINKING SEQUENCES TO SIGNATURE PATTERNS ===")
+    print(f"\n=== LINKING SEQUENCES TO SIGNATURE PATTERNS (DEVIATION METHOD) ===")
     
     # Create mapping from eid to index in thetas
     eid_to_idx = {eid: idx for idx, eid in enumerate(processed_ids)}
@@ -304,11 +304,18 @@ def link_sequences_to_signatures(sequences_df, thetas, processed_ids,
         pre_target_sigs = theta_patient[:, max(0, target_time_idx - 5):target_time_idx]
         avg_pre_target_sigs = np.mean(pre_target_sigs, axis=1)
         
-        # Identify elevated signatures (above threshold)
-        elevated_sigs = np.where(avg_pre_target_sigs > signature_threshold)[0]
+        # Calculate population average at the same timepoint
+        # Use all patients at the same timepoint as reference
+        population_avg_sigs = np.mean(thetas[:, :, target_time_idx], axis=0)
         
-        # Get top 3 signatures by loading
-        top_sigs = np.argsort(avg_pre_target_sigs)[::-1][:3]
+        # Calculate deviations from population average
+        sig_deviations = avg_pre_target_sigs - population_avg_sigs
+        
+        # Identify elevated signatures (above threshold deviation)
+        elevated_sigs = np.where(sig_deviations > signature_threshold)[0]
+        
+        # Get top 3 signatures by deviation (not raw loading)
+        top_sigs = np.argsort(sig_deviations)[::-1][:3]
         
         sequences_with_sigs.append({
             'eid': eid,
@@ -316,7 +323,8 @@ def link_sequences_to_signatures(sequences_df, thetas, processed_ids,
             'icd_sequence': row['icd_sequence'],
             'elevated_sigs': tuple(elevated_sigs),
             'top_3_sigs': tuple(top_sigs),
-            'sig_loadings': avg_pre_target_sigs,
+            'sig_loadings': avg_pre_target_sigs,  # Keep raw for reference
+            'sig_deviations': sig_deviations,     # Add deviations
             'dominant_sig': top_sigs[0]
         })
     
@@ -340,12 +348,12 @@ def link_sequences_to_signatures(sequences_df, thetas, processed_ids,
                 pct = count / len(group) * 100
                 print(f"    Signature {sig_idx}: {count} patients ({pct:.1f}%)")
             
-            # Average signature loadings for this sequence
-            avg_sig_loadings = np.mean(np.vstack(group['sig_loadings'].values), axis=0)
-            top_sigs_for_seq = np.argsort(avg_sig_loadings)[::-1][:5]
-            print(f"  Average top 5 signatures:")
+            # Average signature deviations for this sequence
+            avg_sig_deviations = np.mean(np.vstack(group['sig_deviations'].values), axis=0)
+            top_sigs_for_seq = np.argsort(avg_sig_deviations)[::-1][:5]
+            print(f"  Average top 5 signature deviations:")
             for rank, sig_idx in enumerate(top_sigs_for_seq):
-                print(f"    {rank+1}. Signature {sig_idx}: {avg_sig_loadings[sig_idx]:.3f}")
+                print(f"    {rank+1}. Signature {sig_idx}: {avg_sig_deviations[sig_idx]:.3f}")
     
     return sequences_with_sigs_df
 
@@ -370,15 +378,15 @@ def visualize_sequence_signature_relationships(sequences_with_sigs_df, top_n_seq
     # 1. Heatmap: Signature loadings by sequence
     ax1 = axes[0, 0]
     
-    # Create matrix of average signature loadings per sequence
-    K = len(sequences_with_sigs_df['sig_loadings'].iloc[0])
+    # Create matrix of average signature deviations per sequence
+    K = len(sequences_with_sigs_df['sig_deviations'].iloc[0])
     sig_matrix = []
     seq_labels = []
     
     for seq in top_sequences:
         seq_data = df_filtered[df_filtered['category_sequence'] == seq]
-        avg_sigs = np.mean(np.vstack(seq_data['sig_loadings'].values), axis=0)
-        sig_matrix.append(avg_sigs)
+        avg_deviations = np.mean(np.vstack(seq_data['sig_deviations'].values), axis=0)
+        sig_matrix.append(avg_deviations)
         seq_labels.append(' → '.join(seq[:3]))  # Truncate long sequences
     
     sig_matrix = np.array(sig_matrix)
@@ -388,8 +396,8 @@ def visualize_sequence_signature_relationships(sequences_with_sigs_df, top_n_seq
     ax1.set_yticklabels(seq_labels, fontsize=8)
     ax1.set_xlabel('Signature Index')
     ax1.set_ylabel('Disease Sequence')
-    ax1.set_title('Average Signature Loadings by Disease Sequence', fontweight='bold')
-    plt.colorbar(im1, ax=ax1, label='Signature Loading')
+    ax1.set_title('Average Signature Deviations by Disease Sequence', fontweight='bold')
+    plt.colorbar(im1, ax=ax1, label='Signature Deviation')
     
     # 2. Dominant signature distribution by sequence
     ax2 = axes[0, 1]
@@ -441,7 +449,7 @@ def visualize_sequence_signature_relationships(sequences_with_sigs_df, top_n_seq
     # 4. Most discriminating signatures across sequences
     ax4 = axes[1, 1]
     
-    # Calculate variance in signature loading across sequences
+    # Calculate variance in signature deviation across sequences
     sig_variance = np.var(sig_matrix, axis=0)
     top_var_sigs = np.argsort(sig_variance)[::-1][:10]
     
@@ -449,8 +457,8 @@ def visualize_sequence_signature_relationships(sequences_with_sigs_df, top_n_seq
             color='steelblue', alpha=0.7, edgecolor='black')
     ax4.set_xticks(range(len(top_var_sigs)))
     ax4.set_xticklabels([f'Sig {i}' for i in top_var_sigs], rotation=45)
-    ax4.set_ylabel('Variance Across Sequences')
-    ax4.set_title('Signatures that Most Differentiate Sequences', fontweight='bold')
+    ax4.set_ylabel('Variance in Deviations Across Sequences')
+    ax4.set_title('Signatures that Most Differentiate Sequences (by Deviation)', fontweight='bold')
     ax4.grid(True, alpha=0.3, axis='y')
     
     plt.tight_layout()

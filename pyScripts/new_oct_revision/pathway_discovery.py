@@ -222,15 +222,13 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
                 # Get corresponding population reference for same time window
                 ref_traj = population_reference[:, lookback_idx:cutoff_idx]  # Shape: (K, 5)
                 
-                # Calculate DEVIATION from reference (averaged over 5 years)
-                deviation = pre_disease_traj - ref_traj  # Shape: (K, 5)
-                avg_deviation = np.mean(deviation, axis=1)  # Average over time: Shape (K,)
+                # Calculate DEVIATION from reference PER TIMEPOINT (like digital twinning)
+                # This preserves temporal information and matches per timepoint
+                deviation_per_timepoint = pre_disease_traj - ref_traj  # Shape: (K, 5)
                 
-                # Also include variance in deviation (instability)
-                deviation_variance = np.var(deviation, axis=1)  # Shape: (K,)
-                
-                # Combine average deviation + variance in deviation
-                features = np.concatenate([avg_deviation, deviation_variance])
+                # Flatten to get per-timepoint deviations as features
+                # This gives us K*5 features: deviation for each signature at each timepoint
+                features = deviation_per_timepoint.flatten()  # Shape: (K*5,)
                 
                 trajectory_features.append(features)
                 valid_patients.append(patient_info)
@@ -238,8 +236,7 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
         trajectory_features = np.array(trajectory_features)
         patient_trajectories = valid_patients
         print(f"Created {trajectory_features.shape[1]} features per patient (DEVIATION from reference)")
-        print(f"  - {K} features: average deviation per signature")
-        print(f"  - {K} features: variance in deviation per signature")
+        print(f"  - {K*5} features: deviation per signature per timepoint (K signatures × 5 timepoints)")
         print(f"Kept {len(valid_patients)} patients with sufficient pre-disease history")
     
     # Standardize features
