@@ -14,9 +14,12 @@ import torch
 from collections import defaultdict
 
 def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_name, 
-                                     Y, thetas, disease_names, years_before=10, save_plots=True):
+                                     Y, thetas, disease_names, years_before=10, 
+                                     age_tolerance=5, min_followup=5, save_plots=True):
     """
     Compare signature deviations for MI patients with vs without a specific precursor disease
+    
+    FIXED: Now includes age matching at MI diagnosis to ensure fair comparison
     
     Parameters:
     -----------
@@ -31,13 +34,17 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     disease_names : list
         List of disease names
     years_before : int
-        Number of years before target disease to analyze
+        Number of years before MI to analyze
+    age_tolerance : int
+        Age matching tolerance in years (±age_tolerance)
+    min_followup : int
+        Minimum follow-up time after MI for controls
     save_plots : bool
         Whether to save plots to files
         
     Returns:
     --------
-    dict : Analysis results
+    dict : Analysis results with age-matched groups
     """
     
     print(f"COMPARING MI PATIENTS WITH vs WITHOUT {transition_disease_name.upper()}")
@@ -103,13 +110,88 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         else:
             mi_without_precursor.append(patient_info)
     
-    print(f"\nMI patient groups:")
+    print(f"\nInitial MI patient groups:")
     print(f"  With {transition_disease_name}: {len(mi_with_precursor)} patients")
     print(f"  Without {transition_disease_name}: {len(mi_without_precursor)} patients")
     
     if len(mi_with_precursor) == 0 or len(mi_without_precursor) == 0:
         print("❌ Not enough patients in one or both groups")
         return None
+    
+    # AGE MATCHING: Match patients on age at MI diagnosis
+    print(f"\n=== AGE MATCHING AT MI DIAGNOSIS ===")
+    print(f"Age tolerance: ±{age_tolerance} years")
+    print(f"Min follow-up: {min_followup} years")
+    
+    # Get age distribution of patients with precursor
+    precursor_ages = [p['age_at_mi'] for p in mi_with_precursor]
+    print(f"Age at MI for precursor group: {np.min(precursor_ages):.1f} - {np.max(precursor_ages):.1f}")
+    
+    # For each patient with precursor, find age-matched controls without precursor
+    matched_pairs = []
+    
+    for precursor_patient in mi_with_precursor:
+        precursor_age = precursor_patient['age_at_mi']
+        
+        # Find age-matched controls (within ±age_tolerance years)
+        age_matched_controls = []
+        for control_patient in mi_without_precursor:
+            control_age = control_patient['age_at_mi']
+            if abs(precursor_age - control_age) <= age_tolerance:
+                age_matched_controls.append(control_patient)
+        
+        if len(age_matched_controls) > 0:
+            # Randomly select one control (or could take closest age)
+            import random
+            selected_control = random.choice(age_matched_controls)
+            matched_pairs.append({
+                'precursor': precursor_patient,
+                'control': selected_control
+            })
+    
+    print(f"Found {len(matched_pairs)} age-matched pairs")
+    
+    if len(matched_pairs) == 0:
+        print("No age-matched pairs found. Try increasing age_tolerance.")
+        return None
+    
+    # FOLLOW-UP CHECK: Ensure controls have sufficient follow-up time
+    print(f"\n=== FOLLOW-UP CHECK ===")
+    
+    valid_pairs = []
+    for pair in matched_pairs:
+        precursor_patient = pair['precursor']
+        control_patient = pair['control']
+        
+        # Calculate follow-up time for control (time from MI to end of observation)
+        control_age_at_mi = control_patient['age_at_mi']
+        max_observation_age = 30 + Y.shape[2] - 1  # Last time point
+        followup_time = max_observation_age - control_age_at_mi
+        
+        if followup_time >= min_followup:
+            valid_pairs.append(pair)
+        else:
+            print(f"Control patient {control_patient['patient_id']}: only {followup_time:.1f} years follow-up (excluded)")
+    
+    print(f"After follow-up check: {len(valid_pairs)} valid pairs")
+    
+    if len(valid_pairs) == 0:
+        print("No valid pairs after follow-up check. Try reducing min_followup.")
+        return None
+    
+    # Extract age-matched groups
+    mi_with_precursor_matched = [pair['precursor'] for pair in valid_pairs]
+    mi_without_precursor_matched = [pair['control'] for pair in valid_pairs]
+    
+    print(f"\nFinal age-matched groups:")
+    print(f"  With {transition_disease_name}: {len(mi_with_precursor_matched)} patients")
+    print(f"  Without {transition_disease_name}: {len(mi_without_precursor_matched)} patients")
+    
+    # Print age distribution for verification
+    precursor_ages_final = [p['age_at_mi'] for p in mi_with_precursor_matched]
+    control_ages_final = [p['age_at_mi'] for p in mi_without_precursor_matched]
+    print(f"  Precursor group age: {np.mean(precursor_ages_final):.1f} ± {np.std(precursor_ages_final):.1f}")
+    print(f"  Control group age: {np.mean(control_ages_final):.1f} ± {np.std(control_ages_final):.1f}")
     
     # Analyze signature patterns for both groups
     def analyze_mi_group(patients, group_name):
@@ -169,9 +251,9 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
             'min_length': min_length
         }
     
-    # Analyze both groups
-    with_precursor_results = analyze_mi_group(mi_with_precursor, f"MI with {transition_disease_name}")
-    without_precursor_results = analyze_mi_group(mi_without_precursor, f"MI without {transition_disease_name}")
+    # Analyze both age-matched groups
+    with_precursor_results = analyze_mi_group(mi_with_precursor_matched, f"MI with {transition_disease_name} (age-matched)")
+    without_precursor_results = analyze_mi_group(mi_without_precursor_matched, f"MI without {transition_disease_name} (age-matched)")
     
     if with_precursor_results is None or without_precursor_results is None:
         print("❌ Could not analyze one or both groups")
@@ -181,7 +263,7 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     print(f"\nCreating visualization...")
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 8))
-    fig.suptitle(f'MI Patients: With vs Without {transition_disease_name.title()} History', 
+    fig.suptitle(f'MI Patients: With vs Without {transition_disease_name.title()} History (AGE-MATCHED)', 
                  fontsize=16, fontweight='bold')
     
     # Colors for signatures - use all 21 signatures
@@ -242,7 +324,7 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     plt.show()
     
     # Print summary statistics
-    print(f"\n=== SUMMARY STATISTICS ===")
+    print(f"\n=== SUMMARY STATISTICS (AGE-MATCHED) ===")
     print(f"MI patients with {transition_disease_name}: {with_precursor_results['n_patients']}")
     print(f"MI patients without {transition_disease_name}: {without_precursor_results['n_patients']}")
     
@@ -269,7 +351,14 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         'with_precursor': with_precursor_results,
         'without_precursor': without_precursor_results,
         'transition_disease': transition_disease_name,
-        'target_disease': target_disease_name
+        'target_disease': target_disease_name,
+        'matched_pairs': valid_pairs,
+        'age_stats': {
+            'precursor_mean': np.mean(precursor_ages_final),
+            'precursor_std': np.std(precursor_ages_final),
+            'control_mean': np.mean(control_ages_final),
+            'control_std': np.std(control_ages_final)
+        }
     }
 
 

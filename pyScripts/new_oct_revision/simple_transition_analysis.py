@@ -13,9 +13,30 @@ import torch
 from collections import defaultdict
 
 def simple_transition_analysis(Y, thetas, disease_names, target_disease="myocardial infarction", 
-                              transition_diseases=None, processed_ids=None):
+                              transition_diseases=None, processed_ids=None, age_tolerance=5, min_followup=5):
     """
     Simple transition analysis that avoids NaN issues
+    
+    FIXED: Now includes age matching at target disease diagnosis
+    
+    Parameters:
+    -----------
+    Y : torch.Tensor
+        Binary disease matrix (patients x diseases x time)
+    thetas : np.array
+        Signature loadings (patients x signatures x time)
+    disease_names : list
+        List of disease names
+    target_disease : str
+        Target disease to analyze transitions to
+    transition_diseases : list
+        List of precursor diseases to analyze
+    processed_ids : list
+        Patient IDs (optional)
+    age_tolerance : int
+        Age matching tolerance in years (±age_tolerance)
+    min_followup : int
+        Minimum follow-up time after target disease for controls
     """
     if transition_diseases is None:
         transition_diseases = [

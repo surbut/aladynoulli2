@@ -375,10 +375,10 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
     if prs_file_path is None:
         # Try to find PRS file
         possible_paths = [
-            '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/prs_scores.csv',
-            '/Users/sarahurbut/aladynoulli2/data_for_running/prs_scores.csv',
-            '/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/all_patient_genetics.csv',
-            '/Users/sarahurbut/aladynoulli2/pyScripts/prs_scores.csv'
+            '/Users/sarahurbut/aladynoulli2/pyScripts/prs_with_eid.csv',
+            #'/Users/sarahurbut/aladynoulli2/data_for_running/prs_scores.csv',
+            #'/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/all_patient_genetics.csv',
+            #'/Users/sarahurbut/aladynoulli2/pyScripts/prs_scores.csv'
         ]
         
         prs_file_path = None
@@ -409,37 +409,36 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
     patients = pathway_data['patients']
     pathway_patient_ids = [p['patient_id'] for p in patients]
     
-    # Map pathway patient IDs to eids
-    pathway_to_eid = {}
-    for pathway_patient_id in pathway_patient_ids:
-        if pathway_patient_id < len(processed_ids):
-            pathway_to_eid[pathway_patient_id] = processed_ids[pathway_patient_id]
+    # Map pathway patient IDs to eids using processed_ids
+    pathway_eids = [processed_ids[pid] for pid in pathway_patient_ids if pid < len(processed_ids)]
     
-    # Get eids for pathway patients
-    pathway_eids = [pathway_to_eid[pid] for pid in pathway_patient_ids if pid in pathway_to_eid]
+    print(f"Pathway patient IDs: {pathway_patient_ids[:5]}...")
+    print(f"Corresponding eids: {pathway_eids[:5]}...")
     
-    # Filter PRS data to pathway patients
-    # Note: PRS file uses PatientID format like "0_0", "0_1", etc.
-    # This corresponds to patient_index_0, so we can use pathway_patient_ids directly
-    pathway_patient_ids_str = [f"{pid}_0" for pid in pathway_patient_ids]
-    pathway_prs = prs_data[prs_data['PatientID'].isin(pathway_patient_ids_str)].copy()
+    # Filter PRS data to pathway patients using actual eids
+    pathway_prs = prs_data[prs_data['PatientID'].isin(pathway_eids)].copy()
     
     if len(pathway_prs) == 0:
         print("❌ No PRS data found for pathway patients")
+        print(f"Looking for eids: {pathway_eids[:10]}...")
+        print(f"PRS PatientID sample: {prs_data['PatientID'].head().tolist()}")
         return None
     
     print(f"Found PRS data for {len(pathway_prs)} pathway patients")
     
-    # Create reverse mapping: patient_id -> pathway_patient_id
-    patient_id_to_pathway = {pid: pid for pid in pathway_patient_ids}
+    # Create mapping: eid -> pathway_id
+    eid_to_pathway = {}
+    for i, pid in enumerate(pathway_patient_ids):
+        if pid < len(processed_ids):
+            eid = processed_ids[pid]
+            eid_to_pathway[eid] = patients[i]['pathway']
     
     # Add pathway labels to PRS data
-    pathway_prs['patient_id'] = pathway_prs['PatientID'].str.split('_').str[0].astype(int)
-    pathway_prs['pathway'] = pathway_prs['patient_id'].map(patient_id_to_pathway)
+    pathway_prs['pathway'] = pathway_prs['PatientID'].map(eid_to_pathway)
     pathway_prs = pathway_prs.dropna(subset=['pathway'])
     
-    # Get PRS columns (exclude PatientID, patient_id, and pathway)
-    prs_columns = [col for col in pathway_prs.columns if col not in ['PatientID', 'patient_id', 'pathway']]
+    # Get PRS columns (exclude PatientID and pathway)
+    prs_columns = [col for col in pathway_prs.columns if col not in ['PatientID', 'pathway']]
     
     print(f"Analyzing {len(prs_columns)} PRS scores across {pathway_prs['pathway'].nunique()} pathways")
     
@@ -481,12 +480,64 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
     print(f"Top 10 most discriminating PRS scores:")
     for i, (prs_name, variance) in enumerate(sorted_prs[:10]):
         print(f"\n{i+1}. {prs_name} (variance: {variance:.4f}):")
+        
+        # Collect data for statistical testing
+        pathway_data_for_test = []
+        pathway_labels_for_test = []
+        
         for pathway_id in sorted(pathway_prs['pathway'].unique()):
             if prs_name in pathway_prs_analysis[pathway_id]['prs_means']:
                 mean_val = pathway_prs_analysis[pathway_id]['prs_means'][prs_name]
                 std_val = pathway_prs_analysis[pathway_id]['prs_stds'][prs_name]
                 n_patients = pathway_prs_analysis[pathway_id]['n_patients']
                 print(f"   Pathway {pathway_id}: {mean_val:.3f} ± {std_val:.3f} (n={n_patients})")
+                
+                # Get actual PRS values for this pathway
+                pathway_subset = pathway_prs[pathway_prs['pathway'] == pathway_id]
+                prs_values = pathway_subset[prs_name].dropna()
+                pathway_data_for_test.extend(prs_values.tolist())
+                pathway_labels_for_test.extend([pathway_id] * len(prs_values))
+        
+        # Perform statistical tests
+        if len(pathway_data_for_test) > 0 and len(set(pathway_labels_for_test)) > 1:
+            from scipy import stats
+            
+            # ANOVA test
+            pathway_groups = []
+            for pathway_id in sorted(pathway_prs['pathway'].unique()):
+                if prs_name in pathway_prs_analysis[pathway_id]['prs_means']:
+                    pathway_subset = pathway_prs[pathway_prs['pathway'] == pathway_id]
+                    prs_values = pathway_subset[prs_name].dropna()
+                    if len(prs_values) > 0:
+                        pathway_groups.append(prs_values.tolist())
+            
+            if len(pathway_groups) >= 2:
+                # ANOVA
+                f_stat, p_value = stats.f_oneway(*pathway_groups)
+                print(f"   ANOVA: F={f_stat:.3f}, p={p_value:.4f}")
+                
+                # Post-hoc pairwise t-tests
+                pathway_ids = sorted(pathway_prs['pathway'].unique())
+                significant_pairs = []
+                for i, pathway_id1 in enumerate(pathway_ids):
+                    for pathway_id2 in pathway_ids[i+1:]:
+                        if (prs_name in pathway_prs_analysis[pathway_id1]['prs_means'] and 
+                            prs_name in pathway_prs_analysis[pathway_id2]['prs_means']):
+                            
+                            group1 = pathway_prs[pathway_prs['pathway'] == pathway_id1][prs_name].dropna()
+                            group2 = pathway_prs[pathway_prs['pathway'] == pathway_id2][prs_name].dropna()
+                            
+                            if len(group1) > 0 and len(group2) > 0:
+                                t_stat, p_val = stats.ttest_ind(group1, group2)
+                                if p_val < 0.05:
+                                    significant_pairs.append(f"Pathway {pathway_id1} vs {pathway_id2}: p={p_val:.4f}")
+                
+                if significant_pairs:
+                    print(f"   Significant pairwise differences:")
+                    for pair in significant_pairs[:3]:  # Show top 3
+                        print(f"     {pair}")
+                else:
+                    print(f"   No significant pairwise differences (p<0.05)")
     
     # Create visualization
     import matplotlib.pyplot as plt
