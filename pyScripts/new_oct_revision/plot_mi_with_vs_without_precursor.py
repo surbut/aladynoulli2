@@ -373,8 +373,8 @@ def run_mi_comparison_analysis():
     Y = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/Y_tensor.pt')
     print(f"Loaded Y: {Y.shape}")
     
-    # Load thetas
-    thetas = np.load('/Users/sarahurbut/aladynoulli2/thetas.npy')
+    # Load thetas (using NEW model with PCs)
+    thetas = torch.load('/Users/sarahurbut/aladynoulli2/pyScripts/new_thetas_with_pcs_retrospective.pt').numpy()
     print(f"Loaded thetas: {thetas.shape}")
     
     # Subset Y to match thetas

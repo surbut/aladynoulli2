@@ -23,8 +23,8 @@ def load_full_data():
     Y_full = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/Y_tensor.pt')
     print(f"Loaded Y (full): {Y_full.shape}")
     
-    # Load full thetas
-    thetas = np.load('/Users/sarahurbut/aladynoulli2/pyScripts/thetas.npy')
+    # Load full thetas (using NEW model with PCs)
+    thetas = torch.load('/Users/sarahurbut/aladynoulli2/pyScripts/new_thetas_with_pcs_retrospective.pt').numpy()
     print(f"Loaded thetas: {thetas.shape}")
     
     # Load processed IDs - these are the actual eids for the first 400K patients
