@@ -191,7 +191,9 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     precursor_ages_final = [p['age_at_mi'] for p in mi_with_precursor_matched]
     control_ages_final = [p['age_at_mi'] for p in mi_without_precursor_matched]
     print(f"  Precursor group age: {np.mean(precursor_ages_final):.1f} ± {np.std(precursor_ages_final):.1f}")
+    print(f"    Age range: {np.min(precursor_ages_final):.1f} - {np.max(precursor_ages_final):.1f}")
     print(f"  Control group age: {np.mean(control_ages_final):.1f} ± {np.std(control_ages_final):.1f}")
+    print(f"    Age range: {np.min(control_ages_final):.1f} - {np.max(control_ages_final):.1f}")
     
     # Analyze signature patterns for both groups
     def analyze_mi_group(patients, group_name):
@@ -266,8 +268,11 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     fig.suptitle(f'MI Patients: With vs Without {transition_disease_name.title()} History (AGE-MATCHED)', 
                  fontsize=16, fontweight='bold')
     
-    # Colors for signatures - use all 21 signatures
-    sig_colors = plt.cm.viridis(np.linspace(0, 1, 21))
+    # Better color scheme - tab20 + tab20b for all 21 signatures
+    from matplotlib import cm
+    colors_20 = cm.get_cmap('tab20')(np.linspace(0, 1, 20))
+    colors_b = cm.get_cmap('tab20b')(np.linspace(0, 1, 20))
+    sig_colors = np.vstack([colors_20, colors_b[0:1]])  # Take first color from tab20b for 21st
     
     # Plot both groups
     for i, (results, group_name) in enumerate([(with_precursor_results, f"MI with {transition_disease_name}"), 
@@ -281,26 +286,21 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         # Create time axis
         time_points = np.arange(-min_length, 0)
         
-        # Create stacked area plot
-        cumulative_pos = np.zeros(min_length)
-        cumulative_neg = np.zeros(min_length)
+        # Create stacked area plot with all 21 signatures
+        cumulative = np.zeros(min_length)
         
-        for sig_idx in range(deviations.shape[0]):  # All signatures
+        # Plot all 21 signatures
+        for sig_idx in range(deviations.shape[0]):
             sig_values = deviations[sig_idx, :]
-            pos_values = np.maximum(sig_values, 0)
-            neg_values = np.minimum(sig_values, 0)
             
-            # Positive deviations (above zero)
-            ax.fill_between(time_points, cumulative_pos, cumulative_pos + pos_values,
-                           color=sig_colors[sig_idx], alpha=0.7, 
-                           label=f'Sig {sig_idx}' if sig_idx < 10 else '')
+            # Create filled area for this signature
+            ax.fill_between(time_points, cumulative, cumulative + sig_values,
+                           color=sig_colors[sig_idx], 
+                           alpha=0.85, 
+                           label=f'Sig {sig_idx}', 
+                           edgecolor='white', linewidth=0.3)
             
-            # Negative deviations (below zero)
-            ax.fill_between(time_points, cumulative_neg, cumulative_neg + neg_values,
-                           color=sig_colors[sig_idx], alpha=0.7)
-            
-            cumulative_pos += pos_values
-            cumulative_neg += neg_values
+            cumulative += sig_values
         
         # Add zero line
         ax.axhline(y=0, color='black', linestyle='-', alpha=0.5, linewidth=1)
@@ -312,7 +312,7 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         ax.grid(True, alpha=0.3)
         
         if i == 0:
-            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
     
     plt.tight_layout()
     

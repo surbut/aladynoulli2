@@ -48,7 +48,7 @@ def load_full_data():
     # Store processed IDs for later use in medication mapping
     return Y, thetas, disease_names, processed_ids
 
-def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_pathways=4, method='average_loading'):
+def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_pathways=4, method='average_loading', lookback_years=10):
     """
     Discover the different pathways patients take to reach the same disease outcome
     
@@ -59,9 +59,11 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
     - disease_names: List of disease names
     - n_pathways: Number of pathways to discover
     - method: 'average_loading', 'trajectory_similarity', or 'deviation_from_reference'
+    - lookback_years: Number of years to look back before disease onset (default: 10)
     """
     print(f"=== DISCOVERING PATHWAYS TO {target_disease_name.upper()} ===")
     print(f"Method: {method}")
+    print(f"Lookback years: {lookback_years}")
     
     # Find the target disease
     target_disease_idx = None
@@ -125,21 +127,21 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
             trajectory = patient_info['trajectory']
             age_at_disease = patient_info['age_at_disease']
             
-            # Get pre-disease trajectory (up to 5 years before disease)
+            # Get pre-disease trajectory
             cutoff_idx = age_at_disease - 30  # Time index at disease onset
-            lookback_idx = max(0, cutoff_idx - 5)  # Look back 5 years
+            lookback_idx = max(0, cutoff_idx - lookback_years)  # Look back N years
             
-            if cutoff_idx > 5:  # Need at least 5 years of pre-disease history
+            if cutoff_idx > lookback_years:  # Need at least lookback_years of pre-disease history
                 pre_disease_traj = trajectory[:, lookback_idx:cutoff_idx]
                 
-                # Calculate average signature loading in the 5 years BEFORE disease
+                # Calculate average signature loading in the N years BEFORE disease
                 avg_loadings = np.mean(pre_disease_traj, axis=1)  # Average over time dimension
                 trajectory_features.append(avg_loadings)
                 valid_patients.append(patient_info)
         
         trajectory_features = np.array(trajectory_features)
         patient_trajectories = valid_patients  # Update to only valid patients
-        print(f"Created {trajectory_features.shape[1]} features per patient (average loading 5 years PRE-disease)")
+        print(f"Created {trajectory_features.shape[1]} features per patient (average loading {lookback_years} years PRE-disease)")
         print(f"Kept {len(valid_patients)} patients with sufficient pre-disease history")
         
     elif method == 'trajectory_similarity':
@@ -151,22 +153,22 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
             trajectory = patient_info['trajectory']
             age_at_disease = patient_info['age_at_disease']
             
-            # Get pre-disease trajectory (5-10 years before disease)
+            # Get pre-disease trajectory
             cutoff_idx = age_at_disease - 30
-            lookback_10yr = max(0, cutoff_idx - 10)
-            lookback_5yr = max(0, cutoff_idx - 5)
+            lookback_early = max(0, cutoff_idx - lookback_years)
+            lookback_recent = max(0, cutoff_idx - max(5, lookback_years // 2))  # Half lookback or 5 years, whichever is larger
             
-            if cutoff_idx > 5:  # Need at least 5 years of pre-disease history
+            if cutoff_idx > max(5, lookback_years // 2):  # Need at least half lookback or 5 years
                 features = []
                 
-                # 1. Average loading in 5 years before disease
-                recent_pre_disease = trajectory[:, lookback_5yr:cutoff_idx]
+                # 1. Average loading in recent period before disease
+                recent_pre_disease = trajectory[:, lookback_recent:cutoff_idx]
                 avg_recent = np.mean(recent_pre_disease, axis=1)
                 features.extend(avg_recent)
                 
-                # 2. Slope (10 years before vs 5 years before)
-                if cutoff_idx > 10:
-                    early_pre_disease = trajectory[:, lookback_10yr:lookback_5yr]
+                # 2. Slope (early vs recent pre-disease)
+                if cutoff_idx > lookback_years:
+                    early_pre_disease = trajectory[:, lookback_early:lookback_recent]
                     avg_early = np.mean(early_pre_disease, axis=1)
                     slope = avg_recent - avg_early
                     features.extend(slope)
@@ -211,16 +213,16 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
             trajectory = patient_info['trajectory']
             age_at_disease = patient_info['age_at_disease']
             
-            # Get pre-disease trajectory (10 years before disease) - using 10 years for better biological separation
+            # Get pre-disease trajectory
             cutoff_idx = age_at_disease - 30  # Time index at disease onset
-            lookback_idx = max(0, cutoff_idx - 10)  # Look back 10 years
+            lookback_idx = max(0, cutoff_idx - lookback_years)  # Look back N years
             
-            if cutoff_idx > 10:  # Need at least 10 years of pre-disease history
+            if cutoff_idx > lookback_years:  # Need at least lookback_years of pre-disease history
                 # Get pre-disease trajectory for this patient
-                pre_disease_traj = trajectory[:, lookback_idx:cutoff_idx]  # Shape: (K, 10)
+                pre_disease_traj = trajectory[:, lookback_idx:cutoff_idx]  # Shape: (K, lookback_years)
                 
                 # Get corresponding population reference for same time window
-                ref_traj = population_reference[:, lookback_idx:cutoff_idx]  # Shape: (K, 10)
+                ref_traj = population_reference[:, lookback_idx:cutoff_idx]  # Shape: (K, lookback_years)
                 
                 # Calculate DEVIATION from reference PER TIMEPOINT (like digital twinning)
                 # This preserves temporal information and matches per timepoint

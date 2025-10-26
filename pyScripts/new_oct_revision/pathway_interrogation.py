@@ -13,9 +13,16 @@ from scipy.stats import chi2_contingency
 import warnings
 warnings.filterwarnings('ignore')
 
-def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
+def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names, output_dir=None):
     """
     Interrogate what distinguishes the different pathways to the same disease
+    
+    Parameters:
+    - pathway_data: Dictionary containing pathway assignments
+    - Y: Binary disease matrix
+    - thetas: Signature loadings
+    - disease_names: List of disease names
+    - output_dir: Optional directory to save plots (default: None, just displays)
     """
     print(f"=== INTERROGATING PATHWAYS TO {pathway_data['target_disease'].upper()} ===")
     
@@ -235,6 +242,9 @@ def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
         ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
+    if output_dir:
+        plt.savefig(f"{output_dir}/top_discriminating_signatures.pdf", dpi=300, bbox_inches='tight')
+        print(f"   Saved plot: {output_dir}/top_discriminating_signatures.pdf")
     plt.show()
     
     # Plot pathway size distribution
@@ -262,6 +272,9 @@ def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
     ax2.grid(True, alpha=0.3)
     
     plt.tight_layout()
+    if output_dir:
+        plt.savefig(f"{output_dir}/pathway_size_and_age.pdf", dpi=300, bbox_inches='tight')
+        print(f"   Saved plot: {output_dir}/pathway_size_and_age.pdf")
     plt.show()
     
     # 6. Create stacked bar plot of ALL signature deviations (years prior to event per cluster)
@@ -304,9 +317,17 @@ def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
     pathway_ids = list(pre_disease_deviations.keys())
     signature_ids = list(range(len(pre_disease_deviations[pathway_ids[0]])))
     
-    # Create stacked bars
+    # Create stacked bars with distinct colors for all signatures
     bottom = np.zeros(len(pathway_ids))
-    colors = plt.cm.tab20(np.linspace(0, 1, len(signature_ids)))
+    
+    # Use tab20 + tab20b for distinct colors (40 total distinct colors)
+    if len(signature_ids) <= 20:
+        colors = plt.cm.tab20(np.linspace(0, 1, len(signature_ids)))
+    else:
+        # For 21+ signatures, use tab20 + tab20b
+        colors_20 = plt.cm.tab20(np.linspace(0, 1, 20))
+        colors_b = plt.cm.tab20b(np.linspace(0, 1, 20))
+        colors = np.vstack([colors_20, colors_b[:len(signature_ids)-20]])
     
     for sig_idx in signature_ids:
         deviations = [pre_disease_deviations[pid][sig_idx] for pid in pathway_ids]
@@ -319,7 +340,7 @@ def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
     ax1.axhline(y=0, color='black', linestyle='-', alpha=0.5)
     ax1.grid(True, alpha=0.3)
     
-    # Add legend for top 10 most variable signatures
+    # Add legend for ALL signatures (showing all 21)
     signature_variances = [np.var([pre_disease_deviations[pid][sig_idx] for pid in pathway_ids]) for sig_idx in signature_ids]
     top_var_sigs = np.argsort(signature_variances)[::-1][:10]
     
@@ -347,6 +368,9 @@ def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
     ax2.grid(True, alpha=0.3)
     
     plt.tight_layout()
+    if output_dir:
+        plt.savefig(f"{output_dir}/signature_deviations_by_pathway.pdf", dpi=300, bbox_inches='tight')
+        print(f"   Saved plot: {output_dir}/signature_deviations_by_pathway.pdf")
     plt.show()
     
     # Print summary of signature deviations
@@ -366,7 +390,7 @@ def interrogate_disease_pathways(pathway_data, Y, thetas, disease_names):
         'pre_disease_deviations': pre_disease_deviations
     }
 
-def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
+def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None, output_dir=None):
     """
     Analyze polygenic risk scores (PRS) by pathway to understand genetic differences
     """
@@ -571,6 +595,9 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None):
             bar.set_color(color)
     
     plt.tight_layout()
+    if output_dir:
+        plt.savefig(f"{output_dir}/prs_by_pathway.pdf", dpi=300, bbox_inches='tight')
+        print(f"   Saved plot: {output_dir}/prs_by_pathway.pdf")
     plt.show()
     
     return {

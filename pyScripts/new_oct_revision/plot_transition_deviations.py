@@ -19,6 +19,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
     thetas, 
     disease_names,
     years_before=10,
+    years_after=0,  # Years AFTER transition disease to plot (0 = only use years_before)
     age_tolerance=5,  # Match within ±5 years of age at diagnosis
     min_followup=5,   # Minimum follow-up time after diagnosis
     save_plots=True
@@ -27,6 +28,8 @@ def plot_transition_vs_nontransition_deviations_fixed(
     Plot signature deviations comparing patients who had transition disease:
     - WITH subsequent target disease (transition)
     - WITHOUT subsequent target disease (no transition)
+    
+    Can plot BEFORE transition disease (years_before) or AFTER (years_after)
     
     FIXED: Explicit age matching at transition disease diagnosis + sufficient follow-up
     """
@@ -227,8 +230,11 @@ def plot_transition_vs_nontransition_deviations_fixed(
     # Time points (years relative to transition disease diagnosis)
     time_points = np.arange(-years_before, 0)
     
-    # Define colors for signatures
-    sig_colors = plt.cm.viridis(np.linspace(0, 1, K))
+    # Define colors for signatures - use tab20 + tab20b for all signatures
+    from matplotlib import cm
+    colors_20 = cm.get_cmap('tab20')(np.linspace(0, 1, 20))
+    colors_b = cm.get_cmap('tab20b')(np.linspace(0, 1, 20))
+    sig_colors = np.vstack([colors_20, colors_b[0:1]])  # Take first color from tab20b for 21st
     
     # Plot 1: Patients who developed target disease
     ax = axes[0]
@@ -241,7 +247,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
         neg_values = np.minimum(values, 0)
         
         ax.fill_between(time_points, bottom_pos, bottom_pos + pos_values,
-                       label=f'Sig {sig_idx}' if sig_idx < 10 else '',
+                       label=f'Sig {sig_idx}',
                        color=sig_colors[sig_idx], alpha=0.8)
         ax.fill_between(time_points, bottom_neg, bottom_neg + neg_values,
                        color=sig_colors[sig_idx], alpha=0.5)
@@ -254,7 +260,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
                 fontsize=14, fontweight='bold')
     ax.set_xlabel(f'Years Before {transition_disease_name} Diagnosis')
     ax.set_ylabel('Signature Deviation from Population')
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
     ax.grid(True, alpha=0.3)
     
     # Plot 2: Patients who did NOT develop target disease
@@ -268,7 +274,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
         neg_values = np.minimum(values, 0)
         
         ax.fill_between(time_points, bottom_pos, bottom_pos + pos_values,
-                       label=f'Sig {sig_idx}' if sig_idx < 10 else '',
+                       label=f'Sig {sig_idx}',
                        color=sig_colors[sig_idx], alpha=0.8)
         ax.fill_between(time_points, bottom_neg, bottom_neg + neg_values,
                        color=sig_colors[sig_idx], alpha=0.5)
@@ -281,7 +287,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
                 fontsize=14, fontweight='bold')
     ax.set_xlabel(f'Years Before {transition_disease_name} Diagnosis')
     ax.set_ylabel('Signature Deviation from Population')
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
     ax.grid(True, alpha=0.3)
     
     # Set same y-limits for comparison

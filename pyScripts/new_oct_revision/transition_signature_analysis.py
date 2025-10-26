@@ -292,8 +292,15 @@ def visualize_transition_signature_patterns(transition_data, signature_analysis)
     
     fig.suptitle('Signature Deviations from Reference by Transition Group', fontsize=16, fontweight='bold')
     
-    # Colors for signatures (like R viridis)
-    sig_colors = plt.cm.viridis(np.linspace(0, 1, K))
+    # Colors for signatures - use tab20 + tab20b for distinct colors
+    if K <= 20:
+        sig_colors = plt.cm.tab20(np.linspace(0, 1, K))
+    else:
+        # For 21 signatures, use tab20 + tab20b
+        colors_20 = plt.cm.tab20(np.linspace(0, 1, 20))
+        colors_b = plt.cm.tab20b(np.linspace(0, 1, 20))
+        sig_colors = np.vstack([colors_20, colors_b[0:1]])  # Take first color from tab20b for 21st
+        sig_colors = sig_colors[:K]  # In case K > 21
     
     for i, group_name in enumerate(group_names):
         ax = axes[i]
@@ -313,7 +320,7 @@ def visualize_transition_signature_patterns(transition_data, signature_analysis)
             sig_values = group_deviations[sig_idx, :]
             ax.fill_between(time_points, cumulative, cumulative + sig_values, 
                            color=sig_colors[sig_idx], alpha=0.8, 
-                           label=f'Sig {sig_idx}' if sig_idx < 10 else '')  # Only label first 10
+                           label=f'Sig {sig_idx}')
             cumulative += sig_values
         
         # Add zero line
@@ -326,7 +333,7 @@ def visualize_transition_signature_patterns(transition_data, signature_analysis)
         
         # Only show legend for first subplot to avoid clutter
         if i == 0:
-            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
     
     plt.tight_layout()
     plt.show()
