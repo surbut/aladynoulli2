@@ -211,24 +211,24 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
             trajectory = patient_info['trajectory']
             age_at_disease = patient_info['age_at_disease']
             
-            # Get pre-disease trajectory (5 years before disease)
+            # Get pre-disease trajectory (10 years before disease) - using 10 years for better biological separation
             cutoff_idx = age_at_disease - 30  # Time index at disease onset
-            lookback_idx = max(0, cutoff_idx - 5)  # Look back 5 years
+            lookback_idx = max(0, cutoff_idx - 10)  # Look back 10 years
             
-            if cutoff_idx > 5:  # Need at least 5 years of pre-disease history
+            if cutoff_idx > 10:  # Need at least 10 years of pre-disease history
                 # Get pre-disease trajectory for this patient
-                pre_disease_traj = trajectory[:, lookback_idx:cutoff_idx]  # Shape: (K, 5)
+                pre_disease_traj = trajectory[:, lookback_idx:cutoff_idx]  # Shape: (K, 10)
                 
                 # Get corresponding population reference for same time window
-                ref_traj = population_reference[:, lookback_idx:cutoff_idx]  # Shape: (K, 5)
+                ref_traj = population_reference[:, lookback_idx:cutoff_idx]  # Shape: (K, 10)
                 
                 # Calculate DEVIATION from reference PER TIMEPOINT (like digital twinning)
                 # This preserves temporal information and matches per timepoint
-                deviation_per_timepoint = pre_disease_traj - ref_traj  # Shape: (K, 5)
+                deviation_per_timepoint = pre_disease_traj - ref_traj  # Shape: (K, 10)
                 
                 # Flatten to get per-timepoint deviations as features
-                # This gives us K*5 features: deviation for each signature at each timepoint
-                features = deviation_per_timepoint.flatten()  # Shape: (K*5,)
+                # This gives us K*10 features: deviation for each signature at each timepoint
+                features = deviation_per_timepoint.flatten()  # Shape: (K*10,)
                 
                 trajectory_features.append(features)
                 valid_patients.append(patient_info)
@@ -236,7 +236,7 @@ def discover_disease_pathways(target_disease_name, Y, thetas, disease_names, n_p
         trajectory_features = np.array(trajectory_features)
         patient_trajectories = valid_patients
         print(f"Created {trajectory_features.shape[1]} features per patient (DEVIATION from reference)")
-        print(f"  - {K*5} features: deviation per signature per timepoint (K signatures × 5 timepoints)")
+        print(f"  - {K*10} features: deviation per signature per timepoint (K signatures × 10 timepoints)")
         print(f"Kept {len(valid_patients)} patients with sufficient pre-disease history")
     
     # Standardize features

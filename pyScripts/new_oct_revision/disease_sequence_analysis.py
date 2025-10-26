@@ -20,31 +20,119 @@ import torch
 
 def load_icd10_data(icd_file_path='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/icd2phecode.rds'):
     """
-    Load ICD-10 diagnosis data from RDS file
+    Load ICD-10 diagnosis data from RDS or CSV file
     
     Expected format:
     - eid: patient identifier
     - diag_icd10: ICD-10 diagnosis code
-    - age_diag: age at diagnosis
+    - age_diag: age at diagnosis (for RDS)
+    - age: age at diagnosis (for CSV, if different)
+    """
+    import os
+    
+    # Check if file is CSV or RDS
+    if icd_file_path.endswith('.csv'):
+        try:
+            icd_data = pd.read_csv(icd_file_path)
+            print(f"✅ Loaded ICD-10 data from CSV: {len(icd_data)} diagnoses")
+            
+            # Check for required columns
+            required_cols = ['eid', 'diag_icd10']
+            if not all(col in icd_data.columns for col in required_cols):
+                print(f"❌ CSV missing required columns. Found: {icd_data.columns.tolist()}")
+                print(f"   Required: {required_cols}")
+                return None
+            
+            # Handle age column (may be 'age' or 'age_diag')
+            if 'age' in icd_data.columns:
+                icd_data['age_diag'] = icd_data['age']
+            elif 'age_diag' not in icd_data.columns:
+                print("⚠️  Warning: No age column found. Creating dummy ages.")
+                icd_data['age_diag'] = 50.0  # Default age
+            
+            print(f"   {len(icd_data['eid'].unique())} unique patients")
+            print(f"   {len(icd_data['diag_icd10'].unique())} unique ICD-10 codes")
+            return icd_data
+            
+        except Exception as e:
+            print(f"❌ Error loading CSV file: {e}")
+            return None
+    else:
+        # Try loading as RDS file
+        try:
+            import pyreadr
+            result = pyreadr.read_r(icd_file_path)
+            icd_data = result[None]  # Get the dataframe
+            print(f"✅ Loaded ICD-10 data from RDS: {len(icd_data)} diagnoses")
+            print(f"   {len(icd_data['eid'].unique())} unique patients")
+            print(f"   {len(icd_data['diag_icd10'].unique())} unique ICD-10 codes")
+            return icd_data
+        except Exception as e:
+            print(f"❌ Error loading RDS data: {e}")
+            print("   Install pyreadr: pip install pyreadr")
+            return None
+
+
+def load_icd10_mapping_from_csv(mapping_file_path):
+    """
+    Load ICD-10 to phecode mapping from detailed CSV file
+    
+    Returns a dictionary mapping ICD-10 codes to phecodes
     """
     try:
-        import pyreadr
-        result = pyreadr.read_r(icd_file_path)
-        icd_data = result[None]  # Get the dataframe
-        print(f"✅ Loaded ICD-10 data: {len(icd_data)} diagnoses")
-        print(f"   {len(icd_data['eid'].unique())} unique patients")
-        print(f"   {len(icd_data['diag_icd10'].unique())} unique ICD-10 codes")
-        return icd_data
+        mapping_df = pd.read_csv(mapping_file_path)
+        print(f"✅ Loaded ICD-10 mapping from CSV: {len(mapping_df)} codes")
+        
+        # Create mapping dictionary
+        icd_to_phecode = {}
+        for _, row in mapping_df.iterrows():
+            icd_code = str(row.get('ICD10', '')).strip()
+            phecode = row.get('phecode', 'Unknown')
+            phenotype = row.get('phenotype', 'Unknown')
+            
+            if icd_code and icd_code != 'nan':
+                icd_to_phecode[icd_code] = {
+                    'phecode': phecode,
+                    'phenotype': phenotype
+                }
+        
+        print(f"   Created mapping for {len(icd_to_phecode)} ICD-10 codes")
+        return icd_to_phecode
+        
     except Exception as e:
-        print(f"❌ Error loading ICD-10 data: {e}")
-        print("   Install pyreadr: pip install pyreadr")
+        print(f"❌ Error loading mapping CSV: {e}")
         return None
 
-
-def create_icd10_mapping():
+def create_icd10_mapping(mapping_file_path=None):
     """
     Create a mapping from ICD-10 codes to disease categories
+    If mapping_file_path is provided, uses detailed CSV mapping.
+    Otherwise uses basic chapter-based mapping.
     """
+    # If detailed mapping is provided, use it
+    if mapping_file_path:
+        detailed_mapping = load_icd10_mapping_from_csv(mapping_file_path)
+        if detailed_mapping:
+            def get_category(icd_code):
+                """Get category from detailed mapping"""
+                if pd.isna(icd_code) or not isinstance(icd_code, str):
+                    return 'Unknown'
+                
+                # Try exact match first
+                if icd_code in detailed_mapping:
+                    return detailed_mapping[icd_code]['phenotype']
+                
+                # Try without suffix (e.g., 'I211' -> 'I21')
+                if len(icd_code) > 3:
+                    base_code = icd_code[:3]
+                    if base_code in detailed_mapping:
+                        return detailed_mapping[base_code]['phenotype']
+                
+                return 'Unknown'
+            
+            return get_category
+    
+    # Otherwise, use basic chapter-based mapping
     # Major ICD-10 chapters
     icd10_chapters = {
         'A': 'Infectious diseases',
@@ -111,7 +199,7 @@ def create_icd10_mapping():
 
 def find_disease_sequences_before_target(icd_data, target_icd_codes, processed_ids, 
                                          min_sequence_length=2, max_sequence_length=5,
-                                         time_window_years=10):
+                                         time_window_years=10, get_category=None):
     """
     Find common disease sequences before target disease
     
@@ -187,7 +275,10 @@ def find_disease_sequences_before_target(icd_data, target_icd_codes, processed_i
     # For each patient, find diagnoses before target
     sequences = []
     sequence_categories = []
-    get_category = create_icd10_mapping()
+    
+    # Use provided mapping or create default one
+    if get_category is None:
+        get_category = create_icd10_mapping()
     
     for idx, row in target_first.iterrows():
         if idx % 1000 == 0:
@@ -467,15 +558,20 @@ def visualize_sequence_signature_relationships(sequences_with_sigs_df, top_n_seq
 
 def analyze_disease_sequences_for_target(target_disease_name, target_icd_codes, 
                                         thetas, processed_ids, 
-                                        icd_file_path=None):
+                                        icd_file_path=None,
+                                        mapping_file_path=None):
     """
     Complete analysis of disease sequences before target disease
+    
+    Parameters:
+    - icd_file_path: Path to RDS file with patient ICD-10 diagnosis data
+    - mapping_file_path: Path to CSV file with ICD-10 to phecode mapping (optional, uses detailed mapping if provided)
     """
     print(f"="*80)
     print(f"DISEASE SEQUENCE ANALYSIS: {target_disease_name.upper()}")
     print(f"="*80)
     
-    # Load ICD-10 data
+    # Load ICD-10 patient diagnosis data (still from RDS)
     if icd_file_path is None:
         icd_file_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/icd2phecode.rds'
     
@@ -484,9 +580,12 @@ def analyze_disease_sequences_for_target(target_disease_name, target_icd_codes,
     if icd_data is None:
         return None
     
+    # Load mapping if provided
+    get_category = create_icd10_mapping(mapping_file_path)
+    
     # Find disease sequences
     sequences_df, category_counts, bigram_counts = find_disease_sequences_before_target(
-        icd_data, target_icd_codes, processed_ids
+        icd_data, target_icd_codes, processed_ids, get_category=get_category
     )
     
     # Link sequences to signatures
