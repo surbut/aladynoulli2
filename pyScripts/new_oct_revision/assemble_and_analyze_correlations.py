@@ -60,6 +60,13 @@ def assemble_new_model_with_pcs():
     
     torch.save(torch.from_numpy(all_thetas_combined), output_path)
     print(f"✅ Saved successfully!")
+
+     # Save the combined thetas
+    output_path = "/Users/sarahurbut/aladynoulli2/pyScripts/new_lambdas_with_pcs_retrospective.pt"
+    print(f"Saving to: {output_path}")
+    
+    torch.save(torch.from_numpy(all_lambdas_combined), output_path)
+    print(f"✅ Saved successfully!")
     
     return all_thetas_combined
 
