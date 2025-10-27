@@ -195,11 +195,15 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     print(f"  Control group age: {np.mean(control_ages_final):.1f} ± {np.std(control_ages_final):.1f}")
     print(f"    Age range: {np.min(control_ages_final):.1f} - {np.max(control_ages_final):.1f}")
     
-    # Analyze signature patterns for both groups
-    def analyze_mi_group(patients, group_name):
+    # Analyze signature patterns in the years BEFORE MI for both groups
+    def analyze_before_mi(patients, group_name):
+        """
+        Analyze trajectories in the years before MI
+        Both groups: Plot X years before their MI (where X = years_before)
+        Matching: Both groups already matched on age at MI
+        """
         print(f"\nAnalyzing {group_name}...")
         
-        # Collect signature trajectories aligned to MI timing
         trajectories = []
         
         for patient_info in patients:
@@ -207,12 +211,12 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
             age_at_mi = patient_info['age_at_mi']
             mi_time_idx = age_at_mi - 30
             
-            # Get the years_before window before MI
+            # Get the years_before window BEFORE MI
             start_time = max(0, mi_time_idx - years_before)
             end_time = mi_time_idx
             
-            if end_time > start_time:
-                # Get signature trajectory for this patient
+            # Extract trajectory
+            if start_time < end_time and end_time <= Y.shape[2]:
                 patient_trajectory = thetas[patient_id, :, start_time:end_time]
                 trajectories.append(patient_trajectory)
         
@@ -221,7 +225,7 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         if len(trajectories) == 0:
             return None
         
-        # Align trajectories to the same length (take minimum length)
+        # Align trajectories to minimum length
         min_length = min(traj.shape[1] for traj in trajectories)
         aligned_trajectories = []
         
@@ -238,12 +242,12 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         aligned_trajectories = np.array(aligned_trajectories)
         mean_trajectory = np.mean(aligned_trajectories, axis=0)
         
-        # Get corresponding population reference
+        # Calculate deviations
+        # Get population reference for the same time window
         ref_start = max(0, thetas.shape[2] - min_length)
         ref_end = thetas.shape[2]
         population_ref_window = population_reference[:, ref_start:ref_end]
         
-        # Calculate deviations
         deviations = mean_trajectory - population_ref_window
         
         return {
@@ -253,9 +257,9 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
             'min_length': min_length
         }
     
-    # Analyze both age-matched groups
-    with_precursor_results = analyze_mi_group(mi_with_precursor_matched, f"MI with {transition_disease_name} (age-matched)")
-    without_precursor_results = analyze_mi_group(mi_without_precursor_matched, f"MI without {transition_disease_name} (age-matched)")
+    # Analyze both age-matched groups (both plot years before MI)
+    with_precursor_results = analyze_before_mi(mi_with_precursor_matched, f"MI with {transition_disease_name}")
+    without_precursor_results = analyze_before_mi(mi_without_precursor_matched, f"MI without {transition_disease_name}")
     
     if with_precursor_results is None or without_precursor_results is None:
         print("❌ Could not analyze one or both groups")
@@ -283,8 +287,9 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         n_patients = results['n_patients']
         min_length = results['min_length']
         
-        # Create time axis
-        time_points = np.arange(-min_length, 0)
+        # Create time axis - showing years before MI
+        # time_points show years before MI: 10, 9, 8, ..., 1 (closest to MI)
+        time_points = np.arange(min_length, 0, -1)
         
         # Create stacked area plot with all 21 signatures
         cumulative = np.zeros(min_length)
@@ -307,12 +312,14 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
         
         ax.set_title(f'{group_name.title()}\n(n={n_patients} patients)', 
                     fontweight='bold', fontsize=12)
+        
+        # Both groups plot years before MI
         ax.set_xlabel('Years Before Myocardial Infarction')
         ax.set_ylabel('Signature Deviation from Population')
-        ax.grid(True, alpha=0.3)
         
         if i == 0:
             ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+        ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
     

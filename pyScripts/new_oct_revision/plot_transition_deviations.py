@@ -189,14 +189,14 @@ def plot_transition_vs_nontransition_deviations_fixed(
             age_at_transition = patient_info['age_at_transition']
             transition_time_idx = age_at_transition - 30
             
-            # Use years_before window BEFORE transition disease
-            lookback_idx = max(0, transition_time_idx - years_before)
-            end_idx = transition_time_idx
+            # Use years_before window FROM transition disease diagnosis (plotting forward from diagnosis)
+            start_idx = transition_time_idx
+            end_idx = min(transition_time_idx + years_before, T)
             
-            if end_idx - lookback_idx == years_before:
+            if end_idx - start_idx == years_before:
                 # Get signature trajectory for this window
-                patient_traj = thetas[patient_id, :, lookback_idx:end_idx]  # Shape: (K, W)
-                ref_traj = population_reference[:, lookback_idx:end_idx]
+                patient_traj = thetas[patient_id, :, start_idx:end_idx]  # Shape: (K, W)
+                ref_traj = population_reference[:, start_idx:end_idx]
                 
                 deviation = patient_traj - ref_traj
                 
@@ -216,7 +216,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
     print(f"\nCalculated deviations (AGE-MATCHED + FOLLOW-UP):")
     print(f"  With target: {len(with_target_deviations)} patients")
     print(f"  Without target: {len(without_target_deviations)} patients")
-    print(f"  Both groups analyzed: {years_before} years BEFORE {transition_disease_name} diagnosis")
+    print(f"  Both groups analyzed: {years_before} years AFTER {transition_disease_name} diagnosis")
     
     # Print age distribution for verification
     target_ages_final = [p['target']['age_at_transition'] for p in valid_pairs]
@@ -228,7 +228,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
     fig, axes = plt.subplots(1, 2, figsize=(20, 8))
     
     # Time points (years relative to transition disease diagnosis)
-    time_points = np.arange(-years_before, 0)
+    time_points = np.arange(0, years_before)
     
     # Define colors for signatures - use tab20 + tab20b for all signatures
     from matplotlib import cm
@@ -258,7 +258,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
     ax.axhline(y=0, color='k', linestyle='-', alpha=0.3)
     ax.set_title(f'{transition_disease_name} → {target_disease_name}\n(n={len(with_target_deviations)} patients)',
                 fontsize=14, fontweight='bold')
-    ax.set_xlabel(f'Years Before {transition_disease_name} Diagnosis')
+    ax.set_xlabel(f'Years After {transition_disease_name} Diagnosis')
     ax.set_ylabel('Signature Deviation from Population')
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
     ax.grid(True, alpha=0.3)
@@ -285,7 +285,7 @@ def plot_transition_vs_nontransition_deviations_fixed(
     ax.axhline(y=0, color='k', linestyle='-', alpha=0.3)
     ax.set_title(f'{transition_disease_name} (no {target_disease_name})\n(n={len(without_target_deviations)} patients)',
                 fontsize=14, fontweight='bold')
-    ax.set_xlabel(f'Years Before {transition_disease_name} Diagnosis')
+    ax.set_xlabel(f'Years After {transition_disease_name} Diagnosis')
     ax.set_ylabel('Signature Deviation from Population')
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
     ax.grid(True, alpha=0.3)
@@ -573,6 +573,306 @@ def plot_transition_vs_nontransition_deviations(
         'with_target_avg': with_target_avg,
         'without_target_avg': without_target_avg,
         'figure': fig
+    }
+
+
+def plot_bc_to_mi_progression(
+    transition_disease_name,
+    target_disease_name,
+    Y,
+    thetas,
+    disease_names,
+    years_before=10,
+    age_tolerance=5,
+    min_followup=5,
+    save_plots=True
+):
+    """
+    Compare MI patients with BC history vs MI patients without BC history.
+    
+    Matching: Age at MI diagnosis
+    Plotting: Years before MI (same time window for both groups)
+    
+    Parameters:
+    -----------
+    transition_disease_name : str
+        Name of precursor disease (e.g., 'Breast cancer')
+    target_disease_name : str
+        Name of target disease (e.g., 'myocardial infarction')
+    Y : torch.Tensor
+        Binary disease matrix
+    thetas : np.ndarray
+        Signature loadings
+    disease_names : list
+        Disease names
+    years_before : int
+        Years before MI to plot
+    age_tolerance : int
+        Age matching tolerance
+    min_followup : int
+        Minimum follow-up time
+    save_plots : bool
+        Whether to save plots
+    """
+    
+    print(f"\n{'='*80}")
+    print(f"BC PROGRESSION ANALYSIS (MATCHED ON AGE AT BC DIAGNOSIS)")
+    print(f"  Precursor: {transition_disease_name}")
+    print(f"  Target: {target_disease_name}")
+    print(f"  Plotting: {years_before} years leading up to MI")
+    print(f"  Age tolerance: ±{age_tolerance} years")
+    print(f"{'='*80}\n")
+    
+    # Find disease indices
+    transition_idx = None
+    target_idx = None
+    
+    for i, name in enumerate(disease_names):
+        if transition_disease_name.lower() in name.lower():
+            transition_idx = i
+            print(f"Found transition disease: {name} (index {i})")
+        if target_disease_name.lower() in name.lower():
+            target_idx = i
+            print(f"Found target disease: {name} (index {i})")
+    
+    if transition_idx is None or target_idx is None:
+        print("Could not find both diseases")
+        return None
+    
+    # Calculate population reference
+    population_reference = np.mean(thetas, axis=0)
+    print(f"Population reference shape: {population_reference.shape}")
+    
+    # Find BC patients who develop MI
+    progressors = []
+    for patient_id in range(Y.shape[0]):
+        # Check if patient has BC
+        bc_occurrences = torch.where(Y[patient_id, transition_idx, :] > 0)[0]
+        if len(bc_occurrences) == 0:
+            continue
+        bc_age = bc_occurrences[0].item() + 30
+        
+        # Check if patient has MI
+        mi_occurrences = torch.where(Y[patient_id, target_idx, :] > 0)[0]
+        if len(mi_occurrences) == 0:
+            continue
+        mi_age = mi_occurrences[0].item() + 30
+        
+        # Must have MI after BC
+        if mi_age > bc_age:
+            progressors.append({
+                'patient_id': patient_id,
+                'age_at_bc': bc_age,
+                'age_at_mi': mi_age
+            })
+    
+    print(f"Found {len(progressors)} BC patients who develop MI")
+    
+    # Find BC patients who DON'T develop MI
+    non_progressors = []
+    for patient_id in range(Y.shape[0]):
+        # Check if patient has BC
+        bc_occurrences = torch.where(Y[patient_id, transition_idx, :] > 0)[0]
+        if len(bc_occurrences) == 0:
+            continue
+        bc_age = bc_occurrences[0].item() + 30
+        
+        # Check patient does NOT have MI
+        mi_occurrences = torch.where(Y[patient_id, target_idx, :] > 0)[0]
+        if len(mi_occurrences) > 0:
+            continue
+        
+        # Require minimum follow-up from BC
+        max_observation_age = 30 + Y.shape[2] - 1
+        followup_time = max_observation_age - bc_age
+        if followup_time >= min_followup:
+            non_progressors.append({
+                'patient_id': patient_id,
+                'age_at_bc': bc_age
+            })
+    
+    print(f"Found {len(non_progressors)} BC patients who DON'T develop MI")
+    
+    if len(progressors) == 0 or len(non_progressors) == 0:
+        print("Not enough patients in one or both groups")
+        return None
+    
+    # AGE MATCHING: Match non-progressors to progressors on age at BC diagnosis
+    print(f"\n=== AGE MATCHING AT BC DIAGNOSIS ===")
+    matched_pairs = []
+    
+    for prog in progressors:
+        bc_age_prog = prog['age_at_bc']
+        
+        # Find age-matched non-progressors
+        age_matched_np = []
+        for non_prog_candidate in non_progressors:
+            if abs(non_prog_candidate['age_at_bc'] - bc_age_prog) <= age_tolerance:
+                age_matched_np.append(non_prog_candidate)
+        
+        if len(age_matched_np) > 0:
+            import random
+            random.seed(42)  # For reproducibility
+            selected_np = random.choice(age_matched_np)
+            matched_pairs.append({
+                'progressor': prog,
+                'non_progressor': selected_np
+            })
+    
+    print(f"Found {len(matched_pairs)} age-matched pairs")
+    
+    if len(matched_pairs) == 0:
+        print("No matched pairs found. Try increasing age_tolerance.")
+        return None
+    
+    # Analyze signature trajectories
+    progressor_deviations = []
+    non_progressor_deviations = []
+    
+    # Calculate average time from BC to MI for equivalent window
+    avg_bc_to_mi_time = int(np.mean([p['age_at_mi'] - p['age_at_bc'] for p in progressors]))
+    print(f"Average time from BC to MI: {avg_bc_to_mi_time} years")
+    
+    # Use years_before for trajectory length
+    min_trajectory_length = years_before
+    
+    for pair in matched_pairs:
+        prog = pair['progressor']
+        non_prog = pair['non_progressor']
+        
+        # Progressor: Plot years before MI
+        prog_patient_id = prog['patient_id']
+        prog_mi_age = prog['age_at_mi']
+        prog_mi_idx = prog_mi_age - 30
+        
+        # Take years_before years before MI
+        start_idx = max(0, prog_mi_idx - min_trajectory_length)
+        end_idx = prog_mi_idx
+        
+        if end_idx - start_idx == min_trajectory_length:
+            prog_traj = thetas[prog_patient_id, :, start_idx:end_idx]
+            prog_ref = population_reference[:, start_idx:end_idx]
+            prog_dev = prog_traj - prog_ref
+            progressor_deviations.append(prog_dev)
+        
+        # Non-progressor: Plot years before "fake MI" (BC_age + avg_BC_to_MI_time)
+        non_prog_patient_id = non_prog['patient_id']
+        non_prog_bc_age = non_prog['age_at_bc']
+        
+        # Calculate "fake MI" age for non-progressor
+        fake_mi_age = non_prog_bc_age + avg_bc_to_mi_time
+        fake_mi_idx = fake_mi_age - 30
+        
+        # Plot years_before years before this fake MI
+        start_idx_np = max(0, fake_mi_idx - min_trajectory_length)
+        end_idx_np = fake_mi_idx
+        
+        # Handle edge cases where fake MI might be beyond data bounds
+        if end_idx_np > start_idx_np:
+            # Cap end_idx to data bounds
+            end_idx_np = min(end_idx_np, Y.shape[2])
+            
+            # Adjust start_idx to ensure we get at least some data
+            if start_idx_np < 0:
+                start_idx_np = 0
+            
+            # Only proceed if we have enough data
+            if end_idx_np > start_idx_np and end_idx_np - start_idx_np >= min_trajectory_length:
+                non_prog_traj = thetas[non_prog_patient_id, :, start_idx_np:end_idx_np]
+                non_prog_ref = population_reference[:, start_idx_np:end_idx_np]
+                non_prog_dev = non_prog_traj - non_prog_ref
+                
+                # Ensure we have exactly min_trajectory_length by taking the last N years
+                if non_prog_dev.shape[1] >= min_trajectory_length:
+                    non_prog_dev = non_prog_dev[:, -min_trajectory_length:]
+                    non_progressor_deviations.append(non_prog_dev)
+    
+    if len(progressor_deviations) == 0 or len(non_progressor_deviations) == 0:
+        print("Could not calculate deviations for both groups")
+        return None
+    
+    # All trajectories have the same length (years_before)
+    min_len = min_trajectory_length
+    
+    print(f"\nAnalyzing {min_len} years")
+    print(f"Progressors (BC→MI): {len(progressor_deviations)} patients")
+    print(f"Non-progressors (BC only): {len(non_progressor_deviations)} patients")
+    
+    # Create visualization
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))
+    
+    # Time points - years before MI (from -max to -1) for both groups
+    # For example: if min_len=10, shows [-10, -9, -8, ..., -2, -1] (years before MI)
+    time_points = np.arange(-min_len, 0)
+    
+    # Use same color scheme
+    from matplotlib import cm
+    colors_20 = cm.get_cmap('tab20')(np.linspace(0, 1, 20))
+    colors_b = cm.get_cmap('tab20b')(np.linspace(0, 1, 20))
+    sig_colors = np.vstack([colors_20, colors_b[0:1]])
+    
+    # Plot progressors (BC→MI): years before MI
+    prog_avg = np.mean(progressor_deviations, axis=0)
+    cumulative = np.zeros(min_len)
+    
+    for sig_idx in range(prog_avg.shape[0]):
+        sig_values = prog_avg[sig_idx, :]
+        axes[0].fill_between(time_points, cumulative, cumulative + sig_values,
+                       color=sig_colors[sig_idx], alpha=0.85,
+                       label=f'Sig {sig_idx}', edgecolor='white', linewidth=0.3)
+        cumulative += sig_values
+    
+    axes[0].axhline(y=0, color='black', linestyle='-', alpha=0.5, linewidth=1)
+    axes[0].set_title(f'{transition_disease_name} → {target_disease_name}\n(n={len(progressor_deviations)} patients)',
+                     fontsize=14, fontweight='bold')
+    axes[0].set_xlabel('Years Before MI')
+    axes[0].set_ylabel('Signature Deviation')
+    axes[0].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    axes[0].grid(True, alpha=0.3)
+    
+    # Plot non-progressors (BC only): years after BC
+    np_avg = np.mean(non_progressor_deviations, axis=0)
+    cumulative = np.zeros(min_len)
+    
+    for sig_idx in range(np_avg.shape[0]):
+        sig_values = np_avg[sig_idx, :]
+        axes[1].fill_between(time_points, cumulative, cumulative + sig_values,
+                       color=sig_colors[sig_idx], alpha=0.85,
+                       label=f'Sig {sig_idx}', edgecolor='white', linewidth=0.3)
+        cumulative += sig_values
+    
+    axes[1].axhline(y=0, color='black', linestyle='-', alpha=0.5, linewidth=1)
+    axes[1].set_title(f'{transition_disease_name} (no {target_disease_name})\n(n={len(non_progressor_deviations)} patients)',
+                     fontsize=14, fontweight='bold')
+    axes[1].set_xlabel('Years Before MI (Equivalent Window)')
+    axes[1].set_ylabel('Signature Deviation')
+    axes[1].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    axes[1].grid(True, alpha=0.3)
+    
+    # Set same y-axis limits
+    max_dev = max(np.abs(prog_avg).max(), np.abs(np_avg).max())
+    axes[0].set_ylim(-max_dev, max_dev)
+    axes[1].set_ylim(-max_dev, max_dev)
+    
+    fig.suptitle(f'Signature Patterns: BC Patients (MATCHED ON AGE AT BC)\nComparing Those Who Do vs. Don\'t Develop MI',
+                fontsize=16, fontweight='bold', y=1.02)
+    
+    plt.tight_layout()
+    
+    if save_plots:
+        filename = f'bc_progression_{transition_disease_name.replace(" ", "_")}_matched_on_bc_age.png'
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        print(f"\nPlot saved as '{filename}'")
+    
+    plt.show()
+    
+    return {
+        'progressor_deviations': progressor_deviations,
+        'non_progressor_deviations': non_progressor_deviations,
+        'matched_pairs': matched_pairs,
+        'prog_avg': prog_avg,  # Average deviations for progressors (signatures x time)
+        'np_avg': np_avg,      # Average deviations for non-progressors
+        'time_points': time_points  # Time axis
     }
 
 
