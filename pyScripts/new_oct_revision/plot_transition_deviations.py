@@ -308,6 +308,55 @@ def plot_transition_vs_nontransition_deviations_fixed(
     
     plt.show()
     
+    # CREATE ADDITIONAL PLOT: All signatures as lines
+    fig2, axes2 = plt.subplots(1, 2, figsize=(20, 6))
+    
+    # Left panel: With target disease
+    for sig_idx in range(K):
+        ax2 = axes2[0]
+        ax2.plot(time_points, with_target_avg[sig_idx, :], 
+                color=sig_colors[sig_idx], linewidth=1.5, marker='o', markersize=3,
+                label=f'Sig {sig_idx}', alpha=0.7)
+    
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.set_xlabel(f'Years After {transition_disease_name} Diagnosis', fontsize=12)
+    ax2.set_ylabel('Signature Deviation from Population', fontsize=12)
+    ax2.set_title(f'{transition_disease_name} → {target_disease_name}\n(n={len(with_target_deviations)} patients)',
+                  fontsize=14, fontweight='bold')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    ax2.grid(True, alpha=0.3)
+    
+    # Right panel: Without target disease
+    for sig_idx in range(K):
+        ax2 = axes2[1]
+        ax2.plot(time_points, without_target_avg[sig_idx, :], 
+                color=sig_colors[sig_idx], linewidth=1.5, marker='s', markersize=3,
+                label=f'Sig {sig_idx}', alpha=0.7)
+    
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.set_xlabel(f'Years After {transition_disease_name} Diagnosis', fontsize=12)
+    ax2.set_ylabel('Signature Deviation from Population', fontsize=12)
+    ax2.set_title(f'{transition_disease_name} (no {target_disease_name})\n(n={len(without_target_deviations)} patients)',
+                  fontsize=14, fontweight='bold')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    ax2.grid(True, alpha=0.3)
+    
+    # Set same y-axis limits
+    axes2[0].set_ylim(-max_dev, max_dev)
+    axes2[1].set_ylim(-max_dev, max_dev)
+    
+    fig2.suptitle(f'Signature Patterns: {transition_disease_name} Patients (AGE-MATCHED + FOLLOW-UP)\nIndividual Signature Trajectories',
+                  fontsize=16, fontweight='bold', y=1.02)
+    
+    plt.tight_layout()
+    
+    if save_plots:
+        filename2 = f'transition_deviations_line_plot_{transition_disease_name.replace(" ", "_")}_to_{target_disease_name.replace(" ", "_")}.png'
+        plt.savefig(filename2, dpi=300, bbox_inches='tight')
+        print(f"Line plot saved as '{filename2}'")
+    
+    plt.show()
+    
     return {
         'with_target_deviations': with_target_deviations,
         'without_target_deviations': without_target_deviations,
@@ -863,6 +912,82 @@ def plot_bc_to_mi_progression(
         filename = f'bc_progression_{transition_disease_name.replace(" ", "_")}_matched_on_bc_age.png'
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         print(f"\nPlot saved as '{filename}'")
+    
+    # VERIFICATION: Print Signature 5 values
+    print("\n" + "="*80)
+    print("VERIFICATION: Signature 5 Deviations")
+    print("="*80)
+    sig5_idx = 5
+    print(f"\nSignature 5 - BC patients who develop MI:")
+    print(f"  Values (years -10 to -1): {prog_avg[sig5_idx, :]}")
+    print(f"  At -2 years: {prog_avg[sig5_idx, -2]:.4f}")
+    print(f"\nSignature 5 - BC patients who DON'T develop MI:")
+    print(f"  Values (years -10 to -1): {np_avg[sig5_idx, :]}")
+    print(f"  At -2 years: {np_avg[sig5_idx, -2]:.4f}")
+    print(f"\nComparison:")
+    print(f"  BC→MI has SIGNATURE 5 at -2 years: {prog_avg[sig5_idx, -2]:.4f}")
+    print(f"  BC only has SIGNATURE 5 at -2 years: {np_avg[sig5_idx, -2]:.4f}")
+    print(f"  Difference (MI minus no-MI): {prog_avg[sig5_idx, -2] - np_avg[sig5_idx, -2]:.4f}")
+    if prog_avg[sig5_idx, -2] > np_avg[sig5_idx, -2]:
+        print(f"  ✓ BC patients who develop MI have HIGHER signature 5")
+    else:
+        print(f"  ✗ BC patients who develop MI have LOWER signature 5")
+    print("="*80)
+    
+    plt.show()
+    
+    # CREATE ADDITIONAL PLOT: All signatures as lines (BC→MI group)
+    fig2, axes2 = plt.subplots(1, 2, figsize=(20, 6))
+    
+    # Use same color scheme
+    colors_20 = cm.get_cmap('tab20')(np.linspace(0, 1, 20))
+    colors_b = cm.get_cmap('tab20b')(np.linspace(0, 1, 20))
+    sig_colors = np.vstack([colors_20, colors_b[0:1]])
+    
+    # Left panel: BC→MI
+    for sig_idx in range(prog_avg.shape[0]):
+        ax2 = axes2[0]
+        ax2.plot(time_points, prog_avg[sig_idx, :], 
+                color=sig_colors[sig_idx], linewidth=1.5, marker='o', markersize=3,
+                label=f'Sig {sig_idx}', alpha=0.7)
+    
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.set_xlabel('Years Before MI', fontsize=12)
+    ax2.set_ylabel('Signature Deviation from Population', fontsize=12)
+    ax2.set_title(f'{transition_disease_name} → {target_disease_name}\n(n={len(progressor_deviations)} patients)',
+                  fontsize=14, fontweight='bold')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    ax2.grid(True, alpha=0.3)
+    
+    # Right panel: BC only
+    for sig_idx in range(np_avg.shape[0]):
+        ax2 = axes2[1]
+        ax2.plot(time_points, np_avg[sig_idx, :], 
+                color=sig_colors[sig_idx], linewidth=1.5, marker='s', markersize=3,
+                label=f'Sig {sig_idx}', alpha=0.7)
+    
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.set_xlabel('Years Before MI (Equivalent Window)', fontsize=12)
+    ax2.set_ylabel('Signature Deviation from Population', fontsize=12)
+    ax2.set_title(f'{transition_disease_name} (no {target_disease_name})\n(n={len(non_progressor_deviations)} patients)',
+                  fontsize=14, fontweight='bold')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    ax2.grid(True, alpha=0.3)
+    
+    # Set same y-axis limits
+    max_dev = max(np.abs(prog_avg).max(), np.abs(np_avg).max())
+    axes2[0].set_ylim(-max_dev * 1.1, max_dev * 1.1)
+    axes2[1].set_ylim(-max_dev * 1.1, max_dev * 1.1)
+    
+    fig2.suptitle(f'Signature Patterns: BC Patients (MATCHED ON AGE AT BC)\nIndividual Signature Trajectories',
+                  fontsize=16, fontweight='bold', y=1.02)
+    
+    plt.tight_layout()
+    
+    if save_plots:
+        filename2 = f'bc_progression_line_plot_{transition_disease_name.replace(" ", "_")}.png'
+        plt.savefig(filename2, dpi=300, bbox_inches='tight')
+        print(f"Line plot saved as '{filename2}'")
     
     plt.show()
     

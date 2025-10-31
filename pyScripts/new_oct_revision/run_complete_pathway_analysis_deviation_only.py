@@ -52,7 +52,7 @@ class TeeOutput:
 
 def create_signature_deviation_plots(pathway_data, thetas, output_dir, lookback_years=10):
     """
-    Create stacked signature deviation plots for each pathway
+    Create stacked signature deviation plots AND line plots for each pathway
     """
     patients = pathway_data['patients']
     target_disease = pathway_data['target_disease']
@@ -79,8 +79,7 @@ def create_signature_deviation_plots(pathway_data, thetas, output_dir, lookback_
                 pathway_mean = np.mean(pathway_thetas[:, k, t])
                 time_diff_by_cluster[pathway_id, k, t] = pathway_mean - population_reference[k, t]
     
-    # Create stacked area plot with distinct colors for all 21 signatures
-    # Use tab20 (20 colors) + tab20b (20 colors) for 40 total distinct colors
+    # Create stacked area plot with distinct colors for all signatures
     if K <= 20:
         sig_colors = cm.get_cmap('tab20')(np.linspace(0, 1, K))
     else:
@@ -90,6 +89,7 @@ def create_signature_deviation_plots(pathway_data, thetas, output_dir, lookback_
         sig_colors = np.vstack([colors_20, colors_b[0:1]])  # Take first color from tab20b for 21st
         sig_colors = sig_colors[:K]  # In case K > 21
     
+    # STACKED PLOT (for reference)
     fig, axes = plt.subplots(n_pathways, 1, figsize=(12, 4*n_pathways))
     if n_pathways == 1:
         axes = [axes]
@@ -122,10 +122,49 @@ def create_signature_deviation_plots(pathway_data, thetas, output_dir, lookback_
             ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=9, ncol=2)
     
     plt.tight_layout()
-    filename = f'{output_dir}/signature_deviations_{target_disease.replace(" ", "_")}_10yr.pdf'
+    filename = f'{output_dir}/signature_deviations_{target_disease.replace(" ", "_")}_10yr_stacked.pdf'
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"   Saved signature deviation plot: {filename}")
+    print(f"   Saved stacked deviation plot: {filename}")
+    
+    # LINE PLOT (much clearer for individual signature interpretation)
+    fig2, axes2 = plt.subplots(n_pathways, 1, figsize=(14, 5*n_pathways))
+    if n_pathways == 1:
+        axes2 = [axes2]
+    
+    fig2.suptitle(f'Individual Signature Deviations by Pathway: {target_disease}\n({lookback_years}-Year Lookback)', 
+                  fontsize=16, fontweight='bold')
+    
+    for i in range(n_pathways):
+        ax2 = axes2[i]
+        n_patients = len(pathway_patients[i])
+        pathway_deviations = time_diff_by_cluster[i, :, :]
+        
+        # Plot each signature as a line
+        for sig_idx in range(K):
+            sig_values = pathway_deviations[sig_idx, :]
+            ax2.plot(time_points, sig_values, 
+                    color=sig_colors[sig_idx], 
+                    linewidth=2.0, 
+                    marker='o', 
+                    markersize=4,
+                    label=f'Sig {sig_idx}',
+                    alpha=0.8)
+        
+        ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1.5)
+        ax2.set_title(f'Pathway {i} (n={n_patients})', fontweight='bold', fontsize=13)
+        ax2.set_xlabel('Age', fontsize=12)
+        ax2.set_ylabel('Deviation from Population Mean (Δ Proportion, θ)', fontsize=12)
+        ax2.grid(True, alpha=0.3)
+        
+        if i == 0:
+            ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=9, ncol=3)
+    
+    plt.tight_layout()
+    filename2 = f'{output_dir}/signature_deviations_{target_disease.replace(" ", "_")}_10yr_line.pdf'
+    plt.savefig(filename2, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"   Saved line deviation plot: {filename2}")
 
 def run_deviation_only_analysis(target_disease, n_pathways=4, output_dir='pathway_analysis_output', lookback_years=10):
     """

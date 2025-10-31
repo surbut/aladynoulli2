@@ -18,7 +18,7 @@ Signature patterns predict which patients with pre-existing diseases (breast can
 
 ## ANALYSIS 1: BREAST CANCER PATIENTS - BEFORE MI
 
-![BC Progression Analysis 1](bc_progression_Breast_cancer_matched_on_bc_age.png)
+![BC Progression Analysis 1](bc_progression_line_plot_Breast_cancer.png)
 
 ### **Design:**
 - **Left Panel:** BC patients who develop MI (n=64)
@@ -51,7 +51,7 @@ Signature patterns predict which patients with pre-existing diseases (breast can
 
 ## ANALYSIS 2: BREAST CANCER PATIENTS - AFTER DIAGNOSIS
 
-![BC Post-Diagnosis Analysis](transition_deviations_age_matched_Breast_cancer_to_myocardial_infarction.png)
+![BC Post-Diagnosis Analysis](transition_deviations_line_plot_Breast_cancer_to_myocardial_infarction.png)
 
 ### **Design:**
 - **Left Panel:** BC patients who develop MI (n=67)

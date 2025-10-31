@@ -330,6 +330,61 @@ def plot_mi_with_vs_without_precursor(transition_disease_name, target_disease_na
     
     plt.show()
     
+    # CREATE ADDITIONAL PLOT: All signatures as lines
+    fig2, axes2 = plt.subplots(1, 2, figsize=(20, 6))
+    
+    # Get deviations and time points for line plot
+    with_dev = with_precursor_results['deviations']
+    without_dev = without_precursor_results['deviations']
+    time_points_line = np.arange(min_length, 0, -1)
+    
+    # Left panel: MI with precursor
+    for sig_idx in range(with_dev.shape[0]):
+        ax2 = axes2[0]
+        ax2.plot(time_points_line, with_dev[sig_idx, :], 
+                color=sig_colors[sig_idx], linewidth=1.5, marker='o', markersize=3,
+                label=f'Sig {sig_idx}', alpha=0.7)
+    
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.set_xlabel('Years Before Myocardial Infarction', fontsize=12)
+    ax2.set_ylabel('Signature Deviation from Population', fontsize=12)
+    ax2.set_title(f'MI with {transition_disease_name}\n(n={with_precursor_results["n_patients"]} patients)',
+                  fontsize=14, fontweight='bold')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    ax2.grid(True, alpha=0.3)
+    
+    # Right panel: MI without precursor
+    for sig_idx in range(without_dev.shape[0]):
+        ax2 = axes2[1]
+        ax2.plot(time_points_line, without_dev[sig_idx, :], 
+                color=sig_colors[sig_idx], linewidth=1.5, marker='s', markersize=3,
+                label=f'Sig {sig_idx}', alpha=0.7)
+    
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.set_xlabel('Years Before Myocardial Infarction', fontsize=12)
+    ax2.set_ylabel('Signature Deviation from Population', fontsize=12)
+    ax2.set_title(f'MI without {transition_disease_name}\n(n={without_precursor_results["n_patients"]} patients)',
+                  fontsize=14, fontweight='bold')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2)
+    ax2.grid(True, alpha=0.3)
+    
+    # Set same y-axis limits
+    max_dev = max(np.abs(with_dev).max(), np.abs(without_dev).max())
+    axes2[0].set_ylim(-max_dev * 1.1, max_dev * 1.1)
+    axes2[1].set_ylim(-max_dev * 1.1, max_dev * 1.1)
+    
+    fig2.suptitle(f'MI Patients: With vs Without {transition_disease_name.title()} History (AGE-MATCHED)\nIndividual Signature Trajectories',
+                  fontsize=16, fontweight='bold', y=1.02)
+    
+    plt.tight_layout()
+    
+    if save_plots:
+        filename2 = f'mi_with_vs_without_{transition_disease_name.lower().replace(" ", "_")}_line_plot.png'
+        plt.savefig(filename2, dpi=300, bbox_inches='tight')
+        print(f"Line plot saved as '{filename2}'")
+    
+    plt.show()
+    
     # Print summary statistics
     print(f"\n=== SUMMARY STATISTICS (AGE-MATCHED) ===")
     print(f"MI patients with {transition_disease_name}: {with_precursor_results['n_patients']}")
