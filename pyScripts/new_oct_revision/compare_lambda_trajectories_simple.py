@@ -16,7 +16,9 @@ def compare_lambda_trajectories():
     print("="*60)
     
     # Update these paths to the correct ones
-    old_model_path = "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enorlleobecjt/enrollment_model_W0.0001_fulldata_sexspecific.pt"
+    #old_model_path = "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enorlleobecjt/enrollment_model_W0.0001_fulldata_sexspecific.pt"
+    old_model_path = "/Users/sarahurbut/Library/CloudStorage/Dropbox/ret_full_nopc_withsex/enrollment_model_W0.0001_batch_0_10000.pt"
+
     new_model_path = "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_retrospective_full/enrollment_model_W0.0001_batch_0_10000.pt"
     
     print(f"Trying to load OLD model from: {old_model_path}")
