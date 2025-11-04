@@ -80,7 +80,7 @@ def analyze_correlation_structure():
     
     # Load OLD analysis
     try:
-        old_data = torch.load('/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/all_patient_thetas_alltime.pt', map_location='cpu').numpy()
+        old_data = torch.load('/Users/sarahurbut/aladynoulli2/pyScripts/new_thetas_with_sex_nopcs_retrospective.pt', map_location='cpu').numpy()
         print(f"✅ OLD analysis: {old_data.shape}")
     except Exception as e:
         print(f"❌ Error loading OLD analysis: {e}")
