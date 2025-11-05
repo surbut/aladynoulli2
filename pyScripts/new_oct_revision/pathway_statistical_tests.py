@@ -148,8 +148,8 @@ def chi_square_test_disease_prevalence(pathway_data, Y, disease_names,
             }
 
 
-def test_all_disease_prevalences(pathway_data, Y, disease_names, target_disease_idx,
-                                 min_prevalence=0.01, min_count=5, fdr_alpha=0.05):
+def test_all_disease_prevalences(pathway_data, Y, disease_names, target_disease_idx=None,
+                                 target_disease_name=None, min_prevalence=0.01, min_count=5, fdr_alpha=0.05):
     """
     Test all diseases for prevalence differences across pathways with FDR correction
     
@@ -159,8 +159,16 @@ def test_all_disease_prevalences(pathway_data, Y, disease_names, target_disease_
     """
     results = []
     
+    # Find target_disease_idx if not provided but name is
+    if target_disease_idx is None and target_disease_name:
+        for i, name in enumerate(disease_names):
+            if target_disease_name.lower() in name.lower():
+                target_disease_idx = i
+                break
+    
     for disease_idx in range(len(disease_names)):
-        if disease_idx == target_disease_idx:
+        # Skip target disease if specified
+        if target_disease_idx is not None and disease_idx == target_disease_idx:
             continue
         
         # Quick check: skip if disease is too rare
@@ -385,15 +393,20 @@ def permutation_test_pathway_stability(pathway_data, thetas, n_permutations=1000
     # Permutation distribution
     permuted_variances = []
     
+    # Get all patient IDs for efficient indexing
+    all_patient_ids = np.array([p['patient_id'] for p in patients])
+    
     for _ in range(n_permutations):
-        # Randomly assign pathways
-        permuted_pathways = np.random.choice(unique_pathways, size=n_patients)
+        # Randomly assign pathways to patients (shuffle pathway labels)
+        permuted_pathway_labels = np.random.choice(unique_pathways, size=n_patients)
         
         permuted_means = {}
         for pathway_id in unique_pathways:
-            pathway_mask = permuted_pathways == pathway_id
-            if pathway_mask.sum() > 0:
-                pathway_thetas = thetas[pathway_mask, :, :]
+            # Get patient IDs that were randomly assigned to this pathway
+            pathway_patient_mask = permuted_pathway_labels == pathway_id
+            if pathway_patient_mask.sum() > 0:
+                pathway_patient_ids = all_patient_ids[pathway_patient_mask]
+                pathway_thetas = thetas[pathway_patient_ids, :, :]
                 permuted_means[pathway_id] = np.mean(pathway_thetas, axis=(0, 2))
         
         if len(permuted_means) == n_pathways:
@@ -505,15 +518,25 @@ def test_medication_prevalence(medication_results, pathway_data,
     if medication_results is None:
         return None
     
-    pathway_medications = medication_results.get('pathway_medications', {})
+    pathway_medication_analysis = medication_results.get('pathway_medication_analysis', {})
+    if not pathway_medication_analysis:
+        print("Warning: pathway_medication_analysis not found in medication_results")
+        return None
+    
     patients = pathway_data['patients']
     unique_pathways = sorted(set([p['pathway'] for p in patients]))
     
-    # Get all medications
+    # Get all medications from long_term_medications dicts
     all_medications = set()
     for pathway_id in unique_pathways:
-        if pathway_id in pathway_medications:
-            all_medications.update(pathway_medications[pathway_id].keys())
+        if pathway_id in pathway_medication_analysis:
+            long_term_meds = pathway_medication_analysis[pathway_id].get('long_term_medications', {})
+            if isinstance(long_term_meds, dict):
+                all_medications.update(long_term_meds.keys())
+    
+    if len(all_medications) == 0:
+        print("Warning: No medications found in pathway_medication_analysis")
+        return None
     
     if medication_name:
         all_medications = [m for m in all_medications if medication_name.lower() in m.lower()]
@@ -529,32 +552,43 @@ def test_medication_prevalence(medication_results, pathway_data,
             
             # Count patients with this medication
             with_med = 0
-            if pathway_id in pathway_medications:
-                med_counts = pathway_medications[pathway_id]
-                with_med = med_counts.get(med_name, 0)
+            if pathway_id in pathway_medication_analysis:
+                long_term_meds = pathway_medication_analysis[pathway_id].get('long_term_medications', {})
+                if isinstance(long_term_meds, dict):
+                    # The dict values are counts
+                    with_med = long_term_meds.get(med_name, 0)
             
             without_med = n_pathway - with_med
             contingency_table.append([with_med, without_med])
         
         contingency_table = np.array(contingency_table)
         
-        if np.all(contingency_table.sum(axis=0) >= min_count):
-            chi2, p_value, dof, expected = chi2_contingency(contingency_table)
-            n = contingency_table.sum()
-            cramers_v = np.sqrt(chi2 / (n * (min(contingency_table.shape) - 1)))
-            
-            prevalences = {unique_pathways[i]: contingency_table[i, 0] / contingency_table[i].sum() 
-                          for i in range(len(unique_pathways))}
-            
-            results.append({
-                'medication': med_name,
-                'chi2_statistic': chi2,
-                'p_value': p_value,
-                'cramers_v': cramers_v,
-                'prevalences': prevalences
-            })
+        # Check if we have enough counts for chi-square
+        if np.all(contingency_table.sum(axis=0) >= min_count) and np.all(contingency_table.sum(axis=1) > 0):
+            try:
+                chi2, p_value, dof, expected = chi2_contingency(contingency_table)
+                
+                # Check expected counts (all should be >= 1 for valid chi-square)
+                if np.all(expected >= 1):
+                    n = contingency_table.sum()
+                    cramers_v = np.sqrt(chi2 / (n * (min(contingency_table.shape) - 1)))
+                    
+                    prevalences = {unique_pathways[i]: contingency_table[i, 0] / contingency_table[i].sum() 
+                                  for i in range(len(unique_pathways)) if contingency_table[i].sum() > 0}
+                    
+                    results.append({
+                        'medication': med_name,
+                        'chi2_statistic': chi2,
+                        'p_value': p_value,
+                        'cramers_v': cramers_v,
+                        'prevalences': prevalences
+                    })
+            except Exception as e:
+                # Skip medications that cause errors
+                continue
     
     if len(results) == 0:
+        print("Warning: No valid medication tests could be performed")
         return None
     
     results_df = pd.DataFrame(results)
@@ -573,8 +607,8 @@ def test_medication_prevalence(medication_results, pathway_data,
 
 
 def comprehensive_pathway_tests_with_medications(pathway_data, Y, thetas, disease_names, 
-                                                  target_disease_idx, medication_results=None,
-                                                  prs_results=None, output_dir=None):
+                                                  target_disease_idx=None, target_disease_name=None,
+                                                  medication_results=None, prs_results=None, output_dir=None):
     """
     Run all statistical tests including medications and PRS if available
     
@@ -586,14 +620,39 @@ def comprehensive_pathway_tests_with_medications(pathway_data, Y, thetas, diseas
     
     results = {}
     
+    # Find target_disease_idx if not provided
+    if target_disease_idx is None and target_disease_name:
+        for i, name in enumerate(disease_names):
+            if target_disease_name.lower() in name.lower():
+                target_disease_idx = i
+                print(f"   Found target disease '{target_disease_name}' at index {target_disease_idx}")
+                break
+    
     # 1. Disease prevalence tests
     print("\n1. Testing disease prevalence differences...")
-    disease_results = test_all_disease_prevalences(
-        pathway_data, Y, disease_names, target_disease_idx
-    )
-    results['disease_prevalence_tests'] = disease_results
-    n_sig_diseases = disease_results['is_significant_fdr'].sum() if 'is_significant_fdr' in disease_results.columns else 0
-    print(f"   Found {n_sig_diseases} significantly different diseases (FDR < 0.05)")
+    try:
+        disease_results = test_all_disease_prevalences(
+            pathway_data, Y, disease_names, 
+            target_disease_idx=target_disease_idx,
+            target_disease_name=target_disease_name
+        )
+        results['disease_prevalence_tests'] = disease_results
+        
+        # Safe check for DataFrame and columns
+        if disease_results is not None and isinstance(disease_results, pd.DataFrame):
+            if 'is_significant_fdr' in disease_results.columns:
+                n_sig_diseases = disease_results['is_significant_fdr'].sum()
+            else:
+                n_sig_diseases = 0
+        else:
+            n_sig_diseases = 0
+        print(f"   Found {n_sig_diseases} significantly different diseases (FDR < 0.05)")
+    except Exception as e:
+        print(f"   ⚠️  Disease prevalence tests failed: {e}")
+        import traceback
+        traceback.print_exc()
+        disease_results = None
+        results['disease_prevalence_tests'] = None
     
     # 2. Signature trajectory tests
     print("\n2. Testing signature trajectory differences...")
@@ -639,9 +698,13 @@ def comprehensive_pathway_tests_with_medications(pathway_data, Y, thetas, diseas
     
     # 7. Effect sizes
     print("\n7. Calculating effect sizes...")
-    effect_sizes = calculate_effect_sizes(pathway_data, thetas, Y, disease_names, target_disease_idx)
-    results['effect_sizes'] = effect_sizes
-    print("   Effect sizes calculated for signatures, diseases, and age")
+    if target_disease_idx is not None:
+        effect_sizes = calculate_effect_sizes(pathway_data, thetas, Y, disease_names, target_disease_idx)
+        results['effect_sizes'] = effect_sizes
+        print("   Effect sizes calculated for signatures, diseases, and age")
+    else:
+        print("   ⚠️  Skipping effect sizes - target_disease_idx not provided")
+        results['effect_sizes'] = None
     
     # Save results
     if output_dir:
@@ -654,7 +717,8 @@ def comprehensive_pathway_tests_with_medications(pathway_data, Y, thetas, diseas
             pickle.dump(results, f)
         
         # Save summary CSVs
-        disease_results.to_csv(f"{output_dir}/disease_prevalence_tests.csv", index=False)
+        if disease_results is not None and isinstance(disease_results, pd.DataFrame):
+            disease_results.to_csv(f"{output_dir}/disease_prevalence_tests.csv", index=False)
         
         if medication_results is not None and results.get('medication_tests') is not None:
             results['medication_tests'].to_csv(f"{output_dir}/medication_prevalence_tests.csv", index=False)
@@ -759,10 +823,13 @@ def generate_statistical_summary(results, output_dir):
 
 # Backward compatibility - keep the old function name
 def comprehensive_pathway_tests(pathway_data, Y, thetas, disease_names, 
-                                target_disease_idx, output_dir=None):
+                                target_disease_idx=None, target_disease_name=None,
+                                output_dir=None):
     """Wrapper for backward compatibility"""
     return comprehensive_pathway_tests_with_medications(
-        pathway_data, Y, thetas, disease_names, target_disease_idx,
+        pathway_data, Y, thetas, disease_names, 
+        target_disease_idx=target_disease_idx,
+        target_disease_name=target_disease_name,
         medication_results=None, prs_results=None, output_dir=output_dir
     )
 
