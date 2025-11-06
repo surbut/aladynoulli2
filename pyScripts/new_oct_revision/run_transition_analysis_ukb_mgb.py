@@ -274,6 +274,65 @@ def run_transition_analysis_both_cohorts(
                 print(f"\n  Top 5 most similar signatures (by trajectory correlation):")
                 for i, k in enumerate(top_corrs):
                     print(f"    Signature {k}: correlation = {signature_correlations[k]:.3f}")
+                
+                # Show actual values for Signature 3 (the counterintuitive one)
+                sig3_idx = 3
+                if sig3_idx < K:
+                    print(f"\n  📊 SIGNATURE 3 DETAILED COMPARISON:")
+                    print(f"  {'-'*80}")
+                    
+                    # Get non-progressor averages too
+                    ukb_np_avg = ukb_results.get('np_avg')
+                    if ukb_np_avg is None:
+                        ukb_np_avg = ukb_results.get('without_target_avg')
+                    
+                    mgb_np_avg = mgb_results.get('np_avg')
+                    if mgb_np_avg is None:
+                        mgb_np_avg = mgb_results.get('without_target_avg')
+                    
+                    if ukb_np_avg is not None and mgb_np_avg is not None:
+                        # Progressors
+                        ukb_prog_sig3 = ukb_prog_avg[sig3_idx, :]
+                        mgb_prog_sig3 = mgb_prog_avg[sig3_idx, :]
+                        
+                        # Non-progressors
+                        ukb_np_sig3 = ukb_np_avg[sig3_idx, :]
+                        mgb_np_sig3 = mgb_np_avg[sig3_idx, :]
+                        
+                        # Mean values
+                        ukb_prog_mean = np.mean(ukb_prog_sig3)
+                        ukb_np_mean = np.mean(ukb_np_sig3)
+                        mgb_prog_mean = np.mean(mgb_prog_sig3)
+                        mgb_np_mean = np.mean(mgb_np_sig3)
+                        
+                        print(f"\n  UKB:")
+                        print(f"    Progressors (RA → MI):     mean = {ukb_prog_mean:+.4f}")
+                        print(f"    Non-progressors (RA only): mean = {ukb_np_mean:+.4f}")
+                        print(f"    Difference (NP - Prog):     {ukb_np_mean - ukb_prog_mean:+.4f}")
+                        ukb_pattern = "NP > Prog" if ukb_np_mean > ukb_prog_mean else "Prog > NP"
+                        print(f"    Pattern: {ukb_pattern}")
+                        
+                        print(f"\n  MGB:")
+                        print(f"    Progressors (RA → MI):     mean = {mgb_prog_mean:+.4f}")
+                        print(f"    Non-progressors (RA only): mean = {mgb_np_mean:+.4f}")
+                        print(f"    Difference (NP - Prog):     {mgb_np_mean - mgb_prog_mean:+.4f}")
+                        mgb_pattern = "NP > Prog" if mgb_np_mean > mgb_prog_mean else "Prog > NP"
+                        print(f"    Pattern: {mgb_pattern}")
+                        
+                        # Check if pattern is consistent
+                        pattern_match = (ukb_np_mean > ukb_prog_mean) == (mgb_np_mean > mgb_prog_mean)
+                        print(f"\n  Pattern Consistency: {'✅ SAME' if pattern_match else '❌ DIFFERENT'}")
+                        
+                        # Absolute level comparison
+                        print(f"\n  Absolute Levels (Progressors):")
+                        print(f"    UKB: {ukb_prog_mean:+.4f}")
+                        print(f"    MGB: {mgb_prog_mean:+.4f}")
+                        print(f"    Ratio (MGB/UKB): {mgb_prog_mean/ukb_prog_mean:.2f}" if ukb_prog_mean != 0 else "    Ratio: N/A")
+                        
+                        print(f"\n  Absolute Levels (Non-progressors):")
+                        print(f"    UKB: {ukb_np_mean:+.4f}")
+                        print(f"    MGB: {mgb_np_mean:+.4f}")
+                        print(f"    Ratio (MGB/UKB): {mgb_np_mean/ukb_np_mean:.2f}" if ukb_np_mean != 0 else "    Ratio: N/A")
     
     # ============================================================================
     # 6. CREATE SIDE-BY-SIDE COMPARISON PLOT

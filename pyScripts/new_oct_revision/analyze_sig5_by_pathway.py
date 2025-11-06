@@ -17,13 +17,27 @@ import seaborn as sns
 from matplotlib import cm
 from pathway_discovery import load_full_data
 from pathway_interrogation import interrogate_disease_pathways
+from scipy.stats import fisher_exact, chi2_contingency
+from statsmodels.stats.proportion import proportion_confint
 import pickle
 import json
+import os
 
 def analyze_signature5_by_pathway(target_disease="myocardial infarction", 
-                                   output_dir="output_10yr"):
+                                   output_dir="output_10yr",
+                                   fh_carrier_path=None):
     """
     Analyze what signature 5 detects in each pathway, especially pathways with low precursor prevalence
+    
+    Parameters:
+    -----------
+    target_disease : str
+        Target disease name
+    output_dir : str
+        Output directory for results
+    fh_carrier_path : str, optional
+        Path to FH carrier file. If None, tries default path.
+        Expected format: tab-separated file with 'IID' or 'eid' column
     """
     print("="*80)
     print("ANALYZING SIGNATURE 5 IN EACH MI PATHWAY")
@@ -43,6 +57,38 @@ def analyze_signature5_by_pathway(target_disease="myocardial infarction",
     n_pathways = len(np.unique([p['pathway'] for p in patients]))
     
     print(f"\nAnalyzing {n_pathways} pathways...")
+    
+    # Load FH carrier data
+    fh_carrier_set = set()
+    if fh_carrier_path is None:
+        fh_carrier_path = '/Users/sarahurbut/Downloads/out/ukb_exome_450k_fh.carrier.txt'
+    
+    try:
+        if os.path.exists(fh_carrier_path):
+            print(f"\nLoading FH carrier data from: {fh_carrier_path}")
+            fh = pd.read_csv(fh_carrier_path, sep='\t', dtype={'IID': int}, low_memory=False)
+            
+            # Robustly pick eid column
+            if 'IID' not in fh.columns:
+                cand = [c for c in fh.columns if c.lower() in ('eid','id','ukb_eid','participant_id')]
+                if len(cand) > 0:
+                    fh = fh.rename(columns={cand[0]: 'IID'})
+                else:
+                    raise ValueError(f"No EID column found in {fh_carrier_path}")
+            
+            fh_carriers = fh[['IID']].drop_duplicates()
+            fh_carrier_set = set(fh_carriers['IID'].astype(int).tolist())
+            print(f"  ✅ Loaded {len(fh_carrier_set):,} FH carriers")
+        else:
+            print(f"\n⚠️  FH carrier file not found at: {fh_carrier_path}")
+            print(f"  Skipping FH carrier analysis")
+    except Exception as e:
+        print(f"\n⚠️  Error loading FH carrier data: {e}")
+        print(f"  Skipping FH carrier analysis")
+    
+    # Create eid to carrier mapping
+    eids = processed_ids.astype(int)
+    is_carrier = np.isin(eids, list(fh_carrier_set)) if len(fh_carrier_set) > 0 else None
     
     # Define key precursor diseases
     precursor_diseases = [
@@ -166,13 +212,42 @@ def analyze_signature5_by_pathway(target_disease="myocardial infarction",
         print(f"  Average deviation: {avg_deviation:+.4f}")
         print(f"  Max deviation: {max_deviation:.4f}")
         
+        # Calculate FH carrier prevalence for this pathway
+        fh_carrier_stats = None
+        if is_carrier is not None and n_pathway_patients > 0:
+            pathway_patient_ids_list = [p['patient_id'] for p in pathway_patients]
+            pathway_carrier_status = is_carrier[pathway_patient_ids_list]
+            
+            n_carriers = pathway_carrier_status.sum()
+            n_noncarriers = len(pathway_carrier_status) - n_carriers
+            carrier_prop = n_carriers / n_pathway_patients if n_pathway_patients > 0 else 0
+            
+            # Compare to overall population prevalence
+            overall_carrier_prop = is_carrier.mean()
+            carrier_enrichment = carrier_prop / overall_carrier_prop if overall_carrier_prop > 0 else np.nan
+            
+            fh_carrier_stats = {
+                'n_carriers': int(n_carriers),
+                'n_noncarriers': int(n_noncarriers),
+                'carrier_proportion': carrier_prop,
+                'overall_carrier_proportion': overall_carrier_prop,
+                'carrier_enrichment': carrier_enrichment
+            }
+            
+            print(f"\nFH Carrier Prevalence:")
+            print(f"  Carriers: {n_carriers}/{n_pathway_patients} ({carrier_prop*100:.2f}%)")
+            print(f"  Non-carriers: {n_noncarriers}/{n_pathway_patients} ({1-carrier_prop:.2f}%)")
+            print(f"  Overall population carrier rate: {overall_carrier_prop*100:.2f}%")
+            print(f"  Enrichment ratio: {carrier_enrichment:.2f}x")
+        
         # Store results
         pathway_analysis[pathway_id] = {
             'n_patients': n_pathway_patients,
             'precursor_prevalence': precursor_prevalence,
             'sig5_deviation': avg_deviation,
             'sig5_max_deviation': max_deviation,
-            'sig5_trajectory': sig5_values
+            'sig5_trajectory': sig5_values,
+            'fh_carrier_stats': fh_carrier_stats
         }
         
         # Calculate total precursor burden
@@ -200,8 +275,71 @@ def analyze_signature5_by_pathway(target_disease="myocardial infarction",
                 print(f"     and elevated signature 5 ({avg_deviation:+.4f})")
                 print(f"     INTERPRETATION: Classic atherosclerosis pathway")
     
+    # Print FH carrier summary across all pathways
+    if any(data.get('fh_carrier_stats') is not None for data in pathway_analysis.values()):
+        print("\n" + "="*80)
+        print("FH CARRIER PREVALENCE SUMMARY ACROSS PATHWAYS")
+        print("="*80)
+        print(f"{'Pathway':<10} {'N':<8} {'Carriers':<12} {'Carrier %':<12} {'Enrichment':<12} {'95% CI':<20}")
+        print("-" * 100)
+        
+        pathway_ids_with_fh = sorted([pid for pid in pathway_analysis.keys() 
+                                     if pathway_analysis[pid].get('fh_carrier_stats') is not None])
+        
+        for pathway_id in pathway_ids_with_fh:
+            data = pathway_analysis[pathway_id]
+            fh_stats = data.get('fh_carrier_stats')
+            if fh_stats is not None:
+                # Calculate confidence interval
+                ci = proportion_confint(fh_stats['n_carriers'], data['n_patients'], 
+                                      method='wilson', alpha=0.05)
+                ci_str = f"[{ci[0]*100:.2f}, {ci[1]*100:.2f}]"
+                
+                print(f"Pathway {pathway_id:<5} {data['n_patients']:<8} "
+                      f"{fh_stats['n_carriers']}/{fh_stats['n_noncarriers']:<10} "
+                      f"{fh_stats['carrier_proportion']*100:>6.2f}%     "
+                      f"{fh_stats['carrier_enrichment']:>6.2f}x     {ci_str}")
+        
+        # Statistical comparison between pathways
+        if len(pathway_ids_with_fh) >= 2:
+            print("\n" + "="*80)
+            print("STATISTICAL COMPARISONS BETWEEN PATHWAYS")
+            print("="*80)
+            
+            # Compare each pathway to the others (Fisher's exact test)
+            for i, pid1 in enumerate(pathway_ids_with_fh):
+                for pid2 in pathway_ids_with_fh[i+1:]:
+                    stats1 = pathway_analysis[pid1]['fh_carrier_stats']
+                    stats2 = pathway_analysis[pid2]['fh_carrier_stats']
+                    
+                    # 2x2 contingency table
+                    table = [[stats1['n_carriers'], stats1['n_noncarriers']],
+                            [stats2['n_carriers'], stats2['n_noncarriers']]]
+                    
+                    try:
+                        # Fisher's exact test
+                        odds_ratio, p_value = fisher_exact(table, alternative='two-sided')
+                        
+                        print(f"\nPathway {pid1} vs Pathway {pid2}:")
+                        print(f"  Carrier rates: {stats1['carrier_proportion']*100:.2f}% vs {stats2['carrier_proportion']*100:.2f}%")
+                        print(f"  Odds Ratio: {odds_ratio:.3f}")
+                        print(f"  Fisher's exact p-value: {p_value:.4e}")
+                        
+                        if p_value < 0.05:
+                            print(f"  ✓ Significant difference (p < 0.05)")
+                        else:
+                            print(f"  Not significant (p >= 0.05)")
+                    except Exception as e:
+                        print(f"\nPathway {pid1} vs Pathway {pid2}: Could not compute test ({e})")
+    
     # Create visualization
     create_signature5_analysis_plot(pathway_analysis, output_dir, target_disease)
+    
+    # Create FH carrier visualization if available
+    if any(data.get('fh_carrier_stats') is not None for data in pathway_analysis.values()):
+        create_fh_carrier_plot(pathway_analysis, output_dir, target_disease)
+        # Create comprehensive comparison plot
+        create_comprehensive_pathway_comparison_plot(pathway_analysis, output_dir, target_disease)
     
     return pathway_analysis
 
@@ -290,6 +428,315 @@ def create_signature5_analysis_plot(pathway_analysis, output_dir, target_disease
     filename = f'{output_dir}/signature5_analysis_{target_disease.replace(" ", "_")}.pdf'
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"\nSaved signature 5 analysis plot: {filename}")
+    plt.close()
+
+def create_fh_carrier_plot(pathway_analysis, output_dir, target_disease):
+    """
+    Create a plot showing FH carrier prevalence across pathways
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    pathway_ids = sorted([pid for pid in pathway_analysis.keys() 
+                         if pathway_analysis[pid].get('fh_carrier_stats') is not None])
+    
+    if len(pathway_ids) == 0:
+        return
+    
+    # Left plot: Carrier proportion by pathway
+    ax1 = axes[0]
+    
+    carrier_props = []
+    carrier_labels = []
+    n_carriers_list = []
+    n_total_list = []
+    enrichment_list = []
+    colors_list = []
+    
+    color_map = cm.get_cmap('tab10')
+    max_pathway_id = max(pathway_ids) if pathway_ids else 0
+    
+    for i, pid in enumerate(pathway_ids):
+        fh_stats = pathway_analysis[pid]['fh_carrier_stats']
+        carrier_props.append(fh_stats['carrier_proportion'] * 100)
+        carrier_labels.append(f"Pathway {pid}")
+        n_carriers_list.append(fh_stats['n_carriers'])
+        n_total_list.append(pathway_analysis[pid]['n_patients'])
+        enrichment_list.append(fh_stats['carrier_enrichment'])
+        # Use pathway_id for consistent coloring with other plots
+        colors_list.append(color_map(pid / max(1, max_pathway_id)))
+    
+    bars = ax1.bar(range(len(pathway_ids)), carrier_props, color=colors_list, alpha=0.7, edgecolor='black', linewidth=1.5)
+    
+    # Add overall population rate as reference line
+    if len(pathway_ids) > 0:
+        overall_rate = pathway_analysis[pathway_ids[0]]['fh_carrier_stats']['overall_carrier_proportion'] * 100
+        ax1.axhline(y=overall_rate, color='red', linestyle='--', linewidth=2, 
+                   label=f'Overall population ({overall_rate:.2f}%)', alpha=0.7)
+    
+    ax1.set_xticks(range(len(pathway_ids)))
+    ax1.set_xticklabels(carrier_labels, fontsize=11, fontweight='bold')
+    ax1.set_ylabel('FH Carrier Prevalence (%)', fontsize=12)
+    ax1.set_title('FH Carrier Prevalence by Pathway', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3, axis='y')
+    ax1.legend(fontsize=10)
+    
+    # Add value labels on bars
+    for i, (bar, prop, n_car, n_tot) in enumerate(zip(bars, carrier_props, n_carriers_list, n_total_list)):
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width()/2., height,
+                f'{prop:.2f}%\n(n={n_car}/{n_tot})',
+                ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # Right plot: Enrichment ratio
+    ax2 = axes[1]
+    
+    bars2 = ax2.bar(range(len(pathway_ids)), enrichment_list, color=colors_list, alpha=0.7, 
+                   edgecolor='black', linewidth=1.5)
+    ax2.axhline(y=1.0, color='red', linestyle='--', linewidth=2, 
+               label='No enrichment (1.0x)', alpha=0.7)
+    
+    ax2.set_xticks(range(len(pathway_ids)))
+    ax2.set_xticklabels(carrier_labels, fontsize=11, fontweight='bold')
+    ax2.set_ylabel('Enrichment Ratio (vs Population)', fontsize=12)
+    ax2.set_title('FH Carrier Enrichment by Pathway', fontsize=14, fontweight='bold')
+    ax2.grid(True, alpha=0.3, axis='y')
+    ax2.legend(fontsize=10)
+    
+    # Add value labels on bars
+    for i, (bar, enrich) in enumerate(zip(bars2, enrichment_list)):
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width()/2., height,
+                f'{enrich:.2f}x',
+                ha='center', va='bottom' if height > 1.0 else 'top', 
+                fontsize=10, fontweight='bold')
+    
+    plt.suptitle(f'FH Carrier Prevalence Across {target_disease.title()} Pathways', 
+                fontsize=16, fontweight='bold', y=0.98)
+    
+    plt.tight_layout()
+    
+    # Save plot
+    filename = f'{output_dir}/fh_carrier_prevalence_by_pathway_{target_disease.replace(" ", "_")}.pdf'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"Saved FH carrier prevalence plot: {filename}")
+    plt.close()
+
+def create_comprehensive_pathway_comparison_plot(pathway_analysis, output_dir, target_disease):
+    """
+    Create a comprehensive plot comparing FH carrier prevalence, Signature 5 deviation, 
+    and precursor disease prevalence across pathways
+    """
+    fig = plt.figure(figsize=(18, 12))
+    gs = fig.add_gridspec(3, 3, hspace=0.35, wspace=0.35, 
+                         height_ratios=[1, 1, 1], width_ratios=[1, 1, 1])
+    
+    pathway_ids = sorted([pid for pid in pathway_analysis.keys() 
+                         if pathway_analysis[pid].get('fh_carrier_stats') is not None])
+    
+    if len(pathway_ids) == 0:
+        return
+    
+    color_map = cm.get_cmap('tab10')
+    max_pathway_id = max(pathway_ids) if pathway_ids else 1
+    colors = [color_map(pid / max(1, max_pathway_id)) for pid in pathway_ids]
+    
+    # Extract data
+    fh_carrier_props = []
+    sig5_deviations = []
+    avg_precursor_prevs = []
+    n_patients_list = []
+    fh_enrichments = []
+    
+    for pid in pathway_ids:
+        data = pathway_analysis[pid]
+        fh_stats = data.get('fh_carrier_stats')
+        fh_carrier_props.append(fh_stats['carrier_proportion'] * 100)
+        sig5_deviations.append(data['sig5_deviation'])
+        avg_precursor_prevs.append(data['avg_precursor_prevalence'] * 100)
+        n_patients_list.append(data['n_patients'])
+        fh_enrichments.append(fh_stats['carrier_enrichment'])
+    
+    # --- ROW 1: Scatter plots comparing different metrics ---
+    
+    # (1,1) FH Carrier Prevalence vs Signature 5 Deviation
+    ax1 = fig.add_subplot(gs[0, 0])
+    scatter1 = ax1.scatter(fh_carrier_props, sig5_deviations, 
+                          s=[n/30 for n in n_patients_list], 
+                          c=colors, alpha=0.7, edgecolors='black', linewidth=2)
+    for i, pid in enumerate(pathway_ids):
+        ax1.annotate(f'P{pid}', (fh_carrier_props[i], sig5_deviations[i]),
+                    xytext=(5, 5), textcoords='offset points', fontsize=11, fontweight='bold')
+    ax1.set_xlabel('FH Carrier Prevalence (%)', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Signature 5 Deviation', fontsize=12, fontweight='bold')
+    ax1.set_title('FH Carriers vs Sig 5 Deviation', fontsize=13, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    ax1.axhline(y=0, color='red', linestyle='--', alpha=0.5)
+    
+    # (1,2) FH Carrier Prevalence vs Precursor Prevalence
+    ax2 = fig.add_subplot(gs[0, 1])
+    scatter2 = ax2.scatter(fh_carrier_props, avg_precursor_prevs,
+                          s=[n/30 for n in n_patients_list],
+                          c=colors, alpha=0.7, edgecolors='black', linewidth=2)
+    for i, pid in enumerate(pathway_ids):
+        ax2.annotate(f'P{pid}', (fh_carrier_props[i], avg_precursor_prevs[i]),
+                    xytext=(5, 5), textcoords='offset points', fontsize=11, fontweight='bold')
+    ax2.set_xlabel('FH Carrier Prevalence (%)', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Avg Precursor Prevalence (%)', fontsize=12, fontweight='bold')
+    ax2.set_title('FH Carriers vs Precursor Disease', fontsize=13, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    
+    # (1,3) Signature 5 Deviation vs Precursor Prevalence
+    ax3 = fig.add_subplot(gs[0, 2])
+    scatter3 = ax3.scatter(sig5_deviations, avg_precursor_prevs,
+                          s=[n/30 for n in n_patients_list],
+                          c=colors, alpha=0.7, edgecolors='black', linewidth=2)
+    for i, pid in enumerate(pathway_ids):
+        ax3.annotate(f'P{pid}', (sig5_deviations[i], avg_precursor_prevs[i]),
+                    xytext=(5, 5), textcoords='offset points', fontsize=11, fontweight='bold')
+    ax3.set_xlabel('Signature 5 Deviation', fontsize=12, fontweight='bold')
+    ax3.set_ylabel('Avg Precursor Prevalence (%)', fontsize=12, fontweight='bold')
+    ax3.set_title('Sig 5 Deviation vs Precursor Disease', fontsize=13, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    ax3.axvline(x=0, color='red', linestyle='--', alpha=0.5)
+    
+    # --- ROW 2: Bar charts for each metric ---
+    
+    # (2,1) FH Carrier Prevalence
+    ax4 = fig.add_subplot(gs[1, 0])
+    bars4 = ax4.bar(range(len(pathway_ids)), fh_carrier_props, 
+                    color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    if len(pathway_ids) > 0:
+        overall_rate = pathway_analysis[pathway_ids[0]]['fh_carrier_stats']['overall_carrier_proportion'] * 100
+        ax4.axhline(y=overall_rate, color='red', linestyle='--', linewidth=2, 
+                   label=f'Population ({overall_rate:.2f}%)', alpha=0.7)
+    ax4.set_xticks(range(len(pathway_ids)))
+    ax4.set_xticklabels([f'Pathway {pid}' for pid in pathway_ids], fontsize=10, fontweight='bold')
+    ax4.set_ylabel('FH Carrier Prevalence (%)', fontsize=11, fontweight='bold')
+    ax4.set_title('FH Carrier Prevalence by Pathway', fontsize=12, fontweight='bold')
+    ax4.grid(True, alpha=0.3, axis='y')
+    ax4.legend(fontsize=9)
+    for i, (bar, prop) in enumerate(zip(bars4, fh_carrier_props)):
+        ax4.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
+                f'{prop:.2f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # (2,2) Signature 5 Deviation
+    ax5 = fig.add_subplot(gs[1, 1])
+    bars5 = ax5.bar(range(len(pathway_ids)), sig5_deviations,
+                    color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    ax5.axhline(y=0, color='red', linestyle='--', linewidth=2, alpha=0.7)
+    ax5.set_xticks(range(len(pathway_ids)))
+    ax5.set_xticklabels([f'Pathway {pid}' for pid in pathway_ids], fontsize=10, fontweight='bold')
+    ax5.set_ylabel('Signature 5 Deviation', fontsize=11, fontweight='bold')
+    ax5.set_title('Signature 5 Deviation by Pathway', fontsize=12, fontweight='bold')
+    ax5.grid(True, alpha=0.3, axis='y')
+    for i, (bar, dev) in enumerate(zip(bars5, sig5_deviations)):
+        ax5.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
+                f'{dev:+.4f}', ha='center', 
+                va='bottom' if dev > 0 else 'top', fontsize=9, fontweight='bold')
+    
+    # (2,3) Average Precursor Prevalence
+    ax6 = fig.add_subplot(gs[1, 2])
+    bars6 = ax6.bar(range(len(pathway_ids)), avg_precursor_prevs,
+                    color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    ax6.set_xticks(range(len(pathway_ids)))
+    ax6.set_xticklabels([f'Pathway {pid}' for pid in pathway_ids], fontsize=10, fontweight='bold')
+    ax6.set_ylabel('Avg Precursor Prevalence (%)', fontsize=11, fontweight='bold')
+    ax6.set_title('Average Precursor Disease Prevalence', fontsize=12, fontweight='bold')
+    ax6.grid(True, alpha=0.3, axis='y')
+    for i, (bar, prev) in enumerate(zip(bars6, avg_precursor_prevs)):
+        ax6.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
+                f'{prev:.1f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # --- ROW 3: Summary table and correlations ---
+    
+    # (3,1-2) Create correlation matrix visualization
+    ax7 = fig.add_subplot(gs[2, :2])
+    
+    # Create correlation data
+    import pandas as pd
+    corr_data = pd.DataFrame({
+        'FH_Carrier_Prev': fh_carrier_props,
+        'Sig5_Deviation': sig5_deviations,
+        'Precursor_Prev': avg_precursor_prevs,
+        'FH_Enrichment': fh_enrichments
+    })
+    
+    corr_matrix = corr_data.corr()
+    
+    # Create heatmap using seaborn style
+    im = ax7.imshow(corr_matrix.values, cmap='coolwarm', aspect='auto', vmin=-1, vmax=1, interpolation='nearest')
+    ax7.set_xticks(range(len(corr_matrix.columns)))
+    ax7.set_yticks(range(len(corr_matrix.columns)))
+    ax7.set_xticklabels(corr_matrix.columns, fontsize=10, rotation=45, ha='right')
+    ax7.set_yticklabels(corr_matrix.columns, fontsize=10)
+    
+    # Add correlation values
+    for i in range(len(corr_matrix.columns)):
+        for j in range(len(corr_matrix.columns)):
+            val = corr_matrix.iloc[i, j]
+            # Use white text for dark backgrounds, black for light
+            text_color = 'white' if abs(val) > 0.5 else 'black'
+            ax7.text(j, i, f'{val:.3f}',
+                    ha="center", va="center", color=text_color, 
+                    fontsize=11, fontweight='bold')
+    
+    ax7.set_title('Correlation Matrix: FH Carriers, Sig 5, and Precursor Disease', 
+                 fontsize=13, fontweight='bold', pad=15)
+    
+    # Add colorbar
+    cbar = plt.colorbar(im, ax=ax7, fraction=0.046, pad=0.04)
+    cbar.set_label('Correlation Coefficient', fontsize=10)
+    
+    # (3,3) Summary statistics table
+    ax8 = fig.add_subplot(gs[2, 2])
+    ax8.axis('off')
+    
+    # Create summary table
+    table_data = []
+    for i, pid in enumerate(pathway_ids):
+        table_data.append([
+            f'Pathway {pid}',
+            f'{n_patients_list[i]:,}',
+            f'{fh_carrier_props[i]:.2f}%',
+            f'{fh_enrichments[i]:.2f}x',
+            f'{sig5_deviations[i]:+.4f}',
+            f'{avg_precursor_prevs[i]:.1f}%'
+        ])
+    
+    table = ax8.table(cellText=table_data,
+                     colLabels=['Pathway', 'N', 'FH %', 'FH Enr.', 'Sig5 Dev', 'Prec. %'],
+                     cellLoc='center',
+                     loc='center',
+                     colWidths=[0.15, 0.12, 0.12, 0.12, 0.15, 0.12])
+    
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1, 2)
+    
+    # Style header
+    for i in range(6):
+        table[(0, i)].set_facecolor('#4472C4')
+        table[(0, i)].set_text_props(weight='bold', color='white')
+    
+    # Style pathway rows
+    for i, pid in enumerate(pathway_ids):
+        row_idx = i + 1
+        color = colors[i] if i < len(colors) else 'white'
+        for j in range(6):
+            table[(row_idx, j)].set_facecolor(color)
+            table[(row_idx, j)].set_alpha(0.3)
+    
+    ax8.set_title('Summary Statistics', fontsize=12, fontweight='bold', pad=10)
+    
+    plt.suptitle(f'Comprehensive Pathway Comparison: FH Carriers, Signature 5, and Precursor Disease\n{target_disease.title()}', 
+                fontsize=16, fontweight='bold', y=0.995)
+    
+    plt.tight_layout()
+    
+    # Save plot
+    filename = f'{output_dir}/comprehensive_pathway_comparison_{target_disease.replace(" ", "_")}.pdf'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"Saved comprehensive pathway comparison plot: {filename}")
     plt.close()
 
 def create_prevalence_barplots(pathway_analysis, output_dir, target_disease):
