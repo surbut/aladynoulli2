@@ -104,9 +104,19 @@ def show_pathway_matches(force_rerun_mgb=False):
     for ukb_id in sorted(best_matches.keys()):
         mgb_id = best_matches[ukb_id]
         similarity = similarities[(ukb_id, mgb_id)]
-        n_diseases = len(disease_mappings[(ukb_id, mgb_id)])
+        disease_mapping = disease_mappings[(ukb_id, mgb_id)]
+        n_diseases = len(disease_mapping)
         
         print(f"Pathway {ukb_id:<12} Pathway {mgb_id:<12} {similarity:<15.3f} {n_diseases:<20}")
+        
+        # Show top matching diseases
+        if n_diseases > 0:
+            sorted_diseases = sorted(disease_mapping.items(), 
+                                   key=lambda x: x[1]['ukb_enrichment'], reverse=True)
+            print(f"  Top matching diseases:")
+            for ukb_disease, mapping_info in sorted_diseases[:5]:  # Show top 5
+                print(f"    • {ukb_disease} (UKB: {mapping_info['ukb_enrichment']:.2f}x) ↔ "
+                      f"{mapping_info['mgb_disease_name']} (MGB: {mapping_info['mgb_enrichment']:.2f}x)")
     
     print("\n" + "="*80)
     print("SUMMARY")
