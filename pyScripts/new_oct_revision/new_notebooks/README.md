@@ -45,6 +45,15 @@ This directory collects a set of refreshed summary notebooks that document the m
   - Generates a two-panel figure (trajectories + retention bar chart) to visualize sensitivity across diseases.
   - Provides bullet takeaways that differentiate cardiometabolic, psychiatric, and oncologic responses to washout.
 
+### `heritability_analysis_summary.ipynb`
+- **Goal**: Capture the LDSC read-outs for both signature-level and trait-level GWAS that inform the cardiovascular heterogeneity work.
+- **Inputs**: `ldsc_summary.tsv` (per-signature SNP-heritability) and `ldsc_summary_bytrait.tsv` (component GWAS per lesion/trait).
+- **Highlights**:
+  - Preloads the two TSVs, parses `h2`, `Intercept`, `LambdaGC`, and `Ratio` with their standard errors.
+  - Flags Signature 5 as outlier low-heritability (`h² ≈ 0.0033 ± 0.0013`) with a high attenuation ratio (~0.43), suggesting most signal is baseline confounding; contrasts with other signatures at ~0.03–0.05 heritability and ratios ~0.10–0.13.
+  - Crosswalks signature-level h² with component GWAS (angina, coronary atherosclerosis, hypercholesterolemia, MI, etc.) so downstream notes can reference which endpoint dominates the genetic architecture.
+  - Provides a short interpretation cell summarizing takeaways (e.g., signatures downstream of acute MI maintain moderate heritability; unstable angina shows lower h² but higher intercept, indicating potential noise).
+
 ## Usage Notes
 - The notebooks expect the heavy preprocessing to be complete: weights, φ/θ checkpoints, and pathway outputs should already be present in the paths referenced above.
 - Re-running entire pipelines (especially `heterogeneity_analysis_summary.ipynb`) can take hours and requires full data access. For most collaborators, opening the notebooks in read-only mode and reviewing the rendered tables/plots is sufficient.
