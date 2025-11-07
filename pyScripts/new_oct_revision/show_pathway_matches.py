@@ -26,10 +26,23 @@ def show_pathway_matches(force_rerun_mgb=False):
     print("="*80)
     
     # Load UKB results
-    ukb_results_file = 'output_10yr/complete_analysis_results.pkl'
-    if not os.path.exists(ukb_results_file):
-        print(f"❌ UKB results not found at: {ukb_results_file}")
-        print("   Run UKB analysis first!")
+    candidate_ukb_paths = [
+        'output_10yr/complete_analysis_results.pkl',
+        'complete_pathway_analysis_output/ukb_pathway_discovery/complete_analysis_results.pkl',
+        'complete_pathway_analysis_output/complete_analysis_results.pkl'
+    ]
+
+    ukb_results_file = None
+    for path in candidate_ukb_paths:
+        if os.path.exists(path):
+            ukb_results_file = path
+            break
+
+    if ukb_results_file is None:
+        print("❌ UKB results not found. Checked:")
+        for path in candidate_ukb_paths:
+            print(f"   - {path}")
+        print("   Run UKB analysis first or specify the correct output directory.")
         return None
     
     print(f"\n1. Loading UKB results from: {ukb_results_file}")
