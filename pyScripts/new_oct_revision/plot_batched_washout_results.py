@@ -22,7 +22,7 @@ def load_batched_washout_results(results_file_path=None):
         Path to the saved washout results. If None, tries to find it.
     """
     if results_file_path is None:
-        results_file_path = "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/full_washout_results_0_30k.pt"
+        results_file_path = "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/full_washout_results_0_400k.pt"
     
     if not os.path.exists(results_file_path):
         print(f"❌ Results file not found: {results_file_path}")
