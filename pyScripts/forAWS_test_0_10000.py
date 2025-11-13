@@ -64,7 +64,7 @@ def plot_training_evolution(history, plot_dir):
 
 
 
-def load_model_essentials(base_path='/Users/sarahurbut/Library/CloudStorage/Dropbox/data_for_running/'):
+def load_model_essentials(base_path='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/'):
     """
     Load all essential components
     """
@@ -95,19 +95,23 @@ Y_100k, E_100k, G_100k, indices = subset_data(Y, E, G, start_index=0, end_index=
 del Y
 
 # Load references (signatures only, no healthy)
-refs = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox/data_for_running/reference_trajectories.pt')
+refs = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/reference_trajectories.pt')
 signature_refs = refs['signature_refs']
 
 
 # Load the RDS file
 
 import pandas as pd
-fh_processed=pd.read_csv('/Users/sarahurbut/Library/Cloudstorage/Dropbox/baselinagefamh.csv')
-len(fh_processed)
+fh_processed=pd.read_csv('/Users/sarahurbut/Library/Cloudstorage/Dropbox-Personal/baselinagefamh_withpcs.csv')
+
 
 pce_df_subset = fh_processed.iloc[0:10000].reset_index(drop=True)
 sex=pce_df_subset['sex'].values
 G_with_sex = np.column_stack([G_100k, sex]) 
+pc_columns = ['f.22009.0.1', 'f.22009.0.2', 'f.22009.0.3', 'f.22009.0.4', 'f.22009.0.5',
+'f.22009.0.6', 'f.22009.0.7', 'f.22009.0.8', 'f.22009.0.9', 'f.22009.0.10']
+pcs = fh_processed.iloc[0:10000][pc_columns].values
+G_with_sex = np.column_stack([G_100k, sex, pcs])
 
 
 
@@ -156,8 +160,8 @@ for age_offset in range(0, 11):  # Ages 0-10 years after enrollment
     np.random.seed(0)
     
     # Load and set initial parameters
-    initial_psi = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox/data_for_running/initial_psi_400k.pt')
-    initial_clusters = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox/data_for_running/initial_clusters_400k.pt')
+    initial_psi = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_psi_400k.pt')
+    initial_clusters = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_clusters_400k.pt')
     model.initialize_params(true_psi=initial_psi)
     enable_stdout()
     model.clusters = initial_clusters
@@ -247,7 +251,7 @@ for age_offset in range(0, 11):  # Ages 0-10 years after enrollment
     
     enable_stdout()
 
-    plot_dir = f"/Users/sarahurbut/Library/CloudStorage/Dropbox/plots_age_offset_{age_offset}"
+    plot_dir = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/plots_age_offsetwithpcs_{age_offset}"
     os.makedirs(plot_dir, exist_ok=True)
     plot_training_evolution(history_new, plot_dir)
     profiler.disable()
@@ -255,19 +259,34 @@ for age_offset in range(0, 11):  # Ages 0-10 years after enrollment
     stats.print_stats(20)
     
     # Get predictions for this age
-  
-        # Save age-specific predictions
-                # Save model
-    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox/model_enroll_age_offset_{age_offset}_sex_0_10000_try2.pt"
+    model.eval()
+    with torch.no_grad():
+        # Compute pi predictions
+        theta = torch.softmax(model.lambda_, dim=1)  # [N, K, T]
+        phi_prob = torch.sigmoid(model.phi)  # [K, D, T]
+        pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * model.kappa  # [N, D, T]
+    
+    print(f"Generated predictions: pi shape = {pi.shape}")
+    
+    # Save age-specific predictions
+    pi_filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_age_offset_{age_offset}_sex_0_10000_try2_withpcs.pt"
+    torch.save(pi, pi_filename)
+    print(f"Saved predictions to: {pi_filename}")
+    
+    # Save model
+    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_age_offset_{age_offset}_sex_0_10000_try2_withpcs.pt"
     torch.save({
         'model_state_dict': model.state_dict(),
-        'E':E_age_specific,
+        'E': E_age_specific,
         'phi': model.phi,
         'Y': model.Y,
         'prevalence_t': model.prevalence_t,
         'logit_prevalence_t': model.logit_prev_t,
         'G': model.G,
+        'indices': indices,  # Save indices for reference
+        'age_offset': age_offset,  # Save which age offset this is
     }, filename)
+    print(f"Saved model to: {filename}")
         
  
         
