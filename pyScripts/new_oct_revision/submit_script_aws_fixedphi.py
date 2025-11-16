@@ -121,13 +121,34 @@ class SurvivalModelTrainer:
         signature_refs = refs['signature_refs']
         
         # Load demographic data
-        fh_processed_path = os.path.join(self.base_data_path, 'baselinagefamh.csv')
+        # Try base_data_path first, then fallback to parent directory
+        fh_processed_path = os.path.join(self.base_data_path, 'baselinagefamh_withpcs.csv')
+        if not os.path.exists(fh_processed_path):
+            # Fallback to parent directory (for local testing)
+            parent_dir = os.path.dirname(self.base_data_path.rstrip('/'))
+            fh_processed_path = os.path.join(parent_dir, 'baselinagefamh_withpcs.csv')
+            if not os.path.exists(fh_processed_path):
+                # Try alternative path (case-insensitive on macOS)
+                alt_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/baselinagefamh_withpcs.csv'
+                if os.path.exists(alt_path):
+                    fh_processed_path = alt_path
+                else:
+                    raise FileNotFoundError(f"Could not find baselinagefamh_withpcs.csv in {self.base_data_path} or parent directory")
+        logger.info(f"Loading demographic data from: {fh_processed_path}")
         fh_processed = pd.read_csv(fh_processed_path)
         
         # Subset demographic data
         pce_df_subset = fh_processed.iloc[self.start_index:self.end_index].reset_index(drop=True)
         sex = pce_df_subset['sex'].values
         G_with_sex = np.column_stack([G_subset, sex])
+        
+        # Add PCs
+        pc_columns = ['f.22009.0.1', 'f.22009.0.2', 'f.22009.0.3', 'f.22009.0.4', 'f.22009.0.5',
+                      'f.22009.0.6', 'f.22009.0.7', 'f.22009.0.8', 'f.22009.0.9', 'f.22009.0.10']
+        pcs = pce_df_subset[pc_columns].values
+        G_with_sex = np.column_stack([G_with_sex, pcs])
+        
+        logger.info(f"G_with_sex shape: {G_with_sex.shape} (should be [N, 36 PRS + 1 sex + 10 PCs = 47])")
         
         # Load pretrained phi and psi
         total_fit_path = os.path.join(self.base_data_path, 'enrollment_model_W0.0001_fulldata_sexspecific.pt')

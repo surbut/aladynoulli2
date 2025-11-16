@@ -15,10 +15,10 @@ import os
 import gc
 
 
-start_index = 0
+start_index = 0 
 end_index = 10000
 
-def load_model_essentials(base_path='/Users/sarahurbut/Library/CloudStorage/Dropbox/data_for_running/'):
+def load_model_essentials(base_path='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/'):
     """
     Load all essential components
     """
@@ -48,7 +48,7 @@ Y_100k, E_100k, G_100k, indices = subset_data(Y, E, G, start_index=start_index, 
 del Y
 
 # Load references (signatures only, no healthy)
-refs = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox/data_for_running/reference_trajectories.pt')
+refs = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/reference_trajectories.pt')
 signature_refs = refs['signature_refs']
 # When initializing the model:
 
@@ -56,13 +56,20 @@ signature_refs = refs['signature_refs']
 # Load the RDS file
 
 import pandas as pd
-fh_processed=pd.read_csv('/Users/sarahurbut/Library/Cloudstorage/Dropbox/baselinagefamh.csv')
+fh_processed=pd.read_csv('/Users/sarahurbut/Library/Cloudstorage/Dropbox-Personal/baselinagefamh_withpcs.csv')
 len(fh_processed)
 
 
 pce_df_subset = fh_processed.iloc[start_index:end_index].reset_index(drop=True)
 sex=pce_df_subset['sex'].values
-G_with_sex = np.column_stack([G_100k, sex]) 
+G_with_sex = np.column_stack([G_100k, sex])
+
+# Add PCs
+pc_columns = ['f.22009.0.1', 'f.22009.0.2', 'f.22009.0.3', 'f.22009.0.4', 'f.22009.0.5',
+              'f.22009.0.6', 'f.22009.0.7', 'f.22009.0.8', 'f.22009.0.9', 'f.22009.0.10']
+pcs = pce_df_subset[pc_columns].values
+G_with_sex = np.column_stack([G_with_sex, pcs])
+print(f"G_with_sex shape: {G_with_sex.shape} (should be [N, 36 PRS + 1 sex + 10 PCs = 47])") 
 
 import torch
 import numpy as np
@@ -74,7 +81,7 @@ from pstats import SortKey
     
     # Path to your total fit model
 from clust_huge_amp_fixedPhi import *
-total_fit_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_model_W0.0001_fulldata_sexspecific.pt'
+total_fit_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_model_W0.0001_fulldata_sexspecific.pt'
 total_checkpoint = torch.load(total_fit_path, map_location='cpu')
 phi_total = total_checkpoint['model_state_dict']['phi'].cpu().numpy()  # shape: (K, D, T)
 psi_total = total_checkpoint['model_state_dict']['psi'].cpu().numpy()  # shape: (K, D, T)
@@ -87,8 +94,8 @@ age_predictions = {}
 # At the top of your script, define your batch indices
 start_index = start_index
 end_index = end_index
-
-for age_offset in range(0, 10):  # Ages 0-10 years after enrollment
+## already did 0, so starting at 1
+for age_offset in range(1, 10):  # Ages 0-10 years after enrollment (11 total: 0,1,2,...,10)
     print(f"\n=== Predicting for age offset {age_offset} years ===")
 
     torch.manual_seed(42)
@@ -216,7 +223,7 @@ for age_offset in range(0, 10):  # Ages 0-10 years after enrollment
     
     
 
-    plot_training_evolution(history_new)
+    #plot_training_evolution(history_new)
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats(SortKey.CUMULATIVE)
@@ -227,12 +234,12 @@ for age_offset in range(0, 10):  # Ages 0-10 years after enrollment
         pi, _, _ = model.forward()
         
         # Save age-specific predictions
-        filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2.pt"
+        filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs.pt"
         torch.save(pi, filename)
        
         print(f"Saved predictions to {filename}")
 
-    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox/model_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2.pt"
+    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs.pt"
     torch.save({
         'model_state_dict': model.state_dict(),
         'E': E_age_specific,

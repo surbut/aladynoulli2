@@ -427,3 +427,158 @@ Training model for age offset 7...
   initial_clusters = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_clusters_400k.pt')
 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:238: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:287(compute_gp_prior_loss)
+ 43461600  254.268    0.000  254.268    0.000 {built-in method torch.cholesky_solve}
+ 43531800  116.592    0.000  116.592    0.000 {built-in method torch.sum}
+      400   11.053    0.028   52.906    0.132 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:221(forward)
+      400    0.005    0.000   29.706    0.074 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/functional.py:210(einsum)
+      400   29.700    0.074   29.700    0.074 {built-in method torch.einsum}
+      200    0.859    0.004   28.768    0.144 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:403(analyze_signature_responses)
+      600   23.720    0.040   23.720    0.040 {built-in method torch.log}
+      600   16.773    0.028   16.773    0.028 {built-in method torch.clamp}
+      600    0.003    0.000   11.837    0.020 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:33(wrapped)
+      600    0.003    0.000   11.833    0.020 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:1026(__rsub__)
+      600   11.830    0.020   11.830    0.020 {built-in method torch.rsub}
+      400    7.880    0.020    7.880    0.020 {method 'float' of 'torch._C.TensorBase' objects}
+      200    0.004    0.000    1.248    0.006 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/optim/optimizer.py:467(wrapper)
+
+
+Generated predictions: pi shape = torch.Size([10000, 348, 52])
+Saved predictions to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_age_offset_7_sex_0_10000_try2_withpcs.pt
+Saved model to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_age_offset_7_sex_0_10000_try2_withpcs.pt
+
+=== Predicting for age offset 8 years ===
+Clusters match exactly: True
+Censoring verification for age offset 8:
+  Total event times changed: 3429657
+  Max cap applied: 49.0
+  Min cap applied: 18.0
+  Patient 0: enrollment=69, current=77, cap=47.0, max_event_time=47.0
+  Patient 1: enrollment=44, current=52, cap=22.0, max_event_time=22.0
+  Patient 100: enrollment=52, current=60, cap=30.0, max_event_time=30.0
+Training model for age offset 8...
+         88903873 function calls (88901873 primitive calls) in 3953.182 seconds
+
+   Ordered by: cumulative time
+   List reduced from 152 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1   41.170   41.170 3953.182 3953.182 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:329(fit)
+      200    0.011    0.000 2896.809   14.484 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:525(backward)
+      200    0.002    0.000 2896.797   14.484 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/__init__.py:242(backward)
+      200    0.002    0.000 2896.786   14.484 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/graph.py:816(_engine_run_backward)
+      200 2896.784   14.484 2896.784   14.484 {method 'run_backward' of 'torch._C._EngineBase' objects}
+      200  153.151    0.766  983.069    4.915 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:230(compute_loss)
+      200  377.892    1.889  743.471    3.717 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:287(compute_gp_prior_loss)
+ 43461600  256.515    0.000  256.515    0.000 {built-in method torch.cholesky_solve}
+ 43531800  118.031    0.000  118.031    0.000 {built-in method torch.sum}
+      400   11.150    0.028   54.729    0.137 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:221(forward)
+      400    0.005    0.000   30.611    0.077 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/functional.py:210(einsum)
+      400   30.605    0.077   30.605    0.077 {built-in method torch.einsum}
+      200    1.089    0.005   30.539    0.153 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:403(analyze_signature_responses)
+      600   24.809    0.041   24.809    0.041 {built-in method torch.log}
+      600   17.409    0.029   17.409    0.029 {built-in method torch.clamp}
+      600    0.003    0.000   11.969    0.020 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:33(wrapped)
+      600    0.003    0.000   11.965    0.020 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:1026(__rsub__)
+      600   11.962    0.020   11.962    0.020 {built-in method torch.rsub}
+      400    7.946    0.020    7.946    0.020 {method 'float' of 'torch._C.TensorBase' objects}
+      400    1.319    0.003    1.319    0.003 {built-in method torch.softmax}
+
+
+Generated predictions: pi shape = torch.Size([10000, 348, 52])
+Saved predictions to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_age_offset_8_sex_0_10000_try2_withpcs.pt
+Saved model to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_age_offset_8_sex_0_10000_try2_withpcs.pt
+
+=== Predicting for age offset 9 years ===
+Clusters match exactly: True
+Censoring verification for age offset 9:
+  Total event times changed: 3424745
+  Max cap applied: 50.0
+  Min cap applied: 19.0
+  Patient 0: enrollment=69, current=78, cap=48.0, max_event_time=48.0
+  Patient 1: enrollment=44, current=53, cap=23.0, max_event_time=23.0
+  Patient 100: enrollment=52, current=61, cap=31.0, max_event_time=31.0
+Training model for age offset 9...
+         88903873 function calls (88901873 primitive calls) in 4203.061 seconds
+
+   Ordered by: cumulative time
+   List reduced from 152 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1   42.336   42.336 4203.061 4203.061 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:329(fit)
+      200    0.012    0.000 3125.585   15.628 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:525(backward)
+      200    0.002    0.000 3125.573   15.628 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/__init__.py:242(backward)
+      200    0.002    0.000 3125.561   15.628 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/graph.py:816(_engine_run_backward)
+      200 3125.559   15.628 3125.559   15.628 {method 'run_backward' of 'torch._C._EngineBase' objects}
+      200  154.733    0.774 1001.006    5.005 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:230(compute_loss)
+      200  382.138    1.911  758.097    3.790 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:287(compute_gp_prior_loss)
+ 43461600  259.774    0.000  259.774    0.000 {built-in method torch.cholesky_solve}
+ 43531800  125.062    0.000  125.062    0.000 {built-in method torch.sum}
+      400   11.803    0.030   58.088    0.145 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:221(forward)
+      400    0.006    0.000   32.376    0.081 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/functional.py:210(einsum)
+      400   32.369    0.081   32.369    0.081 {built-in method torch.einsum}
+      200    1.100    0.006   32.313    0.162 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:403(analyze_signature_responses)
+      600   24.862    0.041   24.862    0.041 {built-in method torch.log}
+      600   18.210    0.030   18.210    0.030 {built-in method torch.clamp}
+      600    0.003    0.000   12.143    0.020 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:33(wrapped)
+      600    0.003    0.000   12.140    0.020 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:1026(__rsub__)
+      600   12.136    0.020   12.136    0.020 {built-in method torch.rsub}
+      400    8.039    0.020    8.039    0.020 {method 'float' of 'torch._C.TensorBase' objects}
+      400    1.428    0.004    1.428    0.004 {built-in method torch.softmax}
+
+
+Generated predictions: pi shape = torch.Size([10000, 348, 52])
+Saved predictions to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_age_offset_9_sex_0_10000_try2_withpcs.pt
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:76: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:88: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.Y = torch.tensor(Y, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_test_0_10000.py:163: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  initial_psi = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_psi_400k.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_test_0_10000.py:164: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  initial_clusters = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_clusters_400k.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:238: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+Saved model to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_age_offset_9_sex_0_10000_try2_withpcs.pt
+
+=== Predicting for age offset 10 years ===
+Clusters match exactly: True
+Censoring verification for age offset 10:
+  Total event times changed: 3419210
+  Max cap applied: 51.0
+  Min cap applied: 20.0
+  Patient 0: enrollment=69, current=79, cap=49.0, max_event_time=49.0
+  Patient 1: enrollment=44, current=54, cap=24.0, max_event_time=24.0
+  Patient 100: enrollment=52, current=62, cap=32.0, max_event_time=32.0
+Training model for age offset 10...
+         88903873 function calls (88901873 primitive calls) in 3186.677 seconds
+
+   Ordered by: cumulative time
+   List reduced from 152 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1   38.470   38.470 3186.677 3186.677 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:329(fit)
+      200    0.010    0.000 2246.055   11.230 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:525(backward)
+      200    0.002    0.000 2246.045   11.230 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/__init__.py:242(backward)
+      200    0.002    0.000 2246.033   11.230 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/graph.py:816(_engine_run_backward)
+      200 2246.031   11.230 2246.031   11.230 {method 'run_backward' of 'torch._C._EngineBase' objects}
+      200  125.093    0.625  876.203    4.381 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:230(compute_loss)
+      200  342.436    1.712  679.103    3.396 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:287(compute_gp_prior_loss)
+ 43461600  234.089    0.000  234.089    0.000 {built-in method torch.cholesky_solve}
+ 43531800  110.924    0.000  110.924    0.000 {built-in method torch.sum}
+      400    9.462    0.024   44.893    0.112 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:221(forward)
+      400    0.004    0.000   25.619    0.064 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/functional.py:210(einsum)
+      400   25.613    0.064   25.613    0.064 {built-in method torch.einsum}
+      200    0.776    0.004   24.643    0.123 /Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp.py:403(analyze_signature_responses)
+      600   19.946    0.033   19.946    0.033 {built-in method torch.log}
+      600   13.455    0.022   13.455    0.022 {built-in method torch.clamp}
+      600    0.003    0.000   10.370    0.017 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:33(wrapped)
+      600    0.003    0.000   10.367    0.017 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:1026(__rsub__)
+      600   10.365    0.017   10.365    0.017 {built-in method torch.rsub}
+      400    6.903    0.017    6.903    0.017 {method 'float' of 'torch._C.TensorBase' objects}
+      200    0.004    0.000    0.992    0.005 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/optim/optimizer.py:467(wrapper)
+
+
+Generated predictions: pi shape = torch.Size([10000, 348, 52])
+Saved predictions to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_age_offset_10_sex_0_10000_try2_withpcs.pt
+Saved model to: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_age_offset_10_sex_0_10000_try2_withpcs.pt
