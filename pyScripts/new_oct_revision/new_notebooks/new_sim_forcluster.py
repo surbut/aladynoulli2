@@ -290,6 +290,14 @@ def generate_clustered_survival_data_external_phi_lam(
         if int(initial_clusters[d]) in selected_sigs_initial:
             candidate_diseases.append(d)
     
+    # Debug: Check why we might be getting fewer diseases than expected
+    print(f"Total diseases in fit: {D_fit}")
+    print(f"Cluster assignments range: {initial_clusters.min()} to {initial_clusters.max()}")
+    print(f"Unique clusters: {np.unique(initial_clusters)}")
+    print(f"Selected signatures (initial): {selected_sigs_initial}")
+    print(f"Candidate diseases (from selected_sigs_initial): {len(candidate_diseases)}")
+    print(f"Expected: {D_fit} (all diseases should match selected_sigs_initial if all signatures selected)")
+    
     # Select up to D diseases from candidates
     if D and len(candidate_diseases) >= D:
         # Prioritize sample_diseases, then randomly sample rest
@@ -367,8 +375,25 @@ def generate_clustered_survival_data_external_phi_lam(
     ex = np.exp(x)
     theta_true = ex / ex.sum(axis=1, keepdims=True)  # [N, K, T]
 
+
+    # In new_sim_forcluster.py, around line 370-371:
+
+    # Get kappa from checkpoint
+    kappa = ckpt.get("model_state_dict", {}).get("kappa", None)
+    if kappa is not None:
+        if torch.is_tensor(kappa):
+            kappa = kappa.cpu().item()
+        kappa = float(kappa)
+        print(f"Using kappa = {kappa:.3f} from checkpoint")
+    else:
+        kappa = 1.0
+        print("Warning: kappa not found in checkpoint, using 1.0")
+
     eta = expit(phi)  # [K, D, T] - TRUE fitted phi
-    pi = np.einsum("nkt,kdt->ndt", theta_true, eta)  # [N, D, T]
+    pi = np.einsum("nkt,kdt->ndt", theta_true, eta) * kappa  # ADD KAPPA!
+    pi = np.clip(pi, 0, 1)  # Clamp to valid probability range
+
+
 
     # Simulate first-event-at-risk
     Y = np.zeros((N, D, T), dtype=np.int8)
