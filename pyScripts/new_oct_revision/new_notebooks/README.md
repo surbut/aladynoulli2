@@ -83,6 +83,21 @@ This directory collects a set of refreshed summary notebooks that document the m
   - Identifies diseases where Aladynoulli outperforms Delphi and vice versa, with context on the different coding systems (PheCode aggregation vs raw ICD-10).
   - Generates publication-ready comparison plots and summary statistics for benchmarking against state-of-the-art transformer-based disease prediction models.
 
+
+
+### [`lifetime.ipynb`](lifetime.ipynb)
+- **Goal**: Compare joint and fixed fixed phi across the lifetime risk prediction horizon and 10 year using the cumulative product thing *at prediction time of enrollment* (i.e., no lookahead).
+
+
+### [`lambdacheck.ipynb`](lambdacheck.ipynb)
+- **Goal**: Compare input versus measured time scale
+
+### [`compare_offset.ipynb`](compare_offset.ipynb) 
+- **Goal* reran 1 year predictions with fit at different times of prediction using joint and phi with PCS
+
+### [`fig5new_year2.ipynb`](fig5new_year2.ipynb) (5-year) and [`fig5new.ipynb`](fig5new.ipynb) (10-year) predcition using fixed one year preidciton for 5 or 10 year outcomes
+
+
 ## Usage Notes
 - The notebooks expect the heavy preprocessing to be complete: weights, φ/θ checkpoints, and pathway outputs should already be present in the paths referenced above.
 - Re-running entire pipelines (especially `heterogeneity_analysis_summary.ipynb`) can take hours and requires full data access. For most collaborators, opening the notebooks in read-only mode and reviewing the rendered tables/plots is sufficient.
