@@ -120,7 +120,11 @@ class AladynSurvivalFixedPhi(nn.Module):
             print(f"\nCalculating gamma for k={k}:")
             
             # Use average Y values as a basis for gamma initialization
+            # Logit-transform Y_avg to match retrospective/joint approach
             Y_avg = torch.mean(self.Y, dim=2)
+            epsilon = 1e-6
+            Y_avg = torch.clamp(Y_avg, epsilon, 1.0 - epsilon)
+            Y_avg = torch.log(Y_avg / (1 - Y_avg))  # Logit transform
             
             # Use diseases with strong psi values for this signature to initialize gamma
             strong_diseases = (self.psi[k] > 0).float()
