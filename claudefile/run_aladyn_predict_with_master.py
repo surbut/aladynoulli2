@@ -125,6 +125,8 @@ def main():
                        help='Include principal components in the model')
     parser.add_argument('--max_batches', type=int, default=None,
                        help='Maximum number of batches to process (None = all batches)')
+    parser.add_argument('--start_batch', type=int, default=0,
+                       help='Batch index to start from (0 = start from beginning, 10 = skip first 10 batches)')
     args = parser.parse_args()
 
     # Create output directory
@@ -190,15 +192,23 @@ def main():
     total_samples = Y.shape[0]
     batches = generate_batches(total_samples, args.batch_size)
     
+    # Skip first N batches if start_batch is specified
+    if args.start_batch > 0:
+        if args.start_batch >= len(batches):
+            print(f"✗ ERROR: start_batch ({args.start_batch}) >= total batches ({len(batches)})")
+            return
+        batches = batches[args.start_batch:]
+        print(f"\n⚠️  Skipping first {args.start_batch} batches, starting from batch {args.start_batch}")
+    
     # Limit to max_batches if specified
     if args.max_batches is not None:
         batches = batches[:args.max_batches]
-        print(f"\n⚠️  Limiting to first {args.max_batches} batches")
+        print(f"⚠️  Limiting to {args.max_batches} batches")
 
     print(f"\nWill process {len(batches)} batches of {args.batch_size} samples")
     print(f"Total samples: {total_samples}")
-    if args.max_batches is not None:
-        print(f"Processing samples: 0 to {batches[-1][1]}")
+    if batches:
+        print(f"Processing samples: {batches[0][0]} to {batches[-1][1]}")
     print()
 
     # Process each batch

@@ -1,0 +1,656 @@
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:75: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:89: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.Y = torch.tensor(Y, dtype=torch.float32)
+
+================================================================================
+Aladyn Prediction Script - Fixed Phi/Psi Mode
+================================================================================
+Trained model: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/master_for_fitting_pooled_enrollment_data.pt
+Output directory: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/
+Batch size: 10000
+================================================================================
+
+Loading components...
+Loaded all components successfully!
+Loading covariates data...
+Loaded 407878 samples from covariates file
+Loading reference trajectories...
+Loading initial_psi for consistent initialization...
+Loaded initial_psi shape: (20, 348)
+Loading master checkpoint from /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/master_for_fitting_pooled_enrollment_data.pt...
+Master checkpoint description: Pooled phi from all enrollment batches + initial_psi
+Loaded pooled phi shape: (21, 348, 52)
+Loaded psi_total shape: (21, 348)
+
+⚠️  Skipping first 10 batches, starting from batch 10
+⚠️  Limiting to 30 batches
+
+Will process 30 batches of 10000 samples
+Total samples: 407878
+Processing samples: 100000 to 400000
+
+
+================================================================================
+BATCH 1/30: Processing samples 100000 to 110000
+================================================================================
+Subsetting data...
+Data shapes: Y=torch.Size([10000, 348, 52]), E=torch.Size([10000, 348]), G=(10000, 47)
+Initializing model with fixed phi/psi...
+Pre-calculated phi GP loss: 14.9108
+
+Calculating gamma for k=0:
+Number of diseases in signature: 16.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -11.9623])
+Base value centered (first 5): tensor([-0.1871, -0.1871, -0.1871, -0.1871,  1.6661])
+Base value centered mean: -6.058692747501482e-07
+Gamma init for k=0 (first 5): tensor([-0.0019,  0.0010, -0.0044, -0.0018,  0.0304])
+
+Calculating gamma for k=1:
+Number of diseases in signature: 21.0
+Base value (first 5): tensor([-13.3449, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([ 0.1585, -0.3122, -0.3122, -0.3122, -0.3122])
+Base value centered mean: 6.502151563836378e-07
+Gamma init for k=1 (first 5): tensor([-0.0020,  0.0073, -0.0074,  0.0131,  0.0025])
+
+Calculating gamma for k=2:
+Number of diseases in signature: 15.0
+Base value (first 5): tensor([-13.8155, -13.8155, -11.8388, -10.5209, -13.8155])
+Base value centered (first 5): tensor([-0.3785, -0.3785,  1.5982,  2.9160, -0.3785])
+Base value centered mean: 5.493163968139925e-08
+Gamma init for k=2 (first 5): tensor([ 0.0079, -0.0051,  0.0011,  0.0071,  0.0031])
+
+Calculating gamma for k=3:
+Number of diseases in signature: 82.0
+Base value (first 5): tensor([-13.5744, -13.6950, -13.8155, -13.5744, -13.8155])
+Base value centered (first 5): tensor([ 0.1365,  0.0159, -0.1046,  0.1365, -0.1046])
+Base value centered mean: -3.633499261468387e-07
+Gamma init for k=3 (first 5): tensor([ 0.0002,  0.0004,  0.0004, -0.0005,  0.0017])
+
+Calculating gamma for k=4:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1101, -0.1101, -0.1101, -0.1101, -0.1101])
+Base value centered mean: -3.237629016439314e-06
+Gamma init for k=4 (first 5): tensor([-0.0028, -0.0021,  0.0082,  0.0178,  0.0076])
+
+Calculating gamma for k=5:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -10.9916, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.7101, -0.7101,  2.1138, -0.7101, -0.7101])
+Base value centered mean: -9.76181013356836e-07
+Gamma init for k=5 (first 5): tensor([-0.0026, -0.0134, -0.0256,  0.0107,  0.0261])
+
+Calculating gamma for k=6:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1599, -0.1599, -0.1599, -0.1599, -0.1599])
+Base value centered mean: -1.6735076542317984e-06
+Gamma init for k=6 (first 5): tensor([ 0.0080,  0.0083,  0.0044,  0.0091, -0.0020])
+
+Calculating gamma for k=7:
+Number of diseases in signature: 22.0
+Base value (first 5): tensor([-13.8155, -12.9170, -12.9170, -12.0185, -13.3663])
+Base value centered (first 5): tensor([-0.5616,  0.3369,  0.3369,  1.2355, -0.1123])
+Base value centered mean: -1.0938643981717178e-06
+Gamma init for k=7 (first 5): tensor([-0.0061,  0.0077, -0.0027,  0.0276,  0.0085])
+
+Calculating gamma for k=8:
+Number of diseases in signature: 28.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.4625, -13.8155])
+Base value centered (first 5): tensor([-0.1220, -0.1220, -0.1220,  0.2310, -0.1220])
+Base value centered mean: -1.5850066859002254e-07
+Gamma init for k=8 (first 5): tensor([ 0.0099, -0.0020,  0.0040, -0.0001,  0.0027])
+
+Calculating gamma for k=9:
+Number of diseases in signature: 12.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1977, -0.1977, -0.1977, -0.1977, -0.1977])
+Base value centered mean: 6.660461622232106e-07
+Gamma init for k=9 (first 5): tensor([ 0.0021,  0.0036, -0.0056,  0.0024, -0.0043])
+
+Calculating gamma for k=10:
+Number of diseases in signature: 11.0
+Base value (first 5): tensor([-13.8155, -13.8155, -12.9170, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2809, -0.2809,  0.6176, -0.2809, -0.2809])
+Base value centered mean: -1.080703782463388e-06
+Gamma init for k=10 (first 5): tensor([-0.0083,  0.0191, -0.0084,  0.0010, -0.0163])
+
+Calculating gamma for k=11:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1150, -0.1150, -0.1150, -0.1150, -0.1150])
+Base value centered mean: -2.318954557267716e-06
+Gamma init for k=11 (first 5): tensor([ 0.0038,  0.0085,  0.0110, -0.0038,  0.0126])
+
+Calculating gamma for k=12:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.0915, -0.0915, -0.0915, -0.0915, -0.0915])
+Base value centered mean: -9.2916491212236e-07
+Gamma init for k=12 (first 5): tensor([-0.0061,  0.0039,  0.0040,  0.0053,  0.0041])
+
+Calculating gamma for k=13:
+Number of diseases in signature: 13.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1755, -0.1755, -0.1755, -0.1755, -0.1755])
+Base value centered mean: -9.247779644283582e-07
+Gamma init for k=13 (first 5): tensor([3.0729e-03, 2.6315e-03, 7.4596e-05, 7.3041e-03, 4.4932e-03])
+
+Calculating gamma for k=14:
+Number of diseases in signature: 10.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -12.8271])
+Base value centered (first 5): tensor([-0.2658, -0.2658, -0.2658, -0.2658,  0.7226])
+Base value centered mean: -1.6286850268443231e-06
+Gamma init for k=14 (first 5): tensor([-0.0086,  0.0063, -0.0147,  0.0180,  0.0038])
+
+Calculating gamma for k=15:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -11.8388, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2868,  1.6899, -0.2868, -0.2868, -0.2868])
+Base value centered mean: -1.7898559008244774e-06
+Gamma init for k=15 (first 5): tensor([-0.0036, -0.0012, -0.0132, -0.0140, -0.0126])
+
+Calculating gamma for k=16:
+Number of diseases in signature: 29.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2480, -0.2480, -0.2480, -0.2480, -0.2480])
+Base value centered mean: -7.350921578108682e-07
+Gamma init for k=16 (first 5): tensor([ 0.0005,  0.0082, -0.0011,  0.0038,  0.0024])
+
+Calculating gamma for k=17:
+Number of diseases in signature: 17.0
+Base value (first 5): tensor([-13.2341, -13.2341, -12.6527, -11.4899, -13.8155])
+Base value centered (first 5): tensor([ 0.1587,  0.1587,  0.7401,  1.9028, -0.4227])
+Base value centered mean: -1.2516021570263547e-06
+Gamma init for k=17 (first 5): tensor([-0.0033,  0.0085, -0.0026, -0.0063,  0.0126])
+
+Calculating gamma for k=18:
+Number of diseases in signature: 9.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1645, -0.1645, -0.1645, -0.1645, -0.1645])
+Base value centered mean: 4.489898799420189e-07
+Gamma init for k=18 (first 5): tensor([ 0.0019,  0.0021, -0.0071,  0.0057, -0.0037])
+
+Calculating gamma for k=19:
+Number of diseases in signature: 23.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.3858])
+Base value centered (first 5): tensor([-0.1586, -0.1586, -0.1586, -0.1586,  0.2711])
+Base value centered mean: -7.272720381479303e-07
+Gamma init for k=19 (first 5): tensor([ 0.0013,  0.0040, -0.0025, -0.0073,  0.0046])
+Initializing with 20 disease states + 1 healthy state
+Initialization complete!
+✓ phi matches phi_total!
+✓ psi matches psi_total!
+Reinitializing gamma with psi_total for consistency...
+
+Calculating gamma for k=0:
+Number of diseases in signature: 16.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -11.9623])
+Base value centered (first 5): tensor([-0.1871, -0.1871, -0.1871, -0.1871,  1.6661])
+Base value centered mean: -6.058692747501482e-07
+Gamma init for k=0 (first 5): tensor([-0.0019,  0.0010, -0.0044, -0.0018,  0.0304])
+
+Calculating gamma for k=1:
+Number of diseases in signature: 21.0
+Base value (first 5): tensor([-13.3449, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([ 0.1585, -0.3122, -0.3122, -0.3122, -0.3122])
+Base value centered mean: 6.502151563836378e-07
+Gamma init for k=1 (first 5): tensor([-0.0020,  0.0073, -0.0074,  0.0131,  0.0025])
+
+Calculating gamma for k=2:
+Number of diseases in signature: 15.0
+Base value (first 5): tensor([-13.8155, -13.8155, -11.8388, -10.5209, -13.8155])
+Base value centered (first 5): tensor([-0.3785, -0.3785,  1.5982,  2.9160, -0.3785])
+Base value centered mean: 5.493163968139925e-08
+Gamma init for k=2 (first 5): tensor([ 0.0079, -0.0051,  0.0011,  0.0071,  0.0031])
+
+Calculating gamma for k=3:
+Number of diseases in signature: 82.0
+Base value (first 5): tensor([-13.5744, -13.6950, -13.8155, -13.5744, -13.8155])
+Base value centered (first 5): tensor([ 0.1365,  0.0159, -0.1046,  0.1365, -0.1046])
+Base value centered mean: -3.633499261468387e-07
+Gamma init for k=3 (first 5): tensor([ 0.0002,  0.0004,  0.0004, -0.0005,  0.0017])
+
+Calculating gamma for k=4:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1101, -0.1101, -0.1101, -0.1101, -0.1101])
+Base value centered mean: -3.237629016439314e-06
+Gamma init for k=4 (first 5): tensor([-0.0028, -0.0021,  0.0082,  0.0178,  0.0076])
+
+Calculating gamma for k=5:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -10.9916, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.7101, -0.7101,  2.1138, -0.7101, -0.7101])
+Base value centered mean: -9.76181013356836e-07
+Gamma init for k=5 (first 5): tensor([-0.0026, -0.0134, -0.0256,  0.0107,  0.0261])
+
+Calculating gamma for k=6:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1599, -0.1599, -0.1599, -0.1599, -0.1599])
+Base value centered mean: -1.6735076542317984e-06
+Gamma init for k=6 (first 5): tensor([ 0.0080,  0.0083,  0.0044,  0.0091, -0.0020])
+
+Calculating gamma for k=7:
+Number of diseases in signature: 22.0
+Base value (first 5): tensor([-13.8155, -12.9170, -12.9170, -12.0185, -13.3663])
+Base value centered (first 5): tensor([-0.5616,  0.3369,  0.3369,  1.2355, -0.1123])
+Base value centered mean: -1.0938643981717178e-06
+Gamma init for k=7 (first 5): tensor([-0.0061,  0.0077, -0.0027,  0.0276,  0.0085])
+
+Calculating gamma for k=8:
+Number of diseases in signature: 28.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.4625, -13.8155])
+Base value centered (first 5): tensor([-0.1220, -0.1220, -0.1220,  0.2310, -0.1220])
+Base value centered mean: -1.5850066859002254e-07
+Gamma init for k=8 (first 5): tensor([ 0.0099, -0.0020,  0.0040, -0.0001,  0.0027])
+
+Calculating gamma for k=9:
+Number of diseases in signature: 12.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1977, -0.1977, -0.1977, -0.1977, -0.1977])
+Base value centered mean: 6.660461622232106e-07
+Gamma init for k=9 (first 5): tensor([ 0.0021,  0.0036, -0.0056,  0.0024, -0.0043])
+
+Calculating gamma for k=10:
+Number of diseases in signature: 11.0
+Base value (first 5): tensor([-13.8155, -13.8155, -12.9170, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2809, -0.2809,  0.6176, -0.2809, -0.2809])
+Base value centered mean: -1.080703782463388e-06
+Gamma init for k=10 (first 5): tensor([-0.0083,  0.0191, -0.0084,  0.0010, -0.0163])
+
+Calculating gamma for k=11:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1150, -0.1150, -0.1150, -0.1150, -0.1150])
+Base value centered mean: -2.318954557267716e-06
+Gamma init for k=11 (first 5): tensor([ 0.0038,  0.0085,  0.0110, -0.0038,  0.0126])
+
+Calculating gamma for k=12:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.0915, -0.0915, -0.0915, -0.0915, -0.0915])
+Base value centered mean: -9.2916491212236e-07
+Gamma init for k=12 (first 5): tensor([-0.0061,  0.0039,  0.0040,  0.0053,  0.0041])
+
+Calculating gamma for k=13:
+Number of diseases in signature: 13.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1755, -0.1755, -0.1755, -0.1755, -0.1755])
+Base value centered mean: -9.247779644283582e-07
+Gamma init for k=13 (first 5): tensor([3.0729e-03, 2.6315e-03, 7.4596e-05, 7.3041e-03, 4.4932e-03])
+
+Calculating gamma for k=14:
+Number of diseases in signature: 10.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -12.8271])
+Base value centered (first 5): tensor([-0.2658, -0.2658, -0.2658, -0.2658,  0.7226])
+Base value centered mean: -1.6286850268443231e-06
+Gamma init for k=14 (first 5): tensor([-0.0086,  0.0063, -0.0147,  0.0180,  0.0038])
+
+Calculating gamma for k=15:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -11.8388, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2868,  1.6899, -0.2868, -0.2868, -0.2868])
+Base value centered mean: -1.7898559008244774e-06
+Gamma init for k=15 (first 5): tensor([-0.0036, -0.0012, -0.0132, -0.0140, -0.0126])
+
+Calculating gamma for k=16:
+Number of diseases in signature: 29.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2480, -0.2480, -0.2480, -0.2480, -0.2480])
+Base value centered mean: -7.350921578108682e-07
+Gamma init for k=16 (first 5): tensor([ 0.0005,  0.0082, -0.0011,  0.0038,  0.0024])
+
+Calculating gamma for k=17:
+Number of diseases in signature: 17.0
+Base value (first 5): tensor([-13.2341, -13.2341, -12.6527, -11.4899, -13.8155])
+Base value centered (first 5): tensor([ 0.1587,  0.1587,  0.7401,  1.9028, -0.4227])
+Base value centered mean: -1.2516021570263547e-06
+Gamma init for k=17 (first 5): tensor([-0.0033,  0.0085, -0.0026, -0.0063,  0.0126])
+
+Calculating gamma for k=18:
+Number of diseases in signature: 9.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1645, -0.1645, -0.1645, -0.1645, -0.1645])
+Base value centered mean: 4.489898799420189e-07
+Gamma init for k=18 (first 5): tensor([ 0.0019,  0.0021, -0.0071,  0.0057, -0.0037])
+
+Calculating gamma for k=19:
+Number of diseases in signature: 23.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.3858])
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:192: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+Base value centered (first 5): tensor([-0.1586, -0.1586, -0.1586, -0.1586,  0.2711])
+Base value centered mean: -7.272720381479303e-07
+Gamma init for k=19 (first 5): tensor([ 0.0013,  0.0040, -0.0025, -0.0073,  0.0046])
+Initializing with 20 disease states + 1 healthy state
+Initialization complete!
+✓ Gamma reinitialized with psi_total
+Training model (estimating lambda only)...
+Kappa gradient: -1.157e+00
+
+Epoch 0
+Loss: 16.9278
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.010
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.043
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.018
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -9.810e-01
+
+Epoch 1
+Loss: 657.9806
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -8.347e-01
+
+Epoch 2
+Loss: 68.4387
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -7.121e-01
+
+Epoch 3
+Loss: 162.8351
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -6.086e-01
+
+Epoch 4
+Loss: 375.9769
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -5.203e-01
+
+Epoch 5
+Loss: 284.7729
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -4.444e-01
+
+Epoch 6
+Loss: 101.4344
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -3.788e-01
+
+Epoch 7
+Loss: 33.0214
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.010
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -3.217e-01
+
+Epoch 8
+Loss: 103.0607
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.010
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -2.717e-01
+
+Epoch 9
+Loss: 183.8511
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.010
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
+  Proportion difference: 0.016
+
+Disease 113 (signature 5, LR=39.46):
+  Theta for diagnosed: 0.061 ± 0.042
+  Theta for others: 0.047
+  Proportion difference: 0.014
+
+Disease 326 (signature 1, LR=37.80):
+  Theta for diagnosed: 0.081 ± 0.017
+  Theta for others: 0.079
+  Proportion difference: 0.001
+
+Disease 269 (signature 8, LR=36.88):
+  Theta for diagnosed: 0.096 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.009
+Kappa gradient: -2.279e-01
+
+Epoch 10
+Loss: 174.5235
+
+Monitoring signature responses:
+
+Disease 281 (signature 8, LR=49.45):
+  Theta for diagnosed: 0.097 ± 0.080
+  Theta for others: 0.087
+  Proportion difference: 0.010
+
+Disease 114 (signature 5, LR=46.21):
+  Theta for diagnosed: 0.062 ± 0.042
+  Theta for others: 0.046
