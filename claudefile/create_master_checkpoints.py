@@ -114,56 +114,7 @@ def extract_healthy_state_psi(pattern):
     return None
 
 
-def extract_healthy_state_phi(pattern, prevalence_t=None):
-    """
-    Extract healthy state phi (index 20) from a sample batch checkpoint.
-    If not available, estimate from prevalence_t.
-    
-    Args:
-        pattern: Pattern to find batch files
-        prevalence_t: Optional prevalence array (D, T) for estimation
-    
-    Returns:
-        healthy_phi: (D, T) array with healthy state phi values, or None if not found
-    """
-    files = sorted(glob.glob(pattern))
-    if not files:
-        return None
-    
-    # Try first file
-    try:
-        checkpoint = torch.load(files[0], weights_only=False)
-        if 'model_state_dict' in checkpoint:
-            phi = checkpoint['model_state_dict']['phi']
-        elif 'phi' in checkpoint:
-            phi = checkpoint['phi']
-        else:
-            return None
-        
-        if torch.is_tensor(phi):
-            phi = phi.cpu().numpy()
-        
-        # Check if healthy state exists (shape should be 21, D, T)
-        if phi.shape[0] == 21:
-            healthy_phi = phi[20, :, :]  # Extract healthy state (index 20)
-            print(f"  ✓ Extracted healthy state phi from {Path(files[0]).name}")
-            print(f"    Healthy phi stats: mean={healthy_phi.mean():.4f}, range=[{healthy_phi.min():.4f}, {healthy_phi.max():.4f}]")
-            return healthy_phi
-        elif prevalence_t is not None:
-            # Estimate healthy state phi from prevalence (logit transform)
-            # Healthy state should have very low prevalence
-            import scipy.special
-            logit_prev_t = scipy.special.logit(np.clip(prevalence_t, 1e-6, 1-1e-6))
-            healthy_phi = logit_prev_t - 5.0  # Subtract 5 to make it very negative (healthy)
-            print(f"  ✓ Estimated healthy state phi from prevalence_t")
-            return healthy_phi
-    except Exception as e:
-        print(f"  ⚠️  Could not extract healthy state phi: {e}")
-    
-    return None
-
-
-def create_master_checkpoint(phi_pooled, initial_psi, output_path, description="", healthy_psi_actual=None, healthy_phi_actual=None):
+def create_master_checkpoint(phi_pooled, initial_psi, output_path, description="", healthy_psi_actual=None):
     """
     Create a master checkpoint file with pooled phi and initial_psi.
     
@@ -173,7 +124,6 @@ def create_master_checkpoint(phi_pooled, initial_psi, output_path, description="
         output_path: Path to save the checkpoint
         description: Description string for the checkpoint
         healthy_psi_actual: Optional actual healthy state psi values (D,) to use for padding
-        healthy_phi_actual: Optional actual healthy state phi values (D, T) to use for padding
     """
     # Convert to numpy if needed
     if isinstance(phi_pooled, np.ndarray):
@@ -186,18 +136,14 @@ def create_master_checkpoint(phi_pooled, initial_psi, output_path, description="
     else:
         initial_psi_np = initial_psi.cpu().numpy() if torch.is_tensor(initial_psi) else np.array(initial_psi)
     
-    # Pad phi with healthy state if needed (for healthy_reference=True, K_total = 21)
+    # Pad phi and psi with healthy state if needed (for healthy_reference=True, K_total = 21)
     if phi_pooled_np.shape[0] == 20:
         print("  Padding phi with healthy state...")
-        if healthy_phi_actual is not None:
-            # Use actual healthy state phi values
-            healthy_phi = healthy_phi_actual[np.newaxis, :, :]  # (1, D, T)
-            print(f"    Using actual healthy state phi (mean: {healthy_phi_actual.mean():.4f})")
-            phi_pooled_np = np.concatenate([phi_pooled_np, healthy_phi], axis=0)  # Concatenate along K dimension
-            print(f"    Padded phi shape: {phi_pooled_np.shape}")
-        else:
-            print("  ⚠️  Warning: No healthy state phi provided, but phi needs padding!")
-            print("     The prediction script should handle this, but results may be inconsistent")
+        # For phi, we need to estimate healthy state phi
+        # This would require prevalence_t, so for now we'll use a simple approach
+        # The prediction script will handle this if needed
+        # For now, just note that padding is needed
+        print("  ⚠️  Note: phi needs healthy state padding (will be handled in prediction script)")
     
     # Pad initial_psi with healthy state if needed
     if initial_psi_np.shape[0] == 20:
@@ -277,15 +223,13 @@ def main():
     try:
         phi_retrospective = pool_phi_from_batches(args.retrospective_pattern, args.max_batches)
         
-        # Extract healthy state psi and phi from retrospective batches ONLY (no mixing with enrollment)
-        print("\n  Extracting healthy state from retrospective batches...")
-        healthy_psi_actual = extract_healthy_state_psi(args.retrospective_pattern)
-        healthy_phi_actual = extract_healthy_state_phi(args.retrospective_pattern)
+        # Try to extract healthy state psi from enrollment batches (as fallback)
+        # Retrospective batches might not have healthy state
+        print("\n  Attempting to extract healthy state psi...")
+        healthy_psi_actual = extract_healthy_state_psi(args.enrollment_pattern)
         if healthy_psi_actual is None:
-            print("  ⚠️  Warning: Could not extract healthy state psi from retrospective batches")
-            print("     Will use constant -5.0 for healthy state psi")
-        if healthy_phi_actual is None:
-            print("  ⚠️  Warning: Could not extract healthy state phi from retrospective batches")
+            # Try retrospective pattern as fallback
+            healthy_psi_actual = extract_healthy_state_psi(args.retrospective_pattern)
         
         output_path_retro = output_dir / 'master_for_fitting_pooled_all_data.pt'
         create_master_checkpoint(
@@ -293,8 +237,7 @@ def main():
             initial_psi,
             str(output_path_retro),
             description="Pooled phi from all retrospective batches + initial_psi (with healthy state)",
-            healthy_psi_actual=healthy_psi_actual,
-            healthy_phi_actual=healthy_phi_actual
+            healthy_psi_actual=healthy_psi_actual
         )
     except Exception as e:
         print(f"✗ Error creating retrospective master checkpoint: {e}")
@@ -304,15 +247,9 @@ def main():
     try:
         phi_enrollment = pool_phi_from_batches(args.enrollment_pattern, args.max_batches)
         
-        # Extract actual healthy state psi and phi from enrollment batches ONLY
-        print("\n  Extracting healthy state from enrollment batches...")
+        # Extract actual healthy state psi from enrollment batches
+        print("\n  Extracting healthy state psi from enrollment batches...")
         healthy_psi_actual = extract_healthy_state_psi(args.enrollment_pattern)
-        healthy_phi_actual = extract_healthy_state_phi(args.enrollment_pattern)
-        if healthy_psi_actual is None:
-            print("  ⚠️  Warning: Could not extract healthy state psi from enrollment batches")
-            print("     Will use constant -5.0 for healthy state psi")
-        if healthy_phi_actual is None:
-            print("  ⚠️  Warning: Could not extract healthy state phi from enrollment batches")
         
         output_path_enroll = output_dir / 'master_for_fitting_pooled_enrollment_data.pt'
         create_master_checkpoint(
@@ -320,8 +257,7 @@ def main():
             initial_psi,
             str(output_path_enroll),
             description="Pooled phi from all enrollment batches + initial_psi (with healthy state)",
-            healthy_psi_actual=healthy_psi_actual,
-            healthy_phi_actual=healthy_phi_actual
+            healthy_psi_actual=healthy_psi_actual
         )
     except Exception as e:
         print(f"✗ Error creating enrollment master checkpoint: {e}")
