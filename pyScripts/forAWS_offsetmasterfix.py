@@ -234,12 +234,12 @@ for age_offset in range(0, 10):  # Ages 0-10 years after enrollment (11 total: 0
         pi, _, _ = model.forward()
         
         # Save age-specific predictions
-        filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun.pt"
+        filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun_pooledall.pt"
         torch.save(pi, filename)
        
         print(f"Saved predictions to {filename}")
 
-    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun.pt"
+    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun_pooledall.pt"
     torch.save({
         'model_state_dict': model.state_dict(),
         'E': E_age_specific,

@@ -93,3 +93,76 @@ pi_train=torch$load(
 pi_train=tensor_to_r(pi_train)
 
 saveRDS(pi_train,"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_full_leakage_free_0_10000_fixedphi.rds")
+
+###
+###
+###
+
+pi_train=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_predictions_fixedphi_RETROSPECTIVE_pooled/pi_enroll_fixedphi_sex_20000_30000.pt",
+  weights_only = FALSE
+)
+
+pi_train=tensor_to_r(pi_train)
+
+saveRDS(pi_train,file = "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_predictions_fixedphi_RETROSPECTIVE_pooled/pi_enroll_fixedphi_sex_20000_30000.rds")
+
+pi_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_predictions_fixedphi_RETROSPECTIVE_pooled/pi_enroll_fixedphi_sex_0_10000.pt",
+  weights_only = FALSE
+)
+
+
+pi_test=tensor_to_r(pi_test)
+
+saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_predictions_fixedphi_RETROSPECTIVE_pooled/pi_enroll_fixedphi_sex_0_10000.rds")
+
+
+###
+###
+
+
+pi_train=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/pi_enroll_fixedphi_sex_20000_30000.pt",
+  weights_only = FALSE
+)
+
+pi_train=tensor_to_r(pi_train)
+
+saveRDS(pi_train,file = "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/pi_enroll_fixedphi_sex_20000_30000.rds")
+
+pi_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/pi_enroll_fixedphi_sex_0_10000.pt",
+  weights_only = FALSE
+)
+
+
+pi_test=tensor_to_r(pi_test)
+
+saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/pi_enroll_fixedphi_sex_0_10000.rds")
+
+#####
+#####
+pi_train=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_prediction_jointphi_sex_pcs/pi_enroll_sex_20000_30000.pt",
+  weights_only = FALSE
+)
+
+pi_train=tensor_to_r(pi_train)
+
+saveRDS(pi_train,file = 
+          "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_prediction_jointphi_sex_pcs/pi_enroll_sex_20000_30000.rds")
+
+
+
+pi_test=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_prediction_jointphi_sex_pcs/pi_enroll_sex_0_10000.pt",
+  weights_only = FALSE
+)
+
+pi_test=tensor_to_r(pi_train)
+
+saveRDS(pi_test,file = 
+          "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_prediction_jointphi_sex_pcs/pi_enroll_sex_0_10000.rds")
+
+
