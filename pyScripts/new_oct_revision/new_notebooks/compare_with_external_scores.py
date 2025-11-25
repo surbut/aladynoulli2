@@ -181,7 +181,13 @@ def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, ap
         prevent_scores.append(prevent_val if not pd.isna(prevent_val) else np.nan)
         
         # QRISK3 score (from same unified file)
-        qrisk3_val = pce_df.iloc[i].get('qrisk3', np.nan)
+        # Prefer non-imputed column if available (e.g., 'qrisk3' vs 'qrisk3_imputed')
+        # Only use truly valid scores, not imputed ones
+        if 'qrisk3' in pce_df.columns:
+            qrisk3_val = pce_df.iloc[i]['qrisk3']
+        else:
+            qrisk3_val = np.nan
+        # Only append if not NaN (exclude missing/imputed values)
         qrisk3_scores.append(qrisk3_val if not pd.isna(qrisk3_val) else np.nan)
     
     print(f"  ✓ Completed processing {len(our_10yr_risks)} valid patients")
@@ -202,6 +208,13 @@ def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, ap
     
     print(f"\nPatients with valid PCE scores: {mask_pce.sum()}/{len(pce_scores)} ({mask_pce.sum()/len(pce_scores)*100:.1f}%)")
     print(f"Patients with valid PREVENT scores: {mask_prevent.sum()}/{len(prevent_scores)} ({mask_prevent.sum()/len(prevent_scores)*100:.1f}%)")
+    print(f"Patients with valid QRISK3 scores: {mask_qrisk3.sum()}/{len(qrisk3_scores)} ({mask_qrisk3.sum()/len(qrisk3_scores)*100:.1f}%)")
+    
+    # Warn if QRISK3 has unusually high coverage (might indicate imputation)
+    qrisk3_coverage = mask_qrisk3.sum() / len(qrisk3_scores) * 100
+    if qrisk3_coverage > 90:
+        print(f"  ⚠️  WARNING: QRISK3 has {qrisk3_coverage:.1f}% coverage - this may indicate imputed values.")
+        print(f"     Only truly valid (non-imputed) QRISK3 scores should be used for fair comparison.")
     
     # Calculate AUCs
     results = {}
@@ -486,6 +499,46 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
         print(f"  Aladynoulli: {our_auc_male:.4f} ({our_ci_lower_male:.4f}-{our_ci_upper_male:.4f})")
         print(f"  N patients:  {len(our_10yr_risks_male)}")
         print(f"  N events:    {actual_10yr_male.sum()}")
+    
+    # ALL PATIENTS RESULTS (Aladynoulli only, no Gail comparison since Gail doesn't apply to men)
+    # Combine female and male results
+    parts_to_combine_risks = []
+    parts_to_combine_actual = []
+    
+    # Add female results if available
+    if len(gail_scores) > 0:
+        parts_to_combine_risks.append(our_10yr_risks_female)
+        parts_to_combine_actual.append(actual_10yr_female)
+    
+    # Add male results if available
+    if len(our_10yr_risks_male) > 0:
+        parts_to_combine_risks.append(our_10yr_risks_male)
+        parts_to_combine_actual.append(actual_10yr_male)
+    
+    if len(parts_to_combine_risks) > 0:
+        our_10yr_risks_all = np.concatenate(parts_to_combine_risks)
+        actual_10yr_all = np.concatenate(parts_to_combine_actual)
+        
+        our_auc_all, our_ci_lower_all, our_ci_upper_all = bootstrap_auc_ci(
+            actual_10yr_all, our_10yr_risks_all, n_bootstraps
+        )
+        
+        results['Breast_Cancer_10yr_All'] = {
+            'Aladynoulli_AUC': our_auc_all,
+            'Aladynoulli_CI_lower': our_ci_lower_all,
+            'Aladynoulli_CI_upper': our_ci_upper_all,
+            'Gail_AUC': np.nan,  # Gail doesn't apply to all (includes men)
+            'Gail_CI_lower': np.nan,
+            'Gail_CI_upper': np.nan,
+            'Difference': np.nan,
+            'N_patients': len(our_10yr_risks_all),
+            'N_events': actual_10yr_all.sum()
+        }
+        
+        print(f"\n10-YEAR BREAST CANCER PREDICTION (ALL PATIENTS - Aladynoulli only, Gail N/A for males):")
+        print(f"  Aladynoulli: {our_auc_all:.4f} ({our_ci_lower_all:.4f}-{our_ci_upper_all:.4f})")
+        print(f"  N patients:  {len(our_10yr_risks_all)}")
+        print(f"  N events:    {actual_10yr_all.sum()}")
     
     return results
 
