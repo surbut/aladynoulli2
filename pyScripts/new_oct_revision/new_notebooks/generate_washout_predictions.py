@@ -46,7 +46,7 @@ def main():
         pi_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/pi_enroll_fixedphi_sex_FULL.pt'
         approach_name = 'pooled_enrollment'
     elif args.approach == 'pooled_retrospective':
-        pi_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_predictions_fixedphi_RETROSPECTIVE_pooled/pi_enroll_fixedphi_sex_FULL.pt'
+        pi_path = '/Users/sarahurbut/Downloads/pi_full_400k.pt'
         approach_name = 'pooled_retrospective'
     
     # Create output directory
@@ -96,11 +96,37 @@ def main():
     if not (N == Y_full.shape[0] == E_full.shape[0] == len(pce_df_full)):
         raise ValueError(f"Size mismatch after subsetting! pi: {N}, Y: {Y_full.shape[0]}, E: {E_full.shape[0]}, pce_df: {len(pce_df_full)}")
     
+    # Check if results already exist
+    expected_files = [output_dir / f'washout_{offset}yr_results.csv' for offset in [0, 1, 2]]
+    comparison_file = output_dir / 'washout_comparison_all_offsets.csv'
+    all_exist = all(f.exists() for f in expected_files) and comparison_file.exists()
+    
+    if all_exist:
+        print("\n" + "="*80)
+        print("RESULTS ALREADY EXIST - SKIPPING REGENERATION")
+        print("="*80)
+        print(f"Found existing results in: {output_dir}")
+        for f in expected_files:
+            print(f"  ✓ {f.name}")
+        print(f"  ✓ {comparison_file.name}")
+        print("\nTo regenerate, delete the existing result files first.")
+        return
+    
     # Process each washout period
     washout_results = {}
     
     for offset in [0, 1, 2]:
         washout_name = f'{offset}yr'
+        output_file = output_dir / f'washout_{washout_name}_results.csv'
+        
+        # Skip if this specific result already exists
+        if output_file.exists():
+            print(f"\n{'='*80}")
+            print(f"SKIPPING WASHOUT: {washout_name} (already exists)")
+            print(f"{'='*80}")
+            print(f"  File exists: {output_file}")
+            continue
+        
         print(f"\n{'='*80}")
         print(f"PROCESSING WASHOUT: {washout_name}")
         print(f"{'='*80}")
@@ -130,7 +156,6 @@ def main():
         })
         results_df = results_df.set_index('Disease').sort_values('AUC', ascending=False)
         
-        output_file = output_dir / f'washout_{washout_name}_results.csv'
         results_df.to_csv(output_file)
         print(f"\n✓ Saved results to {output_file}")
     

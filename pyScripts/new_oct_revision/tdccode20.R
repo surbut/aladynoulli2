@@ -675,7 +675,8 @@ ggplot(newcox2, aes(x = auc_without_noulli, y = auc_with_noulli, color = as.fact
   )
 
 
-
+## combined all the aucs and no noulli
+write.csv(mg,"allwithnoullipooledoldcox1121.csv",row.names = FALSE,quote = FALSE)
 
 ggplot(newcox, aes(x = auc_without_noulli, y = auc_with_noulli, color = as.factor(disease_group))) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray60", linewidth = 0.7, alpha = 0.7) +

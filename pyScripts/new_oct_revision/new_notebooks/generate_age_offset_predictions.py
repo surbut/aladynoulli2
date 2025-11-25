@@ -11,8 +11,8 @@ This script evaluates 1-year predictions using models trained at different time 
 For each offset, computes 1-year risk predictions and evaluates AUC.
 
 Usage:
-    python generate_age_offset_predictions.py --approach pooled_retrospective
-    python generate_age_offset_predictions.py --approach pooled_enrollment --max_offset 5
+    python generate_age_offset_predictions.py --approach pooled_retrospective  # AWS/remote version
+    python generate_age_offset_predictions.py --approach pooled_retrospective_local  # Local version
 """
 
 import argparse
@@ -65,7 +65,7 @@ def generate_age_offset_predictions(approach='pooled_retrospective', max_offset=
     Generate age offset predictions for batch 0-10000.
     
     Args:
-        approach: 'pooled_retrospective' or 'pooled_enrollment'
+        approach: 'pooled_retrospective' (AWS/remote) or 'pooled_retrospective_local' (local)
         max_offset: Maximum offset (0-9, default 9)
         start_idx: Start index for batch (default 0)
         end_idx: End index for batch (default 10000)
@@ -87,12 +87,12 @@ def generate_age_offset_predictions(approach='pooled_retrospective', max_offset=
         # Files from AWS run (downloaded to Downloads)
         pi_base_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/age_offset_files')
         pi_filename_pattern = 'pi_enroll_fixedphi_age_offset_{k}_sex_{start}_{end}_try2_withpcs_newrun.pt'
-    elif approach == 'pooled_enrollment':
-        # For enrollment, use similar pattern (adjust path as needed)
-        pi_base_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/age_offset_files')
-        pi_filename_pattern = 'pi_enroll_fixedphi_age_offset_{k}_sex_{start}_{end}_try2_withpcs_newrun.pt'
+    elif approach == 'pooled_retrospective_local':
+        # Files from local run
+        pi_base_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_offset_using_pooled_retrospective_local')
+        pi_filename_pattern = 'pi_enroll_fixedphi_age_offset_{k}_sex_{start}_{end}_try2_withpcs_newrun_pooledall.pt'
     else:
-        raise ValueError(f"Unknown approach: {approach}")
+        raise ValueError(f"Unknown approach: {approach}. Use 'pooled_retrospective' (AWS) or 'pooled_retrospective_local' (local)")
     
     # Load all pi batches for offsets 0 to max_offset
     print(f"\nLoading pi batches for offsets 0-{max_offset}...")
@@ -174,8 +174,8 @@ def generate_age_offset_predictions(approach='pooled_retrospective', max_offset=
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate age offset predictions.")
     parser.add_argument('--approach', type=str, required=True,
-                        choices=['pooled_retrospective', 'pooled_enrollment'],
-                        help="Approach type: 'pooled_retrospective' or 'pooled_enrollment'")
+                        choices=['pooled_retrospective', 'pooled_retrospective_local'],
+                        help="Approach type: 'pooled_retrospective' (AWS/remote) or 'pooled_retrospective_local' (local)")
     parser.add_argument('--max_offset', type=int, default=9,
                         help="Maximum offset (0-9, default: 9)")
     parser.add_argument('--start_idx', type=int, default=0,
@@ -191,4 +191,3 @@ if __name__ == "__main__":
         start_idx=args.start_idx,
         end_idx=args.end_idx
     )
-

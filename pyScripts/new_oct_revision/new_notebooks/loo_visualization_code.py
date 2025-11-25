@@ -188,3 +188,4 @@ for pred_type in df_loo['prediction_type'].unique():
     print(f"  Comparisons < 0.01: {(pred_data['difference'] < 0.01).sum()}/{len(pred_data)} ({(pred_data['difference'] < 0.01).sum()/len(pred_data)*100:.1f}%)")
 print("\n" + "="*80)
 
+

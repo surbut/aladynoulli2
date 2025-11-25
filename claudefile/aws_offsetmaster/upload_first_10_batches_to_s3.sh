@@ -24,3 +24,4 @@ aws s3 cp aws_first_10_batches_models.tar.gz s3://sarah-research-aladynoulli/dat
 
 echo "Done! File uploaded to: s3://sarah-research-aladynoulli/data_for_running/aws_first_10_batches_models.tar.gz"
 
+
