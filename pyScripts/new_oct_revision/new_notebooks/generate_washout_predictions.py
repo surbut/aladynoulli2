@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""
+Generate washout predictions (1-year predictions with 0yr, 1yr, 2yr offsets) using pre-computed pi tensor.
+
+This script processes all patients at once using the full pi tensor.
+
+Usage:
+    python generate_washout_predictions.py --approach pooled_retrospective
+    python generate_washout_predictions.py --approach pooled_enrollment
+"""
+
+import argparse
+import sys
+import os
+import torch
+import pandas as pd
+import numpy as np
+from pathlib import Path
+
+# Add path for imports
+sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/')
+from evaluatetdccode import evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex
+
+# Load essentials (disease names, etc.)
+def load_essentials():
+    """Load model essentials including disease names"""
+    essentials_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/model_essentials.pt'
+    essentials = torch.load(essentials_path, weights_only=False)
+    return essentials
+
+def main():
+    parser = argparse.ArgumentParser(description='Generate washout predictions from pre-computed pi')
+    parser.add_argument('--approach', type=str, required=True,
+                       choices=['pooled_enrollment', 'pooled_retrospective'],
+                       help='Which approach to use')
+    parser.add_argument('--n_bootstraps', type=int, default=100,
+                       help='Number of bootstrap iterations')
+    parser.add_argument('--output_dir', type=str,
+                       default='/Users/sarahurbut/aladynoulli2/pyScripts/new_oct_revision/new_notebooks/results/washout/',
+                       help='Output directory for results')
+    
+    args = parser.parse_args()
+    
+    # Set up paths based on approach
+    if args.approach == 'pooled_enrollment':
+        pi_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_ENROLLMENT_pooled/pi_enroll_fixedphi_sex_FULL.pt'
+        approach_name = 'pooled_enrollment'
+    elif args.approach == 'pooled_retrospective':
+        pi_path = '/Users/sarahurbut/Downloads/pi_full_400k.pt'
+        approach_name = 'pooled_retrospective'
+    
+    # Create output directory
+    output_dir = Path(args.output_dir) / approach_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    print("="*80)
+    print(f"GENERATING WASHOUT PREDICTIONS: {approach_name.upper()}")
+    print("="*80)
+    print(f"Pi tensor: {pi_path}")
+    print(f"Washout periods: 0yr, 1yr, 2yr")
+    print(f"Output directory: {output_dir}")
+    print("="*80)
+    
+    # Load data
+    print("\nLoading data...")
+    pi_full = torch.load(pi_path, weights_only=False)
+    Y_full = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/Y_tensor.pt', weights_only=False)
+    E_full = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_enrollment_full.pt', weights_only=False)
+    pce_df_full = pd.read_csv('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pce_prevent_full.csv')
+    essentials = load_essentials()
+    disease_names = essentials['disease_names']
+    
+    # Convert Sex column to numeric if needed
+    if 'Sex' in pce_df_full.columns and pce_df_full['Sex'].dtype == 'object':
+        pce_df_full['sex'] = pce_df_full['Sex'].map({'Female': 0, 'Male': 1}).astype(int)
+    elif 'sex' not in pce_df_full.columns:
+        raise ValueError("Need 'Sex' or 'sex' column in pce_df")
+    
+    print(f"Loaded pi tensor: {pi_full.shape}")
+    print(f"Loaded Y tensor: {Y_full.shape}")
+    print(f"Loaded E tensor: {E_full.shape}")
+    print(f"Loaded pce_df: {len(pce_df_full)} patients")
+    
+    # Cap at 400K patients (explicit subsetting)
+    MAX_PATIENTS = 400000
+    print(f"\nSubsetting to first {MAX_PATIENTS} patients...")
+    pi_full = pi_full[:MAX_PATIENTS]
+    Y_full = Y_full[:MAX_PATIENTS]
+    E_full = E_full[:MAX_PATIENTS]
+    pce_df_full = pce_df_full.iloc[:MAX_PATIENTS].reset_index(drop=True)
+    
+    print(f"After subsetting: pi: {pi_full.shape[0]}, Y: {Y_full.shape[0]}, E: {E_full.shape[0]}, pce_df: {len(pce_df_full)}")
+    
+    # Verify sizes match after subsetting
+    N = pi_full.shape[0]
+    if not (N == Y_full.shape[0] == E_full.shape[0] == len(pce_df_full)):
+        raise ValueError(f"Size mismatch after subsetting! pi: {N}, Y: {Y_full.shape[0]}, E: {E_full.shape[0]}, pce_df: {len(pce_df_full)}")
+    
+    # Check if results already exist
+    expected_files = [output_dir / f'washout_{offset}yr_results.csv' for offset in [0, 1, 2]]
+    comparison_file = output_dir / 'washout_comparison_all_offsets.csv'
+    all_exist = all(f.exists() for f in expected_files) and comparison_file.exists()
+    
+    if all_exist:
+        print("\n" + "="*80)
+        print("RESULTS ALREADY EXIST - SKIPPING REGENERATION")
+        print("="*80)
+        print(f"Found existing results in: {output_dir}")
+        for f in expected_files:
+            print(f"  ✓ {f.name}")
+        print(f"  ✓ {comparison_file.name}")
+        print("\nTo regenerate, delete the existing result files first.")
+        return
+    
+    # Process each washout period
+    washout_results = {}
+    
+    for offset in [0, 1, 2]:
+        washout_name = f'{offset}yr'
+        output_file = output_dir / f'washout_{washout_name}_results.csv'
+        
+        # Skip if this specific result already exists
+        if output_file.exists():
+            print(f"\n{'='*80}")
+            print(f"SKIPPING WASHOUT: {washout_name} (already exists)")
+            print(f"{'='*80}")
+            print(f"  File exists: {output_file}")
+            continue
+        
+        print(f"\n{'='*80}")
+        print(f"PROCESSING WASHOUT: {washout_name}")
+        print(f"{'='*80}")
+        
+        print(f"Evaluating 1-year predictions with {offset}-year washout...")
+        results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex(
+            pi=pi_full,
+            Y_100k=Y_full,
+            E_100k=E_full,
+            disease_names=disease_names,
+            pce_df=pce_df_full,
+            n_bootstraps=args.n_bootstraps,
+            follow_up_duration_years=1,
+            start_offset=offset
+        )
+        
+        washout_results[washout_name] = results
+        
+        # Save individual results
+        results_df = pd.DataFrame({
+            'Disease': list(results.keys()),
+            'AUC': [r['auc'] for r in results.values()],
+            'CI_lower': [r['ci_lower'] for r in results.values()],
+            'CI_upper': [r['ci_upper'] for r in results.values()],
+            'N_Events': [r['n_events'] for r in results.values()],
+            'Event_Rate': [r['event_rate'] for r in results.values()]
+        })
+        results_df = results_df.set_index('Disease').sort_values('AUC', ascending=False)
+        
+        results_df.to_csv(output_file)
+        print(f"\n✓ Saved results to {output_file}")
+    
+    # Create combined comparison file
+    print(f"\n{'='*80}")
+    print("CREATING COMBINED WASHOUT COMPARISON FILE")
+    print(f"{'='*80}")
+    
+    all_diseases = set()
+    for results in washout_results.values():
+        all_diseases.update(results.keys())
+    
+    comparison_df = pd.DataFrame(index=sorted(all_diseases))
+    for washout_name, results in washout_results.items():
+        comparison_df[f'{washout_name}_AUC'] = [results.get(d, {}).get('auc', np.nan) for d in comparison_df.index]
+        comparison_df[f'{washout_name}_CI_lower'] = [results.get(d, {}).get('ci_lower', np.nan) for d in comparison_df.index]
+        comparison_df[f'{washout_name}_CI_upper'] = [results.get(d, {}).get('ci_upper', np.nan) for d in comparison_df.index]
+    
+    comparison_file = output_dir / 'washout_comparison_all_offsets.csv'
+    comparison_df.to_csv(comparison_file)
+    print(f"✓ Saved combined comparison to {comparison_file}")
+    
+    print(f"\n{'='*80}")
+    print("COMPLETED SUCCESSFULLY")
+    print(f"{'='*80}")
+    print(f"Results saved to: {output_dir}")
+    for washout_name in washout_results.keys():
+        print(f"  - washout_{washout_name}_results.csv")
+    print(f"  - washout_comparison_all_offsets.csv")
+
+if __name__ == '__main__':
+    main()
+
