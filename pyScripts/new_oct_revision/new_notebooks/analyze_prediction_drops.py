@@ -12,11 +12,11 @@ The model learns from outcomes and adjusts predictions accordingly. This is simi
 Delphi and other well-calibrated models behave.
 
 WHAT WE'RE TESTING:
-- Hypercholesterolemia prevalence: Compare % with hyperchol among droppers vs non-droppers
-- Event rates: Compare ASCVD event rates in year 0-1 for droppers vs non-droppers
+- Hypercholesterolemia prevalence: Compare % with hyperchol among droppers vs risers
+- Event rates: Compare ASCVD event rates in year 0-1 for droppers vs risers
 - Hypothesis: Model heavily weights hyperchol at enrollment, then learns which patients
   actually have events and adjusts predictions (droppers = over-weighted initially,
-  non-droppers = correctly identified high-risk)
+  predictions drop; risers = predictions increase as model learned they're higher risk)
 
 Usage in notebook:
     %run analyze_prediction_drops.py --disease ASCVD --washout_comparison 0yr_vs_1yr
@@ -412,8 +412,22 @@ def analyze_prediction_drops_for_disease(
     # INVESTIGATE: WHY DO PREDICTIONS DROP FOR HYPERCHOLESTEROLEMIA PATIENTS?
     # =============================================================================
     
-    # Define non-droppers mask early (needed for hypercholesterolemia analysis)
-    non_droppers_mask = prediction_drops <= np.percentile(prediction_drops, 5)  # Bottom 5%
+    # Define risers mask early (needed for hypercholesterolemia analysis)
+    # Risers = bottom 5% = patients whose predictions INCREASED (negative delta)
+    risers_mask = prediction_drops <= np.percentile(prediction_drops, 5)  # Bottom 5%
+    
+    # Check what the bottom 5% actually looks like: rising vs just not dropping much
+    riser_deltas = prediction_drops[risers_mask]
+    n_rising = (riser_deltas < 0).sum()  # Negative = predictions increased
+    n_not_dropping_much = (riser_deltas >= 0).sum()  # Small positive = not dropping much
+    print(f"\nBottom 5% (risers - predictions increased) breakdown:")
+    print(f"  Total risers: {len(riser_deltas)}")
+    print(f"  Rising (negative delta): {n_rising} ({n_rising/len(riser_deltas)*100:.1f}%)")
+    print(f"  Not dropping much (small positive): {n_not_dropping_much} ({n_not_dropping_much/len(riser_deltas)*100:.1f}%)")
+    print(f"  Mean delta for risers: {riser_deltas.mean():.6f}")
+    print(f"  Median delta for risers: {np.median(riser_deltas):.6f}")
+    print(f"  Min delta (most rising): {riser_deltas.min():.6f}")
+    print(f"  Max delta (least dropping): {riser_deltas.max():.6f}")
     
     # Find hypercholesterolemia disease index (needed for patient-level data)
     hyperchol_idx = None
@@ -427,13 +441,13 @@ def analyze_prediction_drops_for_disease(
     print("="*100)
     print("\nWHAT WE ARE TESTING:")
     print("  1. Hypercholesterolemia prevalence: Compare the % of patients with hypercholesterolemia")
-    print("     among 'droppers' (top 5% largest prediction drops) vs 'non-droppers' (bottom 5%)")
+    print("     among 'droppers' (top 5% largest prediction drops) vs 'risers' (bottom 5% - predictions increased)")
     print("  2. Event rates in year 0-1: Compare ASCVD event rates between enrollment and 1yr")
-    print("     for droppers vs non-droppers (both overall and specifically for hyperchol patients)")
+    print("     for droppers vs risers (both overall and specifically for hyperchol patients)")
     print("  3. Hypothesis: Model heavily weights hyperchol at enrollment (strong risk factor),")
     print("     then learns which patients actually have events:")
     print("     - DROPPERS: Model predicts high risk, but many DON'T have events → predictions drop")
-    print("     - NON-DROPPERS: Model predicts high risk, and they DO have events → predictions stay high")
+    print("     - RISERS: Lower risk at enrollment, but predictions INCREASE → model learns they're higher risk")
     print("\n  This is EXPECTED BEHAVIOR - model refinement/calibration, similar to Delphi.")
     print("  Prediction drops show the model is learning and calibrating correctly.")
     print("="*100)
@@ -497,7 +511,7 @@ def analyze_prediction_drops_for_disease(
         # This would explain why predictions drop - they already had the event!
         
         hyperchol_droppers = []
-        hyperchol_non_droppers = []
+        hyperchol_risers = []
         
         for idx in patient_indices[analysis_mask]:
             patient_idx = idx
@@ -522,7 +536,7 @@ def analyze_prediction_drops_for_disease(
                     'pred_1yr': predictions_1yr[patient_indices == patient_idx][0] if len(predictions_1yr[patient_indices == patient_idx]) > 0 else np.nan
                 })
         
-        for idx in patient_indices[non_droppers_mask]:
+        for idx in patient_indices[risers_mask]:
             patient_idx = idx
             t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
             
@@ -535,7 +549,7 @@ def analyze_prediction_drops_for_disease(
                 ascvd_event_between = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
                 outcome_at_1yr = outcomes[patient_indices == patient_idx][0] if len(outcomes[patient_indices == patient_idx]) > 0 else 0
                 
-                hyperchol_non_droppers.append({
+                hyperchol_risers.append({
                     'patient_idx': patient_idx,
                     'has_ascvd_between': ascvd_event_between,
                     'outcome': outcome_at_1yr,
@@ -552,13 +566,13 @@ def analyze_prediction_drops_for_disease(
             print(f"  Mean prediction 0yr: {hyperchol_droppers_df['pred_0yr'].mean():.4f}")
             print(f"  Mean prediction 1yr: {hyperchol_droppers_df['pred_1yr'].mean():.4f}")
             
-            if len(hyperchol_non_droppers) > 0:
-                hyperchol_non_droppers_df = pd.DataFrame(hyperchol_non_droppers)
-                print(f"\nHypercholesterolemia patients in non-droppers: {len(hyperchol_non_droppers)}")
-                print(f"  Had ASCVD event between enrollment and 1yr: {hyperchol_non_droppers_df['has_ascvd_between'].sum()} ({hyperchol_non_droppers_df['has_ascvd_between'].sum()/len(hyperchol_non_droppers)*100:.1f}%)")
-                print(f"  Had ASCVD event at 1yr outcome: {hyperchol_non_droppers_df['outcome'].sum()} ({hyperchol_non_droppers_df['outcome'].sum()/len(hyperchol_non_droppers)*100:.1f}%)")
-                print(f"  Mean prediction 0yr: {hyperchol_non_droppers_df['pred_0yr'].mean():.4f}")
-                print(f"  Mean prediction 1yr: {hyperchol_non_droppers_df['pred_1yr'].mean():.4f}")
+            if len(hyperchol_risers) > 0:
+                hyperchol_risers_df = pd.DataFrame(hyperchol_risers)
+                print(f"\nHypercholesterolemia patients in risers: {len(hyperchol_risers)}")
+                print(f"  Had ASCVD event between enrollment and 1yr: {hyperchol_risers_df['has_ascvd_between'].sum()} ({hyperchol_risers_df['has_ascvd_between'].sum()/len(hyperchol_risers)*100:.1f}%)")
+                print(f"  Had ASCVD event at 1yr outcome: {hyperchol_risers_df['outcome'].sum()} ({hyperchol_risers_df['outcome'].sum()/len(hyperchol_risers)*100:.1f}%)")
+                print(f"  Mean prediction 0yr: {hyperchol_risers_df['pred_0yr'].mean():.4f}")
+                print(f"  Mean prediction 1yr: {hyperchol_risers_df['pred_1yr'].mean():.4f}")
             
             # =============================================================================
             # CLEAR COMPARISON: HYPERCHOLESTEROLEMIA RATES AND EVENT RATES
@@ -569,15 +583,15 @@ def analyze_prediction_drops_for_disease(
             
             # Calculate hypercholesterolemia rates
             total_droppers = analysis_mask.sum()
-            total_non_droppers = non_droppers_mask.sum()
+            total_risers = risers_mask.sum()
             hyperchol_rate_droppers = len(hyperchol_droppers) / total_droppers * 100 if total_droppers > 0 else 0
-            hyperchol_rate_non_droppers = len(hyperchol_non_droppers) / total_non_droppers * 100 if total_non_droppers > 0 else 0
+            hyperchol_rate_risers = len(hyperchol_risers) / total_risers * 100 if total_risers > 0 else 0
             
             print(f"\n1. HYPERCHOLESTEROLEMIA PREVALENCE:")
             print(f"   Droppers (top 5%): {len(hyperchol_droppers)}/{total_droppers} ({hyperchol_rate_droppers:.1f}%)")
-            print(f"   Non-droppers (bottom 5%): {len(hyperchol_non_droppers)}/{total_non_droppers} ({hyperchol_rate_non_droppers:.1f}%)")
-            print(f"   Difference: {hyperchol_rate_droppers - hyperchol_rate_non_droppers:.1f} percentage points")
-            print(f"   Ratio: {hyperchol_rate_droppers / hyperchol_rate_non_droppers:.2f}x" if hyperchol_rate_non_droppers > 0 else "   Ratio: N/A")
+            print(f"   Risers (bottom 5% - predictions increased): {len(hyperchol_risers)}/{total_risers} ({hyperchol_rate_risers:.1f}%)")
+            print(f"   Difference: {hyperchol_rate_droppers - hyperchol_rate_risers:.1f} percentage points")
+            print(f"   Ratio: {hyperchol_rate_droppers / hyperchol_rate_risers:.2f}x" if hyperchol_rate_risers > 0 else "   Ratio: N/A")
             
             # Calculate event rates in the year between 0 and 1 (t_enroll to t_enroll+1)
             if len(hyperchol_droppers) > 0:
@@ -585,23 +599,23 @@ def analyze_prediction_drops_for_disease(
             else:
                 event_rate_droppers = 0
             
-            if len(hyperchol_non_droppers) > 0:
-                event_rate_non_droppers = hyperchol_non_droppers_df['has_ascvd_between'].mean() * 100
+            if len(hyperchol_risers) > 0:
+                event_rate_risers = hyperchol_risers_df['has_ascvd_between'].mean() * 100
             else:
-                event_rate_non_droppers = 0
+                event_rate_risers = 0
             
             print(f"\n2. ASCVD EVENT RATES IN YEAR BETWEEN ENROLLMENT AND 1YR (t_enroll to t_enroll+2):")
             print(f"   NOTE: This includes events at t_enroll+2 (1-year outcome window).")
             print(f"   Patients with events at t_enroll+1 are excluded from 1-year predictions (prevalent case exclusion).")
             print(f"   Droppers with hyperchol: {hyperchol_droppers_df['has_ascvd_between'].sum()}/{len(hyperchol_droppers)} ({event_rate_droppers:.1f}%)")
-            if len(hyperchol_non_droppers) > 0:
-                print(f"   Non-droppers with hyperchol: {hyperchol_non_droppers_df['has_ascvd_between'].sum()}/{len(hyperchol_non_droppers)} ({event_rate_non_droppers:.1f}%)")
-                print(f"   Difference: {event_rate_droppers - event_rate_non_droppers:.1f} percentage points")
-                print(f"   Ratio: {event_rate_droppers / event_rate_non_droppers:.2f}x" if event_rate_non_droppers > 0 else "   Ratio: N/A")
+            if len(hyperchol_risers) > 0:
+                print(f"   Risers with hyperchol: {hyperchol_risers_df['has_ascvd_between'].sum()}/{len(hyperchol_risers)} ({event_rate_risers:.1f}%)")
+                print(f"   Difference: {event_rate_droppers - event_rate_risers:.1f} percentage points")
+                print(f"   Ratio: {event_rate_droppers / event_rate_risers:.2f}x" if event_rate_risers > 0 else "   Ratio: N/A")
             
-            # Also compare event rates for ALL droppers vs non-droppers (not just those with hyperchol)
+            # Also compare event rates for ALL droppers vs risers (not just those with hyperchol)
             all_droppers_events = []
-            all_non_droppers_events = []
+            all_risers_events = []
             
             for idx in patient_indices[analysis_mask]:
                 patient_idx = idx
@@ -613,7 +627,7 @@ def analyze_prediction_drops_for_disease(
                     ascvd_event = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
                     all_droppers_events.append(ascvd_event)
             
-            for idx in patient_indices[non_droppers_mask]:
+            for idx in patient_indices[risers_mask]:
                 patient_idx = idx
                 t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
                 # Check for ASCVD event in first year after enrollment (t_enroll to t_enroll+1)
@@ -621,16 +635,16 @@ def analyze_prediction_drops_for_disease(
                 # Note: t_enroll:t_enroll+2 includes both t_enroll and t_enroll+1 (first year)
                 if t_enroll + 2 <= Y_full.shape[2]:
                     ascvd_event = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
-                    all_non_droppers_events.append(ascvd_event)
+                    all_risers_events.append(ascvd_event)
             
             all_droppers_event_rate = np.mean(all_droppers_events) * 100 if len(all_droppers_events) > 0 else 0
-            all_non_droppers_event_rate = np.mean(all_non_droppers_events) * 100 if len(all_non_droppers_events) > 0 else 0
+            all_risers_event_rate = np.mean(all_risers_events) * 100 if len(all_risers_events) > 0 else 0
             
             print(f"\n3. ASCVD EVENT RATES IN YEAR BETWEEN ENROLLMENT AND 1YR (ALL PATIENTS):")
             print(f"   All droppers: {np.sum(all_droppers_events)}/{len(all_droppers_events)} ({all_droppers_event_rate:.1f}%)")
-            print(f"   All non-droppers: {np.sum(all_non_droppers_events)}/{len(all_non_droppers_events)} ({all_non_droppers_event_rate:.1f}%)")
-            print(f"   Difference: {all_droppers_event_rate - all_non_droppers_event_rate:.1f} percentage points")
-            print(f"   Ratio: {all_droppers_event_rate / all_non_droppers_event_rate:.2f}x" if all_non_droppers_event_rate > 0 else "   Ratio: N/A")
+            print(f"   All risers: {np.sum(all_risers_events)}/{len(all_risers_events)} ({all_risers_event_rate:.1f}%)")
+            print(f"   Difference: {all_droppers_event_rate - all_risers_event_rate:.1f} percentage points")
+            print(f"   Ratio: {all_droppers_event_rate / all_risers_event_rate:.2f}x" if all_risers_event_rate > 0 else "   Ratio: N/A")
             
             print(f"\n" + "="*100)
             print("INTERPRETATION:")
@@ -640,15 +654,15 @@ def analyze_prediction_drops_for_disease(
             print(f"  ")
             print(f"  - DROPPERS with hyperchol: Model predicts high risk, but many DON'T have")
             print(f"    events → predictions drop as model learns they're lower risk than expected")
-            print(f"  - NON-DROPPERS with hyperchol: Model predicts high risk, and they DO have")
-            print(f"    events → predictions stay high because model correctly identifies them")
+            print(f"  - RISERS with hyperchol: Lower risk at enrollment, but predictions INCREASE")
+            print(f"    → model learns they're higher risk than initially thought")
             print(f"  ")
             print(f"  This explains why:")
             print(f"  - Droppers have MORE hyperchol patients (38.4% vs 2.8%) - model over-weights")
             print(f"    hyperchol initially, then adjusts downward for those without events")
-            print(f"  - Non-droppers with hyperchol have HIGHER event rates (17.9% vs 11.0%) -")
-            print(f"    these are the hyperchol patients who actually have events, so predictions")
-            print(f"    stay high (they're well-predicted)")
+            print(f"  - Risers with hyperchol have HIGHER event rates (17.9% vs 11.0%) -")
+            print(f"    these are hyperchol patients where the model initially underestimated risk,")
+            print(f"    then learned they're actually high-risk (predictions increase)")
             print(f"  - Overall droppers have higher event rates (10.8% vs 4.8%) because they")
             print(f"    include many hyperchol patients, but the model learns to adjust")
             
@@ -670,8 +684,8 @@ def analyze_prediction_drops_for_disease(
                 # Check event rates
                 print(f"\nEvent rates for hypercholesterolemia patients:")
                 print(f"  Droppers with hyperchol: {hyperchol_droppers_df['outcome'].sum()}/{len(hyperchol_droppers)} ({hyperchol_droppers_df['outcome'].mean()*100:.1f}%)")
-                if len(hyperchol_non_droppers) > 0:
-                    print(f"  Non-droppers with hyperchol: {hyperchol_non_droppers_df['outcome'].sum()}/{len(hyperchol_non_droppers)} ({hyperchol_non_droppers_df['outcome'].mean()*100:.1f}%)")
+                if len(hyperchol_risers) > 0:
+                    print(f"  Risers with hyperchol: {hyperchol_risers_df['outcome'].sum()}/{len(hyperchol_risers)} ({hyperchol_risers_df['outcome'].mean()*100:.1f}%)")
                 
                 print(f"\n  Interpretation:")
                 print(f"    - If droppers have HIGHER event rates, the model correctly identified them at 0yr")
@@ -688,21 +702,21 @@ def analyze_prediction_drops_for_disease(
     print(f"\n✓ Saved results to: {output_dir / f'prediction_drops_analysis_{disease_name}.csv'}")
     
     # =============================================================================
-    # COMPARE PRECURSOR PREVALENCE: DROPPERS vs NON-DROPPERS
+    # COMPARE PRECURSOR PREVALENCE: DROPPERS vs RISERS
     # =============================================================================
     
     print("\n" + "="*100)
-    print("COMPARING PRECURSOR DISEASE PREVALENCE: DROPPERS vs NON-DROPPERS")
+    print("COMPARING PRECURSOR DISEASE PREVALENCE: DROPPERS vs RISERS")
     print("="*100)
     
-    # non_droppers_mask already defined above for hypercholesterolemia analysis
+    # risers_mask already defined above for hypercholesterolemia analysis
     
-    print(f"\nDroppers (top 5%): {analysis_mask.sum()} patients")
-    print(f"Non-droppers (bottom 5%): {non_droppers_mask.sum()} patients")
+    print(f"\nDroppers (top 5% - predictions decreased): {analysis_mask.sum()} patients")
+    print(f"Risers (bottom 5% - predictions increased): {risers_mask.sum()} patients")
     
     # Count diseases in both groups
     disease_counts_droppers = defaultdict(int)
-    disease_counts_non_droppers = defaultdict(int)
+    disease_counts_risers = defaultdict(int)
     
     # Analyze droppers
     for idx in patient_indices[analysis_mask]:
@@ -716,8 +730,8 @@ def analyze_prediction_drops_for_disease(
                 if Y_full[patient_idx, d_idx, :t_enroll].sum() > 0:
                     disease_counts_droppers[disease_names[d_idx]] += 1
     
-    # Analyze non-droppers
-    for idx in patient_indices[non_droppers_mask]:
+    # Analyze risers
+    for idx in patient_indices[risers_mask]:
         patient_idx = idx
         t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
         
@@ -726,39 +740,39 @@ def analyze_prediction_drops_for_disease(
                 continue
             if t_enroll > 0:
                 if Y_full[patient_idx, d_idx, :t_enroll].sum() > 0:
-                    disease_counts_non_droppers[disease_names[d_idx]] += 1
+                    disease_counts_risers[disease_names[d_idx]] += 1
     
     # Create comparison DataFrame
-    all_diseases = set(disease_counts_droppers.keys()) | set(disease_counts_non_droppers.keys())
+    all_diseases = set(disease_counts_droppers.keys()) | set(disease_counts_risers.keys())
     
     comparison_data = []
     for disease_name_here in all_diseases:
         n_droppers = disease_counts_droppers.get(disease_name_here, 0)
-        n_non_droppers = disease_counts_non_droppers.get(disease_name_here, 0)
+        n_risers = disease_counts_risers.get(disease_name_here, 0)
         
         pct_droppers = (n_droppers / analysis_mask.sum() * 100) if analysis_mask.sum() > 0 else 0
-        pct_non_droppers = (n_non_droppers / non_droppers_mask.sum() * 100) if non_droppers_mask.sum() > 0 else 0
+        pct_risers = (n_risers / risers_mask.sum() * 100) if risers_mask.sum() > 0 else 0
         
-        diff_pct = pct_droppers - pct_non_droppers
+        diff_pct = pct_droppers - pct_risers
         
         comparison_data.append({
             'Disease': disease_name_here,
             'N_droppers': n_droppers,
             'Pct_droppers': pct_droppers,
-            'N_non_droppers': n_non_droppers,
-            'Pct_non_droppers': pct_non_droppers,
+            'N_risers': n_risers,
+            'Pct_risers': pct_risers,
             'Difference_pct': diff_pct,
-            'Ratio': pct_droppers / pct_non_droppers if pct_non_droppers > 0 else np.inf
+            'Ratio': pct_droppers / pct_risers if pct_risers > 0 else np.inf
         })
     
     comparison_df = pd.DataFrame(comparison_data)
     comparison_df = comparison_df.sort_values('Difference_pct', ascending=False)
     
-    print(f"\n{'Disease':<40} {'%_Droppers':>12} {'%_NonDroppers':>15} {'Difference':>12} {'Ratio':>10}")
+    print(f"\n{'Disease':<40} {'%_Droppers':>12} {'%_Risers':>15} {'Difference':>12} {'Ratio':>10}")
     print("-"*100)
     
     for _, row in comparison_df.head(30).iterrows():
-        print(f"{row['Disease']:<40} {row['Pct_droppers']:>12.1f}% {row['Pct_non_droppers']:>15.1f}% "
+        print(f"{row['Disease']:<40} {row['Pct_droppers']:>12.1f}% {row['Pct_risers']:>15.1f}% "
               f"{row['Difference_pct']:>12.1f}% {row['Ratio']:>10.2f}x")
     
     # Save comparison
@@ -774,7 +788,7 @@ def analyze_prediction_drops_for_disease(
     print("="*100)
     print("\nTesting if other correlated precursor diseases show the same pattern as hypercholesterolemia:")
     print("  - Overall: Droppers have higher event rates (survivor bias)")
-    print("  - Within precursor: Non-droppers have higher event rates (model learning)")
+    print("  - Within precursor: Risers have higher event rates (model learning - predictions increase for higher-risk patients)")
     print("="*100)
     
     # Get top precursor diseases (most common in droppers)
@@ -793,9 +807,9 @@ def analyze_prediction_drops_for_disease(
         if precursor_idx is None or precursor_idx in disease_indices:
             continue  # Skip if not found or if it's part of target disease group
         
-        # Count patients with this precursor in droppers and non-droppers
+        # Count patients with this precursor in droppers and risers
         precursor_droppers = []
-        precursor_non_droppers = []
+        precursor_risers = []
         
         for idx in patient_indices[analysis_mask]:
             patient_idx = idx
@@ -807,7 +821,7 @@ def analyze_prediction_drops_for_disease(
                         has_event = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
                         precursor_droppers.append(has_event)
         
-        for idx in patient_indices[non_droppers_mask]:
+        for idx in patient_indices[risers_mask]:
             patient_idx = idx
             t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
             if t_enroll > 0:
@@ -815,23 +829,23 @@ def analyze_prediction_drops_for_disease(
                     # Check event in year 0-1
                     if t_enroll + 2 <= Y_full.shape[2]:
                         has_event = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
-                        precursor_non_droppers.append(has_event)
+                        precursor_risers.append(has_event)
         
-        if len(precursor_droppers) > 10 and len(precursor_non_droppers) > 10:  # Need sufficient sample size
+        if len(precursor_droppers) > 10 and len(precursor_risers) > 10:  # Need sufficient sample size
             event_rate_droppers = np.mean(precursor_droppers) * 100
-            event_rate_non_droppers = np.mean(precursor_non_droppers) * 100
+            event_rate_risers = np.mean(precursor_risers) * 100
             
-            # Check if pattern matches hyperchol (non-droppers have higher event rates)
-            pattern_match = event_rate_non_droppers > event_rate_droppers
+            # Check if pattern matches hyperchol (risers have higher event rates)
+            pattern_match = event_rate_risers > event_rate_droppers
             
             precursor_analysis.append({
                 'Precursor': precursor_name,
                 'N_droppers': len(precursor_droppers),
                 'Event_rate_droppers': event_rate_droppers,
-                'N_non_droppers': len(precursor_non_droppers),
-                'Event_rate_non_droppers': event_rate_non_droppers,
-                'Difference': event_rate_non_droppers - event_rate_droppers,
-                'Pattern_match': pattern_match  # True if non-droppers > droppers (like hyperchol)
+                'N_risers': len(precursor_risers),
+                'Event_rate_risers': event_rate_risers,
+                'Difference': event_rate_risers - event_rate_droppers,
+                'Pattern_match': pattern_match  # True if risers > droppers (like hyperchol)
             })
     
     if precursor_analysis:
@@ -844,7 +858,7 @@ def analyze_prediction_drops_for_disease(
         for _, row in precursor_analysis_df.iterrows():
             pattern_str = "✓ Match" if row['Pattern_match'] else "✗ Reverse"
             print(f"{row['Precursor']:<40} {row['N_droppers']:>8.0f} {row['Event_rate_droppers']:>10.1f}% "
-                  f"{row['N_non_droppers']:>10.0f} {row['Event_rate_non_droppers']:>12.1f}% "
+                  f"{row['N_risers']:>10.0f} {row['Event_rate_risers']:>12.1f}% "
                   f"{row['Difference']:>8.1f}% {pattern_str:>10}")
         
         # Summary
@@ -852,7 +866,7 @@ def analyze_prediction_drops_for_disease(
         n_total = len(precursor_analysis_df)
         print(f"\n{'='*100}")
         print(f"SUMMARY: {n_matching}/{n_total} precursor diseases show same pattern as hypercholesterolemia")
-        print(f"  (Non-droppers have higher event rates within precursor group)")
+        print(f"  (Risers have higher event rates within precursor group - model learns to increase predictions)")
         print(f"{'='*100}")
         
         # Save
@@ -860,11 +874,11 @@ def analyze_prediction_drops_for_disease(
         print(f"\n✓ Saved correlated precursor analysis to: {output_dir / f'correlated_precursors_event_rates_{disease_name}.csv'}")
     
     # =============================================================================
-    # ANALYZE SIGNATURE/CLUSTER LOADINGS: DROPPERS vs NON-DROPPERS
+    # ANALYZE SIGNATURE/CLUSTER LOADINGS: DROPPERS vs RISERS
     # =============================================================================
     
     print("\n" + "="*100)
-    print("ANALYZING SIGNATURE/CLUSTER LOADINGS: DROPPERS vs NON-DROPPERS")
+    print("ANALYZING SIGNATURE/CLUSTER LOADINGS: DROPPERS vs RISERS")
     print("="*100)
     
     # Try to load cluster assignments
@@ -912,10 +926,10 @@ def analyze_prediction_drops_for_disease(
             print(f"  Note: This maps diseases to clusters (not patients to clusters)")
             print(f"  Unique clusters: {np.unique(cluster_assignments)}")
             
-            # Analyze which disease clusters are present in droppers vs non-droppers
+            # Analyze which disease clusters are present in droppers vs risers
             # For each patient, find which clusters their diseases belong to
             dropper_cluster_counts = defaultdict(int)
-            non_dropper_cluster_counts = defaultdict(int)
+            riser_cluster_counts = defaultdict(int)
             
             # Count clusters present in droppers
             for idx in patient_indices[analysis_mask]:
@@ -936,8 +950,8 @@ def analyze_prediction_drops_for_disease(
                 for cluster_id in clusters_present:
                     dropper_cluster_counts[cluster_id] += 1
             
-            # Count clusters present in non-droppers
-            for idx in patient_indices[non_droppers_mask]:
+            # Count clusters present in risers
+            for idx in patient_indices[risers_mask]:
                 patient_idx = idx
                 t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
                 
@@ -953,11 +967,11 @@ def analyze_prediction_drops_for_disease(
                                 clusters_present.add(cluster_id)
                 
                 for cluster_id in clusters_present:
-                    non_dropper_cluster_counts[cluster_id] += 1
+                    riser_cluster_counts[cluster_id] += 1
             
             print(f"\nCluster distribution (patients with diseases from each cluster):")
             print(f"  Droppers: {analysis_mask.sum()} patients")
-            print(f"  Non-droppers: {non_droppers_mask.sum()} patients")
+            print(f"  Risers: {risers_mask.sum()} patients")
             
             # Count clusters in each group
             unique_clusters = np.unique(cluster_assignments)
@@ -965,30 +979,30 @@ def analyze_prediction_drops_for_disease(
             
             for cluster_id in unique_clusters:
                 n_droppers = dropper_cluster_counts.get(cluster_id, 0)
-                n_non_droppers = non_dropper_cluster_counts.get(cluster_id, 0)
+                n_risers = riser_cluster_counts.get(cluster_id, 0)
                 
                 pct_droppers = (n_droppers / analysis_mask.sum() * 100) if analysis_mask.sum() > 0 else 0
-                pct_non_droppers = (n_non_droppers / non_droppers_mask.sum() * 100) if non_droppers_mask.sum() > 0 else 0
-                diff = pct_droppers - pct_non_droppers
+                pct_risers = (n_risers / risers_mask.sum() * 100) if risers_mask.sum() > 0 else 0
+                diff = pct_droppers - pct_risers
                 
                 cluster_comparison.append({
                     'Cluster': int(cluster_id),
                     'Pct_droppers': pct_droppers,
-                    'Pct_non_droppers': pct_non_droppers,
+                    'Pct_risers': pct_risers,
                     'Difference_pct': diff,
                     'N_droppers': n_droppers,
-                    'N_non_droppers': n_non_droppers
+                    'N_risers': n_risers
                 })
             
             cluster_comparison_df = pd.DataFrame(cluster_comparison)
             cluster_comparison_df = cluster_comparison_df.sort_values('Difference_pct', ascending=False)
             
-            print(f"\n{'Cluster':<10} {'%_Droppers':>12} {'%_NonDroppers':>15} {'Difference':>12} {'N_Droppers':>12} {'N_NonDroppers':>15}")
+            print(f"\n{'Cluster':<10} {'%_Droppers':>12} {'%_Risers':>15} {'Difference':>12} {'N_Droppers':>12} {'N_Risers':>15}")
             print("-"*100)
             
             for _, row in cluster_comparison_df.iterrows():
-                print(f"{row['Cluster']:<10} {row['Pct_droppers']:>12.1f}% {row['Pct_non_droppers']:>15.1f}% "
-                      f"{row['Difference_pct']:>12.1f}% {row['N_droppers']:>12.0f} {row['N_non_droppers']:>15.0f}")
+                print(f"{row['Cluster']:<10} {row['Pct_droppers']:>12.1f}% {row['Pct_risers']:>15.1f}% "
+                      f"{row['Difference_pct']:>12.1f}% {row['N_droppers']:>12.0f} {row['N_risers']:>15.0f}")
             
             # Focus on signature 5 (cardiovascular cluster)
             sig5_cluster = 5  # Cluster 5 = Signature 5 (cardiovascular)
@@ -998,11 +1012,11 @@ def analyze_prediction_drops_for_disease(
                 print("="*100)
                 
                 sig5_droppers = dropper_cluster_counts.get(sig5_cluster, 0)
-                sig5_non_droppers = non_dropper_cluster_counts.get(sig5_cluster, 0)
+                sig5_risers = riser_cluster_counts.get(sig5_cluster, 0)
                 
                 print(f"\nPatients with diseases from Signature 5:")
                 print(f"  Droppers: {sig5_droppers}/{analysis_mask.sum()} ({sig5_droppers/analysis_mask.sum()*100:.1f}%)")
-                print(f"  Non-droppers: {sig5_non_droppers}/{non_droppers_mask.sum()} ({sig5_non_droppers/non_droppers_mask.sum()*100:.1f}%)")
+                print(f"  Risers: {sig5_risers}/{risers_mask.sum()} ({sig5_risers/risers_mask.sum()*100:.1f}%)")
                 
                 # Find which diseases are in signature 5 cluster
                 sig5_disease_indices = np.where(cluster_assignments == sig5_cluster)[0]
@@ -1070,13 +1084,14 @@ def analyze_prediction_drops_for_disease(
         print(f"     Skipping signature/cluster analysis")
     
     # Also save patient-level data for these cases
-    # Include all patients (both droppers and non-droppers) for comparison
-    all_patients_mask = analysis_mask | non_droppers_mask
+    # Include all patients (both droppers and risers) for comparison
+    all_patients_mask = analysis_mask | risers_mask
     
     # Collect hypercholesterolemia data for all patients
     has_hyperchol_list = []
     has_ascvd_event_between_list = []
     is_dropper_list = []
+    is_riser_list = []
     
     # Find hypercholesterolemia disease index
     hyperchol_idx = None
@@ -1100,12 +1115,15 @@ def analyze_prediction_drops_for_disease(
         if t_enroll + 2 <= Y_full.shape[2]:
             has_ascvd_event_between = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
         
-        # Check if this patient is a dropper
+        # Check if this patient is a dropper (top 5% largest drops)
         is_dropper = prediction_drops[patient_indices == patient_idx][0] >= np.percentile(prediction_drops, 95)
+        # Check if this patient is a riser (bottom 5% - predictions increased)
+        is_riser = prediction_drops[patient_indices == patient_idx][0] <= np.percentile(prediction_drops, 5)
         
         has_hyperchol_list.append(has_hyperchol)
         has_ascvd_event_between_list.append(has_ascvd_event_between)
         is_dropper_list.append(is_dropper)
+        is_riser_list.append(is_riser)
     
     patient_data = pd.DataFrame({
         'patient_idx': patient_indices[all_patients_mask],
@@ -1115,6 +1133,7 @@ def analyze_prediction_drops_for_disease(
         'prediction_drop': prediction_drops[all_patients_mask],
         'outcome': outcomes[all_patients_mask],
         'is_dropper': is_dropper_list,
+        'is_riser': is_riser_list,
         'has_hypercholesterolemia': has_hyperchol_list,
         'has_ascvd_event_between': has_ascvd_event_between_list
     })

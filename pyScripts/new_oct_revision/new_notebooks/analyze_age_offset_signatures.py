@@ -150,9 +150,10 @@ def load_cluster_assignments():
 
 def analyze_patient_prediction_changes(pi_batches, Y_batch, E_batch, disease_names, 
                                       precursor_diseases, target_disease_name='ASCVD',
-                                      start_idx=0, end_idx=10000):
+                                      start_idx=0, end_idx=10000, cluster_assignments=None):
     """
     Analyze how predictions change across offsets for patients with specific precursors.
+    Accounts for signature/cluster membership to distinguish signature-related precursors.
     
     Parameters:
     -----------
@@ -168,6 +169,8 @@ def analyze_patient_prediction_changes(pi_batches, Y_batch, E_batch, disease_nam
         List of precursor disease names to analyze
     target_disease_name : str
         Target disease to predict (e.g., 'ASCVD')
+    cluster_assignments : numpy array, optional
+        Cluster assignments for diseases, shape [n_diseases]
     """
     
     # Get target disease indices
@@ -193,6 +196,34 @@ def analyze_patient_prediction_changes(pi_batches, Y_batch, E_batch, disease_nam
     for name, idx in precursor_indices.items():
         print(f"  {name}: index {idx}")
     
+    # Find target signature (which signature do ASCVD diseases belong to?)
+    target_signature = None
+    precursor_signature_membership = {}
+    
+    if cluster_assignments is not None and len(cluster_assignments) == len(disease_names):
+        # Find the signature that target diseases belong to (most common)
+        target_signatures = [cluster_assignments[idx] for idx in target_indices if idx < len(cluster_assignments)]
+        if len(target_signatures) > 0:
+            # Use most common signature among target diseases
+            from collections import Counter
+            target_signature = Counter(target_signatures).most_common(1)[0][0]
+            print(f"\n✓ Target diseases belong to Signature {target_signature}")
+        
+        # Check which precursors belong to the same signature
+        for precursor_name, precursor_idx in precursor_indices.items():
+            if precursor_idx < len(cluster_assignments):
+                precursor_sig = cluster_assignments[precursor_idx]
+                precursor_signature_membership[precursor_name] = (precursor_sig == target_signature)
+                if precursor_sig == target_signature:
+                    print(f"  ✓ {precursor_name} belongs to Signature {target_signature} (signature-related)")
+                else:
+                    print(f"  - {precursor_name} belongs to Signature {precursor_sig} (not signature-related)")
+    else:
+        print(f"\n⚠️  Cluster assignments not available or wrong size. Skipping signature analysis.")
+        # Default: assume all precursors are signature-related (conservative)
+        for precursor_name in precursor_indices.keys():
+            precursor_signature_membership[precursor_name] = True
+    
     n_patients = pi_batches[0].shape[0]
     n_offsets = len(pi_batches)
     
@@ -200,9 +231,8 @@ def analyze_patient_prediction_changes(pi_batches, Y_batch, E_batch, disease_nam
     patient_analysis = []
     
     for patient_idx in range(n_patients):
-        # Get enrollment age
-        enroll_age = E_batch[patient_idx, 0].item() if E_batch[patient_idx, 0] > 0 else 30
-        t_enroll = int(enroll_age - 30)
+        # Get enrollment time (E already contains age - 30)
+        t_enroll = int(E_batch[patient_idx, 0].item()) if E_batch[patient_idx, 0] > 0 else 0
         
         if t_enroll < 0 or t_enroll >= pi_batches[0].shape[2]:
             continue
@@ -215,41 +245,111 @@ def analyze_patient_prediction_changes(pi_batches, Y_batch, E_batch, disease_nam
             else:
                 has_precursors[precursor_name] = False
         
-        # Get predictions across all offsets
-        predictions_by_offset = []
-        for offset_idx, pi_offset in enumerate(pi_batches):
-            # Prediction time is t_enroll + offset_idx
-            pred_time = t_enroll + offset_idx
-            
-            if pred_time >= pi_offset.shape[2]:
-                predictions_by_offset.append(np.nan)
-                continue
-            
-            # Get combined risk for target disease group
-            pi_diseases = pi_offset[patient_idx, target_indices, pred_time].numpy()
-            risk = 1 - np.prod(1 - pi_diseases)
-            predictions_by_offset.append(risk)
+        # Compare predictions at SAME timepoint (t_enroll+9) from models with different washout periods
+        # This matches Sasha's question: Predict for age 50 using data from 0-49 vs 0-45
+        target_prediction_time = t_enroll + 9  # Predict 9 years in the future (e.g., age 50)
         
-        # Calculate prediction change (offset 9 - offset 0)
-        if not np.isnan(predictions_by_offset[0]) and not np.isnan(predictions_by_offset[-1]):
-            prediction_change = predictions_by_offset[-1] - predictions_by_offset[0]
+        # Model 1: Trained to t_enroll (9-year washout) - equivalent to "data from age 0-49"
+        # Model 2: Trained to t_enroll+5 (4-year washout) - equivalent to "data from age 0-45"
+        # Both predict at t_enroll+9 (age 50)
+        
+        # Get prediction from model trained to t_enroll (offset 0, 9-year washout)
+        pred_time = target_prediction_time
+        pred_offset_0 = np.nan
+        if pred_time < pi_batches[0].shape[2]:
+            # Check if patient had event before prediction time
+            had_event_before_pred = False
+            if pred_time > t_enroll and pred_time <= Y_batch.shape[2]:
+                had_event_before_pred = Y_batch[patient_idx, target_indices, t_enroll:pred_time].sum().item() > 0
+            
+            if not had_event_before_pred:
+                pi_diseases = pi_batches[0][patient_idx, target_indices, pred_time].numpy()
+                pred_offset_0 = 1 - np.prod(1 - pi_diseases)
+        
+        # Get prediction from model trained to t_enroll+5 (offset 5, 4-year washout)
+        pred_offset_5 = np.nan
+        if len(pi_batches) > 5 and pred_time < pi_batches[5].shape[2]:
+            # Check if patient had event before prediction time
+            had_event_before_pred = False
+            if pred_time > t_enroll and pred_time <= Y_batch.shape[2]:
+                had_event_before_pred = Y_batch[patient_idx, target_indices, t_enroll:pred_time].sum().item() > 0
+            
+            if not had_event_before_pred:
+                pi_diseases = pi_batches[5][patient_idx, target_indices, pred_time].numpy()
+                pred_offset_5 = 1 - np.prod(1 - pi_diseases)
+        
+        # Calculate prediction change (4yr washout vs 9yr washout)
+        if not np.isnan(pred_offset_0) and not np.isnan(pred_offset_5):
+            prediction_change_4yr = pred_offset_5 - pred_offset_0  # 4yr washout - 9yr washout
         else:
-            prediction_change = np.nan
+            prediction_change_4yr = np.nan
         
-        # Check if patient had target event in year after enrollment
+        # Categorize patients based on what happened in washout period (t_enroll+5 to t_enroll+9)
+        # This is the period between the two training cutoffs
+        washout_start = t_enroll + 5
+        washout_end = t_enroll + 9
+        
+        had_outcome_in_washout = False
+        had_precursor_in_washout = {}
+        
+        if washout_end <= Y_batch.shape[2]:
+            # Check for outcome (ASCVD) in washout period
+            had_outcome_in_washout = Y_batch[patient_idx, target_indices, washout_start:washout_end].sum().item() > 0
+            
+            # Check for precursors in washout period
+            for precursor_name, precursor_idx in precursor_indices.items():
+                had_precursor_in_washout[precursor_name] = Y_batch[patient_idx, precursor_idx, washout_start:washout_end].sum().item() > 0
+        
+        # Categorize: Conservative washout (had outcome) vs Accurate washout (had signature-related precursor, no outcome)
+        # Only precursors in the same signature as target disease count as "accurate washout"
+        had_signature_related_precursor = False
+        had_unrelated_precursor = False
+        
+        for precursor_name, had_precursor in had_precursor_in_washout.items():
+            if had_precursor:
+                if precursor_signature_membership.get(precursor_name, False):
+                    had_signature_related_precursor = True
+                else:
+                    had_unrelated_precursor = True
+        
+        washout_category = 'neither'
+        if had_outcome_in_washout:
+            washout_category = 'conservative'  # Had real outcome condition
+        elif had_signature_related_precursor:
+            washout_category = 'accurate'  # Had signature-related pre-clinical condition, no outcome
+        elif had_unrelated_precursor:
+            washout_category = 'unrelated'  # Had precursor but not signature-related
+        
+        # For backward compatibility, also track early events
         if t_enroll + 2 <= Y_batch.shape[2]:
-            had_event = Y_batch[patient_idx, target_indices, t_enroll:t_enroll+2].sum().item() > 0
+            had_event_early = Y_batch[patient_idx, target_indices, t_enroll:t_enroll+2].sum().item() > 0
         else:
-            had_event = False
+            had_event_early = False
+        
+        had_event = had_event_early
+        
+        # Calculate enroll_age from t_enroll (E already contains age - 30, so enroll_age = t_enroll + 30)
+        enroll_age = t_enroll + 30
+        
+        # Track signature-related precursors in washout
+        had_sig_related_precursor_in_washout = False
+        for precursor_name, had_precursor in had_precursor_in_washout.items():
+            if had_precursor and precursor_signature_membership.get(precursor_name, False):
+                had_sig_related_precursor_in_washout = True
+                break
         
         patient_analysis.append({
             'patient_idx': start_idx + patient_idx,
             'enroll_age': enroll_age,
-            'prediction_offset_0': predictions_by_offset[0],
-            'prediction_offset_9': predictions_by_offset[-1],
-            'prediction_change': prediction_change,
-            'had_event': had_event,
-            **has_precursors  # Add all precursor flags
+            'prediction_offset_0': pred_offset_0,  # Model trained to t_enroll (9yr washout), predicts at t_enroll+9
+            'prediction_offset_5': pred_offset_5,  # Model trained to t_enroll+5 (4yr washout), predicts at t_enroll+9
+            'prediction_change_4yr': prediction_change_4yr,  # Change: 4yr washout - 9yr washout (both predict at t_enroll+9)
+            'washout_category': washout_category,  # 'conservative', 'accurate', 'unrelated', or 'neither'
+            'had_outcome_in_washout': had_outcome_in_washout,  # Had ASCVD event in washout period (t_enroll+5 to t_enroll+9)
+            'had_sig_related_precursor_in_washout': had_sig_related_precursor_in_washout,  # Had signature-related precursor in washout
+            'had_event': had_event,  # Had event in first 2 years (for backward compatibility)
+            **has_precursors,  # Add all precursor flags (before enrollment)
+            **{f'had_{k}_in_washout': v for k, v in had_precursor_in_washout.items()}  # Add precursor flags for washout period
         })
     
     return pd.DataFrame(patient_analysis)
@@ -382,8 +482,8 @@ def analyze_signature_changes(pi_batches, Y_batch, E_batch, disease_names,
     signature_changes_by_precursor = defaultdict(lambda: defaultdict(list))
     
     for patient_idx in range(n_patients):
-        enroll_age = E_batch[patient_idx, 0].item() if E_batch[patient_idx, 0] > 0 else 30
-        t_enroll = int(enroll_age - 30)
+        # E already contains age - 30, so use it directly
+        t_enroll = int(E_batch[patient_idx, 0].item()) if E_batch[patient_idx, 0] > 0 else 0
         
         if t_enroll < 0:
             continue
@@ -500,42 +600,141 @@ def analyze_lambda_changes(lambda_by_offset, precursor_indices, target_indices,
     signature_changes_by_precursor = defaultdict(lambda: defaultdict(list))
     
     patients_with_precursors_count = 0
+    precursor_check_debug = {name: 0 for name in precursor_indices.keys()}
+    
+    print(f"  Checking {n_patients} patients for precursors: {list(precursor_indices.keys())}")
+    print(f"  Precursor indices: {precursor_indices}")
+    print(f"  Y_batch shape: {Y_batch.shape}")
+    
+    t_enroll_stats = []
+    for patient_idx in range(n_patients):
+        # E already contains age - 30, so use it directly
+        t_enroll = int(E_batch[patient_idx, 0].item()) if E_batch[patient_idx, 0] > 0 else 0
+        t_enroll_stats.append(t_enroll)
+    
+    print(f"  t_enroll stats: min={min(t_enroll_stats)}, max={max(t_enroll_stats)}, mean={np.mean(t_enroll_stats):.1f}")
+    print(f"  Patients with t_enroll > 0: {sum(1 for t in t_enroll_stats if t > 0)}")
+    print(f"  Patients with t_enroll <= 0: {sum(1 for t in t_enroll_stats if t <= 0)}")
+    
+    # Quick check: do any patients have these precursors at ANY time?
+    for precursor_name, precursor_idx in precursor_indices.items():
+        if precursor_idx < Y_batch.shape[1]:
+            any_time_count = (Y_batch[:, precursor_idx, :].sum(dim=1) > 0).sum().item()
+            print(f"  Patients with {precursor_name} at ANY time: {any_time_count}")
     
     for patient_idx in range(n_patients):
-        enroll_age = E_batch[patient_idx, 0].item() if E_batch[patient_idx, 0] > 0 else 30
-        t_enroll = int(enroll_age - 30)
+        # E already contains age - 30, so use it directly
+        t_enroll = int(E_batch[patient_idx, 0].item()) if E_batch[patient_idx, 0] > 0 else 0
         
         if t_enroll < 0:
             continue
         
-        # Check which precursors this patient has
-        for precursor_name, precursor_idx in precursor_indices.items():
-            if t_enroll > 0:
-                has_precursor = Y_batch[patient_idx, precursor_idx, :t_enroll].sum() > 0
-            else:
-                has_precursor = False
-            
-            if not has_precursor:
+        # Analyze ALL patients (not just those with precursors before enrollment)
+        # We want to check if they developed precursors NEWLY in the washout period
+        # This captures the true pre-clinical signal
+        
+        # Target timepoint: t_enroll + 9 (future prediction)
+        target_timepoint = t_enroll + 9
+        washout_start_4yr = t_enroll + 5  # 4-year washout period
+        washout_start_9yr = t_enroll  # 9-year washout period
+        
+        # Check if target timepoint is valid (within lambda tensor bounds)
+        if target_timepoint >= lambda_by_offset[0].shape[2] if lambda_by_offset[0] is not None else True:
+            continue  # Skip if target timepoint is out of bounds
+        
+        # Get lambda values for this patient across offsets
+        lambda_values_by_offset = []
+        for offset_idx, lambda_offset in enumerate(lambda_by_offset):
+            if lambda_offset is None:
+                lambda_values_by_offset.append(None)
                 continue
             
+            # Extract lambda at the SAME future timepoint (t_enroll+9) from all models
+            pred_time = target_timepoint
+            
+            if lambda_has_time:
+                if pred_time < lambda_offset.shape[2]:
+                    lambda_patient = lambda_offset[patient_idx, :, pred_time]
+                else:
+                    lambda_values_by_offset.append(None)
+                    continue
+            elif lambda_per_disease:
+                lambda_patient = lambda_offset[patient_idx, target_indices, :].mean(dim=0)
+            else:
+                lambda_patient = lambda_offset[patient_idx, :]
+            
+            lambda_values_by_offset.append(lambda_patient.cpu().numpy() if isinstance(lambda_patient, torch.Tensor) else lambda_patient)
+        
+        # Check for outcome events in washout periods
+        had_outcome_event_4yr = False
+        had_outcome_event_9yr = False
+        if target_timepoint <= Y_batch.shape[2]:
+            if washout_start_4yr < target_timepoint:
+                had_outcome_event_4yr = Y_batch[patient_idx, target_indices, washout_start_4yr:target_timepoint].sum().item() > 0
+            if washout_start_9yr < target_timepoint:
+                had_outcome_event_9yr = Y_batch[patient_idx, target_indices, washout_start_9yr:target_timepoint].sum().item() > 0
+        
+        # For each precursor, check if it was NEWLY developed in washout period
+        for precursor_name, precursor_idx in precursor_indices.items():
+            if precursor_idx >= Y_batch.shape[1]:
+                continue  # Skip if precursor index is out of bounds
+            
+            # Check if precursor was present DURING washout period
+            # This includes precursors that were present before OR developed during washout
+            # Both are pre-clinical signals (as long as patient didn't have the outcome)
+            had_precursor_during_4yr = False
+            had_precursor_during_9yr = False
+            if washout_start_4yr < target_timepoint and target_timepoint <= Y_batch.shape[2]:
+                had_precursor_during_4yr = Y_batch[patient_idx, precursor_idx, washout_start_4yr:target_timepoint].sum().item() > 0
+            if washout_start_9yr < target_timepoint and target_timepoint <= Y_batch.shape[2]:
+                had_precursor_during_9yr = Y_batch[patient_idx, precursor_idx, washout_start_9yr:target_timepoint].sum().item() > 0
+            
+            # Track patients for debugging
+            if had_precursor_during_4yr or had_precursor_during_9yr:
+                precursor_check_debug[precursor_name] += 1
+            
+            # Analyze this patient-precursor combination
             patients_with_precursors_count += 1
             
             # Get lambda values for this patient across offsets
-            # For each offset, extract lambda at the appropriate timepoint
+            # KEY COMPARISON: Compare lambda at the SAME future timepoint (t_enroll+9)
+            # from models trained with different amounts of data:
+            # - Offset 0: Model trained up to t_enroll, lambda at t_enroll+9
+            # - Offset 9: Model trained up to t_enroll+9, lambda at t_enroll+9
+            # This isolates model learning: if lambda changes, it's because the model
+            # learned from additional data (ages t_enroll to t_enroll+9), not time progression.
+            # 
+            # If predictions change because patients developed real conditions (ages t_enroll to t_enroll+9),
+            # that's conservative washout. If they change due to pre-clinical conditions detected
+            # in the training data, that's accurate washout.
+            
+            # Target timepoint: t_enroll + 9 (future prediction)
+            # Compare lambda at this SAME absolute timepoint from models trained at different offsets
+            # This shows how predictions for the same future time change as models are trained
+            # with more data (washout analysis)
+            target_timepoint = t_enroll + 9
+            
+            # Check if target timepoint is valid (within lambda tensor bounds)
+            if target_timepoint >= lambda_by_offset[0].shape[2] if lambda_by_offset[0] is not None else True:
+                continue  # Skip if target timepoint is out of bounds
+            
             lambda_values_by_offset = []
             for offset_idx, lambda_offset in enumerate(lambda_by_offset):
                 if lambda_offset is None:
                     lambda_values_by_offset.append(None)
                     continue
                 
-                # Determine timepoint: at offset k, we're predicting at t_enroll + k
-                pred_time = t_enroll + offset_idx
+                # Extract lambda at the SAME future timepoint (t_enroll+9) from all models
+                # Model trained at offset k was trained up to t_enroll+k, but can predict
+                # forward from there. We're comparing predictions at t_enroll+9 from all models.
+                pred_time = target_timepoint
                 
                 if lambda_has_time:
                     # Lambda is [n_patients, n_signatures, n_timepoints]
                     if pred_time < lambda_offset.shape[2]:
                         lambda_patient = lambda_offset[patient_idx, :, pred_time]
                     else:
+                        # Model can't predict this far into the future
                         lambda_values_by_offset.append(None)
                         continue
                 elif lambda_per_disease:
@@ -548,32 +747,115 @@ def analyze_lambda_changes(lambda_by_offset, precursor_indices, target_indices,
                 
                 lambda_values_by_offset.append(lambda_patient.cpu().numpy() if isinstance(lambda_patient, torch.Tensor) else lambda_patient)
             
-            # Calculate change for each signature (offset 9 - offset 0)
-            if lambda_values_by_offset[0] is not None and lambda_values_by_offset[-1] is not None:
-                lambda_change = lambda_values_by_offset[-1] - lambda_values_by_offset[0]
+            # Compare different washout periods:
+            # 1. Full data (offset 9) vs 4-year washout (offset 5): predict at t_enroll+9
+            # 2. Full data (offset 9) vs 9-year washout (offset 0): predict at t_enroll+9
+            # This answers: "Predict for age 50 using data 0-49 vs 0-45"
+            
+            # Comparison 1: 4-year washout (offset 5 vs offset 9)
+            # Predict at t_enroll+9: Model trained up to t_enroll+5 vs t_enroll+9
+            if (lambda_values_by_offset[5] is not None and lambda_values_by_offset[9] is not None):
+                lambda_change_4yr_washout = lambda_values_by_offset[9] - lambda_values_by_offset[5]
                 
-                # Track changes for each signature
                 for sig_idx in range(n_signatures):
-                    signature_changes_by_precursor[precursor_name][f'Signature_{sig_idx}'].append(lambda_change[sig_idx])
+                    key = f'Signature_{sig_idx}_4yr_washout'
+                    signature_changes_by_precursor[precursor_name][key].append({
+                        'change': lambda_change_4yr_washout[sig_idx],
+                        'had_outcome_event': had_outcome_event_4yr,  # Real condition (ASCVD event)
+                        'had_precursor': had_precursor_during_4yr  # Pre-clinical signal (precursor present during washout, whether before or developed during)
+                    })
+            
+            # Comparison 2: 9-year washout (offset 0 vs offset 9)
+            # Predict at t_enroll+9: Model trained up to t_enroll vs t_enroll+9
+            if lambda_values_by_offset[0] is not None and lambda_values_by_offset[9] is not None:
+                lambda_change_9yr_washout = lambda_values_by_offset[9] - lambda_values_by_offset[0]
+                
+                for sig_idx in range(n_signatures):
+                    key = f'Signature_{sig_idx}_9yr_washout'
+                    signature_changes_by_precursor[precursor_name][key].append({
+                        'change': lambda_change_9yr_washout[sig_idx],
+                        'had_outcome_event': had_outcome_event_9yr,  # Real condition (ASCVD event)
+                        'had_precursor': had_precursor_during_9yr  # Pre-clinical signal (precursor present during washout, whether before or developed during)
+                    })
     
     print(f"  Found {patients_with_precursors_count} patient-precursor combinations")
+    print(f"  Patients with each precursor:")
+    for name, count in precursor_check_debug.items():
+        print(f"    {name}: {count} patients")
     
-    # Summarize lambda changes by signature
+    # Summarize lambda changes by signature and washout period
     signature_summary = []
     for precursor_name, sig_changes in signature_changes_by_precursor.items():
         for sig_name, changes in sig_changes.items():
             if len(changes) > 0:
-                signature_summary.append({
-                    'Precursor': precursor_name,
-                    'Signature': sig_name,
-                    'N_patients': len(changes),
-                    'Mean_change': np.mean(changes),
-                    'Median_change': np.median(changes),
-                    'Std_change': np.std(changes),
-                    'Abs_mean_change': np.mean(np.abs(changes))
-                })
+                # Check if changes are dictionaries (with event info) or just values
+                if isinstance(changes[0], dict):
+                    # Extract change values and event flags
+                    change_values = [c['change'] for c in changes]
+                    had_outcome_events = [c.get('had_outcome_event', False) for c in changes]
+                    had_precursors = [c.get('had_precursor', False) for c in changes]
+                    
+                    # Separate patients by condition type:
+                    # 1. WITH outcome events = real condition (conservative washout)
+                    # 2. WITHOUT outcome events BUT WITH precursor = pre-clinical signal (accurate washout)
+                    # 3. WITHOUT outcome events AND WITHOUT precursor = other reasons
+                    changes_with_outcome = [c['change'] for c in changes if c.get('had_outcome_event', False)]
+                    changes_with_precursor_only = [c['change'] for c in changes if not c.get('had_outcome_event', False) and c.get('had_precursor', False)]
+                    changes_without_either = [c['change'] for c in changes if not c.get('had_outcome_event', False) and not c.get('had_precursor', False)]
+                    
+                    signature_summary.append({
+                        'Precursor': precursor_name,
+                        'Signature': sig_name,
+                        'Washout_period': '4yr' if '4yr_washout' in sig_name else '9yr' if '9yr_washout' in sig_name else 'unknown',
+                        'N_patients': len(changes),
+                        'N_with_outcome': sum(had_outcome_events),  # Real conditions (conservative washout)
+                        'N_with_precursor_only': sum([not h_out and h_prec for h_out, h_prec in zip(had_outcome_events, had_precursors)]),  # Pre-clinical signals (accurate washout)
+                        'N_without_either': len(changes) - sum(had_outcome_events) - sum([not h_out and h_prec for h_out, h_prec in zip(had_outcome_events, had_precursors)]),
+                        'Mean_change': np.mean(change_values),
+                        'Mean_change_with_outcome': np.mean(changes_with_outcome) if len(changes_with_outcome) > 0 else np.nan,  # Conservative washout
+                        'Mean_change_with_precursor_only': np.mean(changes_with_precursor_only) if len(changes_with_precursor_only) > 0 else np.nan,  # Accurate washout
+                        'Mean_change_without_either': np.mean(changes_without_either) if len(changes_without_either) > 0 else np.nan,
+                        'Median_change': np.median(change_values),
+                        'Std_change': np.std(change_values),
+                        'Abs_mean_change': np.mean(np.abs(change_values))
+                    })
+                else:
+                    # Old format (just values)
+                    signature_summary.append({
+                        'Precursor': precursor_name,
+                        'Signature': sig_name,
+                        'Washout_period': 'unknown',
+                        'N_patients': len(changes),
+                        'N_with_events': np.nan,
+                        'N_without_events': np.nan,
+                        'Mean_change': np.mean(changes),
+                        'Mean_change_with_events': np.nan,
+                        'Mean_change_without_events': np.nan,
+                        'Median_change': np.median(changes),
+                        'Std_change': np.std(changes),
+                        'Abs_mean_change': np.mean(np.abs(changes))
+                    })
     
     print(f"  Generated {len(signature_summary)} signature change records")
+    
+    # Print interpretation
+    if len(signature_summary) > 0:
+        print("\n" + "="*80)
+        print("WASHOUT INTERPRETATION:")
+        print("="*80)
+        print("Comparing predictions at t_enroll+9 from models with different washout periods:")
+        print("  - 4yr washout: Model trained up to t_enroll+5 vs t_enroll+9")
+        print("  - 9yr washout: Model trained up to t_enroll vs t_enroll+9")
+        print("\nAnalyzing ALL patients (not just those with precursors before enrollment)")
+        print("If predictions change:")
+        print("  - WITH outcome events (ASCVD) in washout: Conservative washout (real conditions)")
+        print("    → Model learned from patients who already had the outcome")
+        print("  - WITHOUT outcome events BUT WITH precursor (present before OR developed during washout):")
+        print("    → Accurate washout (pre-clinical signals detected)")
+        print("    → Precursor was present during washout period (whether before or developed during)")
+        print("  - WITHOUT outcome events AND WITHOUT precursor:")
+        print("    → Other reasons (model refinement, etc.)")
+        print("="*80)
     
     return pd.DataFrame(signature_summary)
 
@@ -588,7 +870,10 @@ def main():
     parser.add_argument('--target_disease', type=str, default='ASCVD',
                        help='Target disease to analyze')
     parser.add_argument('--precursors', type=str, nargs='+',
-                       default=['Hypercholesterolemia', 'Essential hypertension', 'Type 2 diabetes'],
+                       default=['Hypercholesterolemia', 'Essential hypertension', 'Type 2 diabetes',
+                               'Atrial fibrillation and flutter', 'Obesity', 
+                               'Chronic Kidney Disease, Stage III', 'Rheumatoid arthritis',
+                               'Sleep apnea', 'Peripheral vascular disease, unspecified'],
                        help='Precursor diseases to analyze')
     
     args = parser.parse_args()
@@ -664,7 +949,8 @@ def main():
     patient_df = analyze_patient_prediction_changes(
         pi_batches, Y_batch, E_batch, disease_names,
         args.precursors, args.target_disease,
-        args.start_idx, args.end_idx
+        args.start_idx, args.end_idx,
+        cluster_assignments=cluster_assignments
     )
     
     print(f"\nAnalyzed {len(patient_df)} patients")

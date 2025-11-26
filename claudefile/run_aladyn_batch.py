@@ -6,6 +6,8 @@ Converted from aladynoulli_fit_for_understanding_and_discovery.ipynb
 Usage:
     Local:  python run_aladyn_batch.py --start_index 0 --end_index 10000
     AWS:    python run_aladyn_batch.py --start_index 0 --end_index 10000 --data_dir /data --output_dir /results
+
+    This was run on the full dataset (400k samples) and saved in the Dropbox/enrollment_retrospective_full directory.
 """
 
 import numpy as np
@@ -181,7 +183,11 @@ def main():
                        lambda_reg=args.lambda_reg)
 
     # Save model
-    output_path = Path(args.output_dir) / f'enrollment_model_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
+    # Create output directory if it doesn't exist
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    output_path = output_dir / f'enrollment_model_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
     print(f"\nSaving model to {output_path}...")
 
     torch.save({
