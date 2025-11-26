@@ -225,8 +225,21 @@ def analyze_prediction_drops_for_disease(
         # For 0-year washout: predict at t_enroll, outcome in t_enroll+1
         # For 1-year washout: predict at t_enroll+1, outcome in t_enroll+2
         
+        # Check for prevalent disease at t_enroll (for 0-year washout)
+        # This matches the evaluation function logic:
+        # - For single diseases: exclude if patient already has that disease
+        # - For disease groups: DON'T exclude (patients can have multiple events in the group)
+        prevalent_at_0yr = False
+        if len(disease_indices) == 1:  # Only check for single-disease outcomes
+            for d_idx in disease_indices:
+                if d_idx < Y_full.shape[1]:
+                    if torch.any(Y_full[i, d_idx, :t_enroll] > 0):
+                        prevalent_at_0yr = True
+                        break
+        
         # 0-year washout: prediction at t_enroll, outcome at t_enroll+1
-        if t_enroll + 1 < Y_full.shape[2]:
+        # Skip if patient is already prevalent (matches evaluation logic)
+        if not prevalent_at_0yr and t_enroll + 1 < Y_full.shape[2]:
             # Get prediction for disease group (combine risks across all diseases in group)
             pi_diseases_0yr = pi_full[i, disease_indices, t_enroll].numpy()
             risk_0yr = 1 - np.prod(1 - pi_diseases_0yr)  # Combined risk for disease group
@@ -240,14 +253,31 @@ def analyze_prediction_drops_for_disease(
             enrollment_ages.append(age_enroll)
         
         # 1-year washout: prediction at t_enroll+1, outcome at t_enroll+2
-        if t_enroll + 2 < Y_full.shape[2]:
-            pi_diseases_1yr = pi_full[i, disease_indices, t_enroll + 1].numpy()
-            risk_1yr = 1 - np.prod(1 - pi_diseases_1yr)  # Combined risk for disease group
-            
-            # Only append if we also have 0-year prediction (same patient)
-            if len(predictions_1yr) < len(predictions_0yr):
+        # IMPORTANT: Check for prevalent disease at t_enroll+1 (before prediction)
+        # This matches the evaluation function logic:
+        # - For single diseases: exclude if patient already has that disease
+        # - For disease groups: DON'T exclude (patients can have multiple events in the group)
+        t_start_1yr = t_enroll + 1
+        prevalent_at_1yr = False
+        if len(disease_indices) == 1:  # Only check for single-disease outcomes
+            for d_idx in disease_indices:
+                if d_idx < Y_full.shape[1]:
+                    if torch.any(Y_full[i, d_idx, :t_start_1yr] > 0):
+                        prevalent_at_1yr = True
+                        break
+        
+        # Only get 1-year prediction if patient is NOT prevalent at t_enroll+1
+        # AND we have a corresponding 0-year prediction
+        if not prevalent_at_1yr and t_enroll + 2 < Y_full.shape[2]:
+            # Only append if we also have 0-year prediction (same patient, and not prevalent)
+            if len(predictions_0yr) > len(predictions_1yr):
+                pi_diseases_1yr = pi_full[i, disease_indices, t_start_1yr].numpy()
+                risk_1yr = 1 - np.prod(1 - pi_diseases_1yr)  # Combined risk for disease group
                 predictions_1yr.append(risk_1yr)
             elif len(predictions_1yr) == len(predictions_0yr) - 1:
+                # This handles edge case where we're catching up
+                pi_diseases_1yr = pi_full[i, disease_indices, t_start_1yr].numpy()
+                risk_1yr = 1 - np.prod(1 - pi_diseases_1yr)
                 predictions_1yr.append(risk_1yr)
     
     # Align arrays
@@ -259,6 +289,11 @@ def analyze_prediction_drops_for_disease(
     enrollment_ages = np.array(enrollment_ages[:min_len])
     
     print(f"Collected {len(predictions_0yr)} patients with both 0yr and 1yr predictions")
+    print(f"\nNOTE: Prevalent case exclusion (matches evaluation function logic):")
+    print(f"  - For single diseases: Patients with that disease before prediction time are excluded")
+    print(f"  - For disease groups (like ASCVD): Prevalent cases are NOT excluded")
+    print(f"    (patients can have multiple events in the group, e.g., CAD then MI)")
+    print(f"  - This matches the evaluation function's approach for disease groups")
     
     # Calculate prediction drops (delta for each person)
     # This is the difference in predicted risk between 0-year and 1-year washout
@@ -555,7 +590,9 @@ def analyze_prediction_drops_for_disease(
             else:
                 event_rate_non_droppers = 0
             
-            print(f"\n2. ASCVD EVENT RATES IN YEAR BETWEEN ENROLLMENT AND 1YR (t_enroll to t_enroll+1):")
+            print(f"\n2. ASCVD EVENT RATES IN YEAR BETWEEN ENROLLMENT AND 1YR (t_enroll to t_enroll+2):")
+            print(f"   NOTE: This includes events at t_enroll+2 (1-year outcome window).")
+            print(f"   Patients with events at t_enroll+1 are excluded from 1-year predictions (prevalent case exclusion).")
             print(f"   Droppers with hyperchol: {hyperchol_droppers_df['has_ascvd_between'].sum()}/{len(hyperchol_droppers)} ({event_rate_droppers:.1f}%)")
             if len(hyperchol_non_droppers) > 0:
                 print(f"   Non-droppers with hyperchol: {hyperchol_non_droppers_df['has_ascvd_between'].sum()}/{len(hyperchol_non_droppers)} ({event_rate_non_droppers:.1f}%)")
@@ -727,6 +764,100 @@ def analyze_prediction_drops_for_disease(
     # Save comparison
     comparison_df.to_csv(output_dir / f'precursor_prevalence_comparison_{disease_name}.csv', index=False)
     print(f"\n✓ Saved precursor comparison to: {output_dir / f'precursor_prevalence_comparison_{disease_name}.csv'}")
+    
+    # =============================================================================
+    # ANALYZE EVENT RATES FOR TOP CORRELATED PRECURSOR DISEASES
+    # =============================================================================
+    
+    print("\n" + "="*100)
+    print("ANALYZING EVENT RATES FOR CORRELATED PRECURSOR DISEASES")
+    print("="*100)
+    print("\nTesting if other correlated precursor diseases show the same pattern as hypercholesterolemia:")
+    print("  - Overall: Droppers have higher event rates (survivor bias)")
+    print("  - Within precursor: Non-droppers have higher event rates (model learning)")
+    print("="*100)
+    
+    # Get top precursor diseases (most common in droppers)
+    top_precursors = comparison_df.head(10)['Disease'].tolist()
+    
+    precursor_analysis = []
+    
+    for precursor_name in top_precursors:
+        # Find disease index
+        precursor_idx = None
+        for i, name in enumerate(disease_names):
+            if name == precursor_name:
+                precursor_idx = i
+                break
+        
+        if precursor_idx is None or precursor_idx in disease_indices:
+            continue  # Skip if not found or if it's part of target disease group
+        
+        # Count patients with this precursor in droppers and non-droppers
+        precursor_droppers = []
+        precursor_non_droppers = []
+        
+        for idx in patient_indices[analysis_mask]:
+            patient_idx = idx
+            t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
+            if t_enroll > 0:
+                if Y_full[patient_idx, precursor_idx, :t_enroll].sum() > 0:
+                    # Check event in year 0-1
+                    if t_enroll + 2 <= Y_full.shape[2]:
+                        has_event = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
+                        precursor_droppers.append(has_event)
+        
+        for idx in patient_indices[non_droppers_mask]:
+            patient_idx = idx
+            t_enroll = int(enrollment_ages[patient_indices == patient_idx][0] - 30)
+            if t_enroll > 0:
+                if Y_full[patient_idx, precursor_idx, :t_enroll].sum() > 0:
+                    # Check event in year 0-1
+                    if t_enroll + 2 <= Y_full.shape[2]:
+                        has_event = Y_full[patient_idx, disease_indices, t_enroll:t_enroll+2].sum().item() > 0
+                        precursor_non_droppers.append(has_event)
+        
+        if len(precursor_droppers) > 10 and len(precursor_non_droppers) > 10:  # Need sufficient sample size
+            event_rate_droppers = np.mean(precursor_droppers) * 100
+            event_rate_non_droppers = np.mean(precursor_non_droppers) * 100
+            
+            # Check if pattern matches hyperchol (non-droppers have higher event rates)
+            pattern_match = event_rate_non_droppers > event_rate_droppers
+            
+            precursor_analysis.append({
+                'Precursor': precursor_name,
+                'N_droppers': len(precursor_droppers),
+                'Event_rate_droppers': event_rate_droppers,
+                'N_non_droppers': len(precursor_non_droppers),
+                'Event_rate_non_droppers': event_rate_non_droppers,
+                'Difference': event_rate_non_droppers - event_rate_droppers,
+                'Pattern_match': pattern_match  # True if non-droppers > droppers (like hyperchol)
+            })
+    
+    if precursor_analysis:
+        precursor_analysis_df = pd.DataFrame(precursor_analysis)
+        precursor_analysis_df = precursor_analysis_df.sort_values('Difference', ascending=False)
+        
+        print(f"\n{'Precursor Disease':<40} {'N_Drop':>8} {'Rate_Drop':>10} {'N_NonDrop':>10} {'Rate_NonDrop':>12} {'Diff':>8} {'Pattern':>10}")
+        print("-"*100)
+        
+        for _, row in precursor_analysis_df.iterrows():
+            pattern_str = "✓ Match" if row['Pattern_match'] else "✗ Reverse"
+            print(f"{row['Precursor']:<40} {row['N_droppers']:>8.0f} {row['Event_rate_droppers']:>10.1f}% "
+                  f"{row['N_non_droppers']:>10.0f} {row['Event_rate_non_droppers']:>12.1f}% "
+                  f"{row['Difference']:>8.1f}% {pattern_str:>10}")
+        
+        # Summary
+        n_matching = precursor_analysis_df['Pattern_match'].sum()
+        n_total = len(precursor_analysis_df)
+        print(f"\n{'='*100}")
+        print(f"SUMMARY: {n_matching}/{n_total} precursor diseases show same pattern as hypercholesterolemia")
+        print(f"  (Non-droppers have higher event rates within precursor group)")
+        print(f"{'='*100}")
+        
+        # Save
+        precursor_analysis_df.to_csv(output_dir / f'correlated_precursors_event_rates_{disease_name}.csv', index=False)
+        print(f"\n✓ Saved correlated precursor analysis to: {output_dir / f'correlated_precursors_event_rates_{disease_name}.csv'}")
     
     # =============================================================================
     # ANALYZE SIGNATURE/CLUSTER LOADINGS: DROPPERS vs NON-DROPPERS
