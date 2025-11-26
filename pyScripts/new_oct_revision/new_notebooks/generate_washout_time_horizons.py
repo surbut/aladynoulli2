@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Add path for imports
 sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/')
-from fig5utils import evaluate_major_diseases_wsex_with_bootstrap_dynamic_withwashout_from_pi
+from fig5utils import evaluate_major_diseases_wsex_with_bootstrap_dynamic_withwashout_from_pi, evaluate_major_diseases_wsex_with_bootstrap_withwashout_from_pi
 
 # Load essentials (disease names, etc.)
 def load_essentials():
@@ -157,18 +157,60 @@ def main():
         results_df.to_csv(output_file)
         print(f"✓ Saved results to {output_file}")
     
+    # Generate static 10-year predictions (1-year score for 10-year outcome)
+    static_output_file = output_dir / f'washout_{args.washout_years}yr_10yr_static_results.csv'
+    
+    if static_output_file.exists():
+        print(f"\n{'='*80}")
+        print(f"SKIPPING STATIC 10-YEAR (already exists)")
+        print(f"{'='*80}")
+        print(f"  File exists: {static_output_file}")
+    else:
+        print(f"\n{'='*80}")
+        print(f"PROCESSING STATIC 10-YEAR WITH {args.washout_years}-YEAR WASHOUT")
+        print(f"{'='*80}")
+        
+        print(f"Evaluating static 10-year predictions (1-year score) with {args.washout_years}-year washout...")
+        static_results = evaluate_major_diseases_wsex_with_bootstrap_withwashout_from_pi(
+            pi=pi_full,
+            Y_100k=Y_full,
+            E_100k=E_full,
+            disease_names=disease_names,
+            pce_df=pce_df_full,
+            washout_years=args.washout_years,
+            n_bootstraps=args.n_bootstraps,
+            follow_up_duration_years=10
+        )
+        
+        all_results['10yr_static'] = static_results
+        
+        # Save static results
+        static_results_df = pd.DataFrame({
+            'Disease': list(static_results.keys()),
+            'AUC': [r['auc'] for r in static_results.values()],
+            'CI_lower': [r['ci_lower'] for r in static_results.values()],
+            'CI_upper': [r['ci_upper'] for r in static_results.values()],
+            'N_Events': [r['n_events'] for r in static_results.values()],
+            'Event_Rate': [r['event_rate'] for r in static_results.values()]
+        })
+        static_results_df = static_results_df.set_index('Disease').sort_values('AUC', ascending=False)
+        
+        static_results_df.to_csv(static_output_file)
+        print(f"✓ Saved results to {static_output_file}")
+    
     # Create combined comparison file
     print(f"\n{'='*80}")
     print("CREATING COMBINED COMPARISON FILE")
     print(f"{'='*80}")
     
     comparison_data = []
+    # Add dynamic horizons
     for horizon_years in [10, 30]:
         horizon_key = f'{horizon_years}yr'
         if horizon_key in all_results:
             for disease, metrics in all_results[horizon_key].items():
                 comparison_data.append({
-                    'Horizon': f'{horizon_years}yr',
+                    'Horizon': f'{horizon_years}yr_dynamic',
                     'Disease': disease,
                     'AUC': metrics['auc'],
                     'CI_lower': metrics['ci_lower'],
@@ -176,6 +218,18 @@ def main():
                     'N_Events': metrics['n_events'],
                     'Event_Rate': metrics['event_rate']
                 })
+    # Add static 10yr
+    if '10yr_static' in all_results:
+        for disease, metrics in all_results['10yr_static'].items():
+            comparison_data.append({
+                'Horizon': '10yr_static',
+                'Disease': disease,
+                'AUC': metrics['auc'],
+                'CI_lower': metrics['ci_lower'],
+                'CI_upper': metrics['ci_upper'],
+                'N_Events': metrics['n_events'],
+                'Event_Rate': metrics['event_rate']
+            })
     
     comparison_df = pd.DataFrame(comparison_data)
     comparison_df = comparison_df.pivot_table(
@@ -184,7 +238,9 @@ def main():
         values=['AUC', 'CI_lower', 'CI_upper', 'N_Events', 'Event_Rate']
     )
     comparison_df.columns = [f'{col[1]}_{col[0]}' for col in comparison_df.columns]
-    comparison_df = comparison_df.sort_values('10yr_AUC', ascending=False, na_position='last')
+    # Sort by 10yr_dynamic AUC if available, otherwise by first available AUC column
+    sort_col = '10yr_dynamic_AUC' if '10yr_dynamic_AUC' in comparison_df.columns else comparison_df.columns[0]
+    comparison_df = comparison_df.sort_values(sort_col, ascending=False, na_position='last')
     
     comparison_file = output_dir / f'washout_{args.washout_years}yr_comparison_all_horizons.csv'
     comparison_df.to_csv(comparison_file)
