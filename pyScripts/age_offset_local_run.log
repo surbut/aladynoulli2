@@ -1,0 +1,355 @@
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_offsetmasterfix.py:29: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  Y = torch.load(base_path + 'Y_tensor.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_offsetmasterfix.py:30: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  E = torch.load(base_path + 'E_matrix.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_offsetmasterfix.py:31: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  G = torch.load(base_path + 'G_matrix.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_offsetmasterfix.py:34: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  essentials = torch.load(base_path + 'model_essentials.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_offsetmasterfix.py:52: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  refs = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/reference_trajectories.pt')
+/Users/sarahurbut/aladynoulli2/pyScripts/forAWS_offsetmasterfix.py:86: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  total_checkpoint = torch.load(total_fit_path, map_location='cpu')
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp_fixedPhi.py:75: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp_fixedPhi.py:89: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.Y = torch.tensor(Y, dtype=torch.float32)
+Loading components...
+Loaded all components successfully!
+G_with_sex shape: (10000, 47) (should be [N, 36 PRS + 1 sex + 10 PCs = 47])
+
+=== Predicting for age offset 0 years ===
+Pre-calculated phi GP loss: 41.9621
+
+Calculating gamma for k=0:
+Number of diseases in signature: 16.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.9623, -13.8155])
+Base value centered (first 5): tensor([-0.1879, -0.1879, -0.1879,  1.6653, -0.1879])
+Base value centered mean: -3.345489574257954e-07
+Gamma init for k=0 (first 5): tensor([ 0.0074,  0.0061, -0.0054,  0.0060,  0.0235])
+
+Calculating gamma for k=1:
+Number of diseases in signature: 21.0
+Base value (first 5): tensor([-13.3449, -13.8155, -13.3449, -13.3449, -12.4036])
+Base value centered (first 5): tensor([ 0.1505, -0.3201,  0.1505,  0.1505,  1.0918])
+Base value centered mean: -1.8495559288567165e-06
+Gamma init for k=1 (first 5): tensor([0.0042, 0.0009, 0.0009, 0.0018, 0.0015])
+
+Calculating gamma for k=2:
+Number of diseases in signature: 15.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.1566, -11.8388, -12.4977])
+Base value centered (first 5): tensor([-0.3849, -0.3849,  0.2740,  1.5918,  0.9329])
+Base value centered mean: 9.290695288655115e-07
+Gamma init for k=2 (first 5): tensor([ 0.0016,  0.0073,  0.0100,  0.0140, -0.0118])
+
+Calculating gamma for k=3:
+Number of diseases in signature: 82.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.6950, -13.5744])
+Base value centered (first 5): tensor([-0.1026, -0.1026, -0.1026,  0.0179,  0.1384])
+Base value centered mean: 4.7445297468584613e-07
+Gamma init for k=3 (first 5): tensor([ 0.0012,  0.0003,  0.0016,  0.0018, -0.0006])
+
+Calculating gamma for k=4:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155,  -9.8620, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1133,  3.8402, -0.1133, -0.1133, -0.1133])
+Base value centered mean: -2.841758714566822e-06
+Gamma init for k=4 (first 5): tensor([-0.0172, -0.0033,  0.0143,  0.0225, -0.0033])
+
+Calculating gamma for k=5:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.7043, -0.7043, -0.7043, -0.7043, -0.7043])
+Base value centered mean: -2.2621155437718699e-07
+Gamma init for k=5 (first 5): tensor([ 0.0200,  0.0102,  0.0029, -0.0021, -0.0044])
+
+Calculating gamma for k=6:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1523, -0.1523, -0.1523, -0.1523, -0.1523])
+Base value centered mean: -1.0890006478803116e-06
+Gamma init for k=6 (first 5): tensor([ 0.0090,  0.0121, -0.0006,  0.0042, -0.0027])
+
+Calculating gamma for k=7:
+Number of diseases in signature: 22.0
+Base value (first 5): tensor([-13.3663, -13.8155, -13.3663, -13.8155, -11.1200])
+Base value centered (first 5): tensor([-0.1005, -0.5497, -0.1005, -0.5497,  2.1458])
+Base value centered mean: 1.2460708376238472e-06
+Gamma init for k=7 (first 5): tensor([ 0.0003, -0.0038, -0.0111,  0.0251, -0.0016])
+
+Calculating gamma for k=8:
+Number of diseases in signature: 28.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1159, -0.1159, -0.1159, -0.1159, -0.1159])
+Base value centered mean: -1.4129639112070436e-06
+Gamma init for k=8 (first 5): tensor([ 0.0066, -0.0055,  0.0011, -0.0020, -0.0005])
+
+Calculating gamma for k=9:
+Number of diseases in signature: 12.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -12.9919])
+Base value centered (first 5): tensor([-0.1911, -0.1911, -0.1911, -0.1911,  0.6326])
+Base value centered mean: -4.671096860420221e-07
+Gamma init for k=9 (first 5): tensor([ 0.0037,  0.0055, -0.0066,  0.0036,  0.0014])
+
+Calculating gamma for k=10:
+Number of diseases in signature: 11.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2706, -0.2706, -0.2706, -0.2706, -0.2706])
+Base value centered mean: -7.493972589145415e-07
+Gamma init for k=10 (first 5): tensor([-0.0084,  0.0188,  0.0010, -0.0041, -0.0089])
+
+Calculating gamma for k=11:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1184, -0.1184, -0.1184, -0.1184, -0.1184])
+Base value centered mean: -6.237029879230249e-07
+Gamma init for k=11 (first 5): tensor([0.0026, 0.0020, 0.0032, 0.0007, 0.0098])
+
+Calculating gamma for k=12:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.0860, -0.0860, -0.0860, -0.0860, -0.0860])
+Base value centered mean: -1.034450519910024e-06
+Gamma init for k=12 (first 5): tensor([ 0.0080, -0.0074,  0.0002, -0.0001, -0.0076])
+
+Calculating gamma for k=13:
+Number of diseases in signature: 13.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.7744, -12.2949])
+Base value centered (first 5): tensor([-0.1777, -0.1777, -0.1777,  2.8635,  1.3429])
+Base value centered mean: -1.0064125035569305e-06
+Gamma init for k=13 (first 5): tensor([-0.0002,  0.0060,  0.0127, -0.0051,  0.0007])
+
+Calculating gamma for k=14:
+Number of diseases in signature: 10.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.8388, -12.8271])
+Base value centered (first 5): tensor([-0.2562, -0.2562, -0.2562,  1.7205,  0.7322])
+Base value centered mean: -1.5125274330785032e-06
+Gamma init for k=14 (first 5): tensor([ 0.0038, -0.0052, -0.0089,  0.0162,  0.0005])
+
+Calculating gamma for k=15:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -11.8388])
+Base value centered (first 5): tensor([-0.2850, -0.2850, -0.2850, -0.2850,  1.6917])
+Base value centered mean: -1.2931823221151717e-06
+Gamma init for k=15 (first 5): tensor([-0.0039,  0.0064,  0.0118, -0.0049,  0.0086])
+
+Calculating gamma for k=16:
+Number of diseases in signature: 29.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.7706, -13.1339])
+Base value centered (first 5): tensor([-0.2428, -0.2428, -0.2428,  1.8021,  0.4388])
+Base value centered mean: -1.9989013253507437e-06
+Gamma init for k=16 (first 5): tensor([ 0.0009,  0.0001,  0.0093,  0.0055, -0.0031])
+
+Calculating gamma for k=17:
+Number of diseases in signature: 17.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.3272, -12.0713])
+Base value centered (first 5): tensor([-0.4228, -0.4228, -0.4228,  3.0656,  1.3214])
+Base value centered mean: -2.227592403869494e-06
+Gamma init for k=17 (first 5): tensor([ 0.0081,  0.0052, -0.0070,  0.0058, -0.0042])
+
+Calculating gamma for k=18:
+Number of diseases in signature: 9.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1618, -0.1618, -0.1618, -0.1618, -0.1618])
+Base value centered mean: -1.2922287169203628e-06
+Gamma init for k=18 (first 5): tensor([-0.0111, -0.0044, -0.0045,  0.0119,  0.0053])
+
+Calculating gamma for k=19:
+Number of diseases in signature: 23.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.3858])
+Base value centered (first 5): tensor([-0.1519, -0.1519, -0.1519, -0.1519,  0.2779])
+Base value centered mean: -1.1179923831150518e-06
+Gamma init for k=19 (first 5): tensor([-0.0027,  0.0053,  0.0013, -0.0016, -0.0018])
+Initializing with 20 disease states + 1 healthy state
+Initialization complete!
+phi matches phi_total!
+psi matches psi_total!
+Reinitializing gamma with psi_total for consistency...
+
+Calculating gamma for k=0:
+Number of diseases in signature: 16.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.9623, -13.8155])
+Base value centered (first 5): tensor([-0.1879, -0.1879, -0.1879,  1.6653, -0.1879])
+Base value centered mean: -3.345489574257954e-07
+Gamma init for k=0 (first 5): tensor([ 0.0074,  0.0061, -0.0054,  0.0060,  0.0235])
+
+Calculating gamma for k=1:
+Number of diseases in signature: 21.0
+/Users/sarahurbut/aladynoulli2/pyScripts/clust_huge_amp_fixedPhi.py:183: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+Base value (first 5): tensor([-13.3449, -13.8155, -13.3449, -13.3449, -12.4036])
+Base value centered (first 5): tensor([ 0.1505, -0.3201,  0.1505,  0.1505,  1.0918])
+Base value centered mean: -1.8495559288567165e-06
+Gamma init for k=1 (first 5): tensor([0.0042, 0.0009, 0.0009, 0.0018, 0.0015])
+
+Calculating gamma for k=2:
+Number of diseases in signature: 15.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.1566, -11.8388, -12.4977])
+Base value centered (first 5): tensor([-0.3849, -0.3849,  0.2740,  1.5918,  0.9329])
+Base value centered mean: 9.290695288655115e-07
+Gamma init for k=2 (first 5): tensor([ 0.0016,  0.0073,  0.0100,  0.0140, -0.0118])
+
+Calculating gamma for k=3:
+Number of diseases in signature: 82.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.6950, -13.5744])
+Base value centered (first 5): tensor([-0.1026, -0.1026, -0.1026,  0.0179,  0.1384])
+Base value centered mean: 4.7445297468584613e-07
+Gamma init for k=3 (first 5): tensor([ 0.0012,  0.0003,  0.0016,  0.0018, -0.0006])
+
+Calculating gamma for k=4:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155,  -9.8620, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1133,  3.8402, -0.1133, -0.1133, -0.1133])
+Base value centered mean: -2.841758714566822e-06
+Gamma init for k=4 (first 5): tensor([-0.0172, -0.0033,  0.0143,  0.0225, -0.0033])
+
+Calculating gamma for k=5:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.7043, -0.7043, -0.7043, -0.7043, -0.7043])
+Base value centered mean: -2.2621155437718699e-07
+Gamma init for k=5 (first 5): tensor([ 0.0200,  0.0102,  0.0029, -0.0021, -0.0044])
+
+Calculating gamma for k=6:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1523, -0.1523, -0.1523, -0.1523, -0.1523])
+Base value centered mean: -1.0890006478803116e-06
+Gamma init for k=6 (first 5): tensor([ 0.0090,  0.0121, -0.0006,  0.0042, -0.0027])
+
+Calculating gamma for k=7:
+Number of diseases in signature: 22.0
+Base value (first 5): tensor([-13.3663, -13.8155, -13.3663, -13.8155, -11.1200])
+Base value centered (first 5): tensor([-0.1005, -0.5497, -0.1005, -0.5497,  2.1458])
+Base value centered mean: 1.2460708376238472e-06
+Gamma init for k=7 (first 5): tensor([ 0.0003, -0.0038, -0.0111,  0.0251, -0.0016])
+
+Calculating gamma for k=8:
+Number of diseases in signature: 28.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1159, -0.1159, -0.1159, -0.1159, -0.1159])
+Base value centered mean: -1.4129639112070436e-06
+Gamma init for k=8 (first 5): tensor([ 0.0066, -0.0055,  0.0011, -0.0020, -0.0005])
+
+Calculating gamma for k=9:
+Number of diseases in signature: 12.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -12.9919])
+Base value centered (first 5): tensor([-0.1911, -0.1911, -0.1911, -0.1911,  0.6326])
+Base value centered mean: -4.671096860420221e-07
+Gamma init for k=9 (first 5): tensor([ 0.0037,  0.0055, -0.0066,  0.0036,  0.0014])
+
+Calculating gamma for k=10:
+Number of diseases in signature: 11.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2706, -0.2706, -0.2706, -0.2706, -0.2706])
+Base value centered mean: -7.493972589145415e-07
+Gamma init for k=10 (first 5): tensor([-0.0084,  0.0188,  0.0010, -0.0041, -0.0089])
+
+Calculating gamma for k=11:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1184, -0.1184, -0.1184, -0.1184, -0.1184])
+Base value centered mean: -6.237029879230249e-07
+Gamma init for k=11 (first 5): tensor([0.0026, 0.0020, 0.0032, 0.0007, 0.0098])
+
+Calculating gamma for k=12:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.0860, -0.0860, -0.0860, -0.0860, -0.0860])
+Base value centered mean: -1.034450519910024e-06
+Gamma init for k=12 (first 5): tensor([ 0.0080, -0.0074,  0.0002, -0.0001, -0.0076])
+
+Calculating gamma for k=13:
+Number of diseases in signature: 13.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.7744, -12.2949])
+Base value centered (first 5): tensor([-0.1777, -0.1777, -0.1777,  2.8635,  1.3429])
+Base value centered mean: -1.0064125035569305e-06
+Gamma init for k=13 (first 5): tensor([-0.0002,  0.0060,  0.0127, -0.0051,  0.0007])
+
+Calculating gamma for k=14:
+Number of diseases in signature: 10.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.8388, -12.8271])
+Base value centered (first 5): tensor([-0.2562, -0.2562, -0.2562,  1.7205,  0.7322])
+Base value centered mean: -1.5125274330785032e-06
+Gamma init for k=14 (first 5): tensor([ 0.0038, -0.0052, -0.0089,  0.0162,  0.0005])
+
+Calculating gamma for k=15:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -11.8388])
+Base value centered (first 5): tensor([-0.2850, -0.2850, -0.2850, -0.2850,  1.6917])
+Base value centered mean: -1.2931823221151717e-06
+Gamma init for k=15 (first 5): tensor([-0.0039,  0.0064,  0.0118, -0.0049,  0.0086])
+
+Calculating gamma for k=16:
+Number of diseases in signature: 29.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.7706, -13.1339])
+Base value centered (first 5): tensor([-0.2428, -0.2428, -0.2428,  1.8021,  0.4388])
+Base value centered mean: -1.9989013253507437e-06
+Gamma init for k=16 (first 5): tensor([ 0.0009,  0.0001,  0.0093,  0.0055, -0.0031])
+
+Calculating gamma for k=17:
+Number of diseases in signature: 17.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.3272, -12.0713])
+Base value centered (first 5): tensor([-0.4228, -0.4228, -0.4228,  3.0656,  1.3214])
+Base value centered mean: -2.227592403869494e-06
+Gamma init for k=17 (first 5): tensor([ 0.0081,  0.0052, -0.0070,  0.0058, -0.0042])
+
+Calculating gamma for k=18:
+Number of diseases in signature: 9.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1618, -0.1618, -0.1618, -0.1618, -0.1618])
+Base value centered mean: -1.2922287169203628e-06
+Gamma init for k=18 (first 5): tensor([-0.0111, -0.0044, -0.0045,  0.0119,  0.0053])
+
+Calculating gamma for k=19:
+Number of diseases in signature: 23.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.3858])
+Base value centered (first 5): tensor([-0.1519, -0.1519, -0.1519, -0.1519,  0.2779])
+Base value centered mean: -1.1179923831150518e-06
+Gamma init for k=19 (first 5): tensor([-0.0027,  0.0053,  0.0013, -0.0016, -0.0018])
+Initializing with 20 disease states + 1 healthy state
+Initialization complete!
+✓ Gamma reinitialized with psi_total
+Censoring verification for age offset 0:
+  Total event times changed: 3460577
+  Max cap applied: 41.0
+  Min cap applied: 10.0
+  Patient 0: enrollment=69, current=69, cap=39.0, max_event_time=39.0
+  Patient 1: enrollment=44, current=44, cap=14.0, max_event_time=14.0
+  Patient 100: enrollment=52, current=52, cap=22.0, max_event_time=22.0
+Training model for age offset 0...
+Kappa gradient: -1.135e+00
+
+Epoch 0
+Loss: 16.9615
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=84.17):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 21 (signature 13, LR=73.37):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 249 (signature 13, LR=70.53):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 336 (signature 9, LR=68.15):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=61.21):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -9.588e-01
+
+Epoch 1
+Loss: 657.9761

@@ -15,6 +15,7 @@ import os
 import torch
 import pandas as pd
 import numpy as np
+import gc
 from pathlib import Path
 
 # Add path for imports
@@ -57,37 +58,18 @@ def main():
     print(f"Output directory: {output_dir}")
     print("="*80)
     
-    # Load data
-    print("\nLoading data...")
-    pi_full = torch.load(pi_path, weights_only=False)
-    Y_full = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/Y_tensor.pt', weights_only=False)
-    E_full = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_enrollment_full.pt', weights_only=False)
-    
-    # Load essentials
+    # Load essentials (small, can stay in memory)
     essentials = load_essentials()
     disease_names = essentials['disease_names']
     
-    # Load pce_df
+    # Define data paths
+    Y_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/Y_tensor.pt'
+    E_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_enrollment_full.pt'
     pce_df_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pce_prevent_full.csv'
-    pce_df_full = pd.read_csv(pce_df_path)
     
-    # Cap at 400K patients
-    N = min(400000, pi_full.shape[0], Y_full.shape[0], E_full.shape[0], len(pce_df_full))
-    print(f"\nCapping at {N:,} patients (from {pi_full.shape[0]:,} available)")
-    
-    pi_full = pi_full[:N]
-    Y_full = Y_full[:N]
-    E_full = E_full[:N]
-    pce_df_full = pce_df_full.iloc[:N].reset_index(drop=True)
-    
-    # Verify sizes match
-    if not (pi_full.shape[0] == Y_full.shape[0] == E_full.shape[0] == len(pce_df_full) == N):
-        raise ValueError(f"Size mismatch after subsetting! pi: {pi_full.shape[0]}, Y: {Y_full.shape[0]}, E: {E_full.shape[0]}, pce_df: {len(pce_df_full)}")
-    
-    print(f"✓ Loaded {N:,} patients")
-    print(f"  Pi shape: {pi_full.shape}")
-    print(f"  Y shape: {Y_full.shape}")
-    print(f"  E shape: {E_full.shape}")
+    # Set N to 400K (standard size for pi_full_400k.pt)
+    N = 400000
+    print(f"\nWill process {N:,} patients (standard size for pi_full_400k.pt)")
     
     # Check if results already exist
     expected_files = [
@@ -109,9 +91,7 @@ def main():
         print("\nTo regenerate, delete the existing result files first.")
         return
     
-    # Process each horizon
-    all_results = {}
-    
+    # Process each horizon separately to save memory
     for horizon_years in [10, 30]:
         output_file = output_dir / f'washout_{args.washout_years}yr_{horizon_years}yr_dynamic_results.csv'
         
@@ -127,6 +107,15 @@ def main():
         print(f"PROCESSING {horizon_years}-YEAR HORIZON WITH {args.washout_years}-YEAR WASHOUT")
         print(f"{'='*80}")
         
+        # Load data for this horizon only
+        print(f"Loading data for {horizon_years}-year horizon...")
+        pi_full = torch.load(pi_path, weights_only=False, map_location='cpu')[:N]
+        Y_full = torch.load(Y_path, weights_only=False, map_location='cpu')[:N]
+        E_full = torch.load(E_path, weights_only=False, map_location='cpu')[:N]
+        pce_df_full = pd.read_csv(pce_df_path).iloc[:N].reset_index(drop=True)
+        
+        print(f"✓ Loaded {N:,} patients")
+        
         print(f"Evaluating dynamic {horizon_years}-year predictions with {args.washout_years}-year washout...")
         results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_withwashout_from_pi(
             pi=pi_full,
@@ -140,9 +129,7 @@ def main():
             patient_indices=None
         )
         
-        all_results[f'{horizon_years}yr'] = results
-        
-        # Save individual results
+        # Save individual results immediately
         results_df = pd.DataFrame({
             'Disease': list(results.keys()),
             'AUC': [r['auc'] for r in results.values()],
@@ -153,9 +140,14 @@ def main():
         })
         results_df = results_df.set_index('Disease').sort_values('AUC', ascending=False)
         
-        output_file = output_dir / f'washout_{args.washout_years}yr_{horizon_years}yr_dynamic_results.csv'
         results_df.to_csv(output_file)
         print(f"✓ Saved results to {output_file}")
+        
+        # Free memory before next horizon
+        del pi_full, Y_full, E_full, pce_df_full, results, results_df
+        gc.collect()
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        print("✓ Memory cleared")
     
     # Generate static 10-year predictions (1-year score for 10-year outcome)
     static_output_file = output_dir / f'washout_{args.washout_years}yr_10yr_static_results.csv'
@@ -170,6 +162,15 @@ def main():
         print(f"PROCESSING STATIC 10-YEAR WITH {args.washout_years}-YEAR WASHOUT")
         print(f"{'='*80}")
         
+        # Load data for static evaluation
+        print("Loading data for static 10-year evaluation...")
+        pi_full = torch.load(pi_path, weights_only=False, map_location='cpu')[:N]
+        Y_full = torch.load(Y_path, weights_only=False, map_location='cpu')[:N]
+        E_full = torch.load(E_path, weights_only=False, map_location='cpu')[:N]
+        pce_df_full = pd.read_csv(pce_df_path).iloc[:N].reset_index(drop=True)
+        
+        print(f"✓ Loaded {N:,} patients")
+        
         print(f"Evaluating static 10-year predictions (1-year score) with {args.washout_years}-year washout...")
         static_results = evaluate_major_diseases_wsex_with_bootstrap_withwashout_from_pi(
             pi=pi_full,
@@ -182,9 +183,7 @@ def main():
             follow_up_duration_years=10
         )
         
-        all_results['10yr_static'] = static_results
-        
-        # Save static results
+        # Save static results immediately
         static_results_df = pd.DataFrame({
             'Disease': list(static_results.keys()),
             'AUC': [r['auc'] for r in static_results.values()],
@@ -197,38 +196,48 @@ def main():
         
         static_results_df.to_csv(static_output_file)
         print(f"✓ Saved results to {static_output_file}")
+        
+        # Free memory
+        del pi_full, Y_full, E_full, pce_df_full, static_results, static_results_df
+        gc.collect()
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        print("✓ Memory cleared")
     
-    # Create combined comparison file
+    # Create combined comparison file from saved CSV files (memory efficient)
     print(f"\n{'='*80}")
     print("CREATING COMBINED COMPARISON FILE")
     print(f"{'='*80}")
     
     comparison_data = []
-    # Add dynamic horizons
+    # Load results from saved CSV files instead of keeping in memory
     for horizon_years in [10, 30]:
-        horizon_key = f'{horizon_years}yr'
-        if horizon_key in all_results:
-            for disease, metrics in all_results[horizon_key].items():
+        results_file = output_dir / f'washout_{args.washout_years}yr_{horizon_years}yr_dynamic_results.csv'
+        if results_file.exists():
+            results_df = pd.read_csv(results_file, index_col=0)
+            for disease, row in results_df.iterrows():
                 comparison_data.append({
                     'Horizon': f'{horizon_years}yr_dynamic',
                     'Disease': disease,
-                    'AUC': metrics['auc'],
-                    'CI_lower': metrics['ci_lower'],
-                    'CI_upper': metrics['ci_upper'],
-                    'N_Events': metrics['n_events'],
-                    'Event_Rate': metrics['event_rate']
+                    'AUC': row['AUC'],
+                    'CI_lower': row['CI_lower'],
+                    'CI_upper': row['CI_upper'],
+                    'N_Events': row['N_Events'],
+                    'Event_Rate': row['Event_Rate']
                 })
+    
     # Add static 10yr
-    if '10yr_static' in all_results:
-        for disease, metrics in all_results['10yr_static'].items():
+    static_results_file = output_dir / f'washout_{args.washout_years}yr_10yr_static_results.csv'
+    if static_results_file.exists():
+        static_results_df = pd.read_csv(static_results_file, index_col=0)
+        for disease, row in static_results_df.iterrows():
             comparison_data.append({
                 'Horizon': '10yr_static',
                 'Disease': disease,
-                'AUC': metrics['auc'],
-                'CI_lower': metrics['ci_lower'],
-                'CI_upper': metrics['ci_upper'],
-                'N_Events': metrics['n_events'],
-                'Event_Rate': metrics['event_rate']
+                'AUC': row['AUC'],
+                'CI_lower': row['CI_lower'],
+                'CI_upper': row['CI_upper'],
+                'N_Events': row['N_Events'],
+                'Event_Rate': row['Event_Rate']
             })
     
     comparison_df = pd.DataFrame(comparison_data)

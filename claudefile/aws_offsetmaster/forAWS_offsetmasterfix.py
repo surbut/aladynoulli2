@@ -156,6 +156,13 @@ def main():
         else:
             print("psi does NOT match psi_total!")
         
+        # Reinitialize with psi_total for consistent gamma initialization
+        # Use psi_total (from master checkpoint) to determine which diseases belong to which signature
+        # This ensures consistent initialization across different runs
+        print("Reinitializing gamma with psi_total for consistency...")
+        model.initialize_params(init_psi=torch.tensor(psi_total, dtype=torch.float32))
+        print("✓ Gamma reinitialized with psi_total")
+        
         # Create age-specific event times
         E_age_specific = E_100k.clone()
         pce_df_subset = fh_processed.iloc[start_index:end_index].reset_index(drop=True)

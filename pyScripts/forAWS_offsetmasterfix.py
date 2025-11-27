@@ -137,7 +137,12 @@ for age_offset in range(0, 10):  # Ages 0-10 years after enrollment (11 total: 0
     else:
         print("psi does NOT match psi_total!")
 
-
+    # Reinitialize with psi_total for consistent gamma initialization
+    # Use psi_total (from master checkpoint) to determine which diseases belong to which signature
+    # This ensures consistent initialization across different runs
+    print("Reinitializing gamma with psi_total for consistency...")
+    model.initialize_params(init_psi=torch.tensor(psi_total, dtype=torch.float32))
+    print("✓ Gamma reinitialized with psi_total")
 
      # Create age-specific event times
     E_age_specific = E_100k.clone()
@@ -235,12 +240,12 @@ for age_offset in range(0, 10):  # Ages 0-10 years after enrollment (11 total: 0
         pi, _, _ = model.forward()
         
         # Save age-specific predictions
-        filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pi_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun_pooledall.pt"
+        filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/age_offset_local/pi_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun_pooledall.pt"
         torch.save(pi, filename)
        
         print(f"Saved predictions to {filename}")
 
-    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/model_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun_pooledall.pt"
+    filename = f"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/age_offset_local/model_enroll_fixedphi_age_offset_{age_offset}_sex_{start_index}_{end_index}_try2_withpcs_newrun_pooledall.pt"
     torch.save({
         'model_state_dict': model.state_dict(),
         'E': E_age_specific,

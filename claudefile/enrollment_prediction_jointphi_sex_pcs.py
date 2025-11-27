@@ -2,7 +2,8 @@
 """
 Batch script to run Aladyn model on sample batches
 Converted from aladynoulli_fit_for_understanding_and_discovery.ipynb
-
+This script was also known as run_aladyn_batch_ENROLL_joint.py and used to generate the jointly estimated phis in 
+enrollment_prediction_jointphi_sex_pcs
 Usage:
     Local:  python run_aladyn_batch.py --start_index 0 --end_index 10000
     AWS:    python run_aladyn_batch.py --start_index 0 --end_index 10000 --data_dir /data --output_dir /results
