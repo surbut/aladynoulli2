@@ -26,3 +26,4 @@ echo "Done! File uploaded to: s3://sarah-research-aladynoulli/data_for_running/a
 
 
 
+
