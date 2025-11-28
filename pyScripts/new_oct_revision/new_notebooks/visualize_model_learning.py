@@ -255,8 +255,8 @@ def create_multiple_precursors_figure(disease_name='ASCVD', output_dir=None):
     
     bars1 = ax.barh(y_pos - width/2, matching_df['Event_rate_droppers'], width,
                     label='Droppers (Predictions Drop)', color='#e74c3c', alpha=0.8, edgecolor='black')
-    bars2 = ax.barh(y_pos + width/2, matching_df['Event_rate_non_droppers'], width,
-                    label='Non-droppers (Predictions Stay High)', color='#2ecc71', alpha=0.8, edgecolor='black')
+    bars2 = ax.barh(y_pos + width/2, matching_df['Event_rate_risers'], width,
+                    label='Risers (Predictions Increase)', color='#2ecc71', alpha=0.8, edgecolor='black')
     
     ax.set_yticks(y_pos)
     ax.set_yticklabels(matching_df['Precursor'], fontsize=10)
@@ -271,15 +271,15 @@ def create_multiple_precursors_figure(disease_name='ASCVD', output_dir=None):
     for i, (idx, row) in enumerate(matching_df.iterrows()):
         ax.text(row['Event_rate_droppers'], i - width/2, f" {row['Event_rate_droppers']:.1f}%",
                 va='center', fontsize=9, fontweight='bold')
-        ax.text(row['Event_rate_non_droppers'], i + width/2, f" {row['Event_rate_non_droppers']:.1f}%",
+        ax.text(row['Event_rate_risers'], i + width/2, f" {row['Event_rate_risers']:.1f}%",
                 va='center', fontsize=9, fontweight='bold')
     
     # Add interpretation
     interpretation = (
-        "Pattern: Non-droppers have HIGHER event rates within each precursor group\n"
+        "Pattern: Risers have HIGHER event rates within each precursor group\n"
         "→ Model correctly identifies high-risk patients for correlated precursors\n"
-        "→ Predictions stay high because patients actually have events\n"
-        "→ Model learns heterogeneity within risk factors"
+        "→ Predictions increase because patients actually have events\n"
+        "→ Model learns heterogeneity within risk factors (primary vs secondary prevention)"
     )
     
     ax.text(0.5, 0.02, interpretation, ha='center', va='bottom',

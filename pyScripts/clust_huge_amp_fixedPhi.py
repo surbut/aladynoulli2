@@ -109,12 +109,21 @@ class AladynSurvivalFixedPhi(nn.Module):
         return gp_loss_phi / self.D
 
 
-    def initialize_params(self, **kwargs):
-        """Initialize only individual-specific parameters (lambda, gamma)"""
+    def initialize_params(self, init_psi=None, **kwargs):
+        """Initialize only individual-specific parameters (lambda, gamma)
+        
+        Args:
+            init_psi: Optional psi to use for initialization (overrides self.psi).
+                      If None, uses self.psi. This ensures consistent initialization
+                      across batches when using the same initial_psi.
+        """
         # Initialize gamma for disease clusters
         gamma_init = torch.zeros((self.P, self.K_total))
         lambda_init = torch.zeros((self.N, self.K_total, self.T))
 
+        # Use init_psi if provided, otherwise use self.psi
+        psi_for_init = init_psi if init_psi is not None else self.psi
+        
         # Initialize lambda and gamma for disease clusters
         for k in range(self.K):
             print(f"\nCalculating gamma for k={k}:")
@@ -127,7 +136,7 @@ class AladynSurvivalFixedPhi(nn.Module):
             Y_avg = torch.log(Y_avg / (1 - Y_avg))  # Logit transform
             
             # Use diseases with strong psi values for this signature to initialize gamma
-            strong_diseases = (self.psi[k] > 0).float()
+            strong_diseases = (psi_for_init[k] > 0).float()
             base_value = Y_avg[:, strong_diseases > 0].mean(dim=1)
             base_value_centered = base_value - base_value.mean()
             
