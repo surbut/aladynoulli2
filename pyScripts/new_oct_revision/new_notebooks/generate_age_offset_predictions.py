@@ -148,6 +148,13 @@ def generate_age_offset_predictions(approach='pooled_retrospective', max_offset=
     pivot_df.to_csv(pivot_file)
     print(f"✓ Saved AUC pivot table to: {pivot_file}")
     
+    # Create summary statistics table (mean, median, std, min, max, count across offsets)
+    summary_df = auc_df.groupby('Disease')['AUC'].agg(['mean', 'median', 'std', 'min', 'max', 'count'])
+    summary_df = summary_df.sort_values('median', ascending=False)
+    summary_file = output_dir / f'age_offset_aucs_summary_batch_{start_idx}_{end_idx}.csv'
+    summary_df.to_csv(summary_file)
+    print(f"✓ Saved AUC summary statistics to: {summary_file}")
+    
     # Print summary
     print("\n" + "="*80)
     print("AGE OFFSET PREDICTIONS SUMMARY")

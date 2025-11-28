@@ -540,7 +540,7 @@ auc_results = test_cox_baseline_models(
 
 auc_df <- data.frame(
   disease_group = names(auc_results[[1]]),
-  auc = unlist(auc_results)
+  auc = unlist(auc_results[[1]])
 )
 
 write.csv(auc_df,"~/Library/CloudStorage/Dropbox/auc_results_cox_20000_30000train_0_10000test_1121.csv",quote = FALSE)

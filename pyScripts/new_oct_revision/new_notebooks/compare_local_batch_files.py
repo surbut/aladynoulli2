@@ -53,11 +53,11 @@ def compare_pi_tensors():
     print("COMPARING PI TENSORS (LOCAL BATCH FILES)")
     print("="*80)
     
-    # Age offset batch
-    pi_age_offset_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_offset_using_pooled_retrospective_local/') / \
+    # Age offset batch (NEW with gamma initialization fix)
+    pi_age_offset_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/age_offset_local/') / \
                          'pi_enroll_fixedphi_age_offset_0_sex_0_10000_try2_withpcs_newrun_pooledall.pt'
     
-    # Estimation from total
+    # Estimation from total (washout 0yr - same as before)
     pi_total_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal') / \
                    'enrollment_predictions_fixedphi_RETROSPECTIVE_pooled' / \
                    'pi_enroll_fixedphi_sex_0_10000.pt'
@@ -120,7 +120,7 @@ def compare_evaluations():
     disease_names = essentials['disease_names']
     
     # Load pi tensors
-    pi_age_offset_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_offset_using_pooled_retrospective_local/') / \
+    pi_age_offset_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/age_offset_local/') / \
                          'pi_enroll_fixedphi_age_offset_0_sex_0_10000_try2_withpcs_newrun_pooledall.pt'
     pi_total_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal') / \
                    'enrollment_predictions_fixedphi_RETROSPECTIVE_pooled' / \
@@ -221,12 +221,13 @@ def compare_evaluations():
 
 if __name__ == "__main__":
     print("="*80)
-    print("COMPARING LOCAL BATCH FILES (NO SUBSETTING NEEDED)")
+    print("COMPARING LOCAL BATCH FILES (WITH GAMMA INITIALIZATION FIX)")
     print("="*80)
     print("\nComparing:")
-    print("  1. Age offset batch: pi_enroll_fixedphi_age_offset_0_sex_0_10000_try2_withpcs_newrun_pooledall.pt")
-    print("  2. Total batch: pi_enroll_fixedphi_sex_0_10000.pt")
-    print("\nBoth are batch 0-10K, so comparing directly (no AWS issues)")
+    print("  1. Age offset 0 (NEW with gamma init fix): age_offset_local/pi_enroll_fixedphi_age_offset_0_...")
+    print("  2. Washout 0yr (total pi): enrollment_predictions_fixedphi_RETROSPECTIVE_pooled/pi_enroll_fixedphi_sex_0_10000.pt")
+    print("\nBoth are batch 0-10K, comparing with SAME evaluation function")
+    print("Expected: Should be closer now with gamma initialization fix!")
     print("="*80)
     
     # Compare pi tensors

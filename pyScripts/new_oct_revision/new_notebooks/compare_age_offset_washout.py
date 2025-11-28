@@ -69,7 +69,7 @@ def compare_pi_tensors():
     print("COMPARING PI TENSORS")
     print("="*80)
     
-    # Load age_offset pi (offset 0, batch 0-10K)
+    # Load age_offset pi (offset 0, batch 0-10K) - NEW with gamma initialization fix
     pi_age_offset_path = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/age_offset_files') / \
                          'pi_enroll_fixedphi_age_offset_0_sex_0_10000_try2_withpcs_newrun.pt'
     
