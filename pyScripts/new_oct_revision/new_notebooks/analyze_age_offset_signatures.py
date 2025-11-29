@@ -964,15 +964,28 @@ def main():
         if precursor in patient_df.columns:
             precursor_patients = patient_df[patient_df[precursor] == True]
             if len(precursor_patients) > 0:
-                mean_change = precursor_patients['prediction_change'].mean()
-                median_change = precursor_patients['prediction_change'].median()
-                event_rate = precursor_patients['had_event'].mean() * 100
+                # Use prediction_change_4yr (4yr washout - 9yr washout, both predict at t_enroll+9)
+                if 'prediction_change_4yr' in precursor_patients.columns:
+                    mean_change = precursor_patients['prediction_change_4yr'].mean()
+                    median_change = precursor_patients['prediction_change_4yr'].median()
+                else:
+                    # Fallback: calculate from offset predictions if available
+                    if 'prediction_offset_0' in precursor_patients.columns and 'prediction_offset_5' in precursor_patients.columns:
+                        changes = precursor_patients['prediction_offset_5'] - precursor_patients['prediction_offset_0']
+                        mean_change = changes.mean()
+                        median_change = changes.median()
+                    else:
+                        print(f"  ⚠️  Cannot calculate prediction change - missing columns")
+                        continue
+                
+                event_rate = precursor_patients['had_event'].mean() * 100 if 'had_event' in precursor_patients.columns else np.nan
                 
                 print(f"\n{precursor}:")
                 print(f"  N patients: {len(precursor_patients)}")
-                print(f"  Mean prediction change (offset 9 - 0): {mean_change:.4f}")
+                print(f"  Mean prediction change (4yr washout - 9yr washout): {mean_change:.4f}")
                 print(f"  Median prediction change: {median_change:.4f}")
-                print(f"  Event rate (year 0-1): {event_rate:.1f}%")
+                if not np.isnan(event_rate):
+                    print(f"  Event rate (year 0-1): {event_rate:.1f}%")
     
     # Analyze signature changes
     if cluster_assignments is not None:

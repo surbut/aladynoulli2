@@ -199,13 +199,13 @@ def plot_precursor_comparison(results, disease_name, output_dir, top_n=20):
     width = 0.35
     bars1 = ax.barh(y_pos - width/2, precursors_df['Pct_droppers'], width,
                     label='Droppers (Top 5%)', color='#e74c3c', alpha=0.7, edgecolor='black')
-    bars2 = ax.barh(y_pos + width/2, precursors_df['Pct_non_droppers'], width,
-                    label='Non-droppers (Bottom 5%)', color='#3498db', alpha=0.7, edgecolor='black')
+    bars2 = ax.barh(y_pos + width/2, precursors_df['Pct_risers'], width,
+                    label='Risers (Bottom 5% - Predictions Increased)', color='#3498db', alpha=0.7, edgecolor='black')
     
     ax.set_yticks(y_pos)
     ax.set_yticklabels(precursors_df['Disease'], fontsize=9)
     ax.set_xlabel('Prevalence (%)', fontsize=11)
-    ax.set_title(f'Top {top_n} Precursor Diseases: Droppers vs Non-droppers\n{disease_name}', 
+    ax.set_title(f'Top {top_n} Precursor Diseases: Droppers vs Risers\n{disease_name}', 
                  fontsize=12, fontweight='bold')
     ax.legend(loc='lower right', fontsize=10)
     ax.grid(axis='x', alpha=0.3)
