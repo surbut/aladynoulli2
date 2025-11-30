@@ -69,3 +69,4 @@ echo ""
 echo "Check logs in ~/batch_logs/"
 echo "Check results in /results/"
 
+

@@ -65,3 +65,4 @@ echo "Count running: ps aux | grep setup_and_run_ec2 | grep -v grep | wc -l"
 echo "Check completed: ls -1 /results/model_batch_*.pt 2>/dev/null | wc -l"
 echo "=========================================="
 
+
