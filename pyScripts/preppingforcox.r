@@ -22,15 +22,26 @@ E_mat = tensor_to_r(ukb_train$E)
 saveRDS(Y_train_load,"ukb_Y_train.rds")
 #### 
 ukb_test=torch$load(
-  "/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_model_W0.0001_jointphi_sexspecific_0_10000.pt",
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/enrollment_model_W0.0001_jointphi_sexspecific_0_10000.pt",
   weights_only = FALSE
 )
 
 Y_test_load = tensor_to_r(ukb_test$Y)
-E_mat = tensor_to_r(ukb_train$E)
+E_mat = tensor_to_r(ukb_test$E)
 saveRDS(Y_test_load,"ukb_Y_test.rds")
 
 
+E_complete=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_matrix.pt",
+  weights_only = FALSE
+)
+E_complete = tensor_to_r(E_complete)
+
+
+clusters=torch$load(
+  "/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_clusters_400k.pt",
+  weights_only = FALSE
+)
 
 
 pi_train=torch$load(
@@ -53,6 +64,19 @@ pi_test=tensor_to_r(pi_test)
 saveRDS(pi_test,"/Users/sarahurbut/Library/CloudStorage/Dropbox/pi_enroll_sex_0_10000.rds")
 
 ####
+####
+####
+####
+clusters=torch$load(
+"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_clusters_400k.pt",
+weights_only = FALSE
+)
+disease_names=read.csv("~/Library/CloudStorage/Dropbox-Personal/disease_names.csv")
+dn=disease_names['x']
+
+df=data.frame(dn,clusters)
+df$r_index=rownames(df)
+write.csv(df,"~/aladynoulli2/Disease_names_by_cluster.csv",row.names=FALSE,quote=FALSE)
 
 
 pi_test=torch$load(

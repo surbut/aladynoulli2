@@ -88,9 +88,26 @@ signatures_to_test = {
 }
 
 # Set up output directory for plots and results
-output_dir = Path('results/chip_multiple_signatures')
+# Use absolute path based on script location to ensure consistency
+script_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
+output_dir = script_dir / 'results' / 'chip_multiple_signatures'
 output_dir.mkdir(parents=True, exist_ok=True)
 print(f"\n📁 Results and plots will be saved to: {output_dir}")
+print(f"   Script directory: {script_dir}")
+print(f"   Current working directory: {Path.cwd()}")
+
+# Check if results already exist
+summary_path = output_dir / 'chip_multiple_signatures_summary.csv'
+print(f"\n🔍 Checking for existing results at: {summary_path}")
+print(f"   Path exists: {summary_path.exists()}")
+if summary_path.exists():
+    print(f"\n✓✓✓ Results already exist at: {summary_path}")
+    print(f"   File size: {summary_path.stat().st_size:,} bytes")
+    print("   Skipping analysis. To re-run, delete the file first.")
+    # Use SystemExit which works better in notebooks
+    raise SystemExit(0)
+else:
+    print("   No existing results found - will run analysis")
 
 # Load CHIP carriers
 print("\nLoading CHIP carriers...")
