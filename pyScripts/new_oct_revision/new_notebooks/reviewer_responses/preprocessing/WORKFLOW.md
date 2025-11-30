@@ -132,9 +132,18 @@ python claudefile/run_aladyn_predict_with_master.py \
 
 ### What it does:
 - Loads master checkpoint (pooled phi + initial_psi)
+- **Automatically loads E matrix** from `data_dir/E_enrollment_full.pt` (FULL E, enrollment data)
+- Also loads Y, G, and model_essentials from data_dir
 - Uses fixed phi for predictions (doesn't retrain phi)
 - Generates predictions for all patients
 - Saves prediction results
+
+### Required files in `--data_dir`:
+- `Y_tensor.pt` - Disease outcomes
+- `E_enrollment_full.pt` - **Enrollment matrix (FULL E)** - automatically loaded
+- `G_matrix.pt` - Genetic variants
+- `model_essentials.pt` - Model metadata
+- `reference_trajectories.pt` - Signature reference trajectories
 
 ---
 
