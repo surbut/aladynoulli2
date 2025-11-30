@@ -79,6 +79,27 @@ reviewer_responses/
 
 ---
 
+## Preprocessing & Workflow
+
+**Addresses reviewer questions about data preprocessing and the complete analysis workflow.**
+
+| Resource | Description |
+|----------|-------------|
+| [`preprocessing/WORKFLOW.md`](preprocessing/WORKFLOW.md) | **Complete end-to-end workflow documentation** - Step-by-step guide from preprocessing → batch training → master checkpoint → prediction |
+| [`preprocessing/create_preprocessing_files.ipynb`](preprocessing/create_preprocessing_files.ipynb) | Interactive notebook for data preprocessing with visualizations (smoothed prevalence, clustering, signature references) |
+| [`preprocessing/preprocessing_utils.py`](preprocessing/preprocessing_utils.py) | Standalone preprocessing functions (`compute_smoothed_prevalence`, `create_initial_clusters_and_psi`, `create_reference_trajectories`) |
+| [`preprocessing/SIMPLE_EXAMPLE.py`](preprocessing/SIMPLE_EXAMPLE.py) | Minimal copy-paste example demonstrating how to use the preprocessing functions |
+
+**Workflow Overview:**
+1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
+2. **Batch Training**: Run `run_aladyn_batch` with FULL E matrix
+3. **Master Checkpoint**: Generate master checkpoint (phi and psi)
+4. **Prediction**: Run `run_aladyn_predict_with_master` (automatically loads `E_enrollment_full.pt`)
+
+See [`preprocessing/WORKFLOW.md`](preprocessing/WORKFLOW.md) for detailed instructions.
+
+---
+
 ## Supporting Analyses
 
 These notebooks provide detailed analyses that support the reviewer responses. They are located in the parent `new_notebooks/` directory:
