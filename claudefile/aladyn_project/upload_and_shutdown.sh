@@ -78,3 +78,4 @@ echo "  aws s3 sync $S3_PATH/ ./local_enrollment_models/"
 echo ""
 
 
+
