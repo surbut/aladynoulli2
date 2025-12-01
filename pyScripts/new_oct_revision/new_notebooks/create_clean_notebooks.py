@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 
-def should_hide_cell(cell: Dict[str, Any], hide_patterns: List[str] = None) -> tuple[bool, bool]:
+def should_hide_cell(cell: Dict[str, Any], hide_patterns: List[str] = None):
     """
     Determine if a cell should have input/output hidden.
     
