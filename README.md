@@ -242,13 +242,16 @@ For interactive exploration and development:
 
 **Discovery Mode** (full model training):
 ```bash
-jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb
+jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery_noweights.ipynb
 ```
 
 **Prediction Mode** (fixed phi):
 ```bash
 jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb
 ```
+
+**Reviewer Response Analyses** (comprehensive validation and analysis):
+See [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md) for a complete guide to all interactive analyses addressing reviewer questions, including clinical utility, lifetime risk, AUC comparisons, model validity, and more.
 
 ### Programmatic Usage
 
@@ -298,6 +301,7 @@ model = AladynSurvivalFixedPhi(
     disease_names=disease_names
 )
 
+
 # Train (only estimates lambda)
 history = model.fit(E, num_epochs=200)
 
@@ -325,6 +329,17 @@ pi, theta, phi = model.forward()
 
 - **Complete Workflow Guide**: [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md)
 
+### Reviewer Response Analyses
+
+- **📊 Reviewer Response Navigation Hub**: [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md) - Complete guide to all interactive analyses addressing reviewer questions, including:
+  - Clinical utility and dynamic risk updating
+  - Lifetime risk predictions
+  - AUC comparisons with established scores
+  - Model validity and learning analyses
+  - Biological plausibility studies
+  - Age-stratified performance
+  - And more...
+
 ### Additional Tools
 
 - **Streamlit App**: [`pyScripts_forPublish/patient_timeline_app`](pyScripts_forPublish/patient_timeline_app)
@@ -346,7 +361,7 @@ pi, theta, phi = model.forward()
 **Generated during workflow:**
 - Batch checkpoints: `enrollment_model_W0.0001_batch_*_*.pt` (Step 2)
 - Master checkpoint: `master_for_fitting_pooled_all_data.pt` (Step 3)
-- Predictions: `pi_enroll_fixedphi_sex_FULL.pt` (Step 4)
+- Predictions: `pi_full_400k.pt` (Step 4)
 
 See [WORKFLOW.md](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) for detailed file descriptions.
 
@@ -356,16 +371,14 @@ See [WORKFLOW.md](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/pr
 
 | Configuration | Training Time | Memory Usage |
 |---------------|---------------|--------------|
-| CPU (8 cores) | ~15 minutes | ~4GB |
-| GPU (RTX 3080) | ~3 minutes | ~6GB |
-| Cloud (AWS t3.xlarge) | ~8 minutes | ~8GB |
+| CPU (Apple M4 Max) | ~70 minutes | ~12GB  per 10000 people
 
 ### Scalability
 
 - **Individuals**: Tested up to 400,000
-- **Diseases**: Tested up to 400
-- **Time Points**: Tested up to 70
-- **Genetic Features**: Tested up to 1M SNPs
+- **Diseases**: Tested 350
+- **Time Points**: Tested 52 (ages 30-81)
+- **Genetic Features**: Tested with 36 PRS and 10 PCs
 
 
 This will:
