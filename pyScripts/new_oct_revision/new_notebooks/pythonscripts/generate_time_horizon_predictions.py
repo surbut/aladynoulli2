@@ -115,13 +115,13 @@ def main():
             if horizon_years == 30 and args.use_variable_followup:
                 expected_files.append(output_dir / f'{horizon_name}_variable_followup_results.csv')
             else:
-                expected_files.append(output_dir / f'{horizon_name}_results.csv')
+        expected_files.append(output_dir / f'{horizon_name}_results.csv')
     
     # Only check comparison file if not using variable follow-up (to avoid false positives)
     check_comparison = not (args.use_variable_followup and '30' in horizons)
     if check_comparison:
-        comparison_file = output_dir / 'comparison_all_horizons.csv'
-        all_exist = all(f.exists() for f in expected_files) and comparison_file.exists()
+    comparison_file = output_dir / 'comparison_all_horizons.csv'
+    all_exist = all(f.exists() for f in expected_files) and comparison_file.exists()
     else:
         all_exist = all(f.exists() for f in expected_files)
     
@@ -133,7 +133,7 @@ def main():
         for f in expected_files:
             print(f"  ✓ {f.name}")
         if check_comparison:
-            print(f"  ✓ {comparison_file.name}")
+        print(f"  ✓ {comparison_file.name}")
         print("\nTo regenerate, delete the existing result files first.")
         return
     
@@ -151,7 +151,7 @@ def main():
         if horizon_years == 30 and args.use_variable_followup:
             output_file = output_dir / f'{horizon_name}_variable_followup_results.csv'
         else:
-            output_file = output_dir / f'{horizon_name}_results.csv'
+        output_file = output_dir / f'{horizon_name}_results.csv'
         
         # Skip if this specific result already exists
         if output_file.exists():
@@ -160,6 +160,7 @@ def main():
             print(f"{'='*80}")
             print(f"  File exists: {output_file}")
             continue
+        
         
         print(f"\n{'='*80}")
         print(f"PROCESSING HORIZON: {horizon}")
@@ -185,6 +186,9 @@ def main():
             # Use variable follow-up for 30-year if flag is set
             if horizon_years == 30 and args.use_variable_followup:
                 print("  Using variable follow-up (max available follow-up per patient)...")
+                print("  ⚠️  WARNING: Variable follow-up includes patients with shorter follow-up periods.")
+                print("  ⚠️  This may result in lower AUCs due to follow-up duration mismatch.")
+                print("  ⚠️  Results are saved separately to avoid overwriting standard results.")
                 results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi_variable_followup(
                     pi=pi_full,
                     Y_100k=Y_full,
@@ -195,15 +199,15 @@ def main():
                     follow_up_duration_years=horizon_years
                 )
             else:
-                results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi(
-                    pi=pi_full,
-                    Y_100k=Y_full,
-                    E_100k=E_full,
-                    disease_names=disease_names,
-                    pce_df=pce_df_full,
-                    n_bootstraps=args.n_bootstraps,
-                    follow_up_duration_years=horizon_years
-                )
+            results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi(
+                pi=pi_full,
+                Y_100k=Y_full,
+                E_100k=E_full,
+                disease_names=disease_names,
+                pce_df=pce_df_full,
+                n_bootstraps=args.n_bootstraps,
+                follow_up_duration_years=horizon_years
+            )
         
         all_results[horizon_name] = results
         
@@ -227,20 +231,21 @@ def main():
                 'FollowUp_P75': [r.get('follow_up_stats', {}).get('p75', np.nan) for r in results.values()]
             })
         else:
-            results_df = pd.DataFrame({
-                'Disease': list(results.keys()),
-                'AUC': [r['auc'] for r in results.values()],
-                'CI_lower': [r['ci_lower'] for r in results.values()],
-                'CI_upper': [r['ci_upper'] for r in results.values()],
-                'N_Events': [r['n_events'] for r in results.values()],
-                'Event_Rate': [r['event_rate'] for r in results.values()]
-            })
+        results_df = pd.DataFrame({
+            'Disease': list(results.keys()),
+            'AUC': [r['auc'] for r in results.values()],
+            'CI_lower': [r['ci_lower'] for r in results.values()],
+            'CI_upper': [r['ci_upper'] for r in results.values()],
+            'N_Events': [r['n_events'] for r in results.values()],
+            'Event_Rate': [r['event_rate'] for r in results.values()]
+        })
         results_df = results_df.set_index('Disease').sort_values('AUC', ascending=False)
         
         results_df.to_csv(output_file)
         print(f"\n✓ Saved results to {output_file}")
     
-    # Create combined comparison file
+    # Create combined comparison file (skip if using variable follow-up)
+    if not (args.use_variable_followup and '30' in horizons):
     print(f"\n{'='*80}")
     print("CREATING COMBINED COMPARISON FILE")
     print(f"{'='*80}")
@@ -258,6 +263,12 @@ def main():
     comparison_file = output_dir / 'comparison_all_horizons.csv'
     comparison_df.to_csv(comparison_file)
     print(f"✓ Saved combined comparison to {comparison_file}")
+    else:
+        print(f"\n{'='*80}")
+        print("SKIPPING COMBINED COMPARISON FILE")
+        print(f"{'='*80}")
+        print("Variable follow-up results use different methodology - not included in comparison file")
+        print("(This preserves the standard comparison_all_horizons.csv)")
     
     print(f"\n{'='*80}")
     print("COMPLETED SUCCESSFULLY")
