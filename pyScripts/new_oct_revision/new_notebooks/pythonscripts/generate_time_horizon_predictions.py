@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/')
 from fig5utils import (
     evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi,
+    evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi_variable_followup,
     evaluate_major_diseases_wsex_with_bootstrap_from_pi
 )
 
@@ -41,6 +42,8 @@ def main():
                        help='Comma-separated list of horizons: 5,10,30,static10')
     parser.add_argument('--n_bootstraps', type=int, default=100,
                        help='Number of bootstrap iterations')
+    parser.add_argument('--use_variable_followup', action='store_true',
+                       help='Use variable follow-up for 30-year predictions (uses max available follow-up instead of skipping patients)')
     parser.add_argument('--output_dir', type=str, 
                        default='/Users/sarahurbut/aladynoulli2/pyScripts/new_oct_revision/new_notebooks/results/time_horizons/',
                        help='Output directory for results')
@@ -99,17 +102,28 @@ def main():
     if not (N == Y_full.shape[0] == E_full.shape[0] == len(pce_df_full)):
         raise ValueError(f"Size mismatch after subsetting! pi: {N}, Y: {Y_full.shape[0]}, E: {E_full.shape[0]}, pce_df: {len(pce_df_full)}")
     
-    # Check if results already exist
+    # Check if results already exist (accounting for variable follow-up filenames)
     expected_files = []
     for horizon in horizons:
         if horizon == 'static10':
             horizon_name = 'static_10yr'
+            expected_files.append(output_dir / f'{horizon_name}_results.csv')
         else:
             horizon_years = int(horizon.replace('yr', ''))
             horizon_name = f'{horizon_years}yr'
-        expected_files.append(output_dir / f'{horizon_name}_results.csv')
-    comparison_file = output_dir / 'comparison_all_horizons.csv'
-    all_exist = all(f.exists() for f in expected_files) and comparison_file.exists()
+            # Use variable follow-up filename if flag is set for 30-year
+            if horizon_years == 30 and args.use_variable_followup:
+                expected_files.append(output_dir / f'{horizon_name}_variable_followup_results.csv')
+            else:
+                expected_files.append(output_dir / f'{horizon_name}_results.csv')
+    
+    # Only check comparison file if not using variable follow-up (to avoid false positives)
+    check_comparison = not (args.use_variable_followup and '30' in horizons)
+    if check_comparison:
+        comparison_file = output_dir / 'comparison_all_horizons.csv'
+        all_exist = all(f.exists() for f in expected_files) and comparison_file.exists()
+    else:
+        all_exist = all(f.exists() for f in expected_files)
     
     if all_exist:
         print("\n" + "="*80)
@@ -118,7 +132,8 @@ def main():
         print(f"Found existing results in: {output_dir}")
         for f in expected_files:
             print(f"  ✓ {f.name}")
-        print(f"  ✓ {comparison_file.name}")
+        if check_comparison:
+            print(f"  ✓ {comparison_file.name}")
         print("\nTo regenerate, delete the existing result files first.")
         return
     
@@ -132,7 +147,11 @@ def main():
             horizon_years = int(horizon.replace('yr', ''))
             horizon_name = f'{horizon_years}yr'
         
-        output_file = output_dir / f'{horizon_name}_results.csv'
+        # Add suffix for variable follow-up to avoid overwriting regular results
+        if horizon_years == 30 and args.use_variable_followup:
+            output_file = output_dir / f'{horizon_name}_variable_followup_results.csv'
+        else:
+            output_file = output_dir / f'{horizon_name}_results.csv'
         
         # Skip if this specific result already exists
         if output_file.exists():
@@ -162,27 +181,60 @@ def main():
             # Dynamic predictions (5yr, 10yr, 30yr)
             horizon_years = int(horizon.replace('yr', ''))
             print(f"Evaluating dynamic {horizon_years}-year predictions...")
-            results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi(
-                pi=pi_full,
-                Y_100k=Y_full,
-                E_100k=E_full,
-                disease_names=disease_names,
-                pce_df=pce_df_full,
-                n_bootstraps=args.n_bootstraps,
-                follow_up_duration_years=horizon_years
-            )
+            
+            # Use variable follow-up for 30-year if flag is set
+            if horizon_years == 30 and args.use_variable_followup:
+                print("  Using variable follow-up (max available follow-up per patient)...")
+                results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi_variable_followup(
+                    pi=pi_full,
+                    Y_100k=Y_full,
+                    E_100k=E_full,
+                    disease_names=disease_names,
+                    pce_df=pce_df_full,
+                    n_bootstraps=args.n_bootstraps,
+                    follow_up_duration_years=horizon_years
+                )
+            else:
+                results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi(
+                    pi=pi_full,
+                    Y_100k=Y_full,
+                    E_100k=E_full,
+                    disease_names=disease_names,
+                    pce_df=pce_df_full,
+                    n_bootstraps=args.n_bootstraps,
+                    follow_up_duration_years=horizon_years
+                )
         
         all_results[horizon_name] = results
         
         # Save individual results
-        results_df = pd.DataFrame({
-            'Disease': list(results.keys()),
-            'AUC': [r['auc'] for r in results.values()],
-            'CI_lower': [r['ci_lower'] for r in results.values()],
-            'CI_upper': [r['ci_upper'] for r in results.values()],
-            'N_Events': [r['n_events'] for r in results.values()],
-            'Event_Rate': [r['event_rate'] for r in results.values()]
-        })
+        # Extract follow-up stats if available (for variable follow-up)
+        follow_up_stats_available = any('follow_up_stats' in r for r in results.values())
+        
+        if follow_up_stats_available:
+            results_df = pd.DataFrame({
+                'Disease': list(results.keys()),
+                'AUC': [r['auc'] for r in results.values()],
+                'CI_lower': [r['ci_lower'] for r in results.values()],
+                'CI_upper': [r['ci_upper'] for r in results.values()],
+                'N_Events': [r['n_events'] for r in results.values()],
+                'Event_Rate': [r['event_rate'] for r in results.values()],
+                'FollowUp_Mean': [r.get('follow_up_stats', {}).get('mean', np.nan) for r in results.values()],
+                'FollowUp_Median': [r.get('follow_up_stats', {}).get('median', np.nan) for r in results.values()],
+                'FollowUp_Min': [r.get('follow_up_stats', {}).get('min', np.nan) for r in results.values()],
+                'FollowUp_Max': [r.get('follow_up_stats', {}).get('max', np.nan) for r in results.values()],
+                'FollowUp_P25': [r.get('follow_up_stats', {}).get('p25', np.nan) for r in results.values()],
+                'FollowUp_P75': [r.get('follow_up_stats', {}).get('p75', np.nan) for r in results.values()]
+            })
+        else:
+            results_df = pd.DataFrame({
+                'Disease': list(results.keys()),
+                'AUC': [r['auc'] for r in results.values()],
+                'CI_lower': [r['ci_lower'] for r in results.values()],
+                'CI_upper': [r['ci_upper'] for r in results.values()],
+                'N_Events': [r['n_events'] for r in results.values()],
+                'Event_Rate': [r['event_rate'] for r in results.values()]
+            })
         results_df = results_df.set_index('Disease').sort_values('AUC', ascending=False)
         
         results_df.to_csv(output_file)

@@ -2,6 +2,8 @@
 
 This document describes the complete workflow for running the Aladynoulli model from preprocessing to prediction.
 
+> **📚 Related Documentation**: This workflow is part of the [Reviewer Response Analyses](../README.md) section, which contains all interactive notebooks, preprocessing utilities, and detailed analyses. See the [main repository README](../../../../README.md) for the complete overview.
+
 ## Overview
 
 The workflow consists of 4 main steps:
@@ -27,7 +29,7 @@ Create initialization files needed for model training.
 
 **Option A: Use the notebook** (interactive)
 ```python
-# In create_preprocessing_files.ipynb
+# In reviewer_responses/preprocessing/create_preprocessing_files.ipynb
 from preprocessing_utils import (
     compute_smoothed_prevalence,
     create_initial_clusters_and_psi,
@@ -50,13 +52,20 @@ signature_refs, healthy_ref = create_reference_trajectories(
 
 **Option B: Use as Python script** (programmatic)
 ```python
-from preprocessing.preprocessing_utils import (
+# From reviewer_responses/preprocessing/preprocessing_utils.py
+import sys
+sys.path.append('pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing')
+from preprocessing_utils import (
     compute_smoothed_prevalence,
     create_initial_clusters_and_psi,
     create_reference_trajectories
 )
 # ... same as above
 ```
+
+**See also:**
+- Interactive notebook: [`reviewer_responses/preprocessing/create_preprocessing_files.ipynb`](../preprocessing/create_preprocessing_files.ipynb)
+- Simple example: [`reviewer_responses/preprocessing/SIMPLE_EXAMPLE.py`](../preprocessing/SIMPLE_EXAMPLE.py)
 
 ### Key Benefits:
 - ✅ **Standalone functions** - No need to initialize full model
@@ -72,12 +81,17 @@ Train the model on batches with FULL E matrix (enrollment data).
 
 ### Script:
 ```bash
+# From repository root
 python claudefile/run_aladyn_batch.py \
     --data_dir /path/to/data \
     --output_dir /path/to/output \
-    --use_full_E \
-    --num_batches 40
+    --start_index 0 \
+    --end_index 10000 \
+    --num_epochs 200
 ```
+
+**Script location:** [`claudefile/run_aladyn_batch.py`](../../../../claudefile/run_aladyn_batch.py)  
+**Model file:** [`pyScripts_forPublish/clust_huge_amp.py`](../../../../pyScripts_forPublish/clust_huge_amp.py)
 
 ### What it does:
 - Trains model on batches of data
@@ -95,26 +109,61 @@ python claudefile/run_aladyn_batch.py \
 
 Pool phi from all batches and create master checkpoint for fixed-phi predictions.
 
-### Script:
+### Option A: Use the script (recommended)
 ```bash
+# From repository root
 python claudefile/create_master_checkpoints.py \
     --data_dir /path/to/data \
     --retrospective_pattern "/path/to/enrollment_model_W0.0001_batch_*_*.pt" \
+    --enrollment_pattern "/path/to/enrollment_model_W0.0001_batch_*_*.pt" \
     --output_dir /path/to/output
 ```
 
-### What it does:
+**Script location:** [`claudefile/create_master_checkpoints.py`](../../../../claudefile/create_master_checkpoints.py)
+
+**What it does:**
 - Loads phi from all batch checkpoints
 - Pools phi (mean across batches)
 - Combines with `initial_psi_400k.pt`
 - Creates master checkpoint: `master_for_fitting_pooled_all_data.pt`
 
+### Option B: Use interactive notebook
+
+You can also create master checkpoints interactively by importing the functions:
+
+```python
+import sys
+sys.path.append('/path/to/aladynoulli2/claudefile/')
+from create_master_checkpoints import pool_phi_from_batches, create_master_checkpoint
+import torch
+import numpy as np
+
+# Load initial_psi
+data_dir = '/path/to/data/'
+initial_psi = torch.load(data_dir + 'initial_psi_400k.pt', weights_only=False)
+if torch.is_tensor(initial_psi):
+    initial_psi = initial_psi.cpu().numpy()
+
+# Pool phi from retrospective batches
+retrospective_pattern = '/path/to/enrollment_model_W0.0001_batch_*_*.pt'
+phi_retrospective_pooled = pool_phi_from_batches(retrospective_pattern)
+
+# Create master checkpoint
+output_path = data_dir + 'master_for_fitting_pooled_all_data.pt'
+create_master_checkpoint(
+    phi_retrospective_pooled,
+    initial_psi,
+    output_path,
+    description="Pooled phi from all retrospective batches + initial_psi"
+)
+```
+
+**Example notebook:** [`misc/evalmodel/lifetime.ipynb`](../../../../misc/evalmodel/lifetime.ipynb) shows the complete interactive workflow with comparisons to notebook results.
+
 ### Output:
 - `master_for_fitting_pooled_all_data.pt` - Master checkpoint with pooled phi + initial_psi
+- `master_for_fitting_pooled_enrollment_data.pt` - Master checkpoint from enrollment batches (if created)
 - Can be used for fixed-phi predictions
-
-### Alternative: Use notebook
-The `misc/evalmodel/lifetime.ipynb` notebook also shows how to create master checkpoints interactively.
 
 ---
 
@@ -124,11 +173,17 @@ Run predictions using the master checkpoint (fixed phi).
 
 ### Script:
 ```bash
-python claudefile/run_aladyn_predict_with_master.py \
+# From repository root
+python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
     --trained_model_path /path/to/master_for_fitting_pooled_all_data.pt \
     --data_dir /path/to/data \
-    --output_dir /path/to/predictions
+    --output_dir /path/to/predictions \
+    --batch_size 10000 \
+    --num_epochs 200
 ```
+
+**Script location:** [`claudefile/version_from_ec2/run_aladyn_predict_with_master.py`](../../../../claudefile/version_from_ec2/run_aladyn_predict_with_master.py)  
+**Model file:** [`pyScripts_forPublish/clust_huge_amp_fixedPhi.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi.py)
 
 ### What it does:
 - Loads master checkpoint (pooled phi + initial_psi)
@@ -166,26 +221,36 @@ python claudefile/create_master_checkpoints.py \
     --output_dir /path/to/data
 
 # Step 4: Predict
-python claudefile/run_aladyn_predict_with_master.py \
+python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
     --trained_model_path /path/to/data/master_for_fitting_pooled_all_data.pt \
     --data_dir /path/to/data \
-    --output_dir /path/to/predictions
+    --output_dir /path/to/predictions \
+    --batch_size 10000
 ```
 
 ---
 
 ## File Locations
 
-### Preprocessing Files:
-- `preprocessing/preprocessing_utils.py` - Standalone utility functions
-- `preprocessing/create_preprocessing_files.ipynb` - Interactive notebook
+### Preprocessing Files (in `reviewer_responses/preprocessing/`):
+- [`preprocessing_utils.py`](../preprocessing/preprocessing_utils.py) - Standalone utility functions
+- [`create_preprocessing_files.ipynb`](../preprocessing/create_preprocessing_files.ipynb) - Interactive notebook
+- [`SIMPLE_EXAMPLE.py`](../preprocessing/SIMPLE_EXAMPLE.py) - Simple usage example
 
-### Training Scripts:
-- `claudefile/run_aladyn_batch.py` - Batch training script
-- `claudefile/create_master_checkpoints.py` - Master checkpoint creation
+### Training Scripts (in `claudefile/`):
+- [`run_aladyn_batch.py`](../../../../claudefile/run_aladyn_batch.py) - Batch training script
+- [`create_master_checkpoints.py`](../../../../claudefile/create_master_checkpoints.py) - Master checkpoint creation
 
-### Prediction Scripts:
-- `claudefile/run_aladyn_predict_with_master.py` - Predict with master checkpoint
+### Prediction Scripts (in `claudefile/version_from_ec2/`):
+- [`run_aladyn_predict_with_master.py`](../../../../claudefile/version_from_ec2/run_aladyn_predict_with_master.py) - Predict with master checkpoint
+
+### Model Files (in `pyScripts_forPublish/`):
+- [`clust_huge_amp.py`](../../../../pyScripts_forPublish/clust_huge_amp.py) - Discovery mode (learns phi)
+- [`clust_huge_amp_fixedPhi.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi.py) - Prediction mode (fixed phi)
+
+### Related Documentation:
+- [Reviewer Response Analyses](../README.md) - All analysis notebooks and preprocessing utilities
+- [Main Repository README](../../../../README.md) - Complete overview and installation
 
 ---
 
@@ -195,4 +260,13 @@ python claudefile/run_aladyn_predict_with_master.py \
 - **Clusters are deterministic** - Same `random_state=42` produces identical clusters
 - **Master checkpoint pools phi** - Mean across all batches for stability
 - **Fixed phi predictions** - Faster than retraining phi for each prediction
+
+## Related Analyses
+
+After completing the workflow, see the [Reviewer Response Analyses](../README.md) for:
+- Performance evaluation notebooks
+- Clinical utility analyses
+- Model validation studies
+- Comparison with established risk scores
+- All interactive analyses addressing reviewer questions
 
