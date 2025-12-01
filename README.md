@@ -8,6 +8,9 @@ A comprehensive Bayesian survival model for predicting disease trajectories usin
 
 **Preprint**: [medRxiv](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1)
 
+**Reviewer Response Analyses** (comprehensive validation and analysis):
+See [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md) for a complete guide to all interactive analyses addressing reviewer questions, including clinical utility, lifetime risk, AUC comparisons, model validity, and more.
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -250,8 +253,7 @@ jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_understanding_and_disc
 jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb
 ```
 
-**Reviewer Response Analyses** (comprehensive validation and analysis):
-See [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md) for a complete guide to all interactive analyses addressing reviewer questions, including clinical utility, lifetime risk, AUC comparisons, model validity, and more.
+
 
 ### Programmatic Usage
 
