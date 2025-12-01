@@ -4,7 +4,7 @@ Calculate age-stratified AUC for 1-year, 10-year static, and 30-year predictions
 
 This script:
 1. Loads predictions and enrollment ages
-2. Stratifies patients into age groups (40-50, 50-60, 60-70)
+2. Stratifies patients into age groups (39-50, 50-60, 60-72)
 3. Calculates AUC for each age group × time horizon × disease combination
 4. Saves results to CSV
 
@@ -111,9 +111,9 @@ def main():
     
     # Define age groups
     age_groups = [
-        (40, 50, '40-50'),
+        (39, 50, '39-50'),
         (50, 60, '50-60'),
-        (60, 70, '60-70')
+        (60, 72, '60-72')
     ]
     
     # Define time horizons
