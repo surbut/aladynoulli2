@@ -106,14 +106,14 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 
 | Notebook | Description | Used By |
 |----------|-------------|---------|
-| [`../performancen_notebook_clean.ipynb`](../performancen_notebook_clean.ipynb) | Performance evaluation (AUC, comparisons, washout, age offsets) | R1 Q9, R1 Q2, R1 Q10, R2 |
-| [`../fh_analysis_summary.ipynb`](../fh_analysis_summary.ipynb) | Familial Hypercholesterolemia carrier analysis | R1 Q3 |
-| [`../ipw_analysis_summary.ipynb`](../ipw_analysis_summary.ipynb) | Inverse Probability Weighting analysis | R1 Q1 |
-| [`../pc_analysis_clean.ipynb`](../pc_analysis_clean.ipynb) | Principal component adjustment analysis | R3 Population Stratification |
-| [`../heritability_analysis_summary.ipynb`](../heritability_analysis_summary.ipynb) | LDSC heritability estimates | R1 Q7 |
-| [`../heterogeneity_analysis_summary.ipynb`](../heterogeneity_analysis_summary.ipynb) | Disease pathway heterogeneity | R3 Q8 |
-| [`../washout_analysis_summary.ipynb`](../washout_analysis_summary.ipynb) | Washout window analysis | R2, R3 Q3 |
-| [`../delphicomp.ipynb`](../delphicomp.ipynb) | Delphi comparison analysis | R1 Q9 |
+| [`../performancen_notebook_clean.ipynb`](../additional_notebooks/performancen_notebook_clean.ipynb) | Performance evaluation (AUC, comparisons, washout, age offsets) | R1 Q9, R1 Q2, R1 Q10, R2 |
+| [`../fh_analysis_summary.ipynb`](../additional_notebooks/fh_analysis_summary.ipynb) | Familial Hypercholesterolemia carrier analysis | R1 Q3 |
+| [`../ipw_analysis_summary.ipynb`](../additional_notebooks/ipw_analysis_summary.ipynb) | Inverse Probability Weighting analysis | R1 Q1 |
+| [`../pc_analysis_clean.ipynb`](../additional_notebooks/pc_analysis_clean.ipynb) | Principal component adjustment analysis | R3 Population Stratification |
+| [`../heritability_analysis_summary.ipynb`](../additional_notebooks/heritability_analysis_summary.ipynb) | LDSC heritability estimates | R1 Q7 |
+| [`../heterogeneity_analysis_summary.ipynb`](../additional_notebooks/heterogeneity_analysis_summary.ipynb) | Disease pathway heterogeneity | R3 Q8 |
+| [`../washout_analysis_summary.ipynb`](../additional_notebooks/washout_analysis_summary.ipynb) | Washout window analysis | R2, R3 Q3 |
+| [`/delphicomp.ipynb`](../additional_notebooks/delphicomp.ipynb) | Delphi comparison analysis | R1 Q9 |
 
 ---
 
