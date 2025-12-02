@@ -3,7 +3,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>R2_Washout_Continued</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>R2_Washout_Continued_clean</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -7553,35 +7553,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Load full data</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Loading data..."</span><span class="p">)</span>
-
-<span class="c1"># Load Y, E, essentials</span>
-<span class="n">data_dir</span> <span class="o">=</span> <span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/'</span>
-<span class="n">Y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">+</span> <span class="s1">'Y_tensor.pt'</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">'cpu'</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">E</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">+</span> <span class="s1">'E_matrix.pt'</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">'cpu'</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">essentials</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">+</span> <span class="s1">'model_essentials.pt'</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">'cpu'</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-<span class="c1"># Load patient metadata</span>
-<span class="n">fh_processed</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/baselinagefamh.csv'</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Loaded Y: </span><span class="si">{</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Loaded E: </span><span class="si">{</span><span class="n">E</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">fh_processed</span><span class="p">)</span><span class="si">}</span><span class="s2"> patients"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">essentials</span><span class="p">[</span><span class="s1">'disease_names'</span><span class="p">])</span><span class="si">}</span><span class="s2"> diseases"</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input celltag_hide_output">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -7599,25 +7571,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Define batches (using first 10K for age offset models)</span>
-<span class="c1"># Note: Age offset models were only trained on first 10K patients</span>
-<span class="n">batches</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)]</span>  <span class="c1"># Only first batch for age offset models</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Processing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batches</span><span class="p">)</span><span class="si">}</span><span class="s2"> batch(es) for washout analysis"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Batches: </span><span class="si">{</span><span class="n">batches</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input celltag_hide_output">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -7690,48 +7644,7 @@ Washout interpretation:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Subset dat</span>
-<span class="n">start</span><span class="o">=</span><span class="mi">0</span>
-<span class="n">stop</span><span class="o">=</span><span class="mi">10000</span>
-<span class="n">Y_batch</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
-<span class="n">E_batch</span> <span class="o">=</span> <span class="n">E</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
-<span class="n">pce_df_batch</span> <span class="o">=</span> <span class="n">fh_processed</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-<span class="c1"># Base path for age offset models</span>
-<span class="n">base_path</span> <span class="o">=</span> <span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox/age_offset_files/'</span>
-
-<span class="c1"># 1. 1-year washout: Use offset 0 model, predict at enrollment+1</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  Loading 1-year washout model (offset 0)..."</span><span class="p">)</span>
-<span class="n">pi_filename_0</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_path</span><span class="si">}</span><span class="s2">pi_enroll_fixedphi_age_offset_0_sex_</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stop</span><span class="si">}</span><span class="s2">_try2_withpcs_newrun.pt"</span>
-
-<span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">pi_filename_0</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-    <span class="n">pi_batch_0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pi_filename_0</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">'cpu'</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    ✓ Loaded: </span><span class="si">{</span><span class="n">pi_batch_0</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    Evaluating at timepoint </span><span class="si">{</span><span class="n">prediction_timepoint</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
-    <span class="n">results_1yr_washout</span> <span class="o">=</span> <span class="n">evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex</span><span class="p">(</span>
-        <span class="n">pi</span><span class="o">=</span><span class="n">pi_batch_0</span><span class="p">,</span>
-        <span class="n">Y_100k</span><span class="o">=</span><span class="n">Y_batch</span><span class="p">,</span>
-        <span class="n">E_100k</span><span class="o">=</span><span class="n">E_batch</span><span class="p">,</span>
-        <span class="n">disease_names</span><span class="o">=</span><span class="n">essentials</span><span class="p">[</span><span class="s1">'disease_names'</span><span class="p">],</span>
-        <span class="n">pce_df</span><span class="o">=</span><span class="n">pce_df_batch</span><span class="p">,</span>
-        <span class="n">n_bootstraps</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">follow_up_duration_years</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">start_offset</span><span class="o">=</span><span class="mi">0</span>
-    <span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input celltag_hide_output">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8018,84 +7931,7 @@ Thyroid_Disorders    0.745 (0.675-0.806)       46         0.5        N/A
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Aggregate and display 1-year results</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"1-YEAR PREDICTION WASHOUT RESULTS"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
-
-<span class="n">washout_1yr_summary</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="k">for</span> <span class="n">washout_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'0yr'</span><span class="p">,</span> <span class="s1">'1yr'</span><span class="p">]:</span>
-    <span class="k">for</span> <span class="n">disease</span><span class="p">,</span> <span class="n">metrics</span> <span class="ow">in</span> <span class="n">washout_1yr_results</span><span class="p">[</span><span class="n">washout_name</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">aucs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">'aucs'</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">a</span><span class="p">)]</span>
-        <span class="k">if</span> <span class="n">aucs</span><span class="p">:</span>
-            <span class="n">mean_auc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">aucs</span><span class="p">)</span>
-            <span class="n">std_auc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">aucs</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aucs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span>
-            
-            <span class="c1"># Aggregate CIs</span>
-            <span class="n">all_cis</span> <span class="o">=</span> <span class="p">[</span><span class="n">ci</span> <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">'cis'</span><span class="p">]</span> <span class="k">if</span> <span class="n">ci</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">all_cis</span><span class="p">:</span>
-                <span class="n">mean_ci_lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">ci</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="n">all_cis</span><span class="p">])</span>
-                <span class="n">mean_ci_upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">ci</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="n">all_cis</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">mean_ci_lower</span> <span class="o">=</span> <span class="n">mean_ci_upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-            
-            <span class="n">total_events</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">'events'</span><span class="p">])</span>
-            <span class="n">mean_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">'rates'</span><span class="p">])</span>
-            
-            <span class="n">washout_1yr_summary</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-                <span class="s1">'Disease'</span><span class="p">:</span> <span class="n">disease</span><span class="p">,</span>
-                <span class="s1">'Washout'</span><span class="p">:</span> <span class="n">washout_name</span><span class="p">,</span>
-                <span class="s1">'AUC'</span><span class="p">:</span> <span class="n">mean_auc</span><span class="p">,</span>
-                <span class="s1">'AUC_std'</span><span class="p">:</span> <span class="n">std_auc</span><span class="p">,</span>
-                <span class="s1">'CI_lower'</span><span class="p">:</span> <span class="n">mean_ci_lower</span><span class="p">,</span>
-                <span class="s1">'CI_upper'</span><span class="p">:</span> <span class="n">mean_ci_upper</span><span class="p">,</span>
-                <span class="s1">'N_events'</span><span class="p">:</span> <span class="n">total_events</span><span class="p">,</span>
-                <span class="s1">'Event_rate'</span><span class="p">:</span> <span class="n">mean_rate</span>
-            <span class="p">})</span>
-
-<span class="n">df_1yr</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">washout_1yr_summary</span><span class="p">)</span>
-
-<span class="c1"># Pivot for easier comparison</span>
-<span class="n">df_1yr_pivot</span> <span class="o">=</span> <span class="n">df_1yr</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">'Disease'</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">'Washout'</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">'AUC'</span><span class="p">)</span>
-<span class="n">df_1yr_pivot</span> <span class="o">=</span> <span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'0yr'</span><span class="p">,</span> <span class="s1">'1yr'</span><span class="p">])</span>
-
-<span class="c1"># Calculate differences</span>
-<span class="k">if</span> <span class="s1">'0yr'</span> <span class="ow">in</span> <span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s1">'1yr'</span> <span class="ow">in</span> <span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="n">df_1yr_pivot</span><span class="p">[</span><span class="s1">'Drop_0yr_to_1yr'</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_1yr_pivot</span><span class="p">[</span><span class="s1">'0yr'</span><span class="p">]</span> <span class="o">-</span> <span class="n">df_1yr_pivot</span><span class="p">[</span><span class="s1">'1yr'</span><span class="p">]</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">AUC by Washout Period:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
-
-<span class="c1"># Display detailed results</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"-"</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Detailed Results:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"-"</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">disease</span> <span class="ow">in</span> <span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="n">disease</span><span class="si">}</span><span class="s2">:"</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">washout</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'0yr'</span><span class="p">,</span> <span class="s1">'1yr'</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="n">washout</span> <span class="ow">in</span> <span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="n">auc_val</span> <span class="o">=</span> <span class="n">df_1yr_pivot</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">disease</span><span class="p">,</span> <span class="n">washout</span><span class="p">]</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">auc_val</span><span class="p">):</span>
-                <span class="n">subset</span> <span class="o">=</span> <span class="n">df_1yr</span><span class="p">[(</span><span class="n">df_1yr</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">]</span> <span class="o">==</span> <span class="n">disease</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df_1yr</span><span class="p">[</span><span class="s1">'Washout'</span><span class="p">]</span> <span class="o">==</span> <span class="n">washout</span><span class="p">)]</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subset</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">ci_lower</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s1">'CI_lower'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">ci_upper</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s1">'CI_upper'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">n_events</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s1">'N_events'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">washout</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">auc_val</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">ci_lower</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">ci_upper</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">), N events: </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n_events</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input celltag_hide_output">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8294,111 +8130,7 @@ Ulcerative_Colitis:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Comprehensive washout analysis: All combinations</span>
-<span class="c1"># Test predictions at enrollment+1 through enrollment+9</span>
-<span class="c1"># For each timepoint, test all possible washout periods</span>
-
-<span class="n">comprehensive_washout_results</span> <span class="o">=</span> <span class="p">{}</span>
-
-<span class="c1"># Maximum prediction timepoint (based on available age offset models)</span>
-<span class="n">max_timepoint</span> <span class="o">=</span> <span class="mi">9</span>  <span class="c1"># Assuming we have offset models 0-9</span>
-<span class="n">max_washout</span> <span class="o">=</span> <span class="mi">2</span>    <span class="c1"># Test up to 2-year washout</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== COMPREHENSIVE WASHOUT ANALYSIS ==="</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Testing predictions at enrollment+1 through enrollment+</span><span class="si">{</span><span class="n">max_timepoint</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Testing washout periods: 0yr, 1yr, 2yr"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Total combinations: </span><span class="si">{</span><span class="n">max_timepoint</span><span class="si">}</span><span class="s2"> timepoints × 3 washout periods = </span><span class="si">{</span><span class="n">max_timepoint</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">3</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-<span class="c1"># Process each batch</span>
-<span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== Processing batch </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">stop</span><span class="si">}</span><span class="s2"> ==="</span><span class="p">)</span>
-    
-    <span class="c1"># Subset data</span>
-    <span class="n">Y_batch</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
-    <span class="n">E_batch</span> <span class="o">=</span> <span class="n">E</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
-    <span class="n">pce_df_batch</span> <span class="o">=</span> <span class="n">fh_processed</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    
-    <span class="c1"># Base path for age offset models</span>
-    <span class="n">base_path</span> <span class="o">=</span> <span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox/age_offset_files/'</span>
-    
-    <span class="c1"># Test each prediction timepoint</span>
-    <span class="k">for</span> <span class="n">prediction_timepoint</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_timepoint</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  Prediction timepoint: enrollment+</span><span class="si">{</span><span class="n">prediction_timepoint</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        
-        <span class="c1"># Test each washout period (0yr, 1yr, 2yr)</span>
-        <span class="k">for</span> <span class="n">washout_years</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_washout</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="c1"># Model offset needed: prediction_timepoint - washout_years</span>
-            <span class="n">model_offset</span> <span class="o">=</span> <span class="n">prediction_timepoint</span> <span class="o">-</span> <span class="n">washout_years</span>
-            
-            <span class="c1"># Skip if model_offset is negative (can't have negative offset)</span>
-            <span class="k">if</span> <span class="n">model_offset</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">continue</span>
-            
-            <span class="c1"># Skip if we don't have this offset model</span>
-            <span class="n">pi_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_path</span><span class="si">}</span><span class="s2">pi_enroll_fixedphi_age_offset_</span><span class="si">{</span><span class="n">model_offset</span><span class="si">}</span><span class="s2">_sex_</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stop</span><span class="si">}</span><span class="s2">_try2_withpcs_newrun.pt"</span>
-            
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">pi_filename</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">washout_years</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Only warn for 0yr washout (most important)</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    ⚠️  Model offset </span><span class="si">{</span><span class="n">model_offset</span><span class="si">}</span><span class="s2"> not found, skipping"</span><span class="p">)</span>
-                <span class="k">continue</span>
-            
-            <span class="n">washout_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"t</span><span class="si">{</span><span class="n">prediction_timepoint</span><span class="si">}</span><span class="s2">_washout</span><span class="si">{</span><span class="n">washout_years</span><span class="si">}</span><span class="s2">yr"</span>
-            
-            <span class="k">if</span> <span class="n">washout_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">comprehensive_washout_results</span><span class="p">:</span>
-                <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-            
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    Testing </span><span class="si">{</span><span class="n">washout_years</span><span class="si">}</span><span class="s2">yr washout (using offset </span><span class="si">{</span><span class="n">model_offset</span><span class="si">}</span><span class="s2"> model)..."</span><span class="p">)</span>
-            
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">pi_batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pi_filename</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">'cpu'</span><span class="p">)</span>
-                
-                <span class="n">results</span> <span class="o">=</span> <span class="n">evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex</span><span class="p">(</span>
-                    <span class="n">pi</span><span class="o">=</span><span class="n">pi_batch</span><span class="p">,</span>
-                    <span class="n">Y_100k</span><span class="o">=</span><span class="n">Y_batch</span><span class="p">,</span>
-                    <span class="n">E_100k</span><span class="o">=</span><span class="n">E_batch</span><span class="p">,</span>
-                    <span class="n">disease_names</span><span class="o">=</span><span class="n">essentials</span><span class="p">[</span><span class="s1">'disease_names'</span><span class="p">],</span>
-                    <span class="n">pce_df</span><span class="o">=</span><span class="n">pce_df_batch</span><span class="p">,</span>
-                    <span class="n">n_bootstraps</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                    <span class="n">follow_up_duration_years</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                    <span class="n">start_offset</span><span class="o">=</span><span class="n">prediction_timepoint</span>
-                <span class="p">)</span>
-                
-                <span class="c1"># Store results</span>
-                <span class="k">for</span> <span class="n">disease</span><span class="p">,</span> <span class="n">metrics</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="n">disease</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">]:</span>
-                        <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">][</span><span class="n">disease</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                            <span class="s1">'aucs'</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">'cis'</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">'events'</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">'rates'</span><span class="p">:</span> <span class="p">[]</span>
-                        <span class="p">}</span>
-                    <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">][</span><span class="n">disease</span><span class="p">][</span><span class="s1">'aucs'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">'auc'</span><span class="p">])</span>
-                    <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">][</span><span class="n">disease</span><span class="p">][</span><span class="s1">'cis'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">metrics</span><span class="p">[</span><span class="s1">'ci_lower'</span><span class="p">],</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">'ci_upper'</span><span class="p">]))</span>
-                    <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">][</span><span class="n">disease</span><span class="p">][</span><span class="s1">'events'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">'n_events'</span><span class="p">])</span>
-                    <span class="n">comprehensive_washout_results</span><span class="p">[</span><span class="n">washout_key</span><span class="p">][</span><span class="n">disease</span><span class="p">][</span><span class="s1">'rates'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">'event_rate'</span><span class="p">])</span>
-                
-                <span class="k">del</span> <span class="n">pi_batch</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      ✓ Completed"</span><span class="p">)</span>
-                
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      ⚠️  Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-                <span class="k">continue</span>
-    
-    <span class="c1"># Clean up</span>
-    <span class="k">del</span> <span class="n">Y_batch</span><span class="p">,</span> <span class="n">E_batch</span><span class="p">,</span> <span class="n">pce_df_batch</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">✓ Comprehensive washout analysis complete"</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input celltag_hide_output">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -9897,7 +9629,127 @@ Timepoint 9: 0yr=0.778, 1yr=0.581 (drop=0.197), 2yr=0.580 (drop=0.198)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Direct comparison: Our NEW 1-year washout vs Delphi 1-year gap</span>
+<span class="c1"># Focus on key diseases: ASCVD and cancers</span>
+
+<span class="c1"># Load Delphi supplementary table (same path as compare_delphi_1yr_import.py)</span>
+<span class="n">delphi_supp_path</span> <span class="o">=</span> <span class="s1">'/Users/sarahurbut/Downloads/41586_2025_9529_MOESM3_ESM.csv'</span>
+
+<span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">delphi_supp_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="n">delphi_supp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">delphi_supp_path</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"✓ Loaded Delphi supplementary table"</span><span class="p">)</span>
+    
+    <span class="c1"># Disease mapping: ICD codes to our disease names (same as compare_delphi_1yr_import.py)</span>
+    <span class="n">disease_icd_mapping</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'ASCVD'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'I21'</span><span class="p">,</span> <span class="s1">'I25'</span><span class="p">],</span>  <span class="c1"># Myocardial infarction, Coronary atherosclerosis</span>
+        <span class="s1">'Breast_Cancer'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C50'</span><span class="p">],</span>  <span class="c1"># Breast cancer</span>
+        <span class="s1">'Colorectal_Cancer'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C18'</span><span class="p">],</span>  <span class="c1"># Colon cancer</span>
+        <span class="s1">'Bladder_Cancer'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C67'</span><span class="p">],</span>  <span class="c1"># Bladder cancer</span>
+        <span class="s1">'Lung_Cancer'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C34'</span><span class="p">],</span>  <span class="c1"># Lung cancer</span>
+        <span class="s1">'Prostate_Cancer'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C61'</span><span class="p">],</span>  <span class="c1"># Prostate cancer</span>
+        <span class="s1">'All_Cancers'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C18'</span><span class="p">,</span> <span class="s1">'C50'</span><span class="p">,</span> <span class="s1">'D07'</span><span class="p">]</span>  <span class="c1"># Colon, Breast, Prostate (as in compare script)</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Extract Delphi 1-year gap AUCs for key diseases</span>
+    <span class="n">delphi_key_results</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">for</span> <span class="n">disease_name</span><span class="p">,</span> <span class="n">icd_codes</span> <span class="ow">in</span> <span class="n">disease_icd_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">disease_name</span> <span class="o">==</span> <span class="s1">'All_Cancers'</span><span class="p">:</span>
+            <span class="k">continue</span>  <span class="c1"># Handle separately</span>
+        
+        <span class="n">matching_rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">icd_code</span> <span class="ow">in</span> <span class="n">icd_codes</span><span class="p">:</span>
+            <span class="n">matches</span> <span class="o">=</span> <span class="n">delphi_supp</span><span class="p">[</span><span class="n">delphi_supp</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="sa">f</span><span class="s1">'^</span><span class="si">{</span><span class="n">icd_code</span><span class="si">}</span><span class="s1">'</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">na</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">matching_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matching_rows</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">matching_rows</span><span class="p">)</span>
+            
+            <span class="c1"># Average AUCs for 1-year gap - both male and female</span>
+            <span class="n">female_aucs_1gap</span> <span class="o">=</span> <span class="n">combined</span><span class="p">[</span><span class="s1">'AUC Female, (1 year gap)'</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">male_aucs_1gap</span> <span class="o">=</span> <span class="n">combined</span><span class="p">[</span><span class="s1">'AUC Male, (1 year gap)'</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">all_aucs_1gap</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">female_aucs_1gap</span><span class="p">,</span> <span class="n">male_aucs_1gap</span><span class="p">])</span>
+            <span class="n">avg_auc_1gap</span> <span class="o">=</span> <span class="n">all_aucs_1gap</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_aucs_1gap</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">avg_auc_1gap</span><span class="p">):</span>
+                <span class="n">delphi_key_results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">'Disease'</span><span class="p">:</span> <span class="n">disease_name</span><span class="p">,</span>
+                    <span class="s1">'Delphi_1yr_1gap'</span><span class="p">:</span> <span class="n">avg_auc_1gap</span><span class="p">,</span>
+                    <span class="s1">'N_ICD_codes'</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span>
+                <span class="p">})</span>
+    
+    <span class="n">delphi_key_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">delphi_key_results</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Extracted Delphi 1-year gap results for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">delphi_key_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> key diseases"</span><span class="p">)</span>
+    
+    <span class="c1"># Get our NEW 1-year washout results (from first section: predicting at enrollment+1)</span>
+    <span class="k">if</span> <span class="s1">'washout_1yr_summary'</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">()</span> <span class="ow">or</span> <span class="s1">'washout_1yr_summary'</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">washout_1yr_summary</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">df_washout_1yr</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">washout_1yr_summary</span><span class="p">)</span>
+            <span class="n">df_washout_1yr_1yr</span> <span class="o">=</span> <span class="n">df_washout_1yr</span><span class="p">[</span><span class="n">df_washout_1yr</span><span class="p">[</span><span class="s1">'Washout'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'1yr'</span><span class="p">][[</span><span class="s1">'Disease'</span><span class="p">,</span> <span class="s1">'AUC'</span><span class="p">,</span> <span class="s1">'CI_lower'</span><span class="p">,</span> <span class="s1">'CI_upper'</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">df_washout_1yr_1yr</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'Disease'</span><span class="p">,</span> <span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">,</span> <span class="s1">'CI_lower'</span><span class="p">,</span> <span class="s1">'CI_upper'</span><span class="p">]</span>
+            
+            <span class="c1"># Merge with Delphi</span>
+            <span class="n">comparison_key</span> <span class="o">=</span> <span class="n">df_washout_1yr_1yr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">delphi_key_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">'Disease'</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">'inner'</span><span class="p">)</span>
+            <span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span> <span class="o">=</span> <span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">]</span> <span class="o">-</span> <span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">]</span>
+            <span class="n">comparison_key</span> <span class="o">=</span> <span class="n">comparison_key</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">'Advantage'</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"KEY DISEASES: ALADYNOULLI 1-YEAR WASHOUT vs DELPHI 1-YEAR GAP"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Our NEW washout approach: Offset 0 model (trained up to enrollment)"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"predicting at enrollment+1, compared to Delphi 1-year gap"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"-"</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'Disease'</span><span class="si">:</span><span class="s2">&lt;20</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'Aladynoulli'</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'Delphi'</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'Advantage'</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'Win?'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"-"</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+            
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">comparison_key</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                <span class="n">win_symbol</span> <span class="o">=</span> <span class="s2">"✓"</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"✗"</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;20</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">      </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">      </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">      </span><span class="si">{</span><span class="n">win_symbol</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            
+            <span class="n">wins</span> <span class="o">=</span> <span class="n">comparison_key</span><span class="p">[</span><span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"-"</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Summary: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">wins</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">comparison_key</span><span class="p">)</span><span class="si">}</span><span class="s2"> diseases (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">wins</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">comparison_key</span><span class="p">)</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%) where Aladynoulli outperforms"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mean advantage: </span><span class="si">{</span><span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Median advantage: </span><span class="si">{</span><span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            
+            <span class="c1"># Focus on ASCVD and cancers</span>
+            <span class="n">key_diseases</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'ASCVD'</span><span class="p">,</span> <span class="s1">'Breast_Cancer'</span><span class="p">,</span> <span class="s1">'Colorectal_Cancer'</span><span class="p">,</span> <span class="s1">'Bladder_Cancer'</span><span class="p">,</span> 
+                          <span class="s1">'Lung_Cancer'</span><span class="p">,</span> <span class="s1">'Prostate_Cancer'</span><span class="p">]</span>
+            <span class="n">key_comparison</span> <span class="o">=</span> <span class="n">comparison_key</span><span class="p">[</span><span class="n">comparison_key</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">key_diseases</span><span class="p">)]</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key_comparison</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"ASCVD AND CANCERS SPECIFICALLY:"</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">key_comparison</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">win_symbol</span> <span class="o">=</span> <span class="s2">"✓ WIN"</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"✗ LOSS"</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">]</span><span class="si">}</span><span class="s2">:"</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Aladynoulli (1yr washout): </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'CI_lower'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'CI_upper'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Delphi (1yr gap):          </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Advantage:                 </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span><span class="o">/</span><span class="n">row</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">+.1f</span><span class="si">}</span><span class="s2">%) </span><span class="si">{</span><span class="n">win_symbol</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                
+                <span class="n">key_wins</span> <span class="o">=</span> <span class="n">key_comparison</span><span class="p">[</span><span class="n">key_comparison</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">key_wins</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">key_comparison</span><span class="p">)</span><span class="si">}</span><span class="s2"> key diseases where Aladynoulli wins"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"⚠️  No washout results available. Please run cell 7 (1-year washout analysis) first."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"⚠️  No washout results available. Please run cell 7 (1-year washout analysis) first."</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"⚠️  Delphi supplementary file not found: </span><span class="si">{</span><span class="n">delphi_supp_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -9972,7 +9824,75 @@ Bladder_Cancer:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Visualization: Comprehensive washout heatmap</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df_comprehensive</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="c1"># Select a few key diseases for visualization</span>
+    <span class="n">key_diseases</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'ASCVD'</span><span class="p">,</span> <span class="s1">'Parkinsons'</span><span class="p">,</span> <span class="s1">'Prostate_Cancer'</span><span class="p">,</span> <span class="s1">'Atrial_Fib'</span><span class="p">,</span> <span class="s1">'Breast_Cancer'</span><span class="p">,</span> 
+                    <span class="s1">'Diabetes'</span><span class="p">,</span> <span class="s1">'CKD'</span><span class="p">,</span> <span class="s1">'COPD'</span><span class="p">,</span> <span class="s1">'Colorectal_Cancer'</span><span class="p">,</span> <span class="s1">'Heart_Failure'</span><span class="p">]</span>
+    
+    <span class="n">available_diseases</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">key_diseases</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">df_comprehensive</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()]</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">available_diseases</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">disease</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">available_diseases</span><span class="p">[:</span><span class="mi">4</span><span class="p">]):</span>  <span class="c1"># Plot top 4</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            
+            <span class="n">disease_df</span> <span class="o">=</span> <span class="n">df_comprehensive</span><span class="p">[</span><span class="n">df_comprehensive</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">]</span> <span class="o">==</span> <span class="n">disease</span><span class="p">]</span>
+            <span class="n">pivot</span> <span class="o">=</span> <span class="n">disease_df</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">'Timepoint'</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">'Washout_years'</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">'AUC'</span><span class="p">)</span>
+            
+            <span class="c1"># Create heatmap</span>
+            <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">pivot</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">'.3f'</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'RdYlGn'</span><span class="p">,</span> 
+                       <span class="n">vmin</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">cbar_kws</span><span class="o">=</span><span class="p">{</span><span class="s1">'label'</span><span class="p">:</span> <span class="s1">'AUC'</span><span class="p">})</span>
+            
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">disease</span><span class="si">}</span><span class="se">\n</span><span class="s1">AUC by Timepoint and Washout'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Washout (years)'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Prediction Timepoint</span><span class="se">\n</span><span class="s1">(enrollment + N)'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        
+        <span class="c1"># Summary heatmap: Average AUC across all diseases</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        
+        <span class="n">avg_pivot</span> <span class="o">=</span> <span class="n">df_comprehensive</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">'Timepoint'</span><span class="p">,</span> <span class="s1">'Washout_years'</span><span class="p">])[</span><span class="s1">'AUC'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">unstack</span><span class="p">()</span>
+        
+        <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">avg_pivot</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">'.3f'</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'RdYlGn'</span><span class="p">,</span>
+                   <span class="n">vmin</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">cbar_kws</span><span class="o">=</span><span class="p">{</span><span class="s1">'label'</span><span class="p">:</span> <span class="s1">'Mean AUC'</span><span class="p">})</span>
+        
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Average AUC Across All Diseases</span><span class="se">\n</span><span class="s1">by Prediction Timepoint and Washout Period'</span><span class="p">,</span> 
+                    <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Washout (years)'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Prediction Timepoint (enrollment + N)'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"KEY INSIGHTS FROM COMPREHENSIVE ANALYSIS"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">1. Washout impact varies by prediction timepoint"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"2. Some diseases maintain performance better with washout"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"3. Early timepoints (enrollment+1, +2) show larger washout effects"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"4. Later timepoints may show different patterns"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"No key diseases found in comprehensive results."</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"No comprehensive results to visualize. Please run the comprehensive analysis cell first."</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -10293,7 +10213,7 @@ WASHOUT IMPACT SUMMARY
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_output">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10437,7 +10357,89 @@ For context: 0-year washout vs Delphi 0-gap (no washout):
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [14]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Visualization: Aladynoulli Washout vs Delphi Gap</span>
+<span class="k">if</span> <span class="s1">'comparison_washout'</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">comparison_washout</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+    
+    <span class="c1"># 1. Scatter plot: Aladynoulli 1yr washout vs Delphi 1yr gap</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">],</span> 
+                         <span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">],</span>
+                         <span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">],</span>
+                         <span class="n">cmap</span><span class="o">=</span><span class="s1">'RdYlGn'</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">'black'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="c1"># Diagonal line (equal performance)</span>
+    <span class="n">min_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> 
+                  <span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="n">max_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> 
+                  <span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span><span class="p">],</span> <span class="p">[</span><span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span><span class="p">],</span> <span class="s1">'k--'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Equal performance'</span><span class="p">)</span>
+    
+    <span class="c1"># Label top performers</span>
+    <span class="n">top_5</span> <span class="o">=</span> <span class="n">comparison_washout</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s1">'Advantage'</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">top_5</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">],</span> 
+                    <span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">'Delphi_1yr_1gap'</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s1">'Aladynoulli_1yr_washout'</span><span class="p">]),</span>
+                    <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+    
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Delphi 1-Year Gap AUC'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Aladynoulli 1-Year Washout AUC'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Aladynoulli vs Delphi: 1-Year Washout/Gap Performance'</span><span class="p">,</span> 
+                  <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">scatter</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Advantage (Aladynoulli - Delphi)'</span><span class="p">)</span>
+    
+    <span class="c1"># 2. Bar chart: Advantage by disease</span>
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    
+    <span class="n">top_10</span> <span class="o">=</span> <span class="n">comparison_washout</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s1">'Advantage'</span><span class="p">)</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'#27ae60'</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">'#e74c3c'</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">top_10</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]]</span>
+    
+    <span class="n">bars</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">barh</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">top_10</span><span class="p">)),</span> <span class="n">top_10</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">],</span> 
+                    <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">'black'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">top_10</span><span class="p">)))</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">top_10</span><span class="p">[</span><span class="s1">'Disease'</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'AUC Advantage (Aladynoulli - Delphi)'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Top 10 Diseases: Aladynoulli Advantage</span><span class="se">\n</span><span class="s1">(1-Year Washout vs 1-Year Gap)'</span><span class="p">,</span> 
+                  <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'black'</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'-'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">'x'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    
+    <span class="c1"># Add value labels</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">bar</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">bars</span><span class="p">,</span> <span class="n">top_10</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">])):</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">val</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">val</span> <span class="o">-</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">'</span><span class="p">,</span>
+                <span class="n">ha</span><span class="o">=</span><span class="s1">'left'</span> <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">'right'</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">'center'</span><span class="p">,</span> 
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">'bold'</span><span class="p">)</span>
+    
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    
+    <span class="n">wins_count</span> <span class="o">=</span> <span class="p">(</span><span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"KEY FINDINGS: WASHOUT vs DELPHI"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Aladynoulli maintains competitive performance even with 1-year washout"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ </span><span class="si">{</span><span class="n">wins_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">comparison_washout</span><span class="p">)</span><span class="si">}</span><span class="s2"> diseases (</span><span class="si">{</span><span class="n">wins_count</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">comparison_washout</span><span class="p">)</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%) where Aladynoulli outperforms Delphi"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Mean advantage: </span><span class="si">{</span><span class="n">comparison_washout</span><span class="p">[</span><span class="s1">'Advantage'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> AUC points"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ This demonstrates robustness to temporal leakage and ability to leverage historical patterns"</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"No comparison data available. Please run the previous cell first."</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
