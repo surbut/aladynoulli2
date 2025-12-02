@@ -100,6 +100,7 @@ cat > docs/index.html << 'EOF'
         <ul>
             <li><a href="reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html">Model Validity & Learning</a></li>
             <li><a href="reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html">Temporal Leakage</a></li>
+            <li><a href="reviewer_responses/notebooks/R2/R2_Washout_Continued.html">Washout Analysis: Continued</a></li>
         </ul>
     </div>
     
