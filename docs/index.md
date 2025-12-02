@@ -242,6 +242,7 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | **Linear vs Nonlinear** | Linear vs nonlinear mixing approaches | [R3_Linear_vs_NonLinear_Mixing.html](reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html) |
 | **Population Stratification** | Ancestry-stratified analysis | [R3_Population_Stratification_Ancestry.html](reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html) |
 | **Heterogeneity** | Patient heterogeneity analysis | [R3_Q8_Heterogeneity.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity.html) |
+| **Heterogeneity (Main Paper Method)** | Main paper method with PRS validation (MI and breast cancer) | [R3_Q8_Heterogeneity_MainPaper_Method.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html) |
 | **Heterogeneity (Continued)** | Complete pathway analysis demonstrating biological heterogeneity | [R3_Q8_Heterogeneity_Continued.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_Continued.html) |
 
 #### **Framework & Preprocessing**
