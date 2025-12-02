@@ -173,11 +173,11 @@ html = re.sub(
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       line-height: 1.6;
-      color: #24292e;
+      color: #212529;
       max-width: 1200px;
       margin: 0 auto;
       padding: 40px 20px;
-      background-color: #ffffff;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     }
     .markdown-body {
       box-sizing: border-box;
@@ -186,6 +186,9 @@ html = re.sub(
       margin: 0 auto;
       padding: 45px;
       background-color: #ffffff;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      border-top: 4px solid #0366d6;
     }
     .markdown-body table {
       border-spacing: 0;
@@ -200,23 +203,41 @@ html = re.sub(
       text-align: left;
     }
     .markdown-body table th {
-      background-color: #f6f8fa;
+      background: linear-gradient(135deg, #0366d6 0%, #0056b3 100%);
+      color: #ffffff;
       font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .markdown-body table tr:nth-child(even) {
-      background-color: #f6f8fa;
+      background-color: #f8f9fa;
+    }
+    .markdown-body table tr:hover {
+      background-color: #e3f2fd;
+      transform: scale(1.01);
+      transition: all 0.2s ease;
     }
     .markdown-body h1 {
-      border-bottom: 2px solid #eaecef;
+      border-bottom: 4px solid #0366d6;
       padding-bottom: 0.3em;
       margin-top: 24px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
+      color: #0366d6;
+      font-weight: 700;
+      font-size: 2.2em;
     }
     .markdown-body h2 {
-      border-bottom: 1px solid #eaecef;
+      border-bottom: 3px solid #28a745;
       padding-bottom: 0.3em;
-      margin-top: 24px;
+      margin-top: 28px;
       margin-bottom: 16px;
+      color: #24292e;
+      font-weight: 600;
+      font-size: 1.6em;
+    }
+    .markdown-body h3 {
+      color: #586069;
+      font-weight: 600;
+      margin-top: 20px;
     }
     .markdown-body code {
       background-color: rgba(27, 31, 35, 0.05);
@@ -233,9 +254,28 @@ html = re.sub(
     .markdown-body a {
       color: #0366d6;
       text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px solid transparent;
+      transition: all 0.2s ease;
     }
     .markdown-body a:hover {
-      text-decoration: underline;
+      color: #0056b3;
+      border-bottom: 1px solid #0056b3;
+    }
+    .markdown-body code {
+      background-color: #f1f8ff;
+      color: #e83e8c;
+      border: 1px solid #c8e1ff;
+      font-weight: 500;
+    }
+    .markdown-body pre {
+      background-color: #f6f8fa;
+      border-left: 4px solid #0366d6;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .markdown-body strong {
+      color: #24292e;
+      font-weight: 700;
     }
   </style>
   <article class="markdown-body">''',
