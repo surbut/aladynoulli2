@@ -146,8 +146,109 @@ echo "✓ README.md copied to docs/reviewer_responses/ (links updated to .html)"
 
 # Convert README.md to HTML using pandoc (if available) or markdown
 if command -v pandoc &> /dev/null; then
-    pandoc docs/reviewer_responses/README.md -o docs/reviewer_responses/README.html --standalone --css=https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css --metadata title="Reviewer Response Analyses"
-    echo "✓ README.md converted to HTML using pandoc"
+    pandoc docs/reviewer_responses/README.md -o docs/reviewer_responses/README.html \
+        --standalone \
+        --css=https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css \
+        --metadata title="Reviewer Response Analyses" \
+        --wrap=none \
+        -V margin-top=0 \
+        -V margin-bottom=0 \
+        -V margin-left=0 \
+        -V margin-right=0
+    
+    # Post-process to add better styling
+    python3 << 'PYEOF'
+import re
+from pathlib import Path
+
+html_file = Path('docs/reviewer_responses/README.html')
+with open(html_file, 'r') as f:
+    html = f.read()
+
+# Add markdown-body wrapper and better styling
+html = re.sub(
+    r'<body>',
+    r'''<body>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #24292e;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background-color: #ffffff;
+    }
+    .markdown-body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 45px;
+      background-color: #ffffff;
+    }
+    .markdown-body table {
+      border-spacing: 0;
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    .markdown-body table th,
+    .markdown-body table td {
+      padding: 12px 15px;
+      border: 1px solid #dfe2e5;
+      text-align: left;
+    }
+    .markdown-body table th {
+      background-color: #f6f8fa;
+      font-weight: 600;
+    }
+    .markdown-body table tr:nth-child(even) {
+      background-color: #f6f8fa;
+    }
+    .markdown-body h1 {
+      border-bottom: 2px solid #eaecef;
+      padding-bottom: 0.3em;
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+    .markdown-body h2 {
+      border-bottom: 1px solid #eaecef;
+      padding-bottom: 0.3em;
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+    .markdown-body code {
+      background-color: rgba(27, 31, 35, 0.05);
+      border-radius: 3px;
+      font-size: 85%;
+      padding: 0.2em 0.4em;
+    }
+    .markdown-body pre {
+      background-color: #f6f8fa;
+      border-radius: 6px;
+      padding: 16px;
+      overflow: auto;
+    }
+    .markdown-body a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    .markdown-body a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  <article class="markdown-body">''',
+    html
+)
+
+# Close the wrapper
+html = re.sub(r'</body>', r'  </article>\n</body>', html)
+
+with open(html_file, 'w') as f:
+    f.write(html)
+PYEOF
+    echo "✓ README.md converted to HTML using pandoc with enhanced styling"
 elif command -v markdown &> /dev/null; then
     markdown docs/reviewer_responses/README.md > docs/reviewer_responses/README.html
     echo "✓ README.md converted to HTML using markdown"
