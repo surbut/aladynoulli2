@@ -135,14 +135,61 @@ EOF
 
 echo "✓ Index page created"
 
-# 3.5. Copy README.md to docs and update links to .html
+# 3.5. Copy README.md to docs, update links to .html, and convert to HTML
 echo ""
-echo "Step 3.5: Copying README.md and updating links..."
+echo "Step 3.5: Copying README.md, updating links, and converting to HTML..."
 echo ""
 
-# Copy README and convert .ipynb links to .html
+# First, copy README and convert .ipynb links to .html
 sed 's/\.ipynb/\.html/g' pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md > docs/reviewer_responses/README.md
 echo "✓ README.md copied to docs/reviewer_responses/ (links updated to .html)"
+
+# Convert README.md to HTML using pandoc (if available) or markdown
+if command -v pandoc &> /dev/null; then
+    pandoc docs/reviewer_responses/README.md -o docs/reviewer_responses/README.html --standalone --css=https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css --metadata title="Reviewer Response Analyses"
+    echo "✓ README.md converted to HTML using pandoc"
+elif command -v markdown &> /dev/null; then
+    markdown docs/reviewer_responses/README.md > docs/reviewer_responses/README.html
+    echo "✓ README.md converted to HTML using markdown"
+else
+    # Fallback: Use Python markdown library
+    python3 -c "
+import markdown
+from pathlib import Path
+
+readme_md = Path('docs/reviewer_responses/README.md')
+readme_html = Path('docs/reviewer_responses/README.html')
+
+with open(readme_md, 'r') as f:
+    md_content = f.read()
+
+html_content = f'''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=\"utf-8\">
+    <title>Reviewer Response Analyses</title>
+    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css\">
+    <style>
+        .markdown-body {{
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 45px;
+        }}
+    </style>
+</head>
+<body>
+    <article class=\"markdown-body\">
+{markdown.markdown(md_content, extensions=['tables', 'fenced_code'])}
+    </article>
+</body>
+</html>'''
+
+with open(readme_html, 'w') as f:
+    f.write(html_content)
+" 2>/dev/null && echo "✓ README.md converted to HTML using Python markdown" || echo "⚠️  Could not convert README.md to HTML (pandoc/markdown/Python markdown not available)"
+fi
 
 # 4. Summary
 echo ""

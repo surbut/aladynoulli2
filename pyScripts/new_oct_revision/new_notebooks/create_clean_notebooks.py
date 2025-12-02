@@ -42,7 +42,7 @@ def should_hide_cell(cell: Dict[str, Any], hide_patterns: List[str] = None):
             r'^print\(.*Completed',  # Completion messages
             r'^print\(.*CALCULATING',  # Calculation headers
             r'^print\(.*RESULTS',  # Results headers
-            r'^print\(.*='\s*\*',  # Separator lines
+            r'^print\(.*=.*\*',  # Separator lines
             r'^print\(f".*already exist',  # File exists messages
             r'^print\(f".*not found',  # File not found messages
         ]
