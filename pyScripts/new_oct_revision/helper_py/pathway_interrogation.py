@@ -399,7 +399,7 @@ def analyze_prs_by_pathway(pathway_data, processed_ids, prs_file_path=None, outp
     if prs_file_path is None:
         # Try to find PRS file
         possible_paths = [
-            '/Users/sarahurbut/aladynoulli2/pyScripts/prs_with_eid.csv',
+            '/Users/sarahurbut/aladynoulli2/pyScripts/csv/prs_with_eid.csv',
             #'/Users/sarahurbut/aladynoulli2/data_for_running/prs_scores.csv',
             #'/Users/sarahurbut/aladynoulli2/pyScripts/big_stuff/all_patient_genetics.csv',
             #'/Users/sarahurbut/aladynoulli2/pyScripts/prs_scores.csv'

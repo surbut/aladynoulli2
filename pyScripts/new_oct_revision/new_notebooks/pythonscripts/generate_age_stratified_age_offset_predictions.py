@@ -96,10 +96,10 @@ def generate_age_stratified_age_offset_predictions(approach='pooled_retrospectiv
     
     # Define age groups
     age_groups = [
-        (40, 50, '40-50'),
+        (39, 50, '39-50'),
         (50, 60, '50-60'),
-        (60, 70, '60-70'),
-        (70, 80, '70-80')
+        (60, 71, '60-71')
+      
     ]
     
     # Determine pi file path based on approach

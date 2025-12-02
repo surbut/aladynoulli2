@@ -24,12 +24,12 @@ def load_full_data():
     print(f"Loaded Y (full): {Y_full.shape}")
     
     # Load full thetas (using NEW model with PCs)
-    thetas = torch.load('/Users/sarahurbut/aladynoulli2/pyScripts/new_thetas_with_pcs_retrospective.pt').numpy()
+    thetas = torch.load('/Users/sarahurbut/aladynoulli2/pyScripts/pt/new_thetas_with_pcs_retrospective.pt').numpy()
     print(f"Loaded thetas: {thetas.shape}")
     
     # Load processed IDs - these are the actual eids for the first 400K patients
     # Patient index i in our analysis corresponds to processed_ids[i]
-    processed_ids_df = pd.read_csv('/Users/sarahurbut/aladynoulli2/pyScripts/processed_ids.csv')
+    processed_ids_df = pd.read_csv('/Users/sarahurbut/aladynoulli2/pyScripts/csv/processed_ids.csv')
     processed_ids = processed_ids_df['eid'].values[:400000]  # First 400K eids
     print(f"Loaded {len(processed_ids)} processed IDs")
     

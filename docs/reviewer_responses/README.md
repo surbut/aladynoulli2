@@ -10,7 +10,7 @@ reviewer_responses/
 ├── notebooks/
 │   ├── R1/                        # Referee #1 analyses (12 notebooks)
 │   ├── R2/                        # Referee #2 analyses (3 notebooks)
-│   ├── R3/                        # Referee #3 analyses (5 notebooks)
+│   ├── R3/                        # Referee #3 analyses (6 notebooks)
 │   ├── framework/                 # Framework overview (1 notebook)
 │   └── results/                   # Reviewer-specific results
 ├── preprocessing/                 # Data preprocessing utilities
@@ -66,6 +66,7 @@ reviewer_responses/
 |----------|----------|--------|
 | **Q4**: Competing risks | [`notebooks/R3/R3_Competing_Risks.html`](notebooks/R3/R3_Competing_Risks.html) | ✅ Complete |
 | **Q8**: Heterogeneity definition | [`notebooks/R3/R3_Q8_Heterogeneity.html`](notebooks/R3/R3_Q8_Heterogeneity.html) | ✅ Complete |
+| **Q8**: Heterogeneity analysis (continued) | [`notebooks/R3/R3_Q8_Heterogeneity_Continued.html`](notebooks/R3/R3_Q8_Heterogeneity_Continued.html) | ✅ Complete |
 | **Population Stratification**: Continuous ancestry effects | [`notebooks/R3/R3_Population_Stratification_Ancestry.html`](notebooks/R3/R3_Population_Stratification_Ancestry.html) | ✅ Complete |
 | **Additional**: FullE vs ReducedE comparison | [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html) | ✅ Complete |
 | **Additional**: Linear vs Nonlinear mixing | [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html) | ✅ Complete |
@@ -141,9 +142,10 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.html`](notebooks/R2/R2_R3_Model_Validity_Learning.html)
 - Washout analysis (continued): [`notebooks/R2/R2_Washout_Continued.html`](notebooks/R2/R2_Washout_Continued.html)
 
-**Referee #3 (5 notebooks):**
+**Referee #3 (6 notebooks):**
 - Competing risks: [`notebooks/R3/R3_Competing_Risks.html`](notebooks/R3/R3_Competing_Risks.html)
 - Heterogeneity: [`notebooks/R3/R3_Q8_Heterogeneity.html`](notebooks/R3/R3_Q8_Heterogeneity.html)
+- Heterogeneity analysis (continued): [`notebooks/R3/R3_Q8_Heterogeneity_Continued.html`](notebooks/R3/R3_Q8_Heterogeneity_Continued.html)
 - Population stratification: [`notebooks/R3/R3_Population_Stratification_Ancestry.html`](notebooks/R3/R3_Population_Stratification_Ancestry.html)
 - FullE vs ReducedE comparison: [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html)
 - Linear vs Nonlinear mixing: [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html)
@@ -151,5 +153,5 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.html`](notebooks/framework/Discovery_Prediction_Framework_Overview.html)
 
-**Total: 21 notebooks** ✅ All complete
+**Total: 22 notebooks** ✅ All complete
 

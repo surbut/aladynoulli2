@@ -20,7 +20,8 @@ Outputs all results to saved files.
 import sys
 import os
 sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/new_oct_revision')
-
+sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/new_oct_revision/pythonscripts/new_oct_revision')
+sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/new_oct_revision/helper_py')
 from pathway_discovery import load_full_data, discover_disease_pathways
 from pathway_interrogation import interrogate_disease_pathways, analyze_prs_by_pathway, analyze_granular_diseases_by_pathway
 from medication_integration import integrate_medications_with_pathways, visualize_medication_pathway_integration
