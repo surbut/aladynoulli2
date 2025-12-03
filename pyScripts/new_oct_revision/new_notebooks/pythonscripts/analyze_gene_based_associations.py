@@ -22,30 +22,42 @@ warnings.filterwarnings('ignore')
 
 def read_genebased_file(file_path: Path) -> pd.DataFrame:
     """
-    Read a gene-based association test result file.
+    Read a gene-based association test result file from REGENIE.
     
-    REGENIE gene-based files are typically tab-delimited with columns like:
-    CHROM, GENE, START, END, N_VARIANTS, N_SINGLE, N_MULTI, BURDEN, SKAT, SKAT-O, etc.
+    REGENIE gene-based files are BGZF-compressed tab-delimited files with:
+    - Header lines starting with ##
+    - Column header starting with #
+    - Columns: ENST, SYMBOL, CHROM, GENPOS, ID, ALLELE0, ALLELE1, A1FREQ, N, TEST, BETA, SE, CHISQ, LOG10P, EXTRA
     """
     try:
-        # Try reading directly (if uncompressed) or with gzip
-        if file_path.suffix == '.gz':
-            with gzip.open(file_path, 'rt') as f:
-                # Read header
-                header = f.readline().strip().split('\t')
-                # Read data
-                data = []
-                for line in f:
+        # Read BGZF-compressed file
+        with gzip.open(file_path, 'rt') as f:
+            # Skip header lines starting with ##
+            line = f.readline()
+            while line.startswith('##'):
+                line = f.readline()
+            
+            # Read column header (starts with #)
+            if line.startswith('#'):
+                header = line.strip().lstrip('#').split('\t')
+            else:
+                print(f"Warning: Expected header line starting with #, got: {line[:50]}")
+                return pd.DataFrame()
+            
+            # Read data
+            data = []
+            for line in f:
+                if line.strip():  # Skip empty lines
                     data.append(line.strip().split('\t'))
-        else:
-            with open(file_path, 'r') as f:
-                header = f.readline().strip().split('\t')
-                data = [line.strip().split('\t') for line in f]
+        
+        if not data:
+            print(f"Warning: No data rows found in {file_path.name}")
+            return pd.DataFrame()
         
         df = pd.DataFrame(data, columns=header)
         
         # Convert numeric columns
-        numeric_cols = ['N_VARIANTS', 'N_SINGLE', 'N_MULTI', 'BURDEN', 'SKAT', 'SKAT-O']
+        numeric_cols = ['GENPOS', 'A1FREQ', 'N', 'BETA', 'SE', 'CHISQ', 'LOG10P']
         for col in numeric_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -54,10 +66,12 @@ def read_genebased_file(file_path: Path) -> pd.DataFrame:
     
     except Exception as e:
         print(f"Error reading {file_path}: {e}")
+        import traceback
+        traceback.print_exc()
         return pd.DataFrame()
 
 def extract_significant_genes(df: pd.DataFrame, 
-                             pvalue_col: str = 'SKAT-O',
+                             pvalue_col: str = 'LOG10P',
                              threshold: float = 2.5e-6) -> pd.DataFrame:
     """
     Extract genes with significant associations.
@@ -65,8 +79,8 @@ def extract_significant_genes(df: pd.DataFrame,
     Default threshold 2.5e-6 is Bonferroni correction for ~20,000 genes.
     """
     if pvalue_col not in df.columns:
-        # Try to find p-value column
-        pval_cols = [col for col in df.columns if 'P' in col.upper() or 'PVAL' in col.upper()]
+        # Try to find p-value column (LOG10P is -log10(p-value))
+        pval_cols = [col for col in df.columns if 'LOG10P' in col.upper() or 'PVAL' in col.upper() or ('P' in col.upper() and 'LOG' not in col.upper())]
         if pval_cols:
             pvalue_col = pval_cols[0]
             print(f"Using p-value column: {pvalue_col}")
@@ -74,8 +88,14 @@ def extract_significant_genes(df: pd.DataFrame,
             print("Warning: Could not find p-value column")
             return pd.DataFrame()
     
-    significant = df[df[pvalue_col] < threshold].copy()
-    significant = significant.sort_values(pvalue_col)
+    # LOG10P is -log10(p-value), so convert threshold
+    if 'LOG10P' in pvalue_col.upper():
+        log10_threshold = -np.log10(threshold)
+        significant = df[df[pvalue_col] > log10_threshold].copy()  # Greater than because it's -log10
+        significant = significant.sort_values(pvalue_col, ascending=False)  # Higher is more significant
+    else:
+        significant = df[df[pvalue_col] < threshold].copy()
+        significant = significant.sort_values(pvalue_col)
     
     return significant
 
@@ -129,10 +149,13 @@ def analyze_all_signatures(results_dir: Path,
         
         print(f"   ✓ Loaded {len(df)} genes")
         
-        # Find p-value column
+        # Find p-value column (LOG10P for REGENIE gene-based)
         pval_col = None
         for col in df.columns:
-            if 'SKAT-O' in col or 'SKATO' in col:
+            if 'LOG10P' in col.upper():
+                pval_col = col
+                break
+            elif 'SKAT-O' in col or 'SKATO' in col:
                 pval_col = col
                 break
             elif 'P' in col.upper() and 'VALUE' in col.upper():
@@ -156,9 +179,13 @@ def analyze_all_signatures(results_dir: Path,
         if len(significant) > 0:
             print(f"   Top 5 genes:")
             for idx, row in significant.head(5).iterrows():
-                gene = row.get('GENE', 'N/A')
-                pval = row[pval_col]
-                print(f"      {gene}: p = {pval:.2e}")
+                gene = row.get('SYMBOL', row.get('GENE', 'N/A'))
+                pval_log10 = row[pval_col]
+                if 'LOG10P' in pval_col.upper():
+                    pval = 10**(-pval_log10)
+                    print(f"      {gene}: LOG10P = {pval_log10:.2f} (p = {pval:.2e})")
+                else:
+                    print(f"      {gene}: p = {pval_log10:.2e}")
         
         # Store results
         all_results[sig_num] = {
@@ -202,7 +229,7 @@ def create_summary_table(results: Dict) -> pd.DataFrame:
 
 def create_manhattan_plot(df: pd.DataFrame, 
                           pvalue_col: str,
-                          gene_col: str = 'GENE',
+                          gene_col: str = 'SYMBOL',
                           chrom_col: str = 'CHROM',
                           title: str = 'Gene-Based Association Results',
                           output_path: Optional[Path] = None):
@@ -214,7 +241,12 @@ def create_manhattan_plot(df: pd.DataFrame,
     # Prepare data
     plot_df = df.copy()
     plot_df['CHROM_NUM'] = pd.to_numeric(plot_df[chrom_col], errors='coerce')
-    plot_df['-log10P'] = -np.log10(pd.to_numeric(plot_df[pvalue_col], errors='coerce'))
+    
+    # Handle LOG10P (already -log10) vs regular p-values
+    if 'LOG10P' in pvalue_col.upper():
+        plot_df['-log10P'] = pd.to_numeric(plot_df[pvalue_col], errors='coerce')
+    else:
+        plot_df['-log10P'] = -np.log10(pd.to_numeric(plot_df[pvalue_col], errors='coerce'))
     
     # Remove invalid values
     plot_df = plot_df.dropna(subset=['CHROM_NUM', '-log10P'])
@@ -299,10 +331,14 @@ def main(results_dir: str = None,
         print(f"✓ Saved significant genes to: {significant_file}")
         
         # Create summary of top genes across all signatures
-        top_genes = results['all_significant'].groupby('GENE').agg({
-            'Signature': lambda x: ','.join(map(str, x)),
-            results['by_signature'][1]['pvalue_column']: 'min'  # Best p-value
-        }).sort_values(results['by_signature'][1]['pvalue_column'])
+        gene_col = 'SYMBOL' if 'SYMBOL' in results['all_significant'].columns else 'GENE'
+        pval_col = results['by_signature'][list(results['by_signature'].keys())[0]]['pvalue_column']
+        
+        if gene_col in results['all_significant'].columns:
+            top_genes = results['all_significant'].groupby(gene_col).agg({
+                'Signature': lambda x: ','.join(map(str, x)),
+                pval_col: 'max' if 'LOG10P' in pval_col.upper() else 'min'  # Max for LOG10P (higher is better)
+            }).sort_values(pval_col, ascending=('LOG10P' not in pval_col.upper()))
         
         top_genes_file = output_dir / "top_genes_across_signatures.csv"
         top_genes.to_csv(top_genes_file)

@@ -51,89 +51,19 @@ echo ""
 find pyScripts/new_oct_revision/new_notebooks/reviewer_responses -name "*.html" -type f -delete
 echo "✓ HTML files removed from original directories"
 
-# 3. Create index page
+# 3. Regenerate index page (preserving styled version)
 echo ""
-echo "Step 3: Creating index page..."
+echo "Step 3: Regenerating index page (preserving styling)..."
 echo ""
 
-cat > docs/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Aladynoulli Reviewer Response Analyses</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 40px auto; padding: 20px; }
-        h1 { color: #2c3e50; }
-        h2 { color: #34495e; margin-top: 30px; }
-        ul { list-style-type: none; padding-left: 0; }
-        li { margin: 10px 0; }
-        a { color: #3498db; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .section { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; }
-    </style>
-</head>
-<body>
-    <h1>Aladynoulli: Reviewer Response Analyses</h1>
-    <p>Interactive analyses addressing reviewer questions and concerns.</p>
-    <p><a href="reviewer_responses/README.md">📖 View full README with detailed navigation</a></p>
-    
-    <div class="section">
-        <h2>Referee #1 Analyses</h2>
-        <ul>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q1_Selection_Bias.html">Q1: Selection Bias</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q2_Lifetime_Risk.html">Q2: Lifetime Risk</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q3_Clinical_Meaning.html">Q3: Clinical Meaning</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html">Q3: ICD vs PheCode Comparison</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q7_Heritability.html">Q7: Heritability</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q9_AUC_Comparisons.html">Q9: AUC Comparisons</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html">Q10: Age-Specific Performance</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html">Biological Plausibility: CHIP</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html">Clinical Utility: Dynamic Risk Updating</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html">Genetic Validation: GWAS</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html">Multi-Disease Patterns: Competing Risks</a></li>
-            <li><a href="reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html">Robustness: Leave-One-Out Validation</a></li>
-        </ul>
-    </div>
-    
-    <div class="section">
-        <h2>Referee #2 Analyses</h2>
-        <ul>
-            <li><a href="reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html">Model Validity & Learning</a></li>
-            <li><a href="reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html">Temporal Leakage</a></li>
-            <li><a href="reviewer_responses/notebooks/R2/R2_Washout_Continued.html">Washout Analysis: Continued</a></li>
-        </ul>
-    </div>
-    
-    <div class="section">
-        <h2>Referee #3 Analyses</h2>
-        <ul>
-            <li><a href="reviewer_responses/notebooks/R3/R3_Competing_Risks.html">Competing Risks</a></li>
-            <li><a href="reviewer_responses/notebooks/R3/R3_Fixed_vs_Joint_Phi_Comparison.html">Fixed vs Joint Phi Comparison</a></li>
-            <li><a href="reviewer_responses/notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html">Full E vs Reduced E Comparison</a></li>
-            <li><a href="reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html">Linear vs Non-Linear Mixing</a></li>
-            <li><a href="reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html">Population Stratification: Ancestry</a></li>
-            <li><a href="reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity.html">Q8: Heterogeneity</a></li>
-        </ul>
-    </div>
-    
-    <div class="section">
-        <h2>Framework Overview</h2>
-        <ul>
-            <li><a href="reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html">Discovery & Prediction Framework</a></li>
-        </ul>
-    </div>
-    
-    <div class="section">
-        <h2>Preprocessing</h2>
-        <ul>
-            <li><a href="reviewer_responses/preprocessing/create_preprocessing_files.html">Create Preprocessing Files</a></li>
-        </ul>
-    </div>
-</body>
-</html>
-EOF
-
-echo "✓ Index page created"
+# Use the regenerate script to preserve styling
+if [ -f "docs/regenerate_index_html.py" ]; then
+    python3 docs/regenerate_index_html.py
+    echo "✓ Index page regenerated with preserved styling"
+else
+    echo "⚠️  regenerate_index_html.py not found, skipping index regeneration"
+    echo "   (index.html will remain unchanged)"
+fi
 
 # 3.5. Copy README.md to docs, update links to .html, and convert to HTML
 echo ""
