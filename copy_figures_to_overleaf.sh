@@ -23,7 +23,8 @@ cp "$SOURCE_DIR/analysis/disease_progression_crosstab_matrices.png" "$OVERLEAF_F
 cp "$SOURCE_DIR/analysis/top_disease_progressions_by_horizon.png" "$OVERLEAF_FIGURES/"
 cp "$SOURCE_DIR/analysis/disease_cooccurrence_heatmap.png" "$OVERLEAF_FIGURES/"
 cp "$SOURCE_DIR/analysis/plots/model_learning_full_comparison_ASCVD.png" "$OVERLEAF_FIGURES/"
+cp "$SOURCE_DIR/analysis/plots/three_washout_types_diagram.png" "$OVERLEAF_FIGURES/"
 
-echo "Done! Copied 13 figure files to $OVERLEAF_FIGURES"
+echo "Done! Copied 14 figure files to $OVERLEAF_FIGURES"
 ls -lh "$OVERLEAF_FIGURES"/*.png | wc -l
 echo "files in Overleaf figures folder"
