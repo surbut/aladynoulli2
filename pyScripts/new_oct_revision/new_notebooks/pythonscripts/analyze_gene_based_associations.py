@@ -62,7 +62,30 @@ def read_genebased_file(file_path: Path) -> pd.DataFrame:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        return df
+        # Aggregate by gene: take best p-value across all masks/MAF thresholds (MOST INCLUSIVE)
+        if 'SYMBOL' in df.columns and 'LOG10P' in df.columns:
+            # For each gene, find the row with the best (highest) LOG10P
+            df['LOG10P'] = pd.to_numeric(df['LOG10P'], errors='coerce')
+            
+            # Get the index of the best test for each gene
+            best_idx = df.groupby('SYMBOL')['LOG10P'].idxmax()
+            
+            # Take those rows
+            gene_best = df.loc[best_idx].copy()
+            
+            # Count how many tests per gene (for multiple testing correction)
+            n_tests_per_gene = df.groupby('SYMBOL').size()
+            gene_best['N_TESTS'] = gene_best['SYMBOL'].map(n_tests_per_gene)
+            
+            # Reset index and keep only relevant columns
+            gene_best = gene_best.reset_index(drop=True)
+            
+            print(f"   Aggregated to {len(gene_best)} unique genes (from {len(df)} total tests)")
+            
+            return gene_best
+        else:
+            # Fallback: return original if we can't aggregate
+            return df
     
     except Exception as e:
         print(f"Error reading {file_path}: {e}")
@@ -72,11 +95,13 @@ def read_genebased_file(file_path: Path) -> pd.DataFrame:
 
 def extract_significant_genes(df: pd.DataFrame, 
                              pvalue_col: str = 'LOG10P',
-                             threshold: float = 2.5e-6) -> pd.DataFrame:
+                             threshold: float = 2.5e-6,
+                             correct_for_tests_per_gene: bool = True) -> pd.DataFrame:
     """
     Extract genes with significant associations.
     
     Default threshold 2.5e-6 is Bonferroni correction for ~20,000 genes.
+    If correct_for_tests_per_gene is True, adjusts threshold based on N_TESTS column.
     """
     if pvalue_col not in df.columns:
         # Try to find p-value column (LOG10P is -log10(p-value))
@@ -90,11 +115,23 @@ def extract_significant_genes(df: pd.DataFrame,
     
     # LOG10P is -log10(p-value), so convert threshold
     if 'LOG10P' in pvalue_col.upper():
-        log10_threshold = -np.log10(threshold)
-        significant = df[df[pvalue_col] > log10_threshold].copy()  # Greater than because it's -log10
+        # Adjust threshold if we have N_TESTS (multiple masks/MAF thresholds per gene)
+        if correct_for_tests_per_gene and 'N_TESTS' in df.columns:
+            # Bonferroni correction: divide threshold by number of tests per gene
+            df['ADJUSTED_THRESHOLD'] = -np.log10(threshold / df['N_TESTS'])
+            significant = df[df[pvalue_col] > df['ADJUSTED_THRESHOLD']].copy()
+        else:
+            log10_threshold = -np.log10(threshold)
+            significant = df[df[pvalue_col] > log10_threshold].copy()
+        
         significant = significant.sort_values(pvalue_col, ascending=False)  # Higher is more significant
     else:
-        significant = df[df[pvalue_col] < threshold].copy()
+        # Adjust threshold for multiple tests per gene
+        if correct_for_tests_per_gene and 'N_TESTS' in df.columns:
+            df['ADJUSTED_THRESHOLD'] = threshold / df['N_TESTS']
+            significant = df[df[pvalue_col] < df['ADJUSTED_THRESHOLD']].copy()
+        else:
+            significant = df[df[pvalue_col] < threshold].copy()
         significant = significant.sort_values(pvalue_col)
     
     return significant
@@ -171,8 +208,9 @@ def analyze_all_signatures(results_dir: Path,
             }
             continue
         
-        # Extract significant genes
-        significant = extract_significant_genes(df, pvalue_col=pval_col, threshold=pvalue_threshold)
+        # Extract significant genes (using most inclusive approach: best p-value per gene)
+        significant = extract_significant_genes(df, pvalue_col=pval_col, threshold=pvalue_threshold, 
+                                               correct_for_tests_per_gene=True)
         
         print(f"   ✓ Found {len(significant)} significant genes (p < {pvalue_threshold:.2e})")
         

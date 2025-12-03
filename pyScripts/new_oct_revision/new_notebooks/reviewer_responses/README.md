@@ -8,7 +8,7 @@ This directory contains all interactive analyses addressing reviewer questions a
 reviewer_responses/
 ├── README.md                      # This file - navigation hub
 ├── notebooks/
-│   ├── R1/                        # Referee #1 analyses (12 notebooks)
+│   ├── R1/                        # Referee #1 analyses (13 notebooks)
 │   ├── R2/                        # Referee #2 analyses (3 notebooks)
 │   ├── R3/                        # Referee #3 analyses (7 notebooks)
 │   ├── framework/                 # Framework overview (1 notebook)
@@ -124,7 +124,7 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 
 ### ✅ All Completed Analyses
 
-**Referee #1 (12 notebooks):**
+**Referee #1 (13 notebooks):**
 - Selection bias (IPW): [`notebooks/R1/R1_Q1_Selection_Bias.ipynb`](notebooks/R1/R1_Q1_Selection_Bias.ipynb)
 - Lifetime risk: [`notebooks/R1/R1_Q2_Lifetime_Risk.ipynb`](notebooks/R1/R1_Q2_Lifetime_Risk.ipynb)
 - Clinical meaning (FH): [`notebooks/R1/R1_Q3_Clinical_Meaning.ipynb`](notebooks/R1/R1_Q3_Clinical_Meaning.ipynb)
@@ -135,6 +135,7 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Biological plausibility (CHIP): [`notebooks/R1/R1_Biological_Plausibility_CHIP.ipynb`](notebooks/R1/R1_Biological_Plausibility_CHIP.ipynb)
 - Clinical utility (dynamic risk): [`notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.ipynb`](notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.ipynb)
 - Genetic validation (GWAS): [`notebooks/R1/R1_Genetic_Validation_GWAS.ipynb`](notebooks/R1/R1_Genetic_Validation_GWAS.ipynb)
+- Genetic validation (Gene-based RVAS): [`notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.ipynb`](notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.ipynb)
 - Multi-disease patterns: [`notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.ipynb`](notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.ipynb)
 - Robustness (LOO validation): [`notebooks/R1/R1_Robustness_LOO_Validation.ipynb`](notebooks/R1/R1_Robustness_LOO_Validation.ipynb)
 
@@ -155,5 +156,5 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb`](notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb)
 
-**Total: 23 notebooks** ✅ All complete
+**Total: 24 notebooks** ✅ All complete
 

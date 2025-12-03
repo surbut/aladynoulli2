@@ -216,6 +216,7 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | **Age-Stratified** | Performance across different age groups | [R1_Q10_Age_Specific.html](reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html) |
 | **Heritability** | Genetic architecture and heritability estimates | [R1_Q7_Heritability.html](reviewer_responses/notebooks/R1/R1_Q7_Heritability.html) |
 | **GWAS Validation** | Genome-wide association studies on signatures | [R1_Genetic_Validation_GWAS.html](reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html) |
+| **Gene-Based RVAS** | Rare variant association studies on signatures | [R1_Genetic_Validation_Gene_Based_RVAS.html](reviewer_responses/notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html) |
 | **Biological Plausibility** | CHIP analysis and biological validation | [R1_Biological_Plausibility_CHIP.html](reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html) |
 | **LOO Validation** | Leave-one-out cross-validation robustness | [R1_Robustness_LOO_Validation.html](reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html) |
 | **Selection Bias** | Assessment of selection bias and participation | [R1_Q1_Selection_Bias.html](reviewer_responses/notebooks/R1/R1_Q1_Selection_Bias.html) |
