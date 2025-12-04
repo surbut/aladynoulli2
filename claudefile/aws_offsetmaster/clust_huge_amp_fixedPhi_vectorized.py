@@ -109,13 +109,16 @@ class AladynSurvivalFixedPhi(nn.Module):
         return gp_loss_phi / self.D
 
 
-    def initialize_params(self, init_psi=None, **kwargs):
+    def initialize_params(self, init_psi=None, init_gamma=None, **kwargs):
         """Initialize only individual-specific parameters (lambda, gamma)
         
         Args:
             init_psi: Optional psi to use for initialization (overrides self.psi).
                       If None, uses self.psi. This ensures consistent initialization
                       across batches when using the same initial_psi.
+            init_gamma: Optional gamma to use for initialization. If provided, uses this
+                       directly instead of computing from data. Useful for single-patient
+                       scenarios where data-based initialization fails.
         """
         # Initialize gamma for disease clusters
         gamma_init = torch.zeros((self.P, self.K_total))
@@ -124,10 +127,23 @@ class AladynSurvivalFixedPhi(nn.Module):
         # Use init_psi if provided, otherwise use self.psi
         psi_for_init = init_psi if init_psi is not None else self.psi
         
-        # Initialize lambda and gamma for disease clusters
-        for k in range(self.K):
-            print(f"\nCalculating gamma for k={k}:")
+        # If init_gamma is provided, use it directly
+        if init_gamma is not None:
+            if torch.is_tensor(init_gamma):
+                gamma_init = init_gamma.clone()
+            else:
+                gamma_init = torch.tensor(init_gamma, dtype=torch.float32)
+            print("Using provided gamma for initialization (skipping data-based computation)")
             
+            # Still need to initialize lambda using the provided gamma
+            for k in range(self.K):
+                lambda_means = self.genetic_scale * (self.G @ gamma_init[:, k])
+                L_k = torch.linalg.cholesky(self.K_lambda_init)
+                for i in range(self.N):
+                    eps = L_k @ torch.randn(self.T)
+                    lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
+        else:
+            # Initialize lambda and gamma for disease clusters
             # Use average Y values as a basis for gamma initialization
             # Logit-transform Y_avg to match retrospective/joint approach
             Y_avg = torch.mean(self.Y, dim=2)
@@ -135,24 +151,27 @@ class AladynSurvivalFixedPhi(nn.Module):
             Y_avg = torch.clamp(Y_avg, epsilon, 1.0 - epsilon)
             Y_avg = torch.log(Y_avg / (1 - Y_avg))  # Logit transform
             
-            # Use diseases with strong psi values for this signature to initialize gamma
-            strong_diseases = (psi_for_init[k] > 0).float()
-            base_value = Y_avg[:, strong_diseases > 0].mean(dim=1)
-            base_value_centered = base_value - base_value.mean()
-            
-            print(f"Number of diseases in signature: {strong_diseases.sum()}")
-            print(f"Base value (first 5): {base_value[:5]}")
-            print(f"Base value centered (first 5): {base_value_centered[:5]}")
-            print(f"Base value centered mean: {base_value_centered.mean()}")
-  
-            gamma_init[:, k] = torch.linalg.lstsq(self.G, base_value_centered.unsqueeze(1)).solution.squeeze()
-            print(f"Gamma init for k={k} (first 5): {gamma_init[:5, k]}")
-            
-            lambda_means = self.genetic_scale * (self.G @ gamma_init[:, k])
-            L_k = torch.linalg.cholesky(self.K_lambda_init)
-            for i in range(self.N):
-                eps = L_k @ torch.randn(self.T)
-                lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
+            for k in range(self.K):
+                print(f"\nCalculating gamma for k={k}:")
+                
+                # Use diseases with strong psi values for this signature to initialize gamma
+                strong_diseases = (psi_for_init[k] > 0).float()
+                base_value = Y_avg[:, strong_diseases > 0].mean(dim=1)
+                base_value_centered = base_value - base_value.mean()
+                
+                print(f"Number of diseases in signature: {strong_diseases.sum()}")
+                print(f"Base value (first 5): {base_value[:5]}")
+                print(f"Base value centered (first 5): {base_value_centered[:5]}")
+                print(f"Base value centered mean: {base_value_centered.mean()}")
+      
+                gamma_init[:, k] = torch.linalg.lstsq(self.G, base_value_centered.unsqueeze(1)).solution.squeeze()
+                print(f"Gamma init for k={k} (first 5): {gamma_init[:5, k]}")
+                
+                lambda_means = self.genetic_scale * (self.G @ gamma_init[:, k])
+                L_k = torch.linalg.cholesky(self.K_lambda_init)
+                for i in range(self.N):
+                    eps = L_k @ torch.randn(self.T)
+                    lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
    
         # Initialize healthy state if needed
         if self.healthy_ref is not None:

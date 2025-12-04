@@ -62,7 +62,7 @@ else:
     if scripts_dir.exists():
         sys.path.insert(0, str(scripts_dir))
 
-from clust_huge_amp_fixedPhi import *
+from clust_huge_amp_fixedPhi_vectorized import *
 import pandas as pd
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn.utils.extmath")
@@ -107,7 +107,7 @@ def load_covariates_data(csv_path):
     return fh_processed
 
 
-def generate_batches(total_size, batch_size=10000):
+def generate_batches(total_size, batch_size=25000):
     """Generate batch indices"""
     batches = []
     for start in range(0, total_size, batch_size):
@@ -120,7 +120,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run Aladyn predictions with fixed phi/psi')
     parser.add_argument('--trained_model_path', type=str, required=True,
                        help='Path to trained model with phi and psi')
-    parser.add_argument('--batch_size', type=int, default=10000,
+    parser.add_argument('--batch_size', type=int, default=25000,
                        help='Batch size for processing')
     parser.add_argument('--num_epochs', type=int, default=200,
                        help='Number of training epochs per batch')

@@ -26,8 +26,8 @@ def parse_args():
                        help='Directory to save output files (default: from OUTPUT_DIR env var or ./output/)')
     parser.add_argument('--start_index', type=int, default=0,
                        help='Start index for data subset (default: 0)')
-    parser.add_argument('--end_index', type=int, default=10000,
-                       help='End index for data subset (default: 10000)')
+    parser.add_argument('--end_index', type=int, default=25000,
+                       help='End index for data subset (default: 25000)')
     parser.add_argument('--max_age_offset', type=int, default=30,
                        help='Maximum age offset to process (default: 30, corresponds to ages 40-70)')
     parser.add_argument('--num_epochs', type=int, default=200,
