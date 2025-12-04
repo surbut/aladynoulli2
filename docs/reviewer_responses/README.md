@@ -8,9 +8,9 @@ This directory contains all interactive analyses addressing reviewer questions a
 reviewer_responses/
 ├── README.md                      # This file - navigation hub
 ├── notebooks/
-│   ├── R1/                        # Referee #1 analyses (13 notebooks)
+│   ├── R1/                        # Referee #1 analyses (14 notebooks)
 │   ├── R2/                        # Referee #2 analyses (3 notebooks)
-│   ├── R3/                        # Referee #3 analyses (7 notebooks)
+│   ├── R3/                        # Referee #3 analyses (8 notebooks)
 │   ├── framework/                 # Framework overview (1 notebook)
 │   └── results/                   # Reviewer-specific results
 ├── preprocessing/                 # Data preprocessing utilities
@@ -49,6 +49,7 @@ reviewer_responses/
 | **Additional**: Biological plausibility (CHIP) | [`notebooks/R1/R1_Biological_Plausibility_CHIP.html`](notebooks/R1/R1_Biological_Plausibility_CHIP.html) | ✅ Complete |
 | **Additional**: Clinical utility (dynamic risk) | [`notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html`](notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html) | ✅ Complete |
 | **Additional**: Genetic validation (GWAS) | [`notebooks/R1/R1_Genetic_Validation_GWAS.html`](notebooks/R1/R1_Genetic_Validation_GWAS.html) | ✅ Complete |
+| **Additional**: Genetic validation (Gene-based RVAS) | [`notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html`](notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html) | ✅ Complete |
 | **Additional**: Multi-disease patterns | [`notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html`](notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html) | ✅ Complete |
 | **Additional**: Robustness (LOO validation) | [`notebooks/R1/R1_Robustness_LOO_Validation.html`](notebooks/R1/R1_Robustness_LOO_Validation.html) | ✅ Complete |
 
@@ -71,6 +72,7 @@ reviewer_responses/
 | **Population Stratification**: Continuous ancestry effects | [`notebooks/R3/R3_Population_Stratification_Ancestry.html`](notebooks/R3/R3_Population_Stratification_Ancestry.html) | ✅ Complete |
 | **Additional**: FullE vs ReducedE comparison | [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html) | ✅ Complete |
 | **Additional**: Linear vs Nonlinear mixing | [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html) | ✅ Complete |
+| **Additional**: Cross-cohort similarity | [`notebooks/R3/R3_Cross_Cohort_Similarity.html`](notebooks/R3/R3_Cross_Cohort_Similarity.html) | ✅ Complete |
 
 ---
 
@@ -124,7 +126,7 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 
 ### ✅ All Completed Analyses
 
-**Referee #1 (13 notebooks):**
+**Referee #1 (14 notebooks):**
 - Selection bias (IPW): [`notebooks/R1/R1_Q1_Selection_Bias.html`](notebooks/R1/R1_Q1_Selection_Bias.html)
 - Lifetime risk: [`notebooks/R1/R1_Q2_Lifetime_Risk.html`](notebooks/R1/R1_Q2_Lifetime_Risk.html)
 - Clinical meaning (FH): [`notebooks/R1/R1_Q3_Clinical_Meaning.html`](notebooks/R1/R1_Q3_Clinical_Meaning.html)
@@ -144,7 +146,7 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.html`](notebooks/R2/R2_R3_Model_Validity_Learning.html)
 - Washout analysis (continued): [`notebooks/R2/R2_Washout_Continued.html`](notebooks/R2/R2_Washout_Continued.html)
 
-**Referee #3 (7 notebooks):**
+**Referee #3 (8 notebooks):**
 - Competing risks: [`notebooks/R3/R3_Competing_Risks.html`](notebooks/R3/R3_Competing_Risks.html)
 - Heterogeneity: [`notebooks/R3/R3_Q8_Heterogeneity.html`](notebooks/R3/R3_Q8_Heterogeneity.html)
 - Heterogeneity analysis (main paper method): [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html)
@@ -152,9 +154,10 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Population stratification: [`notebooks/R3/R3_Population_Stratification_Ancestry.html`](notebooks/R3/R3_Population_Stratification_Ancestry.html)
 - FullE vs ReducedE comparison: [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html)
 - Linear vs Nonlinear mixing: [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html)
+- Cross-cohort similarity: [`notebooks/R3/R3_Cross_Cohort_Similarity.html`](notebooks/R3/R3_Cross_Cohort_Similarity.html)
 
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.html`](notebooks/framework/Discovery_Prediction_Framework_Overview.html)
 
-**Total: 24 notebooks** ✅ All complete
+**Total: 26 notebooks** ✅ All complete
 

@@ -10,7 +10,7 @@ reviewer_responses/
 ├── notebooks/
 │   ├── R1/                        # Referee #1 analyses (14 notebooks)
 │   ├── R2/                        # Referee #2 analyses (3 notebooks)
-│   ├── R3/                        # Referee #3 analyses (7 notebooks)
+│   ├── R3/                        # Referee #3 analyses (8 notebooks)
 │   ├── framework/                 # Framework overview (1 notebook)
 │   └── results/                   # Reviewer-specific results
 ├── preprocessing/                 # Data preprocessing utilities
@@ -72,6 +72,7 @@ reviewer_responses/
 | **Population Stratification**: Continuous ancestry effects | [`notebooks/R3/R3_Population_Stratification_Ancestry.ipynb`](notebooks/R3/R3_Population_Stratification_Ancestry.ipynb) | ✅ Complete |
 | **Additional**: FullE vs ReducedE comparison | [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb) | ✅ Complete |
 | **Additional**: Linear vs Nonlinear mixing | [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb) | ✅ Complete |
+| **Additional**: Cross-cohort similarity | [`notebooks/R3/R3_Cross_Cohort_Similarity.ipynb`](notebooks/R3/R3_Cross_Cohort_Similarity.ipynb) | ✅ Complete |
 
 ---
 
@@ -145,7 +146,7 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.ipynb`](notebooks/R2/R2_R3_Model_Validity_Learning.ipynb)
 - Washout analysis (continued): [`notebooks/R2/R2_Washout_Continued.ipynb`](notebooks/R2/R2_Washout_Continued.ipynb)
 
-**Referee #3 (7 notebooks):**
+**Referee #3 (8 notebooks):**
 - Competing risks: [`notebooks/R3/R3_Competing_Risks.ipynb`](notebooks/R3/R3_Competing_Risks.ipynb)
 - Heterogeneity: [`notebooks/R3/R3_Q8_Heterogeneity.ipynb`](notebooks/R3/R3_Q8_Heterogeneity.ipynb)
 - Heterogeneity analysis (main paper method): [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb)
@@ -153,9 +154,10 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Population stratification: [`notebooks/R3/R3_Population_Stratification_Ancestry.ipynb`](notebooks/R3/R3_Population_Stratification_Ancestry.ipynb)
 - FullE vs ReducedE comparison: [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb)
 - Linear vs Nonlinear mixing: [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb)
+- Cross-cohort similarity: [`notebooks/R3/R3_Cross_Cohort_Similarity.ipynb`](notebooks/R3/R3_Cross_Cohort_Similarity.ipynb)
 
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb`](notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb)
 
-**Total: 25 notebooks** ✅ All complete
+**Total: 26 notebooks** ✅ All complete
 
