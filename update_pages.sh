@@ -32,6 +32,10 @@ echo ""
 rm -rf docs/reviewer_responses
 mkdir -p docs/reviewer_responses
 
+# Immediately recreate README.md (before copying HTML files) so it's never missing
+sed 's/\.ipynb/\.html/g' pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md > docs/reviewer_responses/README.md
+echo "  ✓ README.md created early (links updated to .html)"
+
 # Copy all HTML files maintaining directory structure
 find pyScripts/new_oct_revision/new_notebooks/reviewer_responses -name "*.html" -type f | while read html_file; do
     rel_path=${html_file#pyScripts/new_oct_revision/new_notebooks/reviewer_responses/}
@@ -58,21 +62,19 @@ echo ""
 
 # Use the regenerate script to preserve styling
 if [ -f "docs/regenerate_index_html.py" ]; then
-    python3 docs/regenerate_index_html.py
-    echo "✓ Index page regenerated with preserved styling"
+    cd docs
+    python3 regenerate_index_html.py || echo "⚠️  Index regeneration failed, continuing..."
+    cd ..
+    echo "✓ Index page regeneration attempted"
 else
     echo "⚠️  regenerate_index_html.py not found, skipping index regeneration"
     echo "   (index.html will remain unchanged)"
 fi
 
-# 3.5. Copy README.md to docs, update links to .html, and convert to HTML
+# 3.5. Convert README.md to HTML (README.md already exists from Step 2)
 echo ""
-echo "Step 3.5: Copying README.md, updating links, and converting to HTML..."
+echo "Step 3.5: Converting README.md to HTML..."
 echo ""
-
-# First, copy README and convert .ipynb links to .html
-sed 's/\.ipynb/\.html/g' pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md > docs/reviewer_responses/README.md
-echo "✓ README.md copied to docs/reviewer_responses/ (links updated to .html)"
 
 # Convert README.md to HTML using pandoc (if available) or markdown
 if command -v pandoc &> /dev/null; then

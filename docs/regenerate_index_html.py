@@ -17,20 +17,126 @@ import re
 from pathlib import Path
 
 def get_template_styles():
-    """Extract the style section from the current beautiful index.html"""
+    """Extract the style section from the current beautiful index.html, or use default"""
     index_html = Path('index.html')
-    if not index_html.exists():
-        raise FileNotFoundError("index.html not found. Please ensure the beautiful version exists first.")
+    if index_html.exists():
+        with open(index_html, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Extract the style section
+        style_match = re.search(r'(<style>.*?</style>)', html_content, re.DOTALL)
+        if style_match:
+            return style_match.group(1)
     
-    with open(index_html, 'r', encoding='utf-8') as f:
-        html_content = f.read()
-    
-    # Extract the style section
-    style_match = re.search(r'(<style>.*?</style>)', html_content, re.DOTALL)
-    if not style_match:
-        raise ValueError("Could not find <style> section in index.html")
-    
-    return style_match.group(1)
+    # Use default styling if index.html doesn't exist
+    print("  ⚠️  index.html not found, using default styling...")
+    return """<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            color: #555;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+    </style>"""
 
 def convert_markdown_to_html(md_file='index.md'):
     """Convert markdown to HTML body content using pandoc"""

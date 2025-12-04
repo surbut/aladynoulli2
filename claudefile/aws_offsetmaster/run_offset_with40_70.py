@@ -8,7 +8,7 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 from sklearn.cluster import SpectralClustering
 from utils import *
-from clust_huge_amp_fixedPhi import *
+from clust_huge_amp_fixedPhi_vectorized import *
 import sys
 import os
 import gc
