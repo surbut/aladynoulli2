@@ -14,10 +14,11 @@ import matplotlib.pyplot as plt
 from scipy.special import softmax
 import seaborn as sns
 
-class AladynSurvivalFixedPhi(nn.Module):
+class AladynSurvivalFixedPhiFixedGamma(nn.Module):
+    """Version with both phi and gamma fixed - only trains lambda for single-patient scenarios"""
     def __init__(self, N, D, T, K, P, G, Y, R, W, prevalence_t, init_sd_scaler, genetic_scale,
-                 pretrained_phi, pretrained_psi, signature_references=None, healthy_reference=None, 
-                 disease_names=None, flat_lambda=False):
+                 pretrained_phi, pretrained_psi, pretrained_gamma, signature_references=None, 
+                 healthy_reference=None, disease_names=None, flat_lambda=False):
         super().__init__()
         # Basic dimensions and settings
         self.N, self.D, self.T, self.K = N, D, T, K
@@ -60,9 +61,18 @@ class AladynSurvivalFixedPhi(nn.Module):
         # Store pretrained phi and psi (will not be updated)
         self.register_buffer('phi', torch.tensor(pretrained_phi, dtype=torch.float32))
         self.register_buffer('psi', torch.tensor(pretrained_psi, dtype=torch.float32))
+        
+        # Store pretrained gamma as a buffer (not trainable)
+        if pretrained_gamma is None:
+            raise ValueError("pretrained_gamma must be provided for fixed-gamma model")
+        if torch.is_tensor(pretrained_gamma):
+            self.register_buffer('gamma', pretrained_gamma.clone().detach())
+        else:
+            self.register_buffer('gamma', torch.tensor(pretrained_gamma, dtype=torch.float32))
+        
         self.phi_gp_loss = self._calculate_phi_gp_loss()
         print(f"Pre-calculated phi GP loss: {self.phi_gp_loss:.4f}")
-    
+        print(f"Using fixed gamma with shape: {self.gamma.shape}")
 
           
         # Handle signature references
@@ -81,16 +91,30 @@ class AladynSurvivalFixedPhi(nn.Module):
             self.healthy_ref = None
             
         # Convert inputs to tensors
-        self.G = torch.tensor(G, dtype=torch.float32)
-        G_centered = G - G.mean(axis=0, keepdims=True)
-        G_scaled = G_centered / G_centered.std(axis=0, keepdims=True)
-        self.G = torch.tensor(G_scaled, dtype=torch.float32)
+        # Normalize G only if we have multiple distinct patients (N > 1)
+        # For single-patient refitting (N=1), skip normalization to avoid std=0
+        if N > 1:
+            # Convert to numpy for checking if rows are identical
+            G_np = np.array(G) if not isinstance(G, np.ndarray) else G
+            # Check if all rows are identical (single-patient duplicated scenario)
+            if np.allclose(G_np[0:1], G_np, atol=1e-6):
+                # Single patient duplicated - skip normalization, use as-is
+                self.G = torch.tensor(G, dtype=torch.float32)
+            else:
+                # Multiple distinct patients - normalize across batch
+                G_centered = G - G.mean(axis=0, keepdims=True)
+                G_std = G_centered.std(axis=0, keepdims=True)
+                # Avoid division by zero
+                G_std = np.where(G_std < 1e-8, np.ones_like(G_std), G_std)
+                G_scaled = G_centered / G_std
+                self.G = torch.tensor(G_scaled, dtype=torch.float32)
+        else:
+            # For N=1, use G as-is (no normalization possible without population statistics)
+            self.G = torch.tensor(G, dtype=torch.float32)
         
         self.Y = torch.tensor(Y, dtype=torch.float32)
         
-       
-        
-        # Initialize only individual-specific parameters (lambda, gamma)
+        # Initialize only lambda (gamma is fixed)
         self.initialize_params()
 
     def _calculate_phi_gp_loss(self):
@@ -98,7 +122,7 @@ class AladynSurvivalFixedPhi(nn.Module):
         gp_loss_phi = 0.0
         
         L_phi = torch.linalg.cholesky(self.K_phi)
-        for k in range(self.K_total):
+        for k in range(self.K):  # Only iterate over disease signatures (phi has K entries)
             phi_k = self.phi[k]  # D x T
             for d in range(self.D):
                 mean_phi_d = self.logit_prev_t[d, :] + self.psi[k, d]
@@ -109,69 +133,17 @@ class AladynSurvivalFixedPhi(nn.Module):
         return gp_loss_phi / self.D
 
 
-    def initialize_params(self, init_psi=None, init_gamma=None, **kwargs):
-        """Initialize only individual-specific parameters (lambda, gamma)
-        
-        Args:
-            init_psi: Optional psi to use for initialization (overrides self.psi).
-                      If None, uses self.psi. This ensures consistent initialization
-                      across batches when using the same initial_psi.
-            init_gamma: Optional gamma to use for initialization. If provided, uses this
-                       directly instead of computing from data. Useful for single-patient
-                       scenarios where data-based initialization fails.
-        """
-        # Initialize gamma for disease clusters
-        gamma_init = torch.zeros((self.P, self.K_total))
+    def initialize_params(self, **kwargs):
+        """Initialize only lambda (gamma is fixed from pretrained_gamma)"""
         lambda_init = torch.zeros((self.N, self.K_total, self.T))
-
-        # Use init_psi if provided, otherwise use self.psi
-        psi_for_init = init_psi if init_psi is not None else self.psi
         
-        # If init_gamma is provided, use it directly
-        if init_gamma is not None:
-            if torch.is_tensor(init_gamma):
-                gamma_init = init_gamma.clone()
-            else:
-                gamma_init = torch.tensor(init_gamma, dtype=torch.float32)
-            print("Using provided gamma for initialization (skipping data-based computation)")
-            
-            # Still need to initialize lambda using the provided gamma
-            for k in range(self.K):
-                lambda_means = self.genetic_scale * (self.G @ gamma_init[:, k])
-                L_k = torch.linalg.cholesky(self.K_lambda_init)
-                for i in range(self.N):
-                    eps = L_k @ torch.randn(self.T)
-                    lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
-        else:
-            # Initialize lambda and gamma for disease clusters
-            # Use average Y values as a basis for gamma initialization
-            # Logit-transform Y_avg to match retrospective/joint approach
-            Y_avg = torch.mean(self.Y, dim=2)
-            epsilon = 1e-6
-            Y_avg = torch.clamp(Y_avg, epsilon, 1.0 - epsilon)
-            Y_avg = torch.log(Y_avg / (1 - Y_avg))  # Logit transform
-            
-            for k in range(self.K):
-                print(f"\nCalculating gamma for k={k}:")
-                
-                # Use diseases with strong psi values for this signature to initialize gamma
-                strong_diseases = (psi_for_init[k] > 0).float()
-                base_value = Y_avg[:, strong_diseases > 0].mean(dim=1)
-                base_value_centered = base_value - base_value.mean()
-                
-                print(f"Number of diseases in signature: {strong_diseases.sum()}")
-                print(f"Base value (first 5): {base_value[:5]}")
-                print(f"Base value centered (first 5): {base_value_centered[:5]}")
-                print(f"Base value centered mean: {base_value_centered.mean()}")
-      
-                gamma_init[:, k] = torch.linalg.lstsq(self.G, base_value_centered.unsqueeze(1)).solution.squeeze()
-                print(f"Gamma init for k={k} (first 5): {gamma_init[:5, k]}")
-                
-                lambda_means = self.genetic_scale * (self.G @ gamma_init[:, k])
-                L_k = torch.linalg.cholesky(self.K_lambda_init)
-                for i in range(self.N):
-                    eps = L_k @ torch.randn(self.T)
-                    lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
+        # Initialize lambda using the fixed gamma
+        for k in range(self.K):
+            lambda_means = self.genetic_scale * (self.G @ self.gamma[:, k])
+            L_k = torch.linalg.cholesky(self.K_lambda_init)
+            for i in range(self.N):
+                eps = L_k @ torch.randn(self.T)
+                lambda_init[i, k, :] = self.signature_refs[k] + lambda_means[i] + eps
    
         # Initialize healthy state if needed
         if self.healthy_ref is not None:
@@ -179,17 +151,15 @@ class AladynSurvivalFixedPhi(nn.Module):
             for i in range(self.N):
                 eps = L_k @ torch.randn(self.T)
                 lambda_init[i, self.K, :] = self.healthy_ref + eps
-            gamma_init[:, self.K] = 0.0
 
-        # Only make lambda and gamma trainable parameters
-        self.gamma = nn.Parameter(gamma_init)
+        # Only make lambda trainable (gamma is fixed as buffer)
         self.lambda_ = nn.Parameter(lambda_init)
 
         if self.healthy_ref is not None:
             print(f"Initializing with {self.K} disease states + 1 healthy state")
         else:
             print(f"Initializing with {self.K} disease states only")
-        print("Initialization complete!")
+        print("Initialization complete! (gamma is fixed)")
     
     def forward(self):
         theta = torch.softmax(self.lambda_, dim=1)
@@ -208,18 +178,54 @@ class AladynSurvivalFixedPhi(nn.Module):
         
         # Original survival loss components remain exactly the same
         N, D, T = self.Y.shape
-        event_times_tensor = torch.tensor(event_times, dtype=torch.long)
-        event_times_expanded = event_times_tensor.unsqueeze(-1)
-        time_grid = torch.arange(T).unsqueeze(0).unsqueeze(0)
-        mask_before_event = (time_grid < event_times_expanded).float()
-        mask_at_event = (time_grid == event_times_expanded).float()
         
+        # Convert event_times to tensor and ensure correct shape
+        if not isinstance(event_times, torch.Tensor):
+            event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+        else:
+            event_times_tensor = event_times.long()
+        
+        # Handle event_times: can be [N, D] (per disease) or [N] (per patient)
+        if len(event_times_tensor.shape) == 2:
+            # [N, D] - per disease event times
+            if event_times_tensor.shape != (N, D):
+                raise ValueError(f"event_times shape {event_times_tensor.shape} doesn't match expected (N={N}, D={D})")
+            event_times_expanded = event_times_tensor.unsqueeze(-1)  # [N, D, 1]
+        elif len(event_times_tensor.shape) == 1:
+            # [N] - per patient event times, expand to [N, D]
+            if event_times_tensor.shape[0] != N:
+                raise ValueError(f"event_times shape {event_times_tensor.shape} doesn't match N={N}")
+            event_times_expanded = event_times_tensor.unsqueeze(-1).expand(N, D).unsqueeze(-1)  # [N, D, 1]
+        else:
+            raise ValueError(f"event_times must be 1D [N] or 2D [N, D], got shape {event_times_tensor.shape}")
+        
+        # Ensure event_times_expanded is [N, D, 1]
+        if len(event_times_expanded.shape) != 3 or event_times_expanded.shape != (N, D, 1):
+            raise ValueError(f"event_times_expanded shape {event_times_expanded.shape} != expected ({N}, {D}, 1)")
+        
+        # Create time grid explicitly expanded to [N, D, T] for element-wise comparison
+        time_grid = torch.arange(T, dtype=torch.long, device=event_times_expanded.device)
+        time_grid = time_grid.unsqueeze(0).unsqueeze(0).expand(N, D, T)  # [N, D, T]
+        
+        # Element-wise comparison: [N, D, T] < [N, D, 1] -> [N, D, T]
+        mask_before_event = (time_grid < event_times_expanded).float()  # [N, D, T]
+        mask_at_event = (time_grid == event_times_expanded).float()  # [N, D, T]
+        
+        # Verify shapes match
+        if pi.shape != (N, D, T):
+            raise ValueError(f"pi shape {pi.shape} != expected {(N, D, T)}")
+        if mask_before_event.shape != (N, D, T):
+            raise ValueError(f"mask_before_event shape {mask_before_event.shape} != expected {(N, D, T)}")
+        if mask_at_event.shape != (N, D, T):
+            raise ValueError(f"mask_at_event shape {mask_at_event.shape} != expected {(N, D, T)}")
+        
+        # pi is [N, D, T], masks are [N, D, T] - shapes match
         loss_censored = -torch.sum(torch.log(1 - pi) * mask_before_event)
         loss_event = -torch.sum(torch.log(pi) * mask_at_event * self.Y)
         loss_no_event = -torch.sum(torch.log(1 - pi) * mask_at_event * (1 - self.Y))
         total_data_loss = (loss_censored + loss_event + loss_no_event) / (self.N)
 
-        # GP prior loss only for lambda (phi is fixed)
+        # GP prior loss only for lambda (phi and gamma are fixed)
         if self.gpweight > 0:
             gp_loss = self.compute_gp_prior_loss()
         else:
@@ -256,7 +262,7 @@ class AladynSurvivalFixedPhi(nn.Module):
         return total_loss
         
     def compute_gp_prior_loss(self):
-        """Compute GP prior loss only for lambda parameters (phi is fixed)
+        """Compute GP prior loss only for lambda parameters (phi and gamma are fixed)
         
         VECTORIZED VERSION: Solves for all individuals simultaneously using batched operations.
         Mathematically equivalent to the sequential version but much faster on multi-core systems.
@@ -291,12 +297,12 @@ class AladynSurvivalFixedPhi(nn.Module):
         return gp_loss_lambda / self.N + self.phi_gp_loss 
     
     def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
-        """Modified fit method that only updates lambda and gamma"""
+        """Modified fit method that only updates lambda (gamma is fixed)"""
         
         optimizer = optim.Adam([
             {'params': [self.lambda_], 'lr': learning_rate},      # e.g. 1e-2
             {'params': [self.kappa], 'lr': learning_rate},        # e.g. 1e-3
-            {'params': [self.gamma], 'lr': learning_rate}         # Same rate as lambda
+            # gamma is NOT in optimizer - it's a fixed buffer
         ])
 
         # Initialize gradient history
@@ -318,7 +324,7 @@ class AladynSurvivalFixedPhi(nn.Module):
             optimizer.step()
             losses.append(loss.item())
             
-            if epoch % 1 == 0:
+            if epoch % 10 == 0:
                 print(f"\nEpoch {epoch}")
                 print(f"Loss: {loss.item():.4f}")
                 self.analyze_signature_responses()
@@ -415,7 +421,7 @@ class AladynSurvivalFixedPhi(nn.Module):
                 N_new = new_G_scaled.shape[0]
                 new_lambda = torch.zeros((N_new, self.K_total, self.T))
                 
-                # Compute lambda means for each signature
+                # Compute lambda means for each signature using fixed gamma
                 for k in range(self.K):
                     lambda_means = self.genetic_scale * (new_G_scaled @ self.gamma[:, k])
                     for i in range(N_new):
@@ -448,7 +454,6 @@ class AladynSurvivalFixedPhi(nn.Module):
             
 
 
-
 def plot_training_evolution(history_tuple):
     losses, gradient_history = history_tuple
     
@@ -472,16 +477,6 @@ def plot_training_evolution(history_tuple):
     plt.ylabel('Gradient norm')
     plt.title('Lambda Gradient Evolution')
     plt.legend()
-    
-    # Plot phi gradients
-    #plt.subplot(1, 3, 3)
-    #phi_norms = [torch.norm(g).item() for g in gradient_history['phi_grad']]
-    #plt.plot(phi_norms, label='Phi gradients')
-    #plt.yscale('log')
-    #plt.xlabel('Epoch')
-    #plt.ylabel('Gradient norm')
-    #plt.title('Phi Gradient Evolution')
-    #plt.legend()
     
     plt.tight_layout()
     plt.show()
