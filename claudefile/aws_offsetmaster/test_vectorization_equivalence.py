@@ -26,6 +26,8 @@ def create_test_data():
     Y = np.random.binomial(1, 0.1, size=(N, D, T)).astype(float)
     
     # Create synthetic phi and psi
+    # Note: In actual use case, phi has K_total entries (K + healthy state)
+    # But for testing, we create K entries and let the model handle healthy state
     phi = np.random.randn(K, D, T) * 0.1
     psi = np.random.randn(K, D) * 0.1
     

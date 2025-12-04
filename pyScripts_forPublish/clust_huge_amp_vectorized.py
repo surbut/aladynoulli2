@@ -285,42 +285,65 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
  
         
     def compute_gp_prior_loss(self):
-        # compute with amplitude above 
-        # Fixed K_lambda using amplitude of 2.0
-        
-        
-        # Initialize losses
-        gp_loss_lambda = 0.0
-        gp_loss_phi = 0.0
-        
-        # Compute Cholesky once
+        """
+        Vectorized GP prior loss computation.
+        This replaces the loop-based version with fully vectorized operations.
+        """
+        # Compute Cholesky decompositions once
         L_lambda = torch.linalg.cholesky(self.K_lambda)
-        
-        # Lambda GP prior
-        for k in range(self.K_total):
-            lambda_k = self.lambda_[:, k, :]  # N x T
-            
-            if k == self.K and self.healthy_ref is not None:  # Healthy state
-                mean_lambda_k = self.healthy_ref.unsqueeze(0)
-            else:  # Disease signatures
-                mean_lambda_k = self.signature_refs[k].unsqueeze(0) + \
-                            self.genetic_scale * (self.G @ self.gamma[:, k]).unsqueeze(1)
-            
-            deviations_lambda = lambda_k - mean_lambda_k
-            for i in range(self.N):
-                dev_i = deviations_lambda[i:i+1].T
-                v_i = torch.cholesky_solve(dev_i, L_lambda)
-                gp_loss_lambda += 0.5 * torch.sum(v_i.T @ dev_i)
-            
-        # Phi GP prior (unchanged, uses fixed K_phi)
         L_phi = torch.linalg.cholesky(self.K_phi)
-        for k in range(self.K_total):
-            phi_k = self.phi[k]  # D x T
-            for d in range(self.D):
-                mean_phi_d = self.logit_prev_t[d, :] + self.psi[k, d]
-                dev_d = (phi_k[d:d+1, :] - mean_phi_d).T
-                v_d = torch.cholesky_solve(dev_d, L_phi)
-                gp_loss_phi += 0.5 * torch.sum(v_d.T @ dev_d)
+        
+        # Lambda GP prior - VECTORIZED
+        # Shape: lambda_ is [N x K_total x T]
+        # Compute mean for each signature
+        # For disease signatures: mean = signature_refs[k] + genetic_scale * (G @ gamma[:, k])
+        # For healthy state: mean = healthy_ref
+        
+        # Compute mean_lambda for all signatures at once
+        # Shape: [N x K_total x T]
+        mean_lambda = torch.zeros((self.N, self.K_total, self.T), dtype=torch.float32)
+        
+        # Disease signatures: [N x T] for each k
+        for k in range(self.K):
+            mean_lambda[:, k, :] = self.signature_refs[k].unsqueeze(0).unsqueeze(1) + \
+                                  self.genetic_scale * (self.G @ self.gamma[:, k]).unsqueeze(1)
+        
+        # Healthy state (if exists)
+        if self.healthy_ref is not None:
+            mean_lambda[:, self.K, :] = self.healthy_ref.unsqueeze(0).unsqueeze(1)
+        
+        # Compute deviations: [N x K_total x T]
+        deviations_lambda = self.lambda_ - mean_lambda  # [N x K_total x T]
+        
+        # Vectorized Cholesky solve for all patients and signatures
+        # Reshape to [N*K_total x T] for batch processing
+        # Each row is a time series that needs to be solved
+        deviations_flat = deviations_lambda.reshape(-1, self.T)  # [N*K_total x T]
+        # Transpose for cholesky_solve which expects [T x batch_size]
+        deviations_flat_T = deviations_flat.T  # [T x N*K_total]
+        v_flat_T = torch.cholesky_solve(deviations_flat_T, L_lambda)  # [T x N*K_total]
+        # Transpose back and compute quadratic forms
+        v_flat = v_flat_T.T  # [N*K_total x T]
+        # Compute quadratic forms: sum over T dimension for each patient-signature pair
+        gp_loss_lambda = 0.5 * torch.sum(deviations_flat * v_flat)  # Scalar
+        
+        # Phi GP prior - VECTORIZED
+        # Shape: phi is [K_total x D x T]
+        # Mean: logit_prev_t[d, :] + psi[k, d] for each k, d
+        # Compute mean_phi: [K_total x D x T]
+        mean_phi = self.logit_prev_t.unsqueeze(0) + self.psi.unsqueeze(2)  # [K_total x D x T]
+        deviations_phi = self.phi - mean_phi  # [K_total x D x T]
+        
+        # Vectorized Cholesky solve for all signatures and diseases
+        # Reshape to [K_total*D x T] for batch processing
+        deviations_phi_flat = deviations_phi.reshape(-1, self.T)  # [K_total*D x T]
+        # Transpose for cholesky_solve
+        deviations_phi_flat_T = deviations_phi_flat.T  # [T x K_total*D]
+        v_phi_flat_T = torch.cholesky_solve(deviations_phi_flat_T, L_phi)  # [T x K_total*D]
+        # Transpose back and compute quadratic forms
+        v_phi_flat = v_phi_flat_T.T  # [K_total*D x T]
+        # Compute quadratic forms: sum over T dimension
+        gp_loss_phi = 0.5 * torch.sum(deviations_phi_flat * v_phi_flat)  # Scalar
         
         # Return combined loss with appropriate scaling
         return gp_loss_lambda / self.N + gp_loss_phi / self.D
