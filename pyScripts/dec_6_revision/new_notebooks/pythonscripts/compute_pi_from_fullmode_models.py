@@ -15,7 +15,7 @@ import sys
 
 # Add path to import utils
 script_dir = Path(__file__).parent
-sys.path.insert(0, str(script_dir.parent.parent.parent / 'pyScripts'))
+sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts')
 from utils import calculate_pi_pred, softmax_by_k
 
 def load_fullmode_model(model_path):
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_path", type=str, 
                        help="Path to a single model checkpoint")
     parser.add_argument("--base_dir", type=str,
-                       default="/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_retrospective_full",
+                       default="/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized",
                        help="Base directory containing model files")
     parser.add_argument("--start_batch", type=int, default=0,
                        help="Starting batch index")
