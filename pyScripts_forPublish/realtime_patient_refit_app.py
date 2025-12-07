@@ -120,7 +120,7 @@ def load_fixed_components(data_dir, gamma_checkpoint_path=None, batch_dir=None, 
         batch_dir: Optional directory containing multiple batch checkpoints. If provided, will average gamma from all batches.
         gamma_pattern: Glob pattern to match batch checkpoint files (used if batch_dir is provided).
     """
-    checkpoint_path = os.path.join(data_dir, 'master_for_fitting_pooled_all_data.pt')
+    checkpoint_path = os.path.join(data_dir, 'master_for_fitting_pooled_correctedE.pt')
     essentials_path = os.path.join(data_dir, 'model_essentials.pt')
     refs_path = os.path.join(data_dir, 'reference_trajectories.pt')
     
