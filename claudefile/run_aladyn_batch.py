@@ -200,7 +200,7 @@ def main():
         #'history': history,
         'args': vars(args),
         'indices': indices,
-        'clusters': model.clusters,
+        'clusters': initial_clusters,  # Save initial_clusters directly to ensure it's saved
     }, output_path)
 
     print(f"\n{'='*60}")
