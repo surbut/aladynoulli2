@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aladynoulli Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 3px solid #3498db;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .badges {
+            margin: 20px 0;
+        }
+        
+        .badges img {
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+        
+        .header-links {
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+        
+        .header-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .header-links a:hover {
+            background-color: #ecf0f1;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border-left: 4px solid #3498db;
+        }
+        
+        .toc h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .toc a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        h3 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        h4 {
+            color: #34495e;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+        }
+        
+        p {
+            margin: 15px 0;
+            line-height: 1.8;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(to right, transparent, #3498db, transparent);
+            margin: 40px 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .feature-card strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .workflow-steps {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .note-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .note-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="aladynoulli-documentation">Aladynoulli Documentation</h1>
+<div data-align="center">
+<p><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a> <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+" /></a> <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-1.9+-red.svg" alt="PyTorch" /></a></p>
+<p><strong>A Bayesian Survival Model for Disease Trajectory Prediction</strong></p>
+<p><a href="https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1">Preprint</a> • <a href="../">GitHub Repository</a> • <a href="#-quick-start">Quick Start</a></p>
+</div>
+<hr />
+<h2 id="table-of-contents">📖 Table of Contents</h2>
+<ul>
+<li><a href="#-overview">Overview</a></li>
+<li><a href="#-quick-start">Quick Start</a></li>
+<li><a href="#-model-architecture">Model Architecture</a></li>
+<li><a href="#-complete-workflow">Complete Workflow</a></li>
+<li><a href="#-reviewer-response-analyses">Reviewer Response Analyses</a></li>
+<li><a href="#-documentation">Documentation</a></li>
+<li><a href="#-performance--scalability">Performance &amp; Scalability</a></li>
+<li><a href="#-citation">Citation</a></li>
+</ul>
+<hr />
+<h2 id="overview">🔬 Overview</h2>
+<p><strong>Aladynoulli</strong> is a comprehensive Bayesian survival model that predicts disease trajectories by integrating genetic and clinical data. The model captures:</p>
+<ul>
+<li><strong>Disease Signatures</strong>: Latent disease states that capture shared patterns across diseases</li>
+<li><strong>Genetic Effects</strong>: Individual-specific genetic contributions to disease risk<br />
+</li>
+<li><strong>Temporal Dynamics</strong>: Time-varying disease probabilities using Gaussian processes</li>
+<li><strong>Censoring</strong>: Proper handling of incomplete follow-up data</li>
+</ul>
+<h3 id="key-features">Key Features</h3>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✅ <strong>Scalable</strong></td>
+<td>Handles large-scale genetic and clinical datasets (400K+ individuals)</td>
+</tr>
+<tr>
+<td>✅ <strong>Flexible</strong></td>
+<td>Supports both discovery and prediction modes</td>
+</tr>
+<tr>
+<td>✅ <strong>Robust</strong></td>
+<td>Proper Bayesian uncertainty quantification</td>
+</tr>
+<tr>
+<td>✅ <strong>Fast</strong></td>
+<td>GPU-accelerated training and inference</td>
+</tr>
+<tr>
+<td>✅ <strong>Reproducible</strong></td>
+<td>Complete code and data processing pipelines</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="quick-start">🚀 Quick Start</h2>
+<h3 id="installation">Installation</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/surbut/aladynoulli2.git</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> aladynoulli2</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span></code></pre></div>
+<h3 id="system-requirements">System Requirements</h3>
+<ul>
+<li><strong>Python</strong>: 3.8 or higher</li>
+<li><strong>RAM</strong>: 8GB minimum, 16GB+ recommended</li>
+<li><strong>Storage</strong>: 5GB free space</li>
+<li><strong>GPU</strong>: Optional but recommended (NVIDIA CUDA)</li>
+</ul>
+<p>For detailed installation instructions, see the <a href="../README.md">main README</a> or <a href="../INSTALLATION.md">INSTALLATION.md</a>.</p>
+<hr />
+<h2 id="model-architecture">🏗️ Model Architecture</h2>
+<h3 id="core-components">Core Components</h3>
+<ol type="1">
+<li><strong>Signature States (K)</strong>: Latent disease signatures that capture shared patterns</li>
+<li><strong>Genetic Effects (γ)</strong>: Individual-specific genetic contributions</li>
+<li><strong>Temporal Dynamics (λ)</strong>: Time-varying signature proportions using GPs</li>
+<li><strong>Disease Probabilities (φ)</strong>: Signature-specific disease probabilities</li>
+<li><strong>Censoring Matrix (E)</strong>: Event times and censoring information</li>
+</ol>
+<h3 id="mathematical-framework">Mathematical Framework</h3>
+<p>The model predicts disease probability at time <code>t</code> as:</p>
+<pre><code>π_i,d,t = κ × Σ_k θ_i,k,t × φ_k,d,t</code></pre>
+<p>Where: - <code>θ_i,k,t</code> = softmax(λ_i,k,t) (signature proportions) - <code>λ_i,k,t</code> ~ GP(μ_k + G_i γ_k, K_λ) (temporal dynamics) - <code>φ_k,d,t</code> = sigmoid(ψ_k,d + GP(μ_φ, K_φ)) (disease probabilities)</p>
+<hr />
+<h2 id="complete-workflow">💻 Complete Workflow</h2>
+<p>The Aladynoulli workflow consists of <strong>4 main steps</strong>:</p>
+<pre><code>Preprocessing → Batch Training → Master Checkpoint → Prediction</code></pre>
+<h3 id="step-1-preprocessing">Step 1: Preprocessing</h3>
+<p>Create initialization files (prevalence, clusters, psi, reference trajectories):</p>
+<p><strong>Option A: Interactive Notebook</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">jupyter</span> notebook ../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/create_preprocessing_files.ipynb</span></code></pre></div>
+<p><strong>Option B: Standalone Functions</strong></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pyScripts.new_oct_revision.new_notebooks.reviewer_responses.preprocessing.preprocessing_utils <span class="im">import</span> (</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    compute_smoothed_prevalence,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    create_initial_clusters_and_psi,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    create_reference_trajectories</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute smoothed prevalence</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>prevalence_t <span class="op">=</span> compute_smoothed_prevalence(Y, window_size<span class="op">=</span><span class="dv">5</span>, smooth_on_logit<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create initial clusters and psi</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>clusters, psi <span class="op">=</span> create_initial_clusters_and_psi(Y<span class="op">=</span>Y, K<span class="op">=</span><span class="dv">20</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Create reference trajectories</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>signature_refs, healthy_ref <span class="op">=</span> create_reference_trajectories(Y, clusters, K<span class="op">=</span><span class="dv">20</span>)</span></code></pre></div>
+<p><strong>Output files:</strong> - <code>prevalence_t</code> - Smoothed disease prevalence (D × T) - <code>initial_clusters_400k.pt</code> - Disease-to-signature assignments - <code>initial_psi_400k.pt</code> - Initial signature-disease parameters (K × D) - <code>reference_trajectories.pt</code> - Signature reference trajectories</p>
+<h3 id="step-2-batch-training">Step 2: Batch Training</h3>
+<p>Train the model on batches with full enrollment data:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> ../claudefile/run_aladyn_batch.py <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--data_dir</span> /path/to/data <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output_dir</span> /path/to/batch_output <span class="dt">\</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--start_index</span> 0 <span class="dt">\</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--end_index</span> 10000 <span class="dt">\</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--num_epochs</span> 200</span></code></pre></div>
+<p><strong>What it does:</strong> - Trains model on batches using full enrollment E matrix - Uses <code>clust_huge_amp.py</code> for discovery mode - Saves checkpoints: <code>enrollment_model_W0.0001_batch_*_*.pt</code> - Each checkpoint contains learned <code>phi</code> parameters (K × D × T)</p>
+<h3 id="step-3-create-master-checkpoint">Step 3: Create Master Checkpoint</h3>
+<p>Pool phi from all batches and create master checkpoint:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> ../claudefile/create_master_checkpoints.py <span class="dt">\</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--data_dir</span> /path/to/data <span class="dt">\</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--retrospective_pattern</span> <span class="st">&quot;/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt&quot;</span> <span class="dt">\</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--enrollment_pattern</span> <span class="st">&quot;/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt&quot;</span> <span class="dt">\</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output_dir</span> /path/to/data</span></code></pre></div>
+<p><strong>What it does:</strong> - Loads phi from all batch checkpoints - Pools phi (mean across batches) for stability - Combines with <code>initial_psi_400k.pt</code> - Creates master checkpoint: <code>master_for_fitting_pooled_all_data.pt</code></p>
+<h3 id="step-4-predict-with-master-checkpoint">Step 4: Predict with Master Checkpoint</h3>
+<p>Run predictions using fixed phi from master checkpoint:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> ../claudefile/version_from_ec2/run_aladyn_predict_with_master.py <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--trained_model_path</span> /path/to/master_for_fitting_pooled_all_data.pt <span class="dt">\</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--data_dir</span> /path/to/data <span class="dt">\</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output_dir</span> /path/to/predictions <span class="dt">\</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--batch_size</span> 10000 <span class="dt">\</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--num_epochs</span> 200</span></code></pre></div>
+<p><strong>What it does:</strong> - Loads master checkpoint (pooled phi + initial_psi) - Automatically loads <code>E_enrollment_full.pt</code> (full enrollment matrix) - Uses <code>clust_huge_amp_fixedPhi.py</code> for fixed-phi predictions - Only estimates lambda (genetic effects) per batch - Generates predictions (pi tensor) for all patients</p>
+<p>For detailed step-by-step instructions, see the <a href="../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md">Complete Workflow Guide</a>.</p>
+<hr />
+<h2 id="reviewer-response-analyses">📊 Reviewer Response Analyses</h2>
+<p>Comprehensive interactive analyses addressing reviewer questions and model validation:</p>
+<h3 id="navigation-hub">📚 Navigation Hub</h3>
+<p><strong><a href="reviewer_responses/README.html">Reviewer Response README</a></strong> - Complete guide to all interactive analyses</p>
+<h3 id="analysis-categories">🔬 Analysis Categories</h3>
+<h4 id="referee-1-analyses"><strong>Referee #1 Analyses</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clinical Utility</strong></td>
+<td>Dynamic risk updating and clinical decision-making</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html">R1_Clinical_Utility_Dynamic_Risk_Updating.html</a></td>
+</tr>
+<tr>
+<td><strong>Lifetime Risk</strong></td>
+<td>Long-term risk predictions across the lifespan</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q2_Lifetime_Risk.html">R1_Q2_Lifetime_Risk.html</a></td>
+</tr>
+<tr>
+<td><strong>AUC Comparisons</strong></td>
+<td>Performance vs. established clinical risk scores</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q9_AUC_Comparisons.html">R1_Q9_AUC_Comparisons.html</a></td>
+</tr>
+<tr>
+<td><strong>Age-Stratified</strong></td>
+<td>Performance across different age groups</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html">R1_Q10_Age_Specific.html</a></td>
+</tr>
+<tr>
+<td><strong>Heritability</strong></td>
+<td>Genetic architecture and heritability estimates</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q7_Heritability.html">R1_Q7_Heritability.html</a></td>
+</tr>
+<tr>
+<td><strong>GWAS Validation</strong></td>
+<td>Genome-wide association studies on signatures</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html">R1_Genetic_Validation_GWAS.html</a></td>
+</tr>
+<tr>
+<td><strong>Gene-Based RVAS</strong></td>
+<td>Rare variant association studies on signatures</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html">R1_Genetic_Validation_Gene_Based_RVAS.html</a></td>
+</tr>
+<tr>
+<td><strong>Biological Plausibility</strong></td>
+<td>CHIP analysis and biological validation</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html">R1_Biological_Plausibility_CHIP.html</a></td>
+</tr>
+<tr>
+<td><strong>LOO Validation</strong></td>
+<td>Leave-one-out cross-validation robustness</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html">R1_Robustness_LOO_Validation.html</a></td>
+</tr>
+<tr>
+<td><strong>Selection Bias</strong></td>
+<td>Assessment of selection bias and participation</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q1_Selection_Bias.html">R1_Q1_Selection_Bias.html</a></td>
+</tr>
+<tr>
+<td><strong>Clinical Meaning</strong></td>
+<td>ICD vs PheCode comparison and clinical interpretation</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q3_Clinical_Meaning.html">R1_Q3_Clinical_Meaning.html</a></td>
+</tr>
+<tr>
+<td><strong>ICD vs PheCode</strong></td>
+<td>Detailed comparison of coding systems</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html">R1_Q3_ICD_vs_PheCode_Comparison.html</a></td>
+</tr>
+<tr>
+<td><strong>Competing Risks</strong></td>
+<td>Multi-disease patterns and competing risks</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html">R1_Multi_Disease_Patterns_Competing_Risks.html</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referee-2-analyses"><strong>Referee #2 Analyses</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Temporal Leakage</strong></td>
+<td>Washout analysis and temporal leakage assessment</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html">R2_Temporal_Leakage.html</a></td>
+</tr>
+<tr>
+<td><strong>Washout Continued</strong></td>
+<td>Comprehensive washout analysis across timepoints</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_Washout_Continued.html">R2_Washout_Continued.html</a></td>
+</tr>
+<tr>
+<td><strong>Washout Clean</strong></td>
+<td>Clean version of washout analysis</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_Washout_Continued_clean.html">R2_Washout_Continued_clean.html</a></td>
+</tr>
+<tr>
+<td><strong>Model Validity</strong></td>
+<td>Model learning and validity assessment</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html">R2_R3_Model_Validity_Learning.html</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referee-3-analyses"><strong>Referee #3 Analyses</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Competing Risks</strong></td>
+<td>Detailed competing risks analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Competing_Risks.html">R3_Competing_Risks.html</a></td>
+</tr>
+<tr>
+<td><strong>Fixed vs Joint Phi</strong></td>
+<td>Comparison of fixed vs joint phi estimation</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Fixed_vs_Joint_Phi_Comparison.html">R3_Fixed_vs_Joint_Phi_Comparison.html</a></td>
+</tr>
+<tr>
+<td><strong>FullE vs ReducedE</strong></td>
+<td>Full vs reduced event matrix comparison</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html">R3_FullE_vs_ReducedE_Comparison.html</a></td>
+</tr>
+<tr>
+<td><strong>Linear vs Nonlinear</strong></td>
+<td>Linear vs nonlinear mixing approaches</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html">R3_Linear_vs_NonLinear_Mixing.html</a></td>
+</tr>
+<tr>
+<td><strong>Population Stratification</strong></td>
+<td>Ancestry-stratified analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html">R3_Population_Stratification_Ancestry.html</a></td>
+</tr>
+<tr>
+<td><strong>Heterogeneity</strong></td>
+<td>Patient heterogeneity analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity.html">R3_Q8_Heterogeneity.html</a></td>
+</tr>
+<tr>
+<td><strong>Heterogeneity (Main Paper Method)</strong></td>
+<td>Main paper method with PRS validation (MI and breast cancer)</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html">R3_Q8_Heterogeneity_MainPaper_Method.html</a></td>
+</tr>
+<tr>
+<td><strong>Heterogeneity (Continued)</strong></td>
+<td>Complete pathway analysis demonstrating biological heterogeneity</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_Continued.html">R3_Q8_Heterogeneity_Continued.html</a></td>
+</tr>
+<tr>
+<td><strong>Cross-Cohort Similarity</strong></td>
+<td>Cross-cohort signature correspondence analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Cross_Cohort_Similarity.html">R3_Cross_Cohort_Similarity.html</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="framework-preprocessing"><strong>Framework &amp; Preprocessing</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Framework Overview</strong></td>
+<td>Discovery vs prediction framework</td>
+<td><a href="reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html">Discovery_Prediction_Framework_Overview.html</a></td>
+</tr>
+<tr>
+<td><strong>Preprocessing</strong></td>
+<td>Preprocessing file creation guide</td>
+<td><a href="reviewer_responses/preprocessing/create_preprocessing_files.html">create_preprocessing_files.html</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="documentation">📚 Documentation</h2>
+<h3 id="core-model-files">Core Model Files</h3>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 20%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discovery Model</strong></td>
+<td><a href="../pyScripts_forPublish/clust_huge_amp.py"><code>../pyScripts_forPublish/clust_huge_amp.py</code></a></td>
+<td>Full model that learns phi and psi</td>
+</tr>
+<tr>
+<td><strong>Prediction Model</strong></td>
+<td><a href="../pyScripts_forPublish/clust_huge_amp_fixedPhi.py"><code>../pyScripts_forPublish/clust_huge_amp_fixedPhi.py</code></a></td>
+<td>Fixed-phi model for fast predictions</td>
+</tr>
+<tr>
+<td><strong>Discovery Notebook</strong></td>
+<td><a href="../pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb"><code>../pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb</code></a></td>
+<td>Interactive discovery mode</td>
+</tr>
+<tr>
+<td><strong>Prediction Notebook</strong></td>
+<td><a href="../pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb"><code>../pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb</code></a></td>
+<td>Interactive prediction mode</td>
+</tr>
+</tbody>
+</table>
+<h3 id="workflow-scripts">Workflow Scripts</h3>
+<table>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 37%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Script</th>
+<th>Location</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Preprocessing</strong></td>
+<td><a href="../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py"><code>../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py</code></a></td>
+<td>Preprocessing utilities</td>
+</tr>
+<tr>
+<td><strong>Batch Training</strong></td>
+<td><a href="../claudefile/run_aladyn_batch.py"><code>../claudefile/run_aladyn_batch.py</code></a></td>
+<td>Batch model training</td>
+</tr>
+<tr>
+<td><strong>Master Checkpoint</strong></td>
+<td><a href="../claudefile/create_master_checkpoints.py"><code>../claudefile/create_master_checkpoints.py</code></a></td>
+<td>Create pooled checkpoints</td>
+</tr>
+<tr>
+<td><strong>Prediction</strong></td>
+<td><a href="../claudefile/version_from_ec2/run_aladyn_predict_with_master.py"><code>../claudefile/version_from_ec2/run_aladyn_predict_with_master.py</code></a></td>
+<td>Run predictions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="additional-resources">Additional Resources</h3>
+<ul>
+<li><strong>Complete Workflow Guide</strong>: <a href="../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md"><code>../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md</code></a></li>
+<li><strong>Main Repository README</strong>: <a href="../README.md"><code>../README.md</code></a></li>
+<li><strong>Installation Guide</strong>: <a href="../INSTALLATION.md"><code>../INSTALLATION.md</code></a></li>
+</ul>
+<hr />
+<h2 id="performance-scalability">⏱️ Performance &amp; Scalability</h2>
+<h3 id="typical-runtime">Typical Runtime</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Training Time</th>
+<th>Memory Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU (Apple M4 Max)</td>
+<td>~70 minutes</td>
+<td>~12GB per 10,000 individuals</td>
+</tr>
+</tbody>
+</table>
+<h3 id="scalability">Scalability</h3>
+<ul>
+<li><strong>Individuals</strong>: Tested up to <strong>400,000</strong></li>
+<li><strong>Diseases</strong>: Tested <strong>350</strong></li>
+<li><strong>Time Points</strong>: Tested <strong>52</strong> (ages 30-81)</li>
+<li><strong>Genetic Features</strong>: Tested with <strong>36 PRS</strong> and <strong>10 PCs</strong></li>
+</ul>
+<hr />
+<h2 id="citation">📄 Citation</h2>
+<p>If you use this code in your research, please cite:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">urbut2024aladynoulli</span>,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>={Urbut, Sarah and others},</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span>={medRxiv},</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>={2024},</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">doi</span>={10.1101/2024.09.29.24314557}</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="contact-support">📞 Contact &amp; Support</h2>
+<ul>
+<li><strong>Author</strong>: Sarah Urbut</li>
+<li><strong>Email</strong>: surbut@mgh.harvard.edu</li>
+<li><strong>Institution</strong>: Massachusetts General Hospital</li>
+<li><strong>GitHub</strong>: <a href="https://github.com/surbut"><span class="citation" data-cites="surbut">@surbut</span></a></li>
+</ul>
+<hr />
+<h2 id="license">📜 License</h2>
+<p>This project is licensed under the MIT License - see the <a href="../LICENSE">LICENSE</a> file for details.</p>
+<hr />
+<h2 id="acknowledgments">🙏 Acknowledgments</h2>
+<p>We thank the UK Biobank participants and the research community for making this work possible.</p>
+<hr />
+<div data-align="center">
+<p><strong>Note</strong>: This software is provided for research purposes. Please ensure you have appropriate data use agreements and ethical approvals before using with real patient data.</p>
+</div>
+
+    </div>
+</body>
+</html>

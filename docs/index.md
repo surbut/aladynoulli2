@@ -98,101 +98,12 @@ Where:
 
 The Aladynoulli workflow consists of **4 main steps**:
 
-```
-Preprocessing → Batch Training → Master Checkpoint → Prediction
-```
+1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
+2. **Batch Training**: Train models on data batches with full E matrix
+3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
+4. **Prediction**: Run predictions using master checkpoint
 
-### Step 1: Preprocessing
-
-Create initialization files (prevalence, clusters, psi, reference trajectories):
-
-**Option A: Interactive Notebook**
-```bash
-jupyter notebook ../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/create_preprocessing_files.ipynb
-```
-
-**Option B: Standalone Functions**
-```python
-from pyScripts.new_oct_revision.new_notebooks.reviewer_responses.preprocessing.preprocessing_utils import (
-    compute_smoothed_prevalence,
-    create_initial_clusters_and_psi,
-    create_reference_trajectories
-)
-
-# Compute smoothed prevalence
-prevalence_t = compute_smoothed_prevalence(Y, window_size=5, smooth_on_logit=True)
-
-# Create initial clusters and psi
-clusters, psi = create_initial_clusters_and_psi(Y=Y, K=20, random_state=42)
-
-# Create reference trajectories
-signature_refs, healthy_ref = create_reference_trajectories(Y, clusters, K=20)
-```
-
-**Output files:**
-- `prevalence_t` - Smoothed disease prevalence (D × T)
-- `initial_clusters_400k.pt` - Disease-to-signature assignments
-- `initial_psi_400k.pt` - Initial signature-disease parameters (K × D)
-- `reference_trajectories.pt` - Signature reference trajectories
-
-### Step 2: Batch Training
-
-Train the model on batches with full enrollment data:
-
-```bash
-python ../claudefile/run_aladyn_batch.py \
-    --data_dir /path/to/data \
-    --output_dir /path/to/batch_output \
-    --start_index 0 \
-    --end_index 10000 \
-    --num_epochs 200
-```
-
-**What it does:**
-- Trains model on batches using full enrollment E matrix
-- Uses `clust_huge_amp.py` for discovery mode
-- Saves checkpoints: `enrollment_model_W0.0001_batch_*_*.pt`
-- Each checkpoint contains learned `phi` parameters (K × D × T)
-
-### Step 3: Create Master Checkpoint
-
-Pool phi from all batches and create master checkpoint:
-
-```bash
-python ../claudefile/create_master_checkpoints.py \
-    --data_dir /path/to/data \
-    --retrospective_pattern "/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt" \
-    --enrollment_pattern "/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt" \
-    --output_dir /path/to/data
-```
-
-**What it does:**
-- Loads phi from all batch checkpoints
-- Pools phi (mean across batches) for stability
-- Combines with `initial_psi_400k.pt`
-- Creates master checkpoint: `master_for_fitting_pooled_all_data.pt`
-
-### Step 4: Predict with Master Checkpoint
-
-Run predictions using fixed phi from master checkpoint:
-
-```bash
-python ../claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
-    --trained_model_path /path/to/master_for_fitting_pooled_all_data.pt \
-    --data_dir /path/to/data \
-    --output_dir /path/to/predictions \
-    --batch_size 10000 \
-    --num_epochs 200
-```
-
-**What it does:**
-- Loads master checkpoint (pooled phi + initial_psi)
-- Automatically loads `E_enrollment_full.pt` (full enrollment matrix)
-- Uses `clust_huge_amp_fixedPhi.py` for fixed-phi predictions
-- Only estimates lambda (genetic effects) per batch
-- Generates predictions (pi tensor) for all patients
-
-For detailed step-by-step instructions, see the [Complete Workflow Guide](../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
+For detailed step-by-step instructions, see the [Complete Workflow Guide](../pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
 
 ---
 
@@ -230,7 +141,6 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 |----------|-------------|------|
 | **Temporal Leakage** | Washout analysis and temporal leakage assessment | [R2_Temporal_Leakage.html](reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html) |
 | **Washout Continued** | Comprehensive washout analysis across timepoints | [R2_Washout_Continued.html](reviewer_responses/notebooks/R2/R2_Washout_Continued.html) |
-| **Washout Clean** | Clean version of washout analysis | [R2_Washout_Continued_clean.html](reviewer_responses/notebooks/R2/R2_Washout_Continued_clean.html) |
 | **Model Validity** | Model learning and validity assessment | [R2_R3_Model_Validity_Learning.html](reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html) |
 
 #### **Referee #3 Analyses**
@@ -238,7 +148,8 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | Analysis | Description | Link |
 |----------|-------------|------|
 | **Competing Risks** | Detailed competing risks analysis | [R3_Competing_Risks.html](reviewer_responses/notebooks/R3/R3_Competing_Risks.html) |
-| **Fixed vs Joint Phi** | Comparison of fixed vs joint phi estimation | [R3_Fixed_vs_Joint_Phi_Comparison.html](reviewer_responses/notebooks/R3/R3_Fixed_vs_Joint_Phi_Comparison.html) |
+| **Decreasing Hazards (Censoring Bias)** | Analysis of decreasing hazards at older ages due to censoring bias | [R3_Q4_Decreasing_Hazards_Censoring_Bias.html](reviewer_responses/notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html) |
+| **Verify Corrected Data** | Verification of corrected E matrix and prevalence calculations | [R3_Verify_Corrected_Data.html](reviewer_responses/notebooks/R3/R3_Verify_Corrected_Data.html) |
 | **FullE vs ReducedE** | Full vs reduced event matrix comparison | [R3_FullE_vs_ReducedE_Comparison.html](reviewer_responses/notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html) |
 | **Linear vs Nonlinear** | Linear vs nonlinear mixing approaches | [R3_Linear_vs_NonLinear_Mixing.html](reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html) |
 | **Population Stratification** | Ancestry-stratified analysis | [R3_Population_Stratification_Ancestry.html](reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html) |
@@ -271,44 +182,30 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 | Script | Location | Purpose |
 |--------|----------|---------|
-| **Preprocessing** | [`../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py`](../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
-| **Batch Training** | [`../claudefile/run_aladyn_batch.py`](../claudefile/run_aladyn_batch.py) | Batch model training |
+| **Preprocessing** | [`../pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py`](../pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
+| **Batch Training** | [`../claudefile/run_aladyn_batch_vector_e_censor.py`](../claudefile/run_aladyn_batch_vector_e_censor.py) | Batch model training with corrected E |
 | **Master Checkpoint** | [`../claudefile/create_master_checkpoints.py`](../claudefile/create_master_checkpoints.py) | Create pooled checkpoints |
-| **Prediction** | [`../claudefile/version_from_ec2/run_aladyn_predict_with_master.py`](../claudefile/version_from_ec2/run_aladyn_predict_with_master.py) | Run predictions |
-
-### Additional Resources
-
-- **Complete Workflow Guide**: [`../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md`](../pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md)
-- **Main Repository README**: [`../README.md`](../README.md)
-- **Installation Guide**: [`../INSTALLATION.md`](../INSTALLATION.md)
+| **Prediction** | [`../claudefile/run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py`](../claudefile/run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py) | Run predictions with corrected E |
 
 ---
 
-## ⏱️ Performance & Scalability
+## 📈 Performance & Scalability
 
-### Typical Runtime
-
-| Configuration | Training Time | Memory Usage |
-|---------------|---------------|--------------|
-| CPU (Apple M4 Max) | ~70 minutes | ~12GB per 10,000 individuals |
-
-### Scalability
-
-- **Individuals**: Tested up to **400,000**
-- **Diseases**: Tested **350**
-- **Time Points**: Tested **52** (ages 30-81)
-- **Genetic Features**: Tested with **36 PRS** and **10 PCs**
+- **Dataset Size**: 400K+ individuals, 348 diseases, 52 timepoints
+- **Training Time**: ~2-3 hours per 10K batch on GPU
+- **Prediction Time**: ~30 minutes for 400K individuals
+- **Memory**: ~8GB GPU memory for batch training
 
 ---
 
-## 📄 Citation
+## 📝 Citation
 
-If you use this code in your research, please cite:
+If you use Aladynoulli in your research, please cite:
 
 ```bibtex
-@article{urbut2024aladynoulli,
+@article{aladynoulli2024,
   title={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},
-  author={Urbut, Sarah and others},
+  author={Sur, P. and others},
   journal={medRxiv},
   year={2024},
   doi={10.1101/2024.09.29.24314557}
@@ -317,29 +214,14 @@ If you use this code in your research, please cite:
 
 ---
 
-## 📞 Contact & Support
+## 📧 Contact
 
-- **Author**: Sarah Urbut
-- **Email**: surbut@mgh.harvard.edu
-- **Institution**: Massachusetts General Hospital
-- **GitHub**: [@surbut](https://github.com/surbut)
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-We thank the UK Biobank participants and the research community for making this work possible.
+For questions or issues, please open an issue on [GitHub](https://github.com/surbut/aladynoulli2/issues).
 
 ---
 
 <div align="center">
 
-**Note**: This software is provided for research purposes. Please ensure you have appropriate data use agreements and ethical approvals before using with real patient data.
+**Last Updated**: December 2024
 
 </div>
