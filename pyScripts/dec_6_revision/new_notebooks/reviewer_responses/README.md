@@ -66,6 +66,7 @@ reviewer_responses/
 | Question | Notebook | Status |
 |----------|----------|--------|
 | **Q4**: Competing risks | [`notebooks/R3/R3_Competing_Risks.ipynb`](notebooks/R3/R3_Competing_Risks.ipynb) | ✅ Complete |
+| **Q4**: Decreasing_Hazards | [`notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.ipynb`](notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.ipynb) | ✅ Complete |
 | **Q8**: Heterogeneity definition | [`notebooks/R3/R3_Q8_Heterogeneity.ipynb`](notebooks/R3/R3_Q8_Heterogeneity.ipynb) | ✅ Complete |
 | **Q8**: Heterogeneity analysis (main paper method) | [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb) | ✅ Complete |
 | **Q8**: Heterogeneity analysis (continued) | [`notebooks/R3/R3_Q8_Heterogeneity_Continued.ipynb`](notebooks/R3/R3_Q8_Heterogeneity_Continued.ipynb) | ✅ Complete |
@@ -73,6 +74,7 @@ reviewer_responses/
 | **Additional**: FullE vs ReducedE comparison | [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb) | ✅ Complete |
 | **Additional**: Linear vs Nonlinear mixing | [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb) | ✅ Complete |
 | **Additional**: Cross-cohort similarity | [`notebooks/R3/R3_Cross_Cohort_Similarity.ipynb`](notebooks/R3/R3_Cross_Cohort_Similarity.ipynb) | ✅ Complete |
+| **Additional**: Corrected_Data | [`notebooks/R3/R3_Verify_Corrected_Data.ipynb`](notebooks/R3/R3_Verify_Corrected_Data.ipynb) | ✅ Complete |
 
 ---
 
