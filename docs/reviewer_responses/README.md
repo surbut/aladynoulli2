@@ -8,9 +8,9 @@ This directory contains all interactive analyses addressing reviewer questions a
 reviewer_responses/
 ├── README.md                      # This file - navigation hub
 ├── notebooks/
-│   ├── R1/                        # Referee #1 analyses (14 notebooks)
+│   ├── R1/                        # Referee #1 analyses (13 notebooks)
 │   ├── R2/                        # Referee #2 analyses (3 notebooks)
-│   ├── R3/                        # Referee #3 analyses (8 notebooks)
+│   ├── R3/                        # Referee #3 analyses (10 notebooks)
 │   ├── framework/                 # Framework overview (1 notebook)
 │   └── results/                   # Reviewer-specific results
 ├── preprocessing/                 # Data preprocessing utilities
@@ -40,7 +40,6 @@ reviewer_responses/
 | Question | Notebook | Status |
 |----------|----------|--------|
 | **Q1**: Selection bias / socioeconomic bias | [`notebooks/R1/R1_Q1_Selection_Bias.html`](notebooks/R1/R1_Q1_Selection_Bias.html) | ✅ Complete |
-| **Q2**: Lifetime risk comparisons | [`notebooks/R1/R1_Q2_Lifetime_Risk.html`](notebooks/R1/R1_Q2_Lifetime_Risk.html) | ✅ Complete |
 | **Q3**: Clinical/biological meaningfulness | [`notebooks/R1/R1_Q3_Clinical_Meaning.html`](notebooks/R1/R1_Q3_Clinical_Meaning.html) | ✅ Complete |
 | **Q3**: ICD vs PheCode aggregation | [`notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html`](notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html) | ✅ Complete |
 | **Q7**: Heritability estimates | [`notebooks/R1/R1_Q7_Heritability.html`](notebooks/R1/R1_Q7_Heritability.html) | ✅ Complete |
@@ -52,6 +51,7 @@ reviewer_responses/
 | **Additional**: Genetic validation (Gene-based RVAS) | [`notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html`](notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html) | ✅ Complete |
 | **Additional**: Multi-disease patterns | [`notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html`](notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html) | ✅ Complete |
 | **Additional**: Robustness (LOO validation) | [`notebooks/R1/R1_Robustness_LOO_Validation.html`](notebooks/R1/R1_Robustness_LOO_Validation.html) | ✅ Complete |
+| **Additional**: Washout comprehensive summary | [`notebooks/R1/R1_Washout_Comprehensive_Summary.html`](notebooks/R1/R1_Washout_Comprehensive_Summary.html) | ✅ Complete |
 
 ## Referee #2: EHRs
 
@@ -65,6 +65,7 @@ reviewer_responses/
 
 | Question | Notebook | Status |
 |----------|----------|--------|
+| **Q3**: Washout comprehensive summary | [`notebooks/R3/R3_Washout_Comprehensive_Summary.html`](notebooks/R3/R3_Washout_Comprehensive_Summary.html) | ✅ Complete |
 | **Q4**: Competing risks | [`notebooks/R3/R3_Competing_Risks.html`](notebooks/R3/R3_Competing_Risks.html) | ✅ Complete |
 | **Q4**: Decreasing_Hazards | [`notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html`](notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html) | ✅ Complete |
 | **Q8**: Heterogeneity definition | [`notebooks/R3/R3_Q8_Heterogeneity.html`](notebooks/R3/R3_Q8_Heterogeneity.html) | ✅ Complete |
@@ -128,9 +129,8 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 
 ### ✅ All Completed Analyses
 
-**Referee #1 (14 notebooks):**
+**Referee #1 (13 notebooks):**
 - Selection bias (IPW): [`notebooks/R1/R1_Q1_Selection_Bias.html`](notebooks/R1/R1_Q1_Selection_Bias.html)
-- Lifetime risk: [`notebooks/R1/R1_Q2_Lifetime_Risk.html`](notebooks/R1/R1_Q2_Lifetime_Risk.html)
 - Clinical meaning (FH): [`notebooks/R1/R1_Q3_Clinical_Meaning.html`](notebooks/R1/R1_Q3_Clinical_Meaning.html)
 - ICD vs PheCode aggregation: [`notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html`](notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html)
 - Heritability: [`notebooks/R1/R1_Q7_Heritability.html`](notebooks/R1/R1_Q7_Heritability.html)
@@ -142,13 +142,15 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Genetic validation (Gene-based RVAS): [`notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html`](notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html)
 - Multi-disease patterns: [`notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html`](notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html)
 - Robustness (LOO validation): [`notebooks/R1/R1_Robustness_LOO_Validation.html`](notebooks/R1/R1_Robustness_LOO_Validation.html)
+- Washout comprehensive summary: [`notebooks/R1/R1_Washout_Comprehensive_Summary.html`](notebooks/R1/R1_Washout_Comprehensive_Summary.html)
 
 **Referee #2 (3 notebooks):**
 - Temporal leakage: [`notebooks/R2/R2_Temporal_Leakage.html`](notebooks/R2/R2_Temporal_Leakage.html)
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.html`](notebooks/R2/R2_R3_Model_Validity_Learning.html)
 - Washout analysis (continued): [`notebooks/R2/R2_Washout_Continued.html`](notebooks/R2/R2_Washout_Continued.html)
 
-**Referee #3 (8 notebooks):**
+**Referee #3 (10 notebooks):**
+- Washout comprehensive summary: [`notebooks/R3/R3_Washout_Comprehensive_Summary.html`](notebooks/R3/R3_Washout_Comprehensive_Summary.html)
 - Competing risks: [`notebooks/R3/R3_Competing_Risks.html`](notebooks/R3/R3_Competing_Risks.html)
 - Heterogeneity: [`notebooks/R3/R3_Q8_Heterogeneity.html`](notebooks/R3/R3_Q8_Heterogeneity.html)
 - Heterogeneity analysis (main paper method): [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html)
@@ -157,9 +159,10 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - FullE vs ReducedE comparison: [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html)
 - Linear vs Nonlinear mixing: [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html)
 - Cross-cohort similarity: [`notebooks/R3/R3_Cross_Cohort_Similarity.html`](notebooks/R3/R3_Cross_Cohort_Similarity.html)
+- Verify corrected data: [`notebooks/R3/R3_Verify_Corrected_Data.html`](notebooks/R3/R3_Verify_Corrected_Data.html)
 
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.html`](notebooks/framework/Discovery_Prediction_Framework_Overview.html)
 
-**Total: 26 notebooks** ✅ All complete
+**Total: 27 notebooks** ✅ All complete
 

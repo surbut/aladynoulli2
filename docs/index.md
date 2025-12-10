@@ -122,8 +122,8 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | Analysis | Description | Link |
 |----------|-------------|------|
 | **Clinical Utility** | Dynamic risk updating and clinical decision-making | [R1_Clinical_Utility_Dynamic_Risk_Updating.html](reviewer_responses/notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html) |
-| **Lifetime Risk** | Long-term risk predictions across the lifespan | [R1_Q2_Lifetime_Risk.html](reviewer_responses/notebooks/R1/R1_Q2_Lifetime_Risk.html) |
 | **AUC Comparisons** | Performance vs. established clinical risk scores | [R1_Q9_AUC_Comparisons.html](reviewer_responses/notebooks/R1/R1_Q9_AUC_Comparisons.html) |
+| **Washout Comprehensive Summary** | Comprehensive washout analysis (1, 3, 6 months) | [R1_Washout_Comprehensive_Summary.html](reviewer_responses/notebooks/R1/R1_Washout_Comprehensive_Summary.html) |
 | **Age-Stratified** | Performance across different age groups | [R1_Q10_Age_Specific.html](reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html) |
 | **Heritability** | Genetic architecture and heritability estimates | [R1_Q7_Heritability.html](reviewer_responses/notebooks/R1/R1_Q7_Heritability.html) |
 | **GWAS Validation** | Genome-wide association studies on signatures | [R1_Genetic_Validation_GWAS.html](reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html) |
@@ -147,6 +147,7 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 | Analysis | Description | Link |
 |----------|-------------|------|
+| **Washout Comprehensive Summary** | Comprehensive washout analysis (1, 3, 6 months) | [R3_Washout_Comprehensive_Summary.html](reviewer_responses/notebooks/R3/R3_Washout_Comprehensive_Summary.html) |
 | **Competing Risks** | Detailed competing risks analysis | [R3_Competing_Risks.html](reviewer_responses/notebooks/R3/R3_Competing_Risks.html) |
 | **Decreasing Hazards (Censoring Bias)** | Analysis of decreasing hazards at older ages due to censoring bias | [R3_Q4_Decreasing_Hazards_Censoring_Bias.html](reviewer_responses/notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html) |
 | **Verify Corrected Data** | Verification of corrected E matrix and prevalence calculations | [R3_Verify_Corrected_Data.html](reviewer_responses/notebooks/R3/R3_Verify_Corrected_Data.html) |
