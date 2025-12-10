@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """
-Batch script to run Aladyn model on sample batches
-Converted from aladynoulli_fit_for_understanding_and_discovery.ipynb
+Batch script to run Aladyn model on sample batches (LOOP VERSION)
+This is a copy of run_aladyn_batch_vector_e_censor.py but uses clust_huge_amp.py (loop version)
+instead of clust_huge_amp_vectorized.py for testing equivalence.
 
 Usage:
-    Local:  python run_aladyn_batch.py --start_index 0 --end_index 10000
-    AWS:    python run_aladyn_batch.py --start_index 0 --end_index 10000 --data_dir /data --output_dir /results
+    Local:  python run_aladyn_batch_loop_e_censor.py --start_index 0 --end_index 10000
+    AWS:    python run_aladyn_batch_loop_e_censor.py --start_index 0 --end_index 10000 --data_dir /data --output_dir /results
 
-    This was run on the full dataset (400k samples) and saved in the Dropbox/enrollment_retrospective_full directory.
+    This script is used to test that the loop and vectorized versions produce identical results.
 """
 
 import numpy as np
@@ -18,10 +19,10 @@ import sys
 import os
 from pathlib import Path
 
-# Add parent directory to path to import clust_huge_amp
+# Add parent directory to path to import clust_huge_amp (LOOP VERSION)
 sys.path.insert(0, str(Path(__file__).parent.parent / 'pyScripts_forPublish'))
 
-from clust_huge_amp_vectorized import *
+from clust_huge_amp import *  # LOOP VERSION
 import pandas as pd
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn.utils.extmath")
@@ -66,7 +67,7 @@ def load_covariates_data(csv_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run Aladyn model on batch of samples')
+    parser = argparse.ArgumentParser(description='Run Aladyn model on batch of samples (LOOP VERSION)')
     parser.add_argument('--start_index', type=int, default=0,
                        help='Start index for batch')
     parser.add_argument('--end_index', type=int, default=10000,
@@ -87,7 +88,7 @@ def main():
                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/',
                        help='Directory containing input data (use /data for AWS)')
     parser.add_argument('--output_dir', type=str,
-                       default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized',
+                       default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_loop',
                        help='Output directory for saved models (use /results for AWS)')
     parser.add_argument('--covariates_path', type=str,
                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/baselinagefamh_withpcs.csv',
@@ -105,7 +106,7 @@ def main():
     torch.backends.cudnn.benchmark = False
 
     print(f"\n{'='*60}")
-    print(f"Running Aladyn batch (VECTORIZED): samples {args.start_index} to {args.end_index}")
+    print(f"Running Aladyn batch (LOOP VERSION): samples {args.start_index} to {args.end_index}")
     print(f"{'='*60}\n")
 
     # Load data
@@ -141,7 +142,7 @@ def main():
     prevalence_t = torch.load(args.data_dir + 'prevalence_t_corrected.pt', weights_only=False)
  
     # Initialize model
-    print(f"\nInitializing model with K={args.K} clusters (VECTORIZED)...")
+    print(f"\nInitializing model with K={args.K} clusters (LOOP VERSION)...")
     model = AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(
         N=Y_batch.shape[0],
         D=Y_batch.shape[1],
@@ -177,7 +178,7 @@ def main():
     print(f"Clusters match exactly: {clusters_match}")
 
     # Train the model
-    print(f"\nTraining model for {args.num_epochs} epochs (VECTORIZED)...")
+    print(f"\nTraining model for {args.num_epochs} epochs (LOOP VERSION)...")
     print(f"Learning rate: {args.learning_rate}, Lambda: {args.lambda_reg}")
 
     history = model.fit(E_batch,
@@ -190,7 +191,7 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    output_path = output_dir / f'enrollment_model_VECTORIZED_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
+    output_path = output_dir / f'enrollment_model_LOOP_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
     print(f"\nSaving model to {output_path}...")
 
     torch.save({
@@ -204,7 +205,7 @@ def main():
         'args': vars(args),
         'indices': indices,
         'clusters': initial_clusters,  # Save initial_clusters directly to ensure it's saved
-        'version': 'VECTORIZED',  # Mark this as the vectorized version
+        'version': 'LOOP',  # Mark this as the loop version
     }, output_path)
 
     print(f"\n{'='*60}")
@@ -219,3 +220,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
