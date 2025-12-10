@@ -9,7 +9,7 @@ reviewer_responses/
 ├── README.md                      # This file - navigation hub
 ├── notebooks/
 │   ├── R1/                        # Referee #1 analyses (13 notebooks)
-│   ├── R2/                        # Referee #2 analyses (3 notebooks)
+│   ├── R2/                        # Referee #2 analyses (5 notebooks)
 │   ├── R3/                        # Referee #3 analyses (10 notebooks)
 │   ├── framework/                 # Framework overview (1 notebook)
 │   └── results/                   # Reviewer-specific results
@@ -60,6 +60,9 @@ reviewer_responses/
 | Temporal accuracy / leakage | [`notebooks/R2/R2_Temporal_Leakage.html`](notebooks/R2/R2_Temporal_Leakage.html) | ✅ Complete |
 | Model validity / learning | [`notebooks/R2/R2_R3_Model_Validity_Learning.html`](notebooks/R2/R2_R3_Model_Validity_Learning.html) | ✅ Complete |
 | Washout analysis (continued) | [`notebooks/R2/R2_Washout_Continued.html`](notebooks/R2/R2_Washout_Continued.html) | ✅ Complete |
+| **Washout approaches comparison** | [`notebooks/R2/R2_Washout_Comparisons.html`](notebooks/R2/R2_Washout_Comparisons.html) | ✅ Complete |
+| **Delphi comparison visualizations** | [`notebooks/R2/R2_Delphi_Comparison.html`](notebooks/R2/R2_Delphi_Comparison.html) | ✅ Complete |
+| **Washout approaches comparison** | [`notebooks/R2/R2_Washout_Comparisons.html`](notebooks/R2/R2_Washout_Comparisons.html) | ✅ Complete |
 
 ## Referee #3: Statistical Genetics, PRS
 
@@ -144,7 +147,7 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Robustness (LOO validation): [`notebooks/R1/R1_Robustness_LOO_Validation.html`](notebooks/R1/R1_Robustness_LOO_Validation.html)
 - Washout comprehensive summary: [`notebooks/R1/R1_Washout_Comprehensive_Summary.html`](notebooks/R1/R1_Washout_Comprehensive_Summary.html)
 
-**Referee #2 (3 notebooks):**
+**Referee #2 (5 notebooks):**
 - Temporal leakage: [`notebooks/R2/R2_Temporal_Leakage.html`](notebooks/R2/R2_Temporal_Leakage.html)
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.html`](notebooks/R2/R2_R3_Model_Validity_Learning.html)
 - Washout analysis (continued): [`notebooks/R2/R2_Washout_Continued.html`](notebooks/R2/R2_Washout_Continued.html)
@@ -164,5 +167,5 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.html`](notebooks/framework/Discovery_Prediction_Framework_Overview.html)
 
-**Total: 27 notebooks** ✅ All complete
+**Total: 29 notebooks** ✅ All complete
 
