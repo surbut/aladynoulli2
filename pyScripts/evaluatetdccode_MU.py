@@ -1152,11 +1152,6 @@ def evaluate_major_diseases_wsex_with_bootstrap_dynamic_rolling_tte(
                 yearly_risks = []
                 for k in range(years_to_use):
                     if t_enroll + k < T:
-
-                                        # Collect yearly risks for years 1 to years_to_use after enrollment, using rolling pi_batches
-                yearly_risks = []
-                for k in range(years_to_use):
-                    if t_enroll + k < T:
                         # Check if event already occurred before this year
                         event_before_this_year = False
                         for d_idx in disease_indices:

@@ -105,7 +105,7 @@ def main():
     torch.backends.cudnn.benchmark = False
 
     print(f"\n{'='*60}")
-    print(f"Running Aladyn batch: samples {args.start_index} to {args.end_index}")
+    print(f"Running Aladyn batch (VECTORIZED): samples {args.start_index} to {args.end_index}")
     print(f"{'='*60}\n")
 
     # Load data
@@ -141,7 +141,7 @@ def main():
     prevalence_t = torch.load(args.data_dir + 'prevalence_t_corrected.pt', weights_only=False)
  
     # Initialize model
-    print(f"\nInitializing model with K={args.K} clusters...")
+    print(f"\nInitializing model with K={args.K} clusters (VECTORIZED)...")
     model = AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(
         N=Y_batch.shape[0],
         D=Y_batch.shape[1],
@@ -177,7 +177,7 @@ def main():
     print(f"Clusters match exactly: {clusters_match}")
 
     # Train the model
-    print(f"\nTraining model for {args.num_epochs} epochs...")
+    print(f"\nTraining model for {args.num_epochs} epochs (VECTORIZED)...")
     print(f"Learning rate: {args.learning_rate}, Lambda: {args.lambda_reg}")
 
     history = model.fit(E_batch,
@@ -190,7 +190,7 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    output_path = output_dir / f'enrollment_model_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
+    output_path = output_dir / f'enrollment_model_VECTORIZED_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
     print(f"\nSaving model to {output_path}...")
 
     torch.save({
@@ -204,6 +204,7 @@ def main():
         'args': vars(args),
         'indices': indices,
         'clusters': initial_clusters,  # Save initial_clusters directly to ensure it's saved
+        'version': 'VECTORIZED',  # Mark this as the vectorized version
     }, output_path)
 
     print(f"\n{'='*60}")

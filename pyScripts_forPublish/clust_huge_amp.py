@@ -236,10 +236,10 @@ class AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(nn.Module):
         # Original survival loss components remain exactly the same
         N, D, T = self.Y.shape
         event_times_tensor = torch.tensor(event_times, dtype=torch.long)
-        event_times_expanded = event_times_tensor.unsqueeze(-1).unsqueeze(-1)  # [N, 1, 1]
-        time_grid = torch.arange(T, dtype=torch.long).unsqueeze(0).unsqueeze(0)  # [1, 1, T]
-        mask_before_event = (time_grid < event_times_expanded).float()  # [N, 1, T]
-        mask_at_event = (time_grid == event_times_expanded).float()  # [N, 1, T]
+        event_times_expanded = event_times_tensor.unsqueeze(-1)
+        time_grid = torch.arange(T, dtype=torch.long).unsqueeze(0).unsqueeze(0)
+        mask_before_event = (time_grid < event_times_expanded).float()
+        mask_at_event = (time_grid == event_times_expanded).float()
         
         loss_censored = -torch.sum(torch.log(1 - pi) * mask_before_event)
         loss_event = -torch.sum(torch.log(pi) * mask_at_event * self.Y)

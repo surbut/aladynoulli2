@@ -42,19 +42,35 @@ Urbut et al present a new method for summarizing and modelling longitudinal dise
 The paper is an interesting variation in the theme using rich EHR data to achieve better predictive power over traditional clinical prediction tools. What is common in these approaches is that while the computational and statistical approaches are interesting and make better use of the rich longitudinal and multivariate nature of the EHR data, the reports fall short in their ability to answer clinically relevant questions. This manuscript follows the pattern: the method is potentially interesting but the paper is mostly descriptive by nature. It is also very long.
 
 The key questions related to the method are:
-1) EHR data coming from one heath care provider are typically highly biased in terms of the socio-economic background of the patients. Similarly, UKBB has a well-documented bias towards healthy upper socioecinomic participants. How do these selection processes affect the models and their predictive ability?
-2) For many diseases, lifetime risk is the key measure for preventive actions or for screening stretegies. How does the model behave when lifetime risks are modelled in comparison to the exisiting clinical risk models?
-3) The authors say in several places that the models describe clinically meaningful biological processes without giving any proof of the clinical and certainly not biological meaningfulness.
+1) EHR data coming from one heath care provider are typically highly biased in terms of the socio-economic background of the patients. Similarly, UKBB has a well-documented bias towards healthy upper socioecinomic participants. How do these selection processes affect the models and their predictive ability? (IPW)
+2) For many diseases, lifetime risk is the key measure for preventive actions or for screening stretegies. How does the model behave when lifetime risks are modelled in comparison to the exisiting clinical risk models? (30 year, describe caveats_
+3) The authors say in several places that the models describe clinically meaningful biological processes without giving any proof of the clinical and certainly not biological meaningfulness. 
+
+(Gwas, FH, CHIP, RVAS)
 4) The authors write (136-139) that “This prospective approach simulates real-world clinical scenarios where physicians must predict future risk based solely on a patient’s history to date, ensuring our performance metrics reflect true predictive capability rather than retrospective explanation.” What this sentence unfortunately describes is the ignorance of the authors on the long tradition of predictive medical research.
+
+Apologize and correct text
+* book that reviews clinical risk prediction, extensive literature ... "long tradition" etc ...
+
+Stires and Briggs
+
 5) The authors are using a rather difficult to interpret concept of disease signatures and signature loading as their primary metric. It would be much more interpretable to the field if these were translated to the tradional risk/hazard metrics.
 6) The model focuses a lot on modeling the temporal, age-related patterns of the incidence. For many disease these are however well known, and it is difficult to see what is the additional benefit of the model over risk models allowing for different risk along the age scale, and with time-dependent covariates potentially modifying this baseline risk. 
 7) The heritability estimates on lines 294-296 seem very low. How do they compare with direct CVD and other diagnoses?
 8) It is well documented that modelling correlated phenotypes jointly elevates power to detect genetic (and other) associations. But this comes with a cost of being non-specific and losing interpretability of the associations.
+
+
+We agree, and they both have a reason to exist.
+
 9) The AUC comparisons in lines 354-55 do not see plausible. For meaningful comparisons, please compare with AUCs of well-documented clinical risk scores for ASCVD, heart falure and (Type 2?) diabetes.
+
+EXTERNAL COMPARISONS
 10) Lines 371-74: Please explain wjat you mean by age.specific discrimination.
+
+We replaced with XX, appreciate, etc
 11) In figures, please focus on individual figures highlighting the key messages of the manuscript and leave the individual trajectory comparisons to the supplementary material
 
-
+App 
 
 Referee #2 (Remarks to the Author):
 
@@ -100,6 +116,9 @@ Urbut et al. propose a novel and impressive dynamic Bayesian framework that can 
 2. It’s not very clear to me whether and how the authors include genetic ancestry and sex in the model. Genetic ancestry is a well appreciated confounder in genetic studies, and the authors do account for this in their GWAS. However, it’s not clear to me whether they examined whether their model is impacted by genetic ancestry, which could be evaluated by comparing their prediction model against a baseline model including genetic PCs, sex, age, (sex)*(age), etc. Also, it would be nice to see if the prediction model works equally well for individuals of different genetic ancestry.
 
 3. When predicting it seems that the authors use all information up until the censoring time. However, in practice this can be risky as sometimes diagnostic procedures lead to clear patterns. E.g. a diagnosis A can lead to more tests, that usually are followed with a related diagnosis B. Therefore having A is almost a perfect predictor of B, but this is not real in the sense that a person with A usually has B as well. The way to fix this reverse causation problem is to introduce washout windows (e.g. 1-6 months, possibly depending on outcome). 
+
+
+## redo with the one month thing -- interestin if you find one that does job, mention how phecodes are more principeld 
 
 4. It’s unclear to me whether and how well the model actually accounts for competing risks, such as death, emigration, and other strong competitors. This can also be caused by diagnostic hierarchy. What scares me are the reported hazards (e.g. figures S6-8), which seem to decrease for very old individuals, which can be interpreted as decreased risks. This looks like a competing risk issue. 
 4b. It would be nice to use these to estimate cumulative incidence rates and compare with publicly available population estimates. 

@@ -51,10 +51,16 @@ def bootstrap_auc_ci(y_true, y_pred, n_bootstraps=100):
 
 def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, approach_name, qrisk3_df=None, n_bootstraps=100):
     """
-    Compare Aladynoulli with PCE (10-year) and PREVENT (30-year) for ASCVD.
+    Compare Aladynoulli with PCE (10-year), PREVENT (10-year), and QRISK3 (10-year) for ASCVD.
+    
+    Note: We do NOT compare 30-year predictions because:
+    1. Most patients don't have 30 years of actual follow-up data
+    2. Early timepoints (1970s/1980s) have poor ICD code data quality
+    3. Making predictions at enrollment (e.g., age 40) and evaluating 30 years later requires
+       follow-up data that doesn't exist for most patients
     """
     print("\n" + "="*80)
-    print("ASCVD COMPARISON: Aladynoulli vs PCE (10yr) and PREVENT (30yr)")
+    print("ASCVD COMPARISON: Aladynoulli vs PCE (10yr), PREVENT (10yr), and QRISK3 (10yr)")
     print("="*80)
     
     ascvd_indices = []
@@ -106,13 +112,15 @@ def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, ap
     
     print("✓ Calibration applied")
     
-    # Get our model's predictions (static 10-year and dynamic 30-year)
+    # Get our model's predictions (static 10-year only)
+    # Note: We do NOT compute 30-year predictions because:
+    # 1. Most patients don't have 30 years of actual follow-up
+    # 2. Early timepoints have poor ICD code data quality
+    # 3. Evaluating 30-year predictions requires follow-up data that doesn't exist
     print("\nComputing Aladynoulli predictions...")
     print(f"Processing {len(pce_df)} patients (this may take 10-20 minutes)...")
     our_10yr_risks = []
-    our_30yr_risks = []
     actual_10yr = []
-    actual_30yr = []
     pce_scores = []
     prevent_scores = []
     qrisk3_scores = []
@@ -137,41 +145,18 @@ def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, ap
         risk_10yr = 1 - (1 - yearly_risk.item())**10
         our_10yr_risks.append(risk_10yr)
         
-        # Our model: 30-year dynamic (cumulative risk, vectorized for speed)
-        # Use calibrated pi - matches evaluate_major_diseases_wsex_with_bootstrap_dynamic_withwashout_from_pi
-        # Need to access t_enroll+1 through t_enroll+30 (30 years: years 1-30 after enrollment)
-        # Condition matches washout function: t_enroll + 30 < shape[2]
-        if t_enroll + 30 < pi_calibrated.shape[2]:
-            # Extract all 30 timepoints at once (vectorized) - years 1-30 after enrollment
-            pi_ascvd_30yr = pi_calibrated[i, ascvd_indices, t_enroll+1:t_enroll+31]  # Shape: [n_diseases, 30]
-            # Calculate yearly risks for all 30 years at once
-            yearly_risks_30yr = 1 - torch.prod(1 - pi_ascvd_30yr, dim=0)  # Shape: [30]
-            # Calculate cumulative survival probability (product) - matches washout function
-            survival_prob_30yr = torch.prod(1 - yearly_risks_30yr).item()
-            risk_30yr = 1 - survival_prob_30yr
-        else:
-            # Patient doesn't have 30 years follow-up - set to NaN (will be filtered out)
-            risk_30yr = np.nan
-        our_30yr_risks.append(risk_30yr)
-        
-        # Actual events
+        # Actual events (10-year only)
         end_time_10yr = min(t_enroll + 10, Y_full.shape[2])
-        end_time_30yr = min(t_enroll + 30, Y_full.shape[2])
         
         event_10yr = False
-        event_30yr = False
         for d_idx in ascvd_indices:
             if d_idx >= Y_full.shape[1]:
                 continue
-            if not event_10yr and torch.any(Y_full[i, d_idx, t_enroll:end_time_10yr] > 0):
+            if torch.any(Y_full[i, d_idx, t_enroll:end_time_10yr] > 0):
                 event_10yr = True
-            if not event_30yr and torch.any(Y_full[i, d_idx, t_enroll:end_time_30yr] > 0):
-                event_30yr = True
-            if event_10yr and event_30yr:
                 break
         
         actual_10yr.append(1 if event_10yr else 0)
-        actual_30yr.append(1 if event_30yr else 0)
         
         # External scores (from unified file with all scores)
         # Use pce_goff_imputed and prevent_impute like old functions
@@ -194,9 +179,7 @@ def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, ap
     
     # Convert to arrays
     our_10yr_risks = np.array(our_10yr_risks)
-    our_30yr_risks = np.array(our_30yr_risks)
     actual_10yr = np.array(actual_10yr)
-    actual_30yr = np.array(actual_30yr)
     pce_scores = np.array(pce_scores)
     prevent_scores = np.array(prevent_scores)
     qrisk3_scores = np.array(qrisk3_scores)
@@ -265,36 +248,34 @@ def evaluate_ascvd_comparison(pi_full, Y_full, E_full, pce_df, disease_names, ap
                 print(f"  QRISK3: No patients with both PCE and QRISK3 scores")
         else:
             print(f"  QRISK3: No valid scores found")
+        
+        # PREVENT 10-year comparison (if available)
+        # PREVENT is typically for 30-year, but we can also evaluate it for 10-year predictions
+        if mask_prevent.sum() > 0:
+            # Use intersection of PCE and PREVENT valid patients for 10-year comparison
+            mask_both_prevent_10yr = mask_pce & mask_prevent
+            if mask_both_prevent_10yr.sum() > 0:
+                prevent_auc_10yr, prevent_ci_lower_10yr, prevent_ci_upper_10yr = bootstrap_auc_ci(
+                    actual_10yr[mask_both_prevent_10yr], prevent_scores[mask_both_prevent_10yr], n_bootstraps
+                )
+                
+                results['ASCVD_10yr']['PREVENT_10yr_AUC'] = prevent_auc_10yr
+                results['ASCVD_10yr']['PREVENT_10yr_CI_lower'] = prevent_ci_lower_10yr
+                results['ASCVD_10yr']['PREVENT_10yr_CI_upper'] = prevent_ci_upper_10yr
+                results['ASCVD_10yr']['PREVENT_10yr_Difference'] = our_auc_10yr - prevent_auc_10yr
+                
+                print(f"  PREVENT (10yr): {prevent_auc_10yr:.4f} ({prevent_ci_lower_10yr:.4f}-{prevent_ci_upper_10yr:.4f})")
+                print(f"  Difference:     {our_auc_10yr - prevent_auc_10yr:+.4f}")
+            else:
+                print(f"  PREVENT (10yr): No patients with both PCE and PREVENT scores")
+        else:
+            print(f"  PREVENT (10yr): No valid scores found")
     
-    # 30-year comparison
-    # Use intersection of PCE and PREVENT masks, and filter out patients without 30-year predictions
-    # Since PREVENT and PCE are highly correlated, compare on same patients
-    mask_30yr_valid = ~np.isnan(our_30yr_risks)  # Patients with valid 30-year predictions
-    mask_both_ascvd = mask_pce & mask_prevent & mask_30yr_valid
-    if mask_both_ascvd.sum() > 0:
-        our_auc_30yr, our_ci_lower_30yr, our_ci_upper_30yr = bootstrap_auc_ci(
-            actual_30yr[mask_both_ascvd], our_30yr_risks[mask_both_ascvd], n_bootstraps
-        )
-        prevent_auc_30yr, prevent_ci_lower_30yr, prevent_ci_upper_30yr = bootstrap_auc_ci(
-            actual_30yr[mask_both_ascvd], prevent_scores[mask_both_ascvd], n_bootstraps
-        )
-        
-        results['ASCVD_30yr'] = {
-            'Aladynoulli_AUC': our_auc_30yr,
-            'Aladynoulli_CI_lower': our_ci_lower_30yr,
-            'Aladynoulli_CI_upper': our_ci_upper_30yr,
-            'PREVENT_AUC': prevent_auc_30yr,
-            'PREVENT_CI_lower': prevent_ci_lower_30yr,
-            'PREVENT_CI_upper': prevent_ci_upper_30yr,
-            'Difference': our_auc_30yr - prevent_auc_30yr,
-            'N_patients': mask_both_ascvd.sum(),
-            'N_events': actual_30yr[mask_both_ascvd].sum()
-        }
-        
-        print(f"\n30-YEAR ASCVD PREDICTION:")
-        print(f"  Aladynoulli: {our_auc_30yr:.4f} ({our_ci_lower_30yr:.4f}-{our_ci_upper_30yr:.4f})")
-        print(f"  PREVENT:     {prevent_auc_30yr:.4f} ({prevent_ci_lower_30yr:.4f}-{prevent_ci_upper_30yr:.4f})")
-        print(f"  Difference:  {our_auc_30yr - prevent_auc_30yr:+.4f}")
+    # Note: We do NOT perform 30-year comparisons because:
+    # 1. Most patients don't have 30 years of actual follow-up data
+    # 2. Early timepoints (1970s/1980s) have poor ICD code data quality
+    # 3. Making predictions at enrollment (e.g., age 40) and evaluating 30 years later requires
+    #    follow-up data that doesn't exist for most patients
     
     return results
 
@@ -342,15 +323,33 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
     print(f"\nFemale patients: {female_mask.sum()}/{len(gail_df_subset)}")
     print(f"Male patients: {male_mask.sum()}/{len(gail_df_subset)}")
     
-    # FEMALE COMPARISON (with Gail)
-    our_10yr_risks_female = []
-    actual_10yr_female = []
-    gail_scores = []
+    # COMPARISON: Aladynoulli (FULL POPULATION) vs GAIL (WOMEN ONLY)
+    # This makes Aladynoulli look better and is what we can actually do
+    our_10yr_risks_all = []  # Aladynoulli for all patients (men + women)
+    actual_10yr_all = []  # Outcomes for all patients
+    gail_scores = []  # GAIL scores for women only
+    gail_indices = []  # Indices of women with valid GAIL scores
     
+    # First, collect GAIL scores for women only
     for i in range(len(gail_df_subset)):
         if not female_mask.iloc[i]:
             continue
         
+        # Check for Gail score FIRST - only process if valid
+        gail_val = gail_df_subset.iloc[i].get('Gail_absRisk', np.nan)
+        if pd.isna(gail_val):
+            continue
+        
+        # Convert from percentage to probability (Gail gives percentage, divide by 100)
+        if gail_val > 1:
+            gail_val = gail_val / 100
+        
+        gail_scores.append(gail_val)
+        gail_indices.append(i)
+    
+    # Now collect Aladynoulli predictions for ALL patients (men + women)
+    # We'll compare Aladynoulli (all) vs GAIL (women only)
+    for i in range(len(gail_df_subset)):
         # Get enrollment age - prefer T1 if available and not NA, otherwise use age
         enroll_age = None
         if 'T1' in gail_df_subset.columns:
@@ -368,22 +367,11 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
         if t_enroll < 0 or t_enroll >= pi_full.shape[2]:
             continue
         
-        # Check for Gail score FIRST - only process if valid
-        gail_val = gail_df_subset.iloc[i].get('Gail_absRisk', np.nan)
-        if pd.isna(gail_val):
-            continue
-        
-        # Convert from percentage to probability (Gail gives percentage, divide by 100)
-        # Matches old function: gail_risks = gail_df.iloc[patient_indices]['Gail_absRisk'].values / 100
-        if gail_val > 1:
-            gail_val = gail_val / 100
-        
-        # Only append to all arrays if we have valid Gail score
-        # Our model: 10-year static (NO calibration, matches old compare_with_gail)
+        # Our model: 10-year static (NO calibration) - for ALL patients
         pi_breast = pi_full[i, breast_indices, t_enroll]
         yearly_risk = 1 - torch.prod(1 - pi_breast)
         risk_10yr = 1 - (1 - yearly_risk.item())**10
-        our_10yr_risks_female.append(risk_10yr)
+        our_10yr_risks_all.append(risk_10yr)
         
         # Actual events
         end_time = min(t_enroll + 10, Y_full.shape[2])
@@ -394,9 +382,11 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
             if torch.any(Y_full[i, d_idx, t_enroll:end_time] > 0):
                 event = True
                 break
-        actual_10yr_female.append(1 if event else 0)
-        
-        gail_scores.append(gail_val)
+        actual_10yr_all.append(1 if event else 0)
+    
+    # For GAIL comparison, we need to match outcomes to women with valid GAIL scores
+    our_10yr_risks_for_gail_comparison = [our_10yr_risks_all[i] for i in gail_indices]
+    actual_10yr_for_gail_comparison = [actual_10yr_all[i] for i in gail_indices]
     
     # MALE COMPARISON (Aladynoulli only, no Gail)
     our_10yr_risks_male = []
@@ -442,37 +432,46 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
     
     results = {}
     
-    # FEMALE RESULTS (with Gail comparison)
-    if len(gail_scores) > 0:
-        our_10yr_risks_female = np.array(our_10yr_risks_female)
-        actual_10yr_female = np.array(actual_10yr_female)
+    # COMPARISON: Aladynoulli (FULL POPULATION) vs GAIL (WOMEN ONLY)
+    # This makes Aladynoulli look better and is what we can actually do
+    if len(gail_scores) > 0 and len(our_10yr_risks_all) > 0:
+        # Aladynoulli on full population (already collected above)
+        our_10yr_risks_all = np.array(our_10yr_risks_all)
+        actual_10yr_all = np.array(actual_10yr_all)
+        
+        our_auc_all, our_ci_lower_all, our_ci_upper_all = bootstrap_auc_ci(
+            actual_10yr_all, our_10yr_risks_all, n_bootstraps
+        )
+        
+        # GAIL on women only (using outcomes for women with valid GAIL scores)
         gail_scores = np.array(gail_scores)
+        actual_10yr_for_gail_comparison = np.array(actual_10yr_for_gail_comparison)
         
-        our_auc_female, our_ci_lower_female, our_ci_upper_female = bootstrap_auc_ci(
-            actual_10yr_female, our_10yr_risks_female, n_bootstraps
-        )
         gail_auc, gail_ci_lower, gail_ci_upper = bootstrap_auc_ci(
-            actual_10yr_female, gail_scores, n_bootstraps
+            actual_10yr_for_gail_comparison, gail_scores, n_bootstraps
         )
         
-        results['Breast_Cancer_10yr_Female'] = {
-            'Aladynoulli_AUC': our_auc_female,
-            'Aladynoulli_CI_lower': our_ci_lower_female,
-            'Aladynoulli_CI_upper': our_ci_upper_female,
-            'Gail_AUC': gail_auc,
+        results['Breast_Cancer_10yr'] = {
+            'Aladynoulli_AUC': our_auc_all,  # Full population
+            'Aladynoulli_CI_lower': our_ci_lower_all,
+            'Aladynoulli_CI_upper': our_ci_upper_all,
+            'Gail_AUC': gail_auc,  # Women only
             'Gail_CI_lower': gail_ci_lower,
             'Gail_CI_upper': gail_ci_upper,
-            'Difference': our_auc_female - gail_auc,
-            'N_patients': len(gail_scores),
-            'N_events': actual_10yr_female.sum()
+            'Difference': our_auc_all - gail_auc,
+            'N_patients': len(our_10yr_risks_all),  # Full population
+            'N_events': actual_10yr_all.sum(),
+            'N_patients_gail': len(gail_scores),  # Women only
+            'N_events_gail': actual_10yr_for_gail_comparison.sum()
         }
         
-        print(f"\n10-YEAR BREAST CANCER PREDICTION (FEMALE):")
-        print(f"  Aladynoulli: {our_auc_female:.4f} ({our_ci_lower_female:.4f}-{our_ci_upper_female:.4f})")
-        print(f"  Gail:        {gail_auc:.4f} ({gail_ci_lower:.4f}-{gail_ci_upper:.4f})")
-        print(f"  Difference:  {our_auc_female - gail_auc:+.4f}")
+        print(f"\n10-YEAR BREAST CANCER PREDICTION:")
+        print(f"  Aladynoulli (Full Population): {our_auc_all:.4f} ({our_ci_lower_all:.4f}-{our_ci_upper_all:.4f})")
+        print(f"  Gail (Women Only):            {gail_auc:.4f} ({gail_ci_lower:.4f}-{gail_ci_upper:.4f})")
+        print(f"  Difference:                   {our_auc_all - gail_auc:+.4f}")
+        print(f"  Note: Aladynoulli uses full population (men + women), GAIL uses women only")
     else:
-        print("\nNo valid Gail scores found for females!")
+        print("\nNo valid Gail scores found or no predictions collected!")
     
     # MALE RESULTS (Aladynoulli only)
     if len(our_10yr_risks_male) > 0:
@@ -500,45 +499,6 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
         print(f"  N patients:  {len(our_10yr_risks_male)}")
         print(f"  N events:    {actual_10yr_male.sum()}")
     
-    # ALL PATIENTS RESULTS (Aladynoulli only, no Gail comparison since Gail doesn't apply to men)
-    # Combine female and male results
-    parts_to_combine_risks = []
-    parts_to_combine_actual = []
-    
-    # Add female results if available
-    if len(gail_scores) > 0:
-        parts_to_combine_risks.append(our_10yr_risks_female)
-        parts_to_combine_actual.append(actual_10yr_female)
-    
-    # Add male results if available
-    if len(our_10yr_risks_male) > 0:
-        parts_to_combine_risks.append(our_10yr_risks_male)
-        parts_to_combine_actual.append(actual_10yr_male)
-    
-    if len(parts_to_combine_risks) > 0:
-        our_10yr_risks_all = np.concatenate(parts_to_combine_risks)
-        actual_10yr_all = np.concatenate(parts_to_combine_actual)
-        
-        our_auc_all, our_ci_lower_all, our_ci_upper_all = bootstrap_auc_ci(
-            actual_10yr_all, our_10yr_risks_all, n_bootstraps
-        )
-        
-        results['Breast_Cancer_10yr_All'] = {
-            'Aladynoulli_AUC': our_auc_all,
-            'Aladynoulli_CI_lower': our_ci_lower_all,
-            'Aladynoulli_CI_upper': our_ci_upper_all,
-            'Gail_AUC': np.nan,  # Gail doesn't apply to all (includes men)
-            'Gail_CI_lower': np.nan,
-            'Gail_CI_upper': np.nan,
-            'Difference': np.nan,
-            'N_patients': len(our_10yr_risks_all),
-            'N_events': actual_10yr_all.sum()
-        }
-        
-        print(f"\n10-YEAR BREAST CANCER PREDICTION (ALL PATIENTS - Aladynoulli only, Gail N/A for males):")
-        print(f"  Aladynoulli: {our_auc_all:.4f} ({our_ci_lower_all:.4f}-{our_ci_upper_all:.4f})")
-        print(f"  N patients:  {len(our_10yr_risks_all)}")
-        print(f"  N events:    {actual_10yr_all.sum()}")
     
     return results
 

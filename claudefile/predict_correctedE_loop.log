@@ -1,0 +1,6570 @@
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:55: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.prevalence_t = torch.tensor(prevalence_t, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:75: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:89: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.Y = torch.tensor(Y, dtype=torch.float32)
+
+================================================================================
+Aladyn Prediction Script - Fixed Phi/Psi Mode (LOOP VERSION)
+================================================================================
+Trained model: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/master_for_fitting_pooled_correctedE.pt
+Output directory: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_loop/
+Batch size: 10000
+================================================================================
+
+Loading components...
+Loaded all components successfully!
+Loading covariates data...
+Loaded 407878 samples from covariates file
+Loading reference trajectories...
+Loading initial_psi for consistent initialization...
+Loaded initial_psi shape: (20, 348)
+Loading master checkpoint from /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/master_for_fitting_pooled_correctedE.pt...
+Master checkpoint description: Pooled phi from all retrospective batches + initial_psi
+Loaded pooled phi shape: (21, 348, 52)
+Loaded psi_total shape: (21, 348)
+⚠️  Limiting to 1 batches
+
+Will process 1 batches of 10000 samples
+Total samples: 407878
+Processing samples: 0 to 10000
+
+
+================================================================================
+BATCH 1/1: Processing samples 0 to 10000
+================================================================================
+Subsetting data...
+Data shapes: Y=torch.Size([10000, 348, 52]), E=torch.Size([10000, 348]), G=(10000, 47)
+Initializing model with fixed phi/psi...
+Pre-calculated phi GP loss: 16.2495
+
+Calculating gamma for k=0:
+Number of diseases in signature: 16.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.9623, -13.8155])
+Base value centered (first 5): tensor([-0.1879, -0.1879, -0.1879,  1.6653, -0.1879])
+Base value centered mean: -3.345489574257954e-07
+Gamma init for k=0 (first 5): tensor([ 0.0074,  0.0061, -0.0054,  0.0060,  0.0235])
+
+Calculating gamma for k=1:
+Number of diseases in signature: 21.0
+Base value (first 5): tensor([-13.3449, -13.8155, -13.3449, -13.3449, -12.4036])
+Base value centered (first 5): tensor([ 0.1505, -0.3201,  0.1505,  0.1505,  1.0918])
+Base value centered mean: -1.8495559288567165e-06
+Gamma init for k=1 (first 5): tensor([0.0042, 0.0009, 0.0009, 0.0018, 0.0015])
+
+Calculating gamma for k=2:
+Number of diseases in signature: 15.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.1566, -11.8388, -12.4977])
+Base value centered (first 5): tensor([-0.3849, -0.3849,  0.2740,  1.5918,  0.9329])
+Base value centered mean: 9.290695288655115e-07
+Gamma init for k=2 (first 5): tensor([ 0.0016,  0.0073,  0.0100,  0.0140, -0.0118])
+
+Calculating gamma for k=3:
+Number of diseases in signature: 82.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.6950, -13.5744])
+Base value centered (first 5): tensor([-0.1026, -0.1026, -0.1026,  0.0179,  0.1384])
+Base value centered mean: 4.7445297468584613e-07
+Gamma init for k=3 (first 5): tensor([ 0.0012,  0.0003,  0.0016,  0.0018, -0.0006])
+
+Calculating gamma for k=4:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155,  -9.8620, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1133,  3.8402, -0.1133, -0.1133, -0.1133])
+Base value centered mean: -2.841758714566822e-06
+Gamma init for k=4 (first 5): tensor([-0.0172, -0.0033,  0.0143,  0.0225, -0.0033])
+
+Calculating gamma for k=5:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.7043, -0.7043, -0.7043, -0.7043, -0.7043])
+Base value centered mean: -2.2621155437718699e-07
+Gamma init for k=5 (first 5): tensor([ 0.0200,  0.0102,  0.0029, -0.0021, -0.0044])
+
+Calculating gamma for k=6:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1523, -0.1523, -0.1523, -0.1523, -0.1523])
+Base value centered mean: -1.0890006478803116e-06
+Gamma init for k=6 (first 5): tensor([ 0.0090,  0.0121, -0.0006,  0.0042, -0.0027])
+
+Calculating gamma for k=7:
+Number of diseases in signature: 22.0
+Base value (first 5): tensor([-13.3663, -13.8155, -13.3663, -13.8155, -11.1200])
+Base value centered (first 5): tensor([-0.1005, -0.5497, -0.1005, -0.5497,  2.1458])
+Base value centered mean: 1.2460708376238472e-06
+Gamma init for k=7 (first 5): tensor([ 0.0003, -0.0038, -0.0111,  0.0251, -0.0016])
+
+Calculating gamma for k=8:
+Number of diseases in signature: 28.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1159, -0.1159, -0.1159, -0.1159, -0.1159])
+Base value centered mean: -1.4129639112070436e-06
+Gamma init for k=8 (first 5): tensor([ 0.0066, -0.0055,  0.0011, -0.0020, -0.0005])
+
+Calculating gamma for k=9:
+Number of diseases in signature: 12.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -12.9919])
+Base value centered (first 5): tensor([-0.1911, -0.1911, -0.1911, -0.1911,  0.6326])
+Base value centered mean: -4.671096860420221e-07
+Gamma init for k=9 (first 5): tensor([ 0.0037,  0.0055, -0.0066,  0.0036,  0.0014])
+
+Calculating gamma for k=10:
+Number of diseases in signature: 11.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2706, -0.2706, -0.2706, -0.2706, -0.2706])
+Base value centered mean: -7.493972589145415e-07
+Gamma init for k=10 (first 5): tensor([-0.0084,  0.0188,  0.0010, -0.0041, -0.0089])
+
+Calculating gamma for k=11:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1184, -0.1184, -0.1184, -0.1184, -0.1184])
+Base value centered mean: -6.237029879230249e-07
+Gamma init for k=11 (first 5): tensor([0.0026, 0.0020, 0.0032, 0.0007, 0.0098])
+
+Calculating gamma for k=12:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.0860, -0.0860, -0.0860, -0.0860, -0.0860])
+Base value centered mean: -1.034450519910024e-06
+Gamma init for k=12 (first 5): tensor([ 0.0080, -0.0074,  0.0002, -0.0001, -0.0076])
+
+Calculating gamma for k=13:
+Number of diseases in signature: 13.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.7744, -12.2949])
+Base value centered (first 5): tensor([-0.1777, -0.1777, -0.1777,  2.8635,  1.3429])
+Base value centered mean: -1.0064125035569305e-06
+Gamma init for k=13 (first 5): tensor([-0.0002,  0.0060,  0.0127, -0.0051,  0.0007])
+
+Calculating gamma for k=14:
+Number of diseases in signature: 10.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.8388, -12.8271])
+Base value centered (first 5): tensor([-0.2562, -0.2562, -0.2562,  1.7205,  0.7322])
+Base value centered mean: -1.5125274330785032e-06
+Gamma init for k=14 (first 5): tensor([ 0.0038, -0.0052, -0.0089,  0.0162,  0.0005])
+
+Calculating gamma for k=15:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -11.8388])
+Base value centered (first 5): tensor([-0.2850, -0.2850, -0.2850, -0.2850,  1.6917])
+Base value centered mean: -1.2931823221151717e-06
+Gamma init for k=15 (first 5): tensor([-0.0039,  0.0064,  0.0118, -0.0049,  0.0086])
+
+Calculating gamma for k=16:
+Number of diseases in signature: 29.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.7706, -13.1339])
+Base value centered (first 5): tensor([-0.2428, -0.2428, -0.2428,  1.8021,  0.4388])
+Base value centered mean: -1.9989013253507437e-06
+Gamma init for k=16 (first 5): tensor([ 0.0009,  0.0001,  0.0093,  0.0055, -0.0031])
+
+Calculating gamma for k=17:
+Number of diseases in signature: 17.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.3272, -12.0713])
+Base value centered (first 5): tensor([-0.4228, -0.4228, -0.4228,  3.0656,  1.3214])
+Base value centered mean: -2.227592403869494e-06
+Gamma init for k=17 (first 5): tensor([ 0.0081,  0.0052, -0.0070,  0.0058, -0.0042])
+
+Calculating gamma for k=18:
+Number of diseases in signature: 9.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1618, -0.1618, -0.1618, -0.1618, -0.1618])
+Base value centered mean: -1.2922287169203628e-06
+Gamma init for k=18 (first 5): tensor([-0.0111, -0.0044, -0.0045,  0.0119,  0.0053])
+
+Calculating gamma for k=19:
+Number of diseases in signature: 23.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.3858])
+Base value centered (first 5): tensor([-0.1519, -0.1519, -0.1519, -0.1519,  0.2779])
+Base value centered mean: -1.1179923831150518e-06
+Gamma init for k=19 (first 5): tensor([-0.0027,  0.0053,  0.0013, -0.0016, -0.0018])
+Initializing with 20 disease states + 1 healthy state
+Initialization complete!
+✓ phi matches phi_total!
+✓ psi matches psi_total!
+Reinitializing gamma with psi_total for consistency...
+
+Calculating gamma for k=0:
+Number of diseases in signature: 16.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.9623, -13.8155])
+Base value centered (first 5): tensor([-0.1879, -0.1879, -0.1879,  1.6653, -0.1879])
+Base value centered mean: -3.345489574257954e-07
+Gamma init for k=0 (first 5): tensor([ 0.0074,  0.0061, -0.0054,  0.0060,  0.0235])
+
+Calculating gamma for k=1:
+Number of diseases in signature: 21.0
+Base value (first 5): tensor([-13.3449, -13.8155, -13.3449, -13.3449, -12.4036])
+Base value centered (first 5): tensor([ 0.1505, -0.3201,  0.1505,  0.1505,  1.0918])
+Base value centered mean: -1.8495559288567165e-06
+Gamma init for k=1 (first 5): tensor([0.0042, 0.0009, 0.0009, 0.0018, 0.0015])
+
+Calculating gamma for k=2:
+Number of diseases in signature: 15.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.1566, -11.8388, -12.4977])
+Base value centered (first 5): tensor([-0.3849, -0.3849,  0.2740,  1.5918,  0.9329])
+Base value centered mean: 9.290695288655115e-07
+Gamma init for k=2 (first 5): tensor([ 0.0016,  0.0073,  0.0100,  0.0140, -0.0118])
+
+Calculating gamma for k=3:
+Number of diseases in signature: 82.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.6950, -13.5744])
+Base value centered (first 5): tensor([-0.1026, -0.1026, -0.1026,  0.0179,  0.1384])
+Base value centered mean: 4.7445297468584613e-07
+Gamma init for k=3 (first 5): tensor([ 0.0012,  0.0003,  0.0016,  0.0018, -0.0006])
+
+Calculating gamma for k=4:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155,  -9.8620, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1133,  3.8402, -0.1133, -0.1133, -0.1133])
+Base value centered mean: -2.841758714566822e-06
+Gamma init for k=4 (first 5): tensor([-0.0172, -0.0033,  0.0143,  0.0225, -0.0033])
+
+Calculating gamma for k=5:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.7043, -0.7043, -0.7043, -0.7043, -0.7043])
+Base value centered mean: -2.2621155437718699e-07
+Gamma init for k=5 (first 5): tensor([ 0.0200,  0.0102,  0.0029, -0.0021, -0.0044])
+
+Calculating gamma for k=6:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1523, -0.1523, -0.1523, -0.1523, -0.1523])
+Base value centered mean: -1.0890006478803116e-06
+Gamma init for k=6 (first 5): tensor([ 0.0090,  0.0121, -0.0006,  0.0042, -0.0027])
+
+Calculating gamma for k=7:
+Number of diseases in signature: 22.0
+Base value (first 5): tensor([-13.3663, -13.8155, -13.3663, -13.8155, -11.1200])
+Base value centered (first 5): tensor([-0.1005, -0.5497, -0.1005, -0.5497,  2.1458])
+Base value centered mean: 1.2460708376238472e-06
+Gamma init for k=7 (first 5): tensor([ 0.0003, -0.0038, -0.0111,  0.0251, -0.0016])
+
+Calculating gamma for k=8:
+Number of diseases in signature: 28.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1159, -0.1159, -0.1159, -0.1159, -0.1159])
+Base value centered mean: -1.4129639112070436e-06
+Gamma init for k=8 (first 5): tensor([ 0.0066, -0.0055,  0.0011, -0.0020, -0.0005])
+
+Calculating gamma for k=9:
+Number of diseases in signature: 12.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -12.9919])
+Base value centered (first 5): tensor([-0.1911, -0.1911, -0.1911, -0.1911,  0.6326])
+Base value centered mean: -4.671096860420221e-07
+Gamma init for k=9 (first 5): tensor([ 0.0037,  0.0055, -0.0066,  0.0036,  0.0014])
+
+Calculating gamma for k=10:
+Number of diseases in signature: 11.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.2706, -0.2706, -0.2706, -0.2706, -0.2706])
+Base value centered mean: -7.493972589145415e-07
+Gamma init for k=10 (first 5): tensor([-0.0084,  0.0188,  0.0010, -0.0041, -0.0089])
+
+Calculating gamma for k=11:
+Number of diseases in signature: 8.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1184, -0.1184, -0.1184, -0.1184, -0.1184])
+Base value centered mean: -6.237029879230249e-07
+Gamma init for k=11 (first 5): tensor([0.0026, 0.0020, 0.0032, 0.0007, 0.0098])
+
+Calculating gamma for k=12:
+Number of diseases in signature: 7.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.0860, -0.0860, -0.0860, -0.0860, -0.0860])
+Base value centered mean: -1.034450519910024e-06
+Gamma init for k=12 (first 5): tensor([ 0.0080, -0.0074,  0.0002, -0.0001, -0.0076])
+
+Calculating gamma for k=13:
+Number of diseases in signature: 13.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.7744, -12.2949])
+Base value centered (first 5): tensor([-0.1777, -0.1777, -0.1777,  2.8635,  1.3429])
+Base value centered mean: -1.0064125035569305e-06
+Gamma init for k=13 (first 5): tensor([-0.0002,  0.0060,  0.0127, -0.0051,  0.0007])
+
+Calculating gamma for k=14:
+Number of diseases in signature: 10.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.8388, -12.8271])
+Base value centered (first 5): tensor([-0.2562, -0.2562, -0.2562,  1.7205,  0.7322])
+Base value centered mean: -1.5125274330785032e-06
+Gamma init for k=14 (first 5): tensor([ 0.0038, -0.0052, -0.0089,  0.0162,  0.0005])
+
+Calculating gamma for k=15:
+Number of diseases in signature: 5.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -11.8388])
+Base value centered (first 5): tensor([-0.2850, -0.2850, -0.2850, -0.2850,  1.6917])
+Base value centered mean: -1.2931823221151717e-06
+Gamma init for k=15 (first 5): tensor([-0.0039,  0.0064,  0.0118, -0.0049,  0.0086])
+
+Calculating gamma for k=16:
+Number of diseases in signature: 29.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -11.7706, -13.1339])
+Base value centered (first 5): tensor([-0.2428, -0.2428, -0.2428,  1.8021,  0.4388])
+Base value centered mean: -1.9989013253507437e-06
+Gamma init for k=16 (first 5): tensor([ 0.0009,  0.0001,  0.0093,  0.0055, -0.0031])
+
+Calculating gamma for k=17:
+Number of diseases in signature: 17.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -10.3272, -12.0713])
+Base value centered (first 5): tensor([-0.4228, -0.4228, -0.4228,  3.0656,  1.3214])
+Base value centered mean: -2.227592403869494e-06
+Gamma init for k=17 (first 5): tensor([ 0.0081,  0.0052, -0.0070,  0.0058, -0.0042])
+
+Calculating gamma for k=18:
+Number of diseases in signature: 9.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.8155])
+Base value centered (first 5): tensor([-0.1618, -0.1618, -0.1618, -0.1618, -0.1618])
+Base value centered mean: -1.2922287169203628e-06
+Gamma init for k=18 (first 5): tensor([-0.0111, -0.0044, -0.0045,  0.0119,  0.0053])
+
+Calculating gamma for k=19:
+Number of diseases in signature: 23.0
+Base value (first 5): tensor([-13.8155, -13.8155, -13.8155, -13.8155, -13.3858])
+Base value centered (first 5): tensor([-0.1519, -0.1519, -0.1519, -0.1519,  0.2779])
+/Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:192: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+Base value centered mean: -1.1179923831150518e-06
+Gamma init for k=19 (first 5): tensor([-0.0027,  0.0053,  0.0013, -0.0016, -0.0018])
+Initializing with 20 disease states + 1 healthy state
+Initialization complete!
+✓ Gamma reinitialized with psi_total
+Training model (estimating lambda only)...
+Kappa gradient: -1.053e+00
+
+Epoch 0
+Loss: 16.8506
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -8.768e-01
+
+Epoch 1
+Loss: 657.8743
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -7.306e-01
+
+Epoch 2
+Loss: 68.4032
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -6.083e-01
+
+Epoch 3
+Loss: 162.7978
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -5.053e-01
+
+Epoch 4
+Loss: 375.8992
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -4.177e-01
+
+Epoch 5
+Loss: 284.7109
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -3.427e-01
+
+Epoch 6
+Loss: 101.4230
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.783e-01
+
+Epoch 7
+Loss: 33.0446
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.226e-01
+
+Epoch 8
+Loss: 103.0745
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.743e-01
+
+Epoch 9
+Loss: 183.8412
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.323e-01
+
+Epoch 10
+Loss: 174.5124
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -9.563e-02
+
+Epoch 11
+Loss: 98.6598
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -6.372e-02
+
+Epoch 12
+Loss: 35.7166
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -3.595e-02
+
+Epoch 13
+Loss: 33.8821
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.184e-02
+
+Epoch 14
+Loss: 75.6154
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.030 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.035e-03
+
+Epoch 15
+Loss: 106.3280
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.028 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 2.702e-02
+
+Epoch 16
+Loss: 94.4349
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 4.244e-02
+
+Epoch 17
+Loss: 55.6008
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 5.554e-02
+
+Epoch 18
+Loss: 26.6609
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.657e-02
+
+Epoch 19
+Loss: 28.3734
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.572e-02
+
+Epoch 20
+Loss: 49.8284
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 8.318e-02
+
+Epoch 21
+Loss: 63.9867
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 8.910e-02
+
+Epoch 22
+Loss: 56.2986
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.361e-02
+
+Epoch 23
+Loss: 35.9351
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.682e-02
+
+Epoch 24
+Loss: 22.3348
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.881e-02
+
+Epoch 25
+Loss: 25.1338
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.969e-02
+
+Epoch 26
+Loss: 36.6893
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.953e-02
+
+Epoch 27
+Loss: 42.3466
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.842e-02
+
+Epoch 28
+Loss: 36.0953
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.645e-02
+
+Epoch 29
+Loss: 24.9296
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.368e-02
+
+Epoch 30
+Loss: 19.5743
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 9.020e-02
+
+Epoch 31
+Loss: 23.1798
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 8.608e-02
+
+Epoch 32
+Loss: 29.3633
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 8.139e-02
+
+Epoch 33
+Loss: 30.3140
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.621e-02
+
+Epoch 34
+Loss: 25.1217
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.060e-02
+
+Epoch 35
+Loss: 19.5166
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.463e-02
+
+Epoch 36
+Loss: 18.7194
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 5.836e-02
+
+Epoch 37
+Loss: 21.9981
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 5.187e-02
+
+Epoch 38
+Loss: 24.4305
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 4.523e-02
+
+Epoch 39
+Loss: 22.9489
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 3.852e-02
+
+Epoch 40
+Loss: 19.3781
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 3.181e-02
+
+Epoch 41
+Loss: 17.5766
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 2.520e-02
+
+Epoch 42
+Loss: 18.7911
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 1.875e-02
+
+Epoch 43
+Loss: 20.6851
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 1.254e-02
+
+Epoch 44
+Loss: 20.5967
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.646e-03
+
+Epoch 45
+Loss: 18.6521
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 1.119e-03
+
+Epoch 46
+Loss: 17.1402
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -3.984e-03
+
+Epoch 47
+Loss: 17.4689
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -8.617e-03
+
+Epoch 48
+Loss: 18.6494
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.274e-02
+
+Epoch 49
+Loss: 18.8760
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.632e-02
+
+Epoch 50
+Loss: 17.8330
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.935e-02
+
+Epoch 51
+Loss: 16.8205
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.180e-02
+
+Epoch 52
+Loss: 16.8889
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.367e-02
+
+Epoch 53
+Loss: 17.5859
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.498e-02
+
+Epoch 54
+Loss: 17.7732
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.000
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.575e-02
+
+Epoch 55
+Loss: 17.1692
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.600e-02
+
+Epoch 56
+Loss: 16.5556
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.578e-02
+
+Epoch 57
+Loss: 16.5985
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.514e-02
+
+Epoch 58
+Loss: 17.0121
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.412e-02
+
+Epoch 59
+Loss: 17.0916
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.278e-02
+
+Epoch 60
+Loss: 16.7032
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.004
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.117e-02
+
+Epoch 61
+Loss: 16.3604
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.933e-02
+
+Epoch 62
+Loss: 16.4318
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.733e-02
+
+Epoch 63
+Loss: 16.6743
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.522e-02
+
+Epoch 64
+Loss: 16.6644
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.303e-02
+
+Epoch 65
+Loss: 16.4019
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.082e-02
+
+Epoch 66
+Loss: 16.2359
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -8.637e-03
+
+Epoch 67
+Loss: 16.3251
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -6.511e-03
+
+Epoch 68
+Loss: 16.4514
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -4.477e-03
+
+Epoch 69
+Loss: 16.3884
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.563e-03
+
+Epoch 70
+Loss: 16.2187
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -7.904e-04
+
+Epoch 71
+Loss: 16.1639
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 8.232e-04
+
+Epoch 72
+Loss: 16.2454
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 2.265e-03
+
+Epoch 73
+Loss: 16.2890
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 3.525e-03
+
+Epoch 74
+Loss: 16.2087
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 4.598e-03
+
+Epoch 75
+Loss: 16.1153
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 5.481e-03
+
+Epoch 76
+Loss: 16.1206
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.175e-03
+
+Epoch 77
+Loss: 16.1738
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.683e-03
+
+Epoch 78
+Loss: 16.1643
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.014e-03
+
+Epoch 79
+Loss: 16.0958
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.177e-03
+
+Epoch 80
+Loss: 16.0605
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.186e-03
+
+Epoch 81
+Loss: 16.0855
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 7.054e-03
+
+Epoch 82
+Loss: 16.1033
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.796e-03
+
+Epoch 83
+Loss: 16.0705
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 6.429e-03
+
+Epoch 84
+Loss: 16.0295
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 5.968e-03
+
+Epoch 85
+Loss: 16.0284
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 5.429e-03
+
+Epoch 86
+Loss: 16.0459
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 4.829e-03
+
+Epoch 87
+Loss: 16.0366
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 4.186e-03
+
+Epoch 88
+Loss: 16.0055
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 3.516e-03
+
+Epoch 89
+Loss: 15.9914
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 2.835e-03
+
+Epoch 90
+Loss: 15.9998
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 2.158e-03
+
+Epoch 91
+Loss: 16.0002
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.020
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 1.498e-03
+
+Epoch 92
+Loss: 15.9806
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 8.675e-04
+
+Epoch 93
+Loss: 15.9636
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: 2.757e-04
+
+Epoch 94
+Loss: 15.9638
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.005
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.685e-04
+
+Epoch 95
+Loss: 15.9657
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -7.581e-04
+
+Epoch 96
+Loss: 15.9543
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.188e-03
+
+Epoch 97
+Loss: 15.9391
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.553e-03
+
+Epoch 98
+Loss: 15.9342
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.852e-03
+
+Epoch 99
+Loss: 15.9347
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.084e-03
+
+Epoch 100
+Loss: 15.9276
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.249e-03
+
+Epoch 101
+Loss: 15.9152
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.351e-03
+
+Epoch 102
+Loss: 15.9082
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.393e-03
+
+Epoch 103
+Loss: 15.9065
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.380e-03
+
+Epoch 104
+Loss: 15.9013
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.007
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.317e-03
+
+Epoch 105
+Loss: 15.8914
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.211e-03
+
+Epoch 106
+Loss: 15.8838
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -2.066e-03
+
+Epoch 107
+Loss: 15.8805
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.890e-03
+
+Epoch 108
+Loss: 15.8758
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.689e-03
+
+Epoch 109
+Loss: 15.8675
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.006
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.471e-03
+
+Epoch 110
+Loss: 15.8601
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.243e-03
+
+Epoch 111
+Loss: 15.8557
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -1.009e-03
+
+Epoch 112
+Loss: 15.8509
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -7.769e-04
+
+Epoch 113
+Loss: 15.8436
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.001
+Kappa gradient: -5.512e-04
+
+Epoch 114
+Loss: 15.8366
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.363e-04
+
+Epoch 115
+Loss: 15.8316
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.362e-04
+
+Epoch 116
+Loss: 15.8265
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 4.602e-05
+
+Epoch 117
+Loss: 15.8199
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 2.077e-04
+
+Epoch 118
+Loss: 15.8132
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 3.467e-04
+
+Epoch 119
+Loss: 15.8078
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 4.619e-04
+
+Epoch 120
+Loss: 15.8025
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.007
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 5.528e-04
+
+Epoch 121
+Loss: 15.7962
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 6.194e-04
+
+Epoch 122
+Loss: 15.7898
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 6.625e-04
+
+Epoch 123
+Loss: 15.7843
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 6.834e-04
+
+Epoch 124
+Loss: 15.7788
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 6.837e-04
+
+Epoch 125
+Loss: 15.7726
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 6.652e-04
+
+Epoch 126
+Loss: 15.7664
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 6.300e-04
+
+Epoch 127
+Loss: 15.7608
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 5.805e-04
+
+Epoch 128
+Loss: 15.7551
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 5.192e-04
+
+Epoch 129
+Loss: 15.7491
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.008
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 4.486e-04
+
+Epoch 130
+Loss: 15.7430
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.021
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 3.716e-04
+
+Epoch 131
+Loss: 15.7373
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 2.906e-04
+
+Epoch 132
+Loss: 15.7316
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 2.079e-04
+
+Epoch 133
+Loss: 15.7256
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 1.260e-04
+
+Epoch 134
+Loss: 15.7197
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.003
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 4.656e-05
+
+Epoch 135
+Loss: 15.7140
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.859e-05
+
+Epoch 136
+Loss: 15.7082
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.009
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -9.793e-05
+
+Epoch 137
+Loss: 15.7023
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.603e-04
+
+Epoch 138
+Loss: 15.6963
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.031 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.146e-04
+
+Epoch 139
+Loss: 15.6906
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.026 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.602e-04
+
+Epoch 140
+Loss: 15.6848
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.966e-04
+
+Epoch 141
+Loss: 15.6788
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.240e-04
+
+Epoch 142
+Loss: 15.6730
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.424e-04
+
+Epoch 143
+Loss: 15.6673
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.010
+  Theta for others: 0.030
+  Proportion difference: 0.001
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.521e-04
+
+Epoch 144
+Loss: 15.6615
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.011
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.538e-04
+
+Epoch 145
+Loss: 15.6555
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.008
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.011
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.481e-04
+
+Epoch 146
+Loss: 15.6497
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.011
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.029 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.359e-04
+
+Epoch 147
+Loss: 15.6440
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.011
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.180e-04
+
+Epoch 148
+Loss: 15.6383
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.011
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.956e-04
+
+Epoch 149
+Loss: 15.6324
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.011
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.694e-04
+
+Epoch 150
+Loss: 15.6266
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.012
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.022
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.407e-04
+
+Epoch 151
+Loss: 15.6208
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.012
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.105e-04
+
+Epoch 152
+Loss: 15.6150
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.012
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.796e-04
+
+Epoch 153
+Loss: 15.6092
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.012
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.492e-04
+
+Epoch 154
+Loss: 15.6035
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.012
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.197e-04
+
+Epoch 155
+Loss: 15.5978
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.013
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -9.194e-05
+
+Epoch 156
+Loss: 15.5920
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.006
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.013
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -6.652e-05
+
+Epoch 157
+Loss: 15.5862
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.013
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -4.401e-05
+
+Epoch 158
+Loss: 15.5805
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.013
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.459e-05
+
+Epoch 159
+Loss: 15.5748
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.013
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -8.631e-06
+
+Epoch 160
+Loss: 15.5690
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.013
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 3.754e-06
+
+Epoch 161
+Loss: 15.5632
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.014
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 1.275e-05
+
+Epoch 162
+Loss: 15.5574
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.014
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 1.819e-05
+
+Epoch 163
+Loss: 15.5516
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.014
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 2.044e-05
+
+Epoch 164
+Loss: 15.5459
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.014
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 1.961e-05
+
+Epoch 165
+Loss: 15.5403
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.014
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.023
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 1.612e-05
+
+Epoch 166
+Loss: 15.5346
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.015
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 1.030e-05
+
+Epoch 167
+Loss: 15.5289
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.015
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: 2.490e-06
+
+Epoch 168
+Loss: 15.5233
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.015
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -6.925e-06
+
+Epoch 169
+Loss: 15.5177
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.015
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.732e-05
+
+Epoch 170
+Loss: 15.5120
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.009
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.016
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -2.856e-05
+
+Epoch 171
+Loss: 15.5063
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.016
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -3.997e-05
+
+Epoch 172
+Loss: 15.5008
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.016
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -5.148e-05
+
+Epoch 173
+Loss: 15.4953
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.016
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -6.264e-05
+
+Epoch 174
+Loss: 15.4895
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.016
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -7.312e-05
+
+Epoch 175
+Loss: 15.4838
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.017
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -8.268e-05
+
+Epoch 176
+Loss: 15.4782
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.017
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -9.111e-05
+
+Epoch 177
+Loss: 15.4726
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.017
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.024
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -9.826e-05
+
+Epoch 178
+Loss: 15.4670
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.017
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.002
+Kappa gradient: -1.041e-04
+
+Epoch 179
+Loss: 15.4613
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.017
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.085e-04
+
+Epoch 180
+Loss: 15.4555
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.027 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.018
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.115e-04
+
+Epoch 181
+Loss: 15.4498
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.018
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.132e-04
+
+Epoch 182
+Loss: 15.4442
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.018
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.136e-04
+
+Epoch 183
+Loss: 15.4386
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.018
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.128e-04
+
+Epoch 184
+Loss: 15.4330
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.032 ± 0.019
+  Theta for others: 0.030
+  Proportion difference: 0.002
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.110e-04
+
+Epoch 185
+Loss: 15.4274
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.019
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.082e-04
+
+Epoch 186
+Loss: 15.4217
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.019
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.048e-04
+
+Epoch 187
+Loss: 15.4160
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.010
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.019
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.028
+  Proportion difference: 0.003
+Kappa gradient: -1.008e-04
+
+Epoch 188
+Loss: 15.4103
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.020
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.025
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -9.637e-05
+
+Epoch 189
+Loss: 15.4047
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.020
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -9.173e-05
+
+Epoch 190
+Loss: 15.3992
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.020
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -8.702e-05
+
+Epoch 191
+Loss: 15.3935
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.020
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -8.238e-05
+
+Epoch 192
+Loss: 15.3879
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.020
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -7.788e-05
+
+Epoch 193
+Loss: 15.3824
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.021
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -7.371e-05
+
+Epoch 194
+Loss: 15.3768
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.021
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -7.006e-05
+
+Epoch 195
+Loss: 15.3712
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.021
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -6.671e-05
+
+Epoch 196
+Loss: 15.3657
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.012
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.021
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -6.410e-05
+
+Epoch 197
+Loss: 15.3602
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.013
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.022
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -6.195e-05
+
+Epoch 198
+Loss: 15.3547
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.013
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.022
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+Kappa gradient: -6.043e-05
+
+Epoch 199
+Loss: 15.3491
+
+Monitoring signature responses:
+
+Disease 47 (signature 15, LR=87.86):
+  Theta for diagnosed: 0.016 ± 0.007
+  Theta for others: 0.014
+  Proportion difference: 0.002
+
+Disease 249 (signature 13, LR=73.06):
+  Theta for diagnosed: 0.027 ± 0.013
+  Theta for others: 0.023
+  Proportion difference: 0.004
+
+Disease 21 (signature 13, LR=69.95):
+  Theta for diagnosed: 0.028 ± 0.011
+  Theta for others: 0.023
+  Proportion difference: 0.005
+
+Disease 336 (signature 9, LR=68.09):
+  Theta for diagnosed: 0.033 ± 0.022
+  Theta for others: 0.030
+  Proportion difference: 0.003
+
+Disease 127 (signature 0, LR=64.18):
+  Theta for diagnosed: 0.030 ± 0.026
+  Theta for others: 0.027
+  Proportion difference: 0.003
+         86058305 function calls (86037194 primitive calls) in 6025.429 seconds
+
+   Ordered by: cumulative time
+   List reduced from 4208 to 10 due to restriction <10>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1   41.989   41.989 6025.430 6025.430 /Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:269(fit)
+      200    0.011    0.000 4896.610   24.483 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_tensor.py:525(backward)
+      200    0.002    0.000 4896.599   24.483 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/__init__.py:242(backward)
+      200    0.002    0.000 4896.587   24.483 /opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/autograd/graph.py:816(_engine_run_backward)
+      200 4896.585   24.483 4896.585   24.483 {method 'run_backward' of 'torch._C._EngineBase' objects}
+      200  146.670    0.733 1056.002    5.280 /Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:184(compute_loss)
+      200  412.941    2.065  820.768    4.104 /Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:239(compute_gp_prior_loss)
+ 42000000  293.148    0.000  293.148    0.000 {built-in method torch.cholesky_solve}
+ 42070200  125.020    0.000  125.020    0.000 {built-in method torch.sum}
+      400   11.212    0.028   53.401    0.134 /Users/sarahurbut/aladynoulli2/pyScripts_forPublish/clust_huge_amp_fixedPhi.py:175(forward)
+
+
+Generating predictions...
+✓ Saved predictions to /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_loop/pi_enroll_fixedphi_sex_0_10000.pt
+✓ Saved model to /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_loop/model_enroll_fixedphi_sex_0_10000.pt
+Cleaning up memory...
+✓ Batch 1/1 complete!
+
+================================================================================
+ALL BATCHES COMPLETE!
+================================================================================
+
+Concatenating all predictions into single file...
+✓ Loaded /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_loop/pi_enroll_fixedphi_sex_0_10000.pt, shape: torch.Size([10000, 348, 52])
+
+Concatenating 1 batches...
+Final shape: torch.Size([10000, 348, 52])
+✓ Saved combined predictions to /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_loop/pi_enroll_fixedphi_sex_FULL.pt
+✓ Saved batch info to /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_loop/batch_info.pt
+
+================================================================================
+DONE! Ready for washout analysis.
+================================================================================
