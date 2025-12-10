@@ -60,6 +60,8 @@ reviewer_responses/
 | Temporal accuracy / leakage | [`notebooks/R2/R2_Temporal_Leakage.ipynb`](notebooks/R2/R2_Temporal_Leakage.ipynb) | ✅ Complete |
 | Model validity / learning | [`notebooks/R2/R2_R3_Model_Validity_Learning.ipynb`](notebooks/R2/R2_R3_Model_Validity_Learning.ipynb) | ✅ Complete |
 | Washout analysis (continued) | [`notebooks/R2/R2_Washout_Continued.ipynb`](notebooks/R2/R2_Washout_Continued.ipynb) | ✅ Complete |
+| **Washout approaches comparison** | [`notebooks/R2/R2_Washout_Comparisons.ipynb`](notebooks/R2/R2_Washout_Comparisons.ipynb) | ✅ Complete |
+| **Delphi comparison visualizations** | [`notebooks/R2/R2_Delphi_Comparison.ipynb`](notebooks/R2/R2_Delphi_Comparison.ipynb) | ✅ Complete |
 
 ## Referee #3: Statistical Genetics, PRS
 
@@ -144,10 +146,12 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Robustness (LOO validation): [`notebooks/R1/R1_Robustness_LOO_Validation.ipynb`](notebooks/R1/R1_Robustness_LOO_Validation.ipynb)
 - Washout comprehensive summary: [`notebooks/R1/R1_Washout_Comprehensive_Summary.ipynb`](notebooks/R1/R1_Washout_Comprehensive_Summary.ipynb)
 
-**Referee #2 (3 notebooks):**
+**Referee #2 (5 notebooks):**
 - Temporal leakage: [`notebooks/R2/R2_Temporal_Leakage.ipynb`](notebooks/R2/R2_Temporal_Leakage.ipynb)
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.ipynb`](notebooks/R2/R2_R3_Model_Validity_Learning.ipynb)
 - Washout analysis (continued): [`notebooks/R2/R2_Washout_Continued.ipynb`](notebooks/R2/R2_Washout_Continued.ipynb)
+- **Washout approaches comparison**: [`notebooks/R2/R2_Washout_Comparisons.ipynb`](notebooks/R2/R2_Washout_Comparisons.ipynb)
+- **Delphi comparison visualizations**: [`notebooks/R2/R2_Delphi_Comparison.ipynb`](notebooks/R2/R2_Delphi_Comparison.ipynb)
 
 **Referee #3 (10 notebooks):**
 - Washout comprehensive summary: [`notebooks/R3/R3_Washout_Comprehensive_Summary.ipynb`](notebooks/R3/R3_Washout_Comprehensive_Summary.ipynb)
@@ -164,5 +168,5 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 **Framework (1 notebook):**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb`](notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb)
 
-**Total: 27 notebooks** ✅ All complete
+**Total: 29 notebooks** ✅ All complete
 
