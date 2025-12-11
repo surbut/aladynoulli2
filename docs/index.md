@@ -123,10 +123,9 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 |----------|-------------|------|
 | **Clinical Utility** | Dynamic risk updating and clinical decision-making | [R1_Clinical_Utility_Dynamic_Risk_Updating.html](reviewer_responses/notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html) |
 | **AUC Comparisons** | Performance vs. established clinical risk scores | [R1_Q9_AUC_Comparisons.html](reviewer_responses/notebooks/R1/R1_Q9_AUC_Comparisons.html) |
-| **Washout Comprehensive Summary** | Comprehensive washout analysis (1, 3, 6 months) | [R1_Washout_Comprehensive_Summary.html](reviewer_responses/notebooks/R1/R1_Washout_Comprehensive_Summary.html) |
 | **Age-Stratified** | Performance across different age groups | [R1_Q10_Age_Specific.html](reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html) |
 | **Heritability** | Genetic architecture and heritability estimates | [R1_Q7_Heritability.html](reviewer_responses/notebooks/R1/R1_Q7_Heritability.html) |
-| **GWAS Validation** | Genome-wide association studies on signatures | [R1_Genetic_Validation_GWAS.html](reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html) |
+| **GWAS Validation** | Genome-wide association studies on signatures; identifies 10 novel loci for Signature 5 not found in individual trait GWAS | [R1_Genetic_Validation_GWAS.html](reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html) |
 | **Gene-Based RVAS** | Rare variant association studies on signatures | [R1_Genetic_Validation_Gene_Based_RVAS.html](reviewer_responses/notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html) |
 | **Biological Plausibility** | CHIP analysis and biological validation | [R1_Biological_Plausibility_CHIP.html](reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html) |
 | **LOO Validation** | Leave-one-out cross-validation robustness | [R1_Robustness_LOO_Validation.html](reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html) |
@@ -140,14 +139,15 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | Analysis | Description | Link |
 |----------|-------------|------|
 | **Temporal Leakage** | Washout analysis and temporal leakage assessment | [R2_Temporal_Leakage.html](reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html) |
-| **Washout Continued** | Comprehensive washout analysis across timepoints | [R2_Washout_Continued.html](reviewer_responses/notebooks/R2/R2_Washout_Continued.html) |
+| **Washout Comparisons** | Multi-approach washout analysis (time horizon, floating prediction, fixed timepoint) | [R2_Washout_Comparisons.html](reviewer_responses/notebooks/R2/R2_Washout_Comparisons.html) |
+| **Delphi Phecode Mapping** | Principled Delphi comparison using Phecode-based ICD mapping | [R2_Delphi_Phecode_Mapping.html](reviewer_responses/notebooks/R2/R2_Delphi_Phecode_Mapping.html) |
 | **Model Validity** | Model learning and validity assessment | [R2_R3_Model_Validity_Learning.html](reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html) |
 
 #### **Referee #3 Analyses**
 
 | Analysis | Description | Link |
 |----------|-------------|------|
-| **Washout Comprehensive Summary** | Comprehensive washout analysis (1, 3, 6 months) | [R3_Washout_Comprehensive_Summary.html](reviewer_responses/notebooks/R3/R3_Washout_Comprehensive_Summary.html) |
+| **Avoiding Reverse Causation** | Reverse causation assessment with 0, 1, 3, 6-month washout periods | [R3_AvoidingReverseCausation.html](reviewer_responses/notebooks/R3/R3_AvoidingReverseCausation.html) |
 | **Competing Risks** | Detailed competing risks analysis | [R3_Competing_Risks.html](reviewer_responses/notebooks/R3/R3_Competing_Risks.html) |
 | **Decreasing Hazards (Censoring Bias)** | Analysis of decreasing hazards at older ages due to censoring bias | [R3_Q4_Decreasing_Hazards_Censoring_Bias.html](reviewer_responses/notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html) |
 | **Verify Corrected Data** | Verification of corrected E matrix and prevalence calculations | [R3_Verify_Corrected_Data.html](reviewer_responses/notebooks/R3/R3_Verify_Corrected_Data.html) |

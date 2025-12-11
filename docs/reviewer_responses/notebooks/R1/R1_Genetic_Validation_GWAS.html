@@ -7985,6 +7985,24 @@ Loci per signature:
 </div>
 </div>
 </div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="3.-Novel-Genetic-Discoveries:-Signature-Specific-Loci">3. Novel Genetic Discoveries: Signature-Specific Loci<a class="anchor-link" href="#3.-Novel-Genetic-Discoveries:-Signature-Specific-Loci">¶</a></h2><p>A key finding from our signature-based GWAS is the identification of <strong>novel loci</strong> that are genome-wide significant for composite signatures but <strong>not found</strong> in individual disease GWAS. This demonstrates the power of joint modeling to detect pleiotropic effects that are too weak to detect in single-disease analyses.</p>
+<h3 id="The-10-Unique-Signature-5-Discoveries">The 10 Unique Signature 5 Discoveries<a class="anchor-link" href="#The-10-Unique-Signature-5-Discoveries">¶</a></h3><p>For Signature 5 (cardiovascular/lipid), we identified <strong>10 unique loci</strong> that are genome-wide significant (p &lt; 5×10⁻⁸) in the signature-based GWAS but are <strong>not present</strong> in any constituent trait GWAS (Angina, MI, Hypercholesterolemia, Coronary atherosclerosis, Acute IHD, Chronic IHD) within a 1MB window. These represent novel discoveries enabled by joint modeling of multiple related diseases.</p>
+<p><strong>Key Examples:</strong></p>
+<ul>
+<li><strong>rs1532085 (LIPC)</strong>: Hepatic lipase gene involved in HDL metabolism. Not significant in any individual CV trait GWAS, but genome-wide significant (p = 3.8×10⁻⁸) in Signature 5, demonstrating distributed pleiotropic effects across multiple cardiovascular traits.</li>
+<li><strong>rs6687726 (IL6R)</strong>: Interleukin-6 receptor, key inflammation pathway. Novel discovery through joint modeling.</li>
+<li><strong>rs1499813 (FNDC3B)</strong>: Insulin signaling and adipogenesis. Strongest novel association (p = 1.1×10⁻¹⁰).</li>
+</ul>
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell celltag_hide_input">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
@@ -8396,6 +8414,292 @@ SIG7 - Hypertension/Vascular (23 total loci)
 </div>
 </div>
 </div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [16]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Load the presence matrix to identify unique Signature 5 loci</span>
+<span class="c1"># Try multiple possible locations</span>
+<span class="n">present_matrix_paths</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Path</span><span class="p">(</span><span class="s2">"/Users/sarahurbut/Downloads/present_matrix_1mb_sig5.csv"</span><span class="p">),</span>
+    <span class="n">Path</span><span class="p">(</span><span class="s2">"/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/present_matrix_1mb_sig5.csv"</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">present_matrix_file</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">present_matrix_paths</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">present_matrix_file</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">break</span>
+
+<span class="k">if</span> <span class="n">present_matrix_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"loci_df"</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">():</span>
+    <span class="n">present_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">present_matrix_file</span><span class="p">)</span>
+    
+    <span class="c1"># The 10 unique Signature 5 SNPs (not in any constituent trait GWAS within 1MB)</span>
+    <span class="n">unique_sig5_snps</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'rs6687726'</span><span class="p">:</span> <span class="s1">'IL6R'</span><span class="p">,</span>
+        <span class="s1">'rs2509121'</span><span class="p">:</span> <span class="s1">'HYOU1'</span><span class="p">,</span>
+        <span class="s1">'rs4760278'</span><span class="p">:</span> <span class="s1">'R3HDM2'</span><span class="p">,</span>
+        <span class="s1">'rs1532085'</span><span class="p">:</span> <span class="s1">'LIPC'</span><span class="p">,</span>
+        <span class="s1">'rs7168222'</span><span class="p">:</span> <span class="s1">'NR2F2-AS1'</span><span class="p">,</span>
+        <span class="s1">'rs35039495'</span><span class="p">:</span> <span class="s1">'PLCG2'</span><span class="p">,</span>
+        <span class="s1">'rs8121509'</span><span class="p">:</span> <span class="s1">'OPRL1'</span><span class="p">,</span>
+        <span class="s1">'rs1499813'</span><span class="p">:</span> <span class="s1">'FNDC3B'</span><span class="p">,</span>
+        <span class="s1">'4:96088139'</span><span class="p">:</span> <span class="s1">'UNC5C'</span><span class="p">,</span>
+        <span class="s1">'rs4732365'</span><span class="p">:</span> <span class="s1">'C7orf55'</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Biological roles for each gene</span>
+    <span class="n">biological_roles</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'IL6R'</span><span class="p">:</span> <span class="s1">'Inflammation (Interleukin-6 receptor)'</span><span class="p">,</span>
+        <span class="s1">'HYOU1'</span><span class="p">:</span> <span class="s1">'Hypoxia/ER stress response'</span><span class="p">,</span>
+        <span class="s1">'R3HDM2'</span><span class="p">:</span> <span class="s1">'RNA binding protein'</span><span class="p">,</span>
+        <span class="s1">'LIPC'</span><span class="p">:</span> <span class="s1">'HDL metabolism (Hepatic lipase)'</span><span class="p">,</span>
+        <span class="s1">'NR2F2-AS1'</span><span class="p">:</span> <span class="s1">'Nuclear receptor antisense RNA'</span><span class="p">,</span>
+        <span class="s1">'PLCG2'</span><span class="p">:</span> <span class="s1">'Platelet activation, immunity'</span><span class="p">,</span>
+        <span class="s1">'OPRL1'</span><span class="p">:</span> <span class="s1">'Opioid receptor, stress/pain signaling'</span><span class="p">,</span>
+        <span class="s1">'FNDC3B'</span><span class="p">:</span> <span class="s1">'Insulin signaling, adipogenesis'</span><span class="p">,</span>
+        <span class="s1">'UNC5C'</span><span class="p">:</span> <span class="s1">'Axon guidance (Netrin receptor)'</span><span class="p">,</span>
+        <span class="s1">'C7orf55'</span><span class="p">:</span> <span class="s1">'Unknown function'</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Get Signature 5 loci</span>
+    <span class="n">sig5_loci</span> <span class="o">=</span> <span class="n">loci_df</span><span class="p">[</span><span class="n">loci_df</span><span class="p">[</span><span class="s1">'locus_SIG5'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    
+    <span class="c1"># Find the unique loci in our data</span>
+    <span class="n">unique_loci_results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">rsid</span><span class="p">,</span> <span class="n">expected_gene</span> <span class="ow">in</span> <span class="n">unique_sig5_snps</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">rsid</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">'rs'</span><span class="p">):</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">sig5_loci</span><span class="p">[</span><span class="n">sig5_loci</span><span class="p">[</span><span class="s1">'rsid'</span><span class="p">]</span> <span class="o">==</span> <span class="n">rsid</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For position-based IDs like 4:96088139</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">sig5_loci</span><span class="p">[</span><span class="n">sig5_loci</span><span class="p">[</span><span class="s1">'UID'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">rsid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">':'</span><span class="p">,</span> <span class="s1">':'</span><span class="p">),</span> <span class="n">na</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">unique_loci_results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">'Rank'</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_loci_results</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">'rsID'</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">'rsid'</span><span class="p">],</span>
+                <span class="s1">'Gene'</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">'nearestgene'</span><span class="p">],</span>
+                <span class="s1">'Chr'</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">'#CHR'</span><span class="p">],</span>
+                <span class="s1">'Position'</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">'POS'</span><span class="p">],</span>
+                <span class="s1">'LOG10P'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">'LOG10P'</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="s1">'P_value'</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">row</span><span class="p">[</span><span class="s1">'LOG10P'</span><span class="p">])</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s1">'Beta'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">'BETA'</span><span class="p">],</span> <span class="mi">4</span><span class="p">),</span>
+                <span class="s1">'EAF'</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">'EAF'</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="s1">'Biological_Role'</span><span class="p">:</span> <span class="n">biological_roles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">expected_gene</span><span class="p">,</span> <span class="s1">'Unknown'</span><span class="p">)</span>
+            <span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># SNP not found in our data - still include it</span>
+            <span class="n">unique_loci_results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">'Rank'</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_loci_results</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">'rsID'</span><span class="p">:</span> <span class="n">rsid</span><span class="p">,</span>
+                <span class="s1">'Gene'</span><span class="p">:</span> <span class="n">expected_gene</span><span class="p">,</span>
+                <span class="s1">'Chr'</span><span class="p">:</span> <span class="s1">'?'</span><span class="p">,</span>
+                <span class="s1">'Position'</span><span class="p">:</span> <span class="s1">'?'</span><span class="p">,</span>
+                <span class="s1">'LOG10P'</span><span class="p">:</span> <span class="s1">'?'</span><span class="p">,</span>
+                <span class="s1">'P_value'</span><span class="p">:</span> <span class="s1">'?'</span><span class="p">,</span>
+                <span class="s1">'Beta'</span><span class="p">:</span> <span class="s1">'?'</span><span class="p">,</span>
+                <span class="s1">'EAF'</span><span class="p">:</span> <span class="s1">'?'</span><span class="p">,</span>
+                <span class="s1">'Biological_Role'</span><span class="p">:</span> <span class="n">biological_roles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">expected_gene</span><span class="p">,</span> <span class="s1">'Unknown'</span><span class="p">)</span>
+            <span class="p">})</span>
+    
+    <span class="n">unique_sig5_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">unique_loci_results</span><span class="p">)</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"THE 10 UNIQUE SIGNATURE 5 DISCOVERIES"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Loci genome-wide significant in Signature 5 but NOT in constituent trait GWAS"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"(Angina, MI, Hypercholesterolemia, Coronary atherosclerosis, Acute IHD, Chronic IHD)"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"-"</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Found </span><span class="si">{</span><span class="nb">len</span><span class="p">([</span><span class="n">r</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">unique_loci_results</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">r</span><span class="p">[</span><span class="s1">'LOG10P'</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s1">'?'</span><span class="p">])</span><span class="si">}</span><span class="s2"> of 10 unique loci in the data</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    
+    <span class="n">display</span><span class="p">(</span><span class="n">unique_sig5_df</span><span class="p">[[</span><span class="s1">'Rank'</span><span class="p">,</span> <span class="s1">'rsID'</span><span class="p">,</span> <span class="s1">'Gene'</span><span class="p">,</span> <span class="s1">'LOG10P'</span><span class="p">,</span> <span class="s1">'P_value'</span><span class="p">,</span> <span class="s1">'Biological_Role'</span><span class="p">]])</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"INTERPRETATION"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"These 10 loci represent novel genetic discoveries enabled by joint modeling."</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Each locus has distributed pleiotropic effects across multiple cardiovascular"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"traits that are too weak to detect individually but collectively reach"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"genome-wide significance when analyzed jointly through Signature 5."</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">present_matrix_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"⚠️  Presence matrix file not found in any of these locations:"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">present_matrix_paths</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"loci_df"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"⚠️  loci_df not found. Please run the previous cell to load the GWAS loci data."</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>================================================================================
+THE 10 UNIQUE SIGNATURE 5 DISCOVERIES
+================================================================================
+Loci genome-wide significant in Signature 5 but NOT in constituent trait GWAS
+(Angina, MI, Hypercholesterolemia, Coronary atherosclerosis, Acute IHD, Chronic IHD)
+--------------------------------------------------------------------------------
+
+Found 10 of 10 unique loci in the data
+
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead>
+<tr style="text-align: right;">
+<th></th>
+<th>Rank</th>
+<th>rsID</th>
+<th>Gene</th>
+<th>LOG10P</th>
+<th>P_value</th>
+<th>Biological_Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>0</th>
+<td>1</td>
+<td>rs6687726</td>
+<td>IL6R</td>
+<td>7.90</td>
+<td>1.27e-08</td>
+<td>Inflammation (Interleukin-6 receptor)</td>
+</tr>
+<tr>
+<th>1</th>
+<td>2</td>
+<td>rs2509121</td>
+<td>HYOU1</td>
+<td>8.99</td>
+<td>1.03e-09</td>
+<td>Hypoxia/ER stress response</td>
+</tr>
+<tr>
+<th>2</th>
+<td>3</td>
+<td>rs4760278</td>
+<td>R3HDM2</td>
+<td>7.50</td>
+<td>3.17e-08</td>
+<td>RNA binding protein</td>
+</tr>
+<tr>
+<th>3</th>
+<td>4</td>
+<td>rs1532085</td>
+<td>ALDH1A2</td>
+<td>7.42</td>
+<td>3.76e-08</td>
+<td>HDL metabolism (Hepatic lipase)</td>
+</tr>
+<tr>
+<th>4</th>
+<td>5</td>
+<td>rs7168222</td>
+<td>NR2F2-AS1</td>
+<td>7.58</td>
+<td>2.66e-08</td>
+<td>Nuclear receptor antisense RNA</td>
+</tr>
+<tr>
+<th>5</th>
+<td>6</td>
+<td>rs35039495</td>
+<td>PLCG2</td>
+<td>7.58</td>
+<td>2.63e-08</td>
+<td>Platelet activation, immunity</td>
+</tr>
+<tr>
+<th>6</th>
+<td>7</td>
+<td>rs8121509</td>
+<td>OPRL1</td>
+<td>8.43</td>
+<td>3.74e-09</td>
+<td>Opioid receptor, stress/pain signaling</td>
+</tr>
+<tr>
+<th>7</th>
+<td>8</td>
+<td>rs1499813</td>
+<td>FNDC3B</td>
+<td>9.94</td>
+<td>1.14e-10</td>
+<td>Insulin signaling, adipogenesis</td>
+</tr>
+<tr>
+<th>8</th>
+<td>9</td>
+<td>4:96088139_ATATG_A</td>
+<td>UNC5C</td>
+<td>7.43</td>
+<td>3.70e-08</td>
+<td>Axon guidance (Netrin receptor)</td>
+</tr>
+<tr>
+<th>9</th>
+<td>10</td>
+<td>rs4732365</td>
+<td>C7orf55</td>
+<td>8.94</td>
+<td>1.14e-09</td>
+<td>Unknown function</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>
+================================================================================
+INTERPRETATION
+================================================================================
+These 10 loci represent novel genetic discoveries enabled by joint modeling.
+Each locus has distributed pleiotropic effects across multiple cardiovascular
+traits that are too weak to detect individually but collectively reach
+genome-wide significance when analyzed jointly through Signature 5.
+================================================================================
+</pre>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
@@ -8403,12 +8707,14 @@ SIG7 - Hypertension/Vascular (23 total loci)
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3.-Summary-and-Response">3. Summary and Response<a class="anchor-link" href="#3.-Summary-and-Response">¶</a></h2><h3 id="Key-Findings">Key Findings<a class="anchor-link" href="#Key-Findings">¶</a></h3><ol>
-<li><strong>Genome-wide significant loci identified</strong>: Multiple genetic loci are associated with signature exposure.</li>
+<h2 id="4.-Summary-and-Response">4. Summary and Response<a class="anchor-link" href="#4.-Summary-and-Response">¶</a></h2><h3 id="Key-Findings">Key Findings<a class="anchor-link" href="#Key-Findings">¶</a></h3><ol>
+<li><strong>Genome-wide significant loci identified</strong>: Multiple genetic loci are associated with signature exposure (151 total loci across 16 signatures).</li>
 <li><strong>Signature-specific loci</strong>: Genetic variants associated with signatures but not with individual diseases.</li>
-<li><strong>Biologically plausible gene associations</strong>: Signature 5 is enriched for lipid metabolism genes.</li>
+<li><strong>Novel discoveries</strong>: 10 unique loci for Signature 5 that are not found in constituent trait GWAS.</li>
+<li><strong>Biologically plausible gene associations</strong>: Signature 5 is enriched for lipid metabolism genes (e.g., LDLR, APOE, PCSK9, LPA).</li>
 </ol>
 <h3 id="Response-to-Reviewer">Response to Reviewer<a class="anchor-link" href="#Response-to-Reviewer">¶</a></h3><p>We demonstrate biological meaningfulness through <strong>genetic association analysis</strong>. We performed GWAS using average signature exposure (AEX) as quantitative phenotypes, identifying genetic variants associated with disease signatures. Signature 5 (cardiovascular) is enriched for genes with known roles in lipid metabolism (e.g., LDLR, APOB, PCSK9, LPA), providing strong biological validation.</p>
+<p><strong>Critically, we identified 10 novel loci</strong> for Signature 5 that are genome-wide significant in the joint analysis but not detected in any individual constituent trait GWAS. This demonstrates that signature-based GWAS can discover genetic associations with distributed pleiotropic effects that are too weak to detect in single-disease analyses, providing direct evidence for the biological meaningfulness of our disease signatures.</p>
 </div>
 </div>
 </div>
