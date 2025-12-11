@@ -18,21 +18,104 @@ from sklearn.cluster import SpectralClustering
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
 
-def compute_smoothed_prevalence(Y, window_size=5, smooth_on_logit=True):
+
+# Recompute prevalence using the same function
+def compute_smoothed_prevalence_at_risk(Y, E_corrected, window_size=5, smooth_on_logit=True):
     """
-    Compute smoothed disease prevalence over time.
+    Compute smoothed prevalence with proper at-risk filtering.
+    
+    Parameters:
+    -----------
+    Y : torch.Tensor (N × D × T)
+    E_corrected : torch.Tensor (N × D) - corrected event/censor times
+    window_size : int - Gaussian smoothing window size
+    smooth_on_logit : bool - Smooth on logit scale
+    """
+    if torch.is_tensor(Y):
+        Y = Y.numpy()
+    if torch.is_tensor(E_corrected):
+        E_corrected = E_corrected.numpy()
+    
+    N, D, T = Y.shape
+    prevalence_t = np.zeros((D, T))
+    
+    print(f"\n  Computing prevalence for {D} diseases, {T} timepoints...")
+    
+    # Convert E_corrected to numpy if needed
+    if torch.is_tensor(E_corrected):
+        E_corrected_np = E_corrected.numpy()
+    else:
+        E_corrected_np = E_corrected
+    
+    for d in range(D):
+        if d % 50 == 0:
+            print(f"    Processing disease {d}/{D}...")
+        
+        for t in range(T):
+            # Only include people who are still at risk at timepoint t
+            at_risk_mask = (E_corrected_np[:, d] >= t) 
+            
+            if at_risk_mask.sum() > 0:
+                if torch.is_tensor(Y):
+                    prevalence_t[d, t] = Y[at_risk_mask, d, t].numpy().mean()
+                else:
+                    prevalence_t[d, t] = Y[at_risk_mask, d, t].mean()
+            else:
+                prevalence_t[d, t] = np.nan
+        
+        # Smooth as before
+        if smooth_on_logit:
+            epsilon = 1e-8
+            # Handle NaN values
+            valid_mask = ~np.isnan(prevalence_t[d, :])
+            if valid_mask.sum() > 0:
+                logit_prev = np.full(T, np.nan)
+                logit_prev[valid_mask] = np.log(
+                    (prevalence_t[d, valid_mask] + epsilon) / 
+                    (1 - prevalence_t[d, valid_mask] + epsilon)
+                )
+                # Smooth only valid values
+                smoothed_logit = gaussian_filter1d(
+                    np.nan_to_num(logit_prev, nan=0), 
+                    sigma=window_size
+                )
+                # Restore NaN where original was NaN
+                smoothed_logit[~valid_mask] = np.nan
+                prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
+        else:
+            prevalence_t[d, :] = gaussian_filter1d(
+                np.nan_to_num(prevalence_t[d, :], nan=0), 
+                sigma=window_size
+            )
+    
+    return prevalence_t
+
+
+
+def compute_smoothed_prevalence(Y, E_corrected=None, window_size=5, smooth_on_logit=True, verbose=True):
+    """
+    Compute smoothed disease prevalence over time with proper at-risk filtering.
     
     STANDALONE FUNCTION - No model initialization required.
+    
+    This function computes prevalence by only including individuals who are still
+    at risk at each timepoint, which is essential for correct prevalence estimates
+    when using corrected E matrices.
     
     Parameters:
     -----------
     Y : torch.Tensor or np.ndarray
         Disease outcome tensor (N × D × T)
+    E_corrected : torch.Tensor or np.ndarray, optional
+        Corrected event/censor times (N × D). If provided, filters by at-risk status.
+        If None, computes simple mean (for backward compatibility, but NOT recommended).
     window_size : int
         Gaussian smoothing window size (sigma parameter)
     smooth_on_logit : bool
         If True: smooth on logit scale (matches original cluster_g.py)
         If False: smooth on probability scale (more intuitive)
+    verbose : bool
+        If True, print progress messages
         
     Returns:
     --------
@@ -42,27 +125,80 @@ def compute_smoothed_prevalence(Y, window_size=5, smooth_on_logit=True):
     # Convert to numpy if needed
     if torch.is_tensor(Y):
         Y = Y.numpy()
+    if E_corrected is not None and torch.is_tensor(E_corrected):
+        E_corrected = E_corrected.numpy()
     
     N, D, T = Y.shape
     prevalence_t = np.zeros((D, T))
     
-    for d in range(D):
-        # Compute raw prevalence at each time point
-        raw_prev = Y[:, d, :].mean(axis=0)  # (T,)
+    if verbose:
+        print(f"\n  Computing prevalence for {D} diseases, {T} timepoints...")
+    
+    # If E_corrected is provided, use at-risk filtering (CORRECTED VERSION)
+    if E_corrected is not None:
+        E_corrected_np = E_corrected
         
-        if smooth_on_logit:
-            # Smooth on logit scale (matches original cluster_g.py)
-            # Better for rare events, preserves relative differences
-            epsilon = 1e-8
-            logit_prev = np.log((raw_prev + epsilon) / (1 - raw_prev + epsilon))
-            smoothed_logit = gaussian_filter1d(logit_prev, sigma=window_size)
-            prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
-        else:
-            # Smooth on probability scale (more intuitive)
-            # Clamp to avoid negative values
-            raw_prev = np.clip(raw_prev, 1e-8, 1 - 1e-8)
-            smoothed_prev = gaussian_filter1d(raw_prev, sigma=window_size)
-            prevalence_t[d, :] = np.clip(smoothed_prev, 0, 1)
+        for d in range(D):
+            if verbose and d % 50 == 0:
+                print(f"    Processing disease {d}/{D}...")
+            
+            for t in range(T):
+                # Only include people who are still at risk at timepoint t
+                at_risk_mask = (E_corrected_np[:, d] >= t)
+                
+                if at_risk_mask.sum() > 0:
+                    prevalence_t[d, t] = Y[at_risk_mask, d, t].mean()
+                else:
+                    prevalence_t[d, t] = np.nan
+            
+            # Smooth as before
+            if smooth_on_logit:
+                epsilon = 1e-8
+                # Handle NaN values
+                valid_mask = ~np.isnan(prevalence_t[d, :])
+                if valid_mask.sum() > 0:
+                    logit_prev = np.full(T, np.nan)
+                    logit_prev[valid_mask] = np.log(
+                        (prevalence_t[d, valid_mask] + epsilon) / 
+                        (1 - prevalence_t[d, valid_mask] + epsilon)
+                    )
+                    # Smooth only valid values
+                    smoothed_logit = gaussian_filter1d(
+                        np.nan_to_num(logit_prev, nan=0), 
+                        sigma=window_size
+                    )
+                    # Restore NaN where original was NaN
+                    smoothed_logit[~valid_mask] = np.nan
+                    prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
+            else:
+                prevalence_t[d, :] = gaussian_filter1d(
+                    np.nan_to_num(prevalence_t[d, :], nan=0), 
+                    sigma=window_size
+                )
+    
+    else:
+        # OLD VERSION (for backward compatibility, but NOT recommended)
+        # This doesn't filter by at-risk status
+        if verbose:
+            print("  ⚠️  Warning: E_corrected not provided. Using simple mean (not recommended).")
+        
+        for d in range(D):
+            # Compute raw prevalence at each time point
+            raw_prev = Y[:, d, :].mean(axis=0)  # (T,)
+            
+            if smooth_on_logit:
+                # Smooth on logit scale (matches original cluster_g.py)
+                # Better for rare events, preserves relative differences
+                epsilon = 1e-8
+                logit_prev = np.log((raw_prev + epsilon) / (1 - raw_prev + epsilon))
+                smoothed_logit = gaussian_filter1d(logit_prev, sigma=window_size)
+                prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
+            else:
+                # Smooth on probability scale (more intuitive)
+                # Clamp to avoid negative values
+                raw_prev = np.clip(raw_prev, 1e-8, 1 - 1e-8)
+                smoothed_prev = gaussian_filter1d(raw_prev, sigma=window_size)
+                prevalence_t[d, :] = np.clip(smoothed_prev, 0, 1)
     
     return prevalence_t
 

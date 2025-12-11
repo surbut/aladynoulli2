@@ -19,12 +19,14 @@ from preprocessing_utils import (
 # Load your data
 data_path = Path('/Users/sarahurbut/Dropbox-Personal/data_for_running/')
 Y = torch.load(data_path / 'Y_tensor.pt', weights_only=False)
+E_corrected = torch.load(data_path / 'E_matrix_corrected.pt', weights_only=False)  # Required for proper at-risk filtering
 K = 20  # Number of signatures
 
 # ============================================================================
-# Step 1: Compute prevalence
+# Step 1: Compute prevalence (with at-risk filtering)
 # ============================================================================
-prevalence_t = compute_smoothed_prevalence(Y, window_size=5, smooth_on_logit=True)
+# IMPORTANT: Always pass E_corrected for proper prevalence computation
+prevalence_t = compute_smoothed_prevalence(Y, E_corrected=E_corrected, window_size=5, smooth_on_logit=True)
 print(f"✓ Prevalence shape: {prevalence_t.shape}")
 
 # ============================================================================
