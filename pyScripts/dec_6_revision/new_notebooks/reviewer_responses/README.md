@@ -96,7 +96,7 @@ reviewer_responses/
 |----------|-------------|
 | [`preprocessing/WORKFLOW.md`](preprocessing/WORKFLOW.md) | **Complete end-to-end workflow documentation** - Step-by-step guide from preprocessing → batch training → master checkpoint → prediction |
 | [`preprocessing/create_preprocessing_files.ipynb`](preprocessing/create_preprocessing_files.ipynb) | Interactive notebook for data preprocessing with visualizations (smoothed prevalence, clustering, signature references) |
-| [`preprocessing/preprocessing_utils.py`](preprocessing/preprocessing_utils.py) | Standalone preprocessing functions (`compute_smoothed_prevalence`, `create_initial_clusters_and_psi`, `create_reference_trajectories`) |
+| [`preprocessing/preprocessing_utils.py`](preprocessing/preprocessing_utils.py) | Standalone preprocessing functions (`compute_smoothed_prevalence_at_risk`, `create_initial_clusters_and_psi`, `create_reference_trajectories`) |
 | [`preprocessing/SIMPLE_EXAMPLE.py`](preprocessing/SIMPLE_EXAMPLE.py) | Minimal copy-paste example demonstrating how to use the preprocessing functions |
 
 **Workflow Overview:**

@@ -82,7 +82,7 @@ Train the model on batches with FULL E matrix (enrollment data).
 ### Script:
 ```bash
 # From repository root
-python claudefile/run_aladyn_batch.py \
+python claudefile/run_aladyn_batch_vector_e_censor.py \
     --data_dir /path/to/data \
     --output_dir /path/to/output \
     --start_index 0 \
@@ -90,8 +90,8 @@ python claudefile/run_aladyn_batch.py \
     --num_epochs 200
 ```
 
-**Script location:** [`claudefile/run_aladyn_batch.py`](../../../../claudefile/run_aladyn_batch.py)  
-**Model file:** [`pyScripts_forPublish/clust_huge_amp.py`](../../../../pyScripts_forPublish/clust_huge_amp.py)
+**Script location:** [`claudefile/run_aladyn_batch_vector_e_censor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor.py)  
+**Model file:** [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py)
 
 ### What it does:
 - Trains model on batches of data
@@ -174,16 +174,16 @@ Run predictions using the master checkpoint (fixed phi).
 ### Script:
 ```bash
 # From repository root
-python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
+python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
     --trained_model_path /path/to/master_for_fitting_pooled_all_data.pt \
     --data_dir /path/to/data \
     --output_dir /path/to/predictions \
-    --batch_size 10000 \
+    --max_batches 40 \
     --num_epochs 200
 ```
 
-**Script location:** [`claudefile/version_from_ec2/run_aladyn_predict_with_master.py`](../../../../claudefile/version_from_ec2/run_aladyn_predict_with_master.py)  
-**Model file:** [`pyScripts_forPublish/clust_huge_amp_fixedPhi.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi.py)
+**Script location:** [`claudefile/run_aladyn_predict_with_master_vector_cenosrE.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE.py)  
+**Model file:** [`pyScripts_forPublish/clust_huge_amp_fixedPhi_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi_vectorized.py)
 
 ### What it does:
 - Loads master checkpoint (pooled phi + initial_psi)
@@ -195,7 +195,8 @@ python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
 
 ### Required files in `--data_dir`:
 - `Y_tensor.pt` - Disease outcomes
-- `E_enrollment_full.pt` - **Enrollment matrix (FULL E)** - automatically loaded
+- `E_matrix.pt` - fully censored (for training until end of follow up)
+- `E_enrollment_full.pt` - **Enrollment matrix (FULL E)** 
 - `G_matrix.pt` - Genetic variants
 - `model_essentials.pt` - Model metadata
 - `reference_trajectories.pt` - Signature reference trajectories
@@ -209,23 +210,23 @@ python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
 # Creates: prevalence_t, initial_clusters_400k.pt, initial_psi_400k.pt, reference_trajectories.pt
 
 # Step 2: Batch training
-python claudefile/run_aladyn_batch.py \
+python claudefile/run_aladyn_batch_vector_e_censor.py \
+    --start_index 0 \
+    --end_index 10000 \
     --data_dir /path/to/data \
-    --output_dir /path/to/batch_output \
-    --use_full_E \
-    --num_batches 40
+    --output_dir /path/to/output
 
 # Step 3: Create master checkpoint
 python claudefile/create_master_checkpoints.py \
-    --retrospective_pattern "/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt" \
+    --retrospective_pattern "/path/to/output/enrollment_model_W0.0001_batch_*_*.pt" \
     --output_dir /path/to/data
 
 # Step 4: Predict
-python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
+python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
     --trained_model_path /path/to/data/master_for_fitting_pooled_all_data.pt \
     --data_dir /path/to/data \
     --output_dir /path/to/predictions \
-    --batch_size 10000
+    --max_batches 40
 ```
 
 ---
@@ -238,15 +239,15 @@ python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
 - [`SIMPLE_EXAMPLE.py`](../preprocessing/SIMPLE_EXAMPLE.py) - Simple usage example
 
 ### Training Scripts (in `claudefile/`):
-- [`run_aladyn_batch.py`](../../../../claudefile/run_aladyn_batch.py) - Batch training script
+- [`run_aladyn_batch_vector_e_censor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor.py) - Batch training script (vectorized, corrected E)
 - [`create_master_checkpoints.py`](../../../../claudefile/create_master_checkpoints.py) - Master checkpoint creation
 
-### Prediction Scripts (in `claudefile/version_from_ec2/`):
-- [`run_aladyn_predict_with_master.py`](../../../../claudefile/version_from_ec2/run_aladyn_predict_with_master.py) - Predict with master checkpoint
+### Prediction Scripts (in `claudefile/`):
+- [`run_aladyn_predict_with_master_vector_cenosrE.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE.py) - Predict with master checkpoint (vectorized, corrected E)
 
 ### Model Files (in `pyScripts_forPublish/`):
-- [`clust_huge_amp.py`](../../../../pyScripts_forPublish/clust_huge_amp.py) - Discovery mode (learns phi)
-- [`clust_huge_amp_fixedPhi.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi.py) - Prediction mode (fixed phi)
+- [`clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py) - Discovery mode (learns phi, vectorized)
+- [`clust_huge_amp_fixedPhi_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi_vectorized.py) - Prediction mode (fixed phi, vectorized)
 
 ### Related Documentation:
 - [Reviewer Response Analyses](../README.md) - All analysis notebooks and preprocessing utilities
