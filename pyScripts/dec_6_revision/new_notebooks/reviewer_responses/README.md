@@ -94,35 +94,18 @@ reviewer_responses/
 
 | Resource | Description |
 |----------|-------------|
-| [`preprocessing/WORKFLOW.md`](preprocessing/WORKFLOW.md) | **Complete end-to-end workflow documentation** - Step-by-step guide from preprocessing → batch training → master checkpoint → prediction |
+| [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) | **Complete end-to-end workflow documentation** - Step-by-step guide from preprocessing → batch training → master checkpoint → prediction |
 | [`preprocessing/create_preprocessing_files.ipynb`](preprocessing/create_preprocessing_files.ipynb) | Interactive notebook for data preprocessing with visualizations (smoothed prevalence, clustering, signature references) |
-| [`preprocessing/preprocessing_utils.py`](preprocessing/preprocessing_utils.py) | Standalone preprocessing functions (`compute_smoothed_prevalence_at_risk`, `create_initial_clusters_and_psi`, `create_reference_trajectories`) |
-| [`preprocessing/SIMPLE_EXAMPLE.py`](preprocessing/SIMPLE_EXAMPLE.py) | Minimal copy-paste example demonstrating how to use the preprocessing functions |
+| [`preprocessing/preprocessing_utils.py`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Standalone preprocessing functions (`compute_smoothed_prevalence_at_risk`, `create_initial_clusters_and_psi`, `create_reference_trajectories`) |
+| [`preprocessing/SIMPLE_EXAMPLE.py`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/SIMPLE_EXAMPLE.py) | Minimal copy-paste example demonstrating how to use the preprocessing functions |
 
 **Workflow Overview:**
 1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
-2. **Batch Training**: Run `run_aladyn_batch` with FULL E matrix
+2. **Batch Training**: Run `run_aladyn_batch_vector_e_censor` with E matrix *using complete patient history*
 3. **Master Checkpoint**: Generate master checkpoint (phi and psi)
-4. **Prediction**: Run `run_aladyn_predict_with_master` (automatically loads `E_enrollment_full.pt`)
+4. **Prediction**: Run `run_aladyn_predict_with_master_vector_cenosrE` (automatically loads `E_enrollment_full.pt`) meaning it's trained with only enrollment data.
 
-See [`preprocessing/WORKFLOW.md`](preprocessing/WORKFLOW.md) for detailed instructions.
-
----
-
-## Supporting Analyses
-
-These notebooks provide detailed analyses that support the reviewer responses. They are located in the parent `new_notebooks/` directory:
-
-| Notebook | Description | Used By |
-|----------|-------------|---------|
-| [`../performancen_notebook_clean.ipynb`](../additional_notebooks/performancen_notebook_clean.ipynb) | Performance evaluation (AUC, comparisons, washout, age offsets) | R1 Q9, R1 Q2, R1 Q10, R2 |
-| [`../fh_analysis_summary.ipynb`](../additional_notebooks/fh_analysis_summary.ipynb) | Familial Hypercholesterolemia carrier analysis | R1 Q3 |
-| [`../ipw_analysis_summary.ipynb`](../additional_notebooks/ipw_analysis_summary.ipynb) | Inverse Probability Weighting analysis | R1 Q1 |
-| [`../pc_analysis_clean.ipynb`](../additional_notebooks/pc_analysis_clean.ipynb) | Principal component adjustment analysis | R3 Population Stratification |
-| [`../heritability_analysis_summary.ipynb`](../additional_notebooks/heritability_analysis_summary.ipynb) | LDSC heritability estimates | R1 Q7 |
-| [`../heterogeneity_analysis_summary.ipynb`](../additional_notebooks/heterogeneity_analysis_summary.ipynb) | Disease pathway heterogeneity | R3 Q8 |
-| [`../washout_analysis_summary.ipynb`](../additional_notebooks/washout_analysis_summary.ipynb) | Washout window analysis | R2, R3 Q3 |
-| [`/delphicomp.ipynb`](../additional_notebooks/delphicomp.ipynb) | Delphi comparison analysis | R1 Q9 |
+See [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) for detailed instructions.
 
 ---
 
@@ -166,4 +149,3 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb`](notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb)
 
 **Total: 27 notebooks** ✅ All complete
-

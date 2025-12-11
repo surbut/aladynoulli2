@@ -198,8 +198,8 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 | Component | File | Description |
 |-----------|------|-------------|
-| **Discovery Model** | [clust_huge_amp.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp.py) | Full model that learns phi and psi |
-| **Prediction Model** | [clust_huge_amp_fixedPhi.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_fixedPhi.py) | Fixed-phi model for fast predictions |
+| **Discovery Model** | [clust_huge_amp_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py) | Full model that learns phi and psi |
+| **Prediction Model** | [clust_huge_amp_fixedPhi.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) | Fixed-phi model for fast predictions |
 | **Discovery Notebook** | [aladynoulli_fit_for_understanding_and_discovery.ipynb](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) | Interactive discovery mode |
 | **Prediction Notebook** | [aladynoulli_fit_for_prediction.ipynb](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) | Interactive prediction mode |
 

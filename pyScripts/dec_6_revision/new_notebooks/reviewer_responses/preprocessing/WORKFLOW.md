@@ -69,8 +69,8 @@ prevalence_t = compute_smoothed_prevalence_at_risk(Y, E_corrected, window_size=5
 ```
 
 **See also:**
-- Interactive notebook: [`reviewer_responses/preprocessing/create_preprocessing_files.ipynb`](../preprocessing/create_preprocessing_files.ipynb)
-- Simple example: [`reviewer_responses/preprocessing/SIMPLE_EXAMPLE.py`](../preprocessing/SIMPLE_EXAMPLE.py)
+- Interactive notebook: [`create_preprocessing_files.ipynb`](./create_preprocessing_files.ipynb)
+- Simple example: [`SIMPLE_EXAMPLE.py`](./SIMPLE_EXAMPLE.py)
 
 ### Key Benefits:
 - ✅ **Standalone functions** - No need to initialize full model
@@ -188,7 +188,8 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
 ```
 
 **Script location:** [`claudefile/run_aladyn_predict_with_master_vector_cenosrE.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE.py)  
-**Model file:** [`pyScripts_forPublish/clust_huge_amp_fixedPhi_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi_vectorized.py)
+**Model file:** [`claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py`](../../../../claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py)
+
 
 ### What it does:
 - Loads master checkpoint (pooled phi + initial_psi)
@@ -237,10 +238,10 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
 
 ## File Locations
 
-### Preprocessing Files (in `reviewer_responses/preprocessing/`):
-- [`preprocessing_utils.py`](../preprocessing/preprocessing_utils.py) - Standalone utility functions
-- [`create_preprocessing_files.ipynb`](../preprocessing/create_preprocessing_files.ipynb) - Interactive notebook
-- [`SIMPLE_EXAMPLE.py`](../preprocessing/SIMPLE_EXAMPLE.py) - Simple usage example
+### Preprocessing Files (in `preprocessing/`):
+- [`preprocessing_utils.py`](./preprocessing_utils.py) - Standalone utility functions
+- [`create_preprocessing_files.ipynb`](./create_preprocessing_files.ipynb) - Interactive notebook
+- [`SIMPLE_EXAMPLE.py`](./SIMPLE_EXAMPLE.py) - Simple usage example
 
 ### Training Scripts (in `claudefile/`):
 - [`run_aladyn_batch_vector_e_censor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor.py) - Batch training script (vectorized, corrected E)
@@ -249,9 +250,9 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
 ### Prediction Scripts (in `claudefile/`):
 - [`run_aladyn_predict_with_master_vector_cenosrE.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE.py) - Predict with master checkpoint (vectorized, corrected E)
 
-### Model Files (in `pyScripts_forPublish/`):
-- [`clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py) - Discovery mode (learns phi, vectorized)
-- [`clust_huge_amp_fixedPhi_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_fixedPhi_vectorized.py) - Prediction mode (fixed phi, vectorized)
+### Model Files:
+- [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py) - Discovery mode (learns phi, vectorized)
+- [`claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py`](../../../../claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) - Prediction mode (fixed phi, vectorized)
 
 ### Related Documentation:
 - [Reviewer Response Analyses](../README.md) - All analysis notebooks and preprocessing utilities
