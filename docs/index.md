@@ -18,7 +18,7 @@
 
 - [Overview](#-overview)
 - [Quick Start](#-quick-start)
-- [Model Architecture](#-model-architecture)
+- [Model Architecture](#️-model-architecture)
 - [Complete Workflow](#-complete-workflow)
 - [Reviewer Response Analyses](#-reviewer-response-analyses)
 - [Documentation](#-documentation)
@@ -61,11 +61,35 @@ pip install -r requirements.txt
 ### System Requirements
 
 - **Python**: 3.8 or higher
-- **RAM**: 8GB minimum, 16GB+ recommended
+- **RAM**: 8GB minimum, 16GB+ recommended for batch training (10K individuals)
 - **Storage**: 5GB free space
-- **CPU**: Optional but recommended (NVIDIA CUDA)
+- **CPU**: Multi-core processor (4+ cores recommended); PyTorch automatically parallelizes across cores
+- **GPU**: Optional (not required; model runs efficiently on CPU)
 
-For detailed installation instructions, see the [main README](../README.md) or [INSTALLATION.md](../INSTALLATION.md).
+### Package Installation
+
+```bash
+# Create virtual environment (recommended)
+python3 -m venv aladyn_env
+source aladyn_env/bin/activate  # On Windows: aladyn_env\Scripts\activate
+
+# Upgrade pip
+pip install --upgrade pip
+
+# Install required packages
+pip install torch numpy pandas scipy scikit-learn matplotlib seaborn statsmodels
+```
+
+**Package Details:**
+- **torch**: PyTorch for tensor operations and automatic differentiation
+- **numpy**: Numerical computing
+- **pandas**: Data manipulation
+- **scipy**: Scientific computing (optimization, statistics)
+- **scikit-learn**: Machine learning utilities
+- **matplotlib/seaborn**: Plotting and visualization
+- **statsmodels**: Statistical modeling
+
+For detailed installation instructions, see the [main README](https://github.com/surbut/aladynoulli2/blob/main/README.md) or [INSTALLATION.md](https://github.com/surbut/aladynoulli2/blob/main/INSTALLATION.md) (if available).
 
 ---
 
@@ -103,7 +127,7 @@ The Aladynoulli workflow consists of **4 main steps**:
 3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
 4. **Prediction**: Run predictions using master checkpoint
 
-For detailed step-by-step instructions, see the [Complete Workflow Guide](reviewer_responses/preprocessing/WORKFLOW.md).
+For detailed step-by-step instructions, see the [Complete Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
 
 ---
 
@@ -163,8 +187,8 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 | Resource | Description | Link |
 |----------|-------------|------|
-| **Framework Overview** | Discovery vs prediction framework | [Discovery_Prediction_Framework_Overview.html](reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) |
-| **Preprocessing** | Preprocessing file creation guide | [create_preprocessing_files.html](reviewer_responses/preprocessing/create_preprocessing_files.html) |
+| **Framework Overview** | **Discovery vs prediction framework - Essential reading** | [Discovery_Prediction_Framework_Overview.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) |
+| **Preprocessing** | Preprocessing file creation guide | [create_preprocessing_files.html](https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html) |
 
 ---
 
@@ -174,28 +198,41 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 | Component | File | Description |
 |-----------|------|-------------|
-| **Discovery Model** | [`../pyScripts_forPublish/clust_huge_amp.py`](../pyScripts_forPublish/clust_huge_amp.py) | Full model that learns phi and psi |
-| **Prediction Model** | [`../pyScripts_forPublish/clust_huge_amp_fixedPhi.py`](../pyScripts_forPublish/clust_huge_amp_fixedPhi.py) | Fixed-phi model for fast predictions |
-| **Discovery Notebook** | [`../pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb`](../pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) | Interactive discovery mode |
-| **Prediction Notebook** | [`../pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb`](../pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) | Interactive prediction mode |
+| **Discovery Model** | [clust_huge_amp.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp.py) | Full model that learns phi and psi |
+| **Prediction Model** | [clust_huge_amp_fixedPhi.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_fixedPhi.py) | Fixed-phi model for fast predictions |
+| **Discovery Notebook** | [aladynoulli_fit_for_understanding_and_discovery.ipynb](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) | Interactive discovery mode |
+| **Prediction Notebook** | [aladynoulli_fit_for_prediction.ipynb](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) | Interactive prediction mode |
 
 ### Workflow Scripts
 
 | Script | Location | Purpose |
 |--------|----------|---------|
-| **Preprocessing** | [`../pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py`](../pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
-| **Batch Training** | [`../claudefile/run_aladyn_batch_vector_e_censor.py`](../claudefile/run_aladyn_batch_vector_e_censor.py) | Batch model training with corrected E |
-| **Master Checkpoint** | [`../claudefile/create_master_checkpoints.py`](../claudefile/create_master_checkpoints.py) | Create pooled checkpoints |
-| **Prediction** | [`../claudefile/run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py`](../claudefile/run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py) | Run predictions with corrected E |
+| **Preprocessing** | [preprocessing_utils.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
+| **Batch Training** | [run_aladyn_batch_vector_e_censor.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor.py) | Batch model training with corrected E |
+| **Master Checkpoint** | [create_master_checkpoints.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py) | Create pooled checkpoints |
+| **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py) | Run predictions with corrected E |
 
 ---
 
 ## 📈 Performance & Scalability
 
-- **Dataset Size**: 400K+ individuals, 348 diseases, 52 timepoints
-- **Training Time**: ~8-10 minues per 10K batch on M4 CPU
-- **Prediction Time**: 8 minutes per 10K batch
-- **Memory**: ~8GB  memory for batch training
+### Computational Requirements
+
+**For 10K individuals, 348 diseases, 52 timepoints:**
+- **Training Time**: ~8-10 minutes per batch (converges after ~200 epochs)
+- **Prediction Time**: ~8 minutes per batch
+- **Memory**: ~8GB RAM (peak usage during training)
+- **CPU**: Multi-core recommended (4+ cores); PyTorch uses BLAS for parallel matrix operations
+
+**Scaling:**
+- **Full UK Biobank (400K individuals)**: Processed in 39 batches of ~10K each
+- **Total training time**: ~5-7 hours for all batches (can be parallelized)
+- **Memory scales linearly**: ~8GB per 10K batch
+
+**Why it's fast:**
+- Vectorized PyTorch operations (batched matrix decompositions)
+- BLAS Level 3 operations for efficient linear algebra
+- ~100-fold speedup compared to loop-based implementation
 
 ---
 

@@ -27,7 +27,7 @@ print("="*80)
 print("COMPUTING NEW PREVALENCE WITH AT-RISK FILTERING")
 print("="*80)
 
-def compute_smoothed_prevalence_at_risk(Y, E_corrected, enrollment_ages, window_size=5, smooth_on_logit=True):
+def compute_smoothed_prevalence_at_risk(Y, E_corrected, window_size=5, smooth_on_logit=True):
     """
     Compute smoothed prevalence with proper at-risk filtering.
     
@@ -35,7 +35,6 @@ def compute_smoothed_prevalence_at_risk(Y, E_corrected, enrollment_ages, window_
     -----------
     Y : torch.Tensor (N × D × T)
     E_corrected : torch.Tensor (N × D) - corrected event/censor times
-    enrollment_ages : np.ndarray (N,) - enrollment ages for each person
     window_size : int - Gaussian smoothing window size
     smooth_on_logit : bool - Smooth on logit scale
     """
@@ -46,9 +45,6 @@ def compute_smoothed_prevalence_at_risk(Y, E_corrected, enrollment_ages, window_
     
     N, D, T = Y.shape
     prevalence_t = np.zeros((D, T))
-    
-    # Convert timepoints to ages (assuming timepoint 0 = age 30)
-    timepoint_ages = np.arange(T) + 30
     
     print(f"Computing prevalence for {D} diseases, {T} timepoints...")
     
@@ -63,17 +59,7 @@ def compute_smoothed_prevalence_at_risk(Y, E_corrected, enrollment_ages, window_
             print(f"  Processing disease {d}/{D}...")
         
         for t in range(T):
-            age_t = timepoint_ages[t]
-            
-            # Only include people who:
-            # 1. Were enrolled BEFORE age_t (so they've been observed at that age)
-            #    OR enrolled at age_t but have minimum follow-up
-            # 2. Were still at risk at timepoint t (not censored/event before t)
-            # 
-            # Use < instead of <= to exclude people enrolled at exactly that age
-            # (they haven't had time to develop incident disease yet)
-            #enroll_mask = (enrollment_ages < age_t)  # Enrolled BEFORE age_t
-            #e_mask = (E_corrected_np[:, d] >= t)  # Still at risk at timepoint t
+            # Only include people who are still at risk at timepoint t
             at_risk_mask = (E_corrected_np[:, d] >= t) 
             
             # Alternative: Include people enrolled at exactly age_t only if they have minimum follow-up
@@ -114,16 +100,11 @@ def compute_smoothed_prevalence_at_risk(Y, E_corrected, enrollment_ages, window_
     
     return prevalence_t
 
-# Load enrollment ages from censor_df
-censor_df = pd.read_csv('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/censor_info.csv')
-enrollment_ages = censor_df['age'].values  # Should match Y/E order
-
 # Compute new prevalence
 print("\nComputing new prevalence with at-risk filtering...")
 new_prevalence_t = compute_smoothed_prevalence_at_risk(
     Y=Y, 
     E_corrected=E_corrected, 
-    enrollment_ages=enrollment_ages,
     window_size=5,
     smooth_on_logit=True
 )
