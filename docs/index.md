@@ -103,7 +103,7 @@ The Aladynoulli workflow consists of **4 main steps**:
 3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
 4. **Prediction**: Run predictions using master checkpoint
 
-For detailed step-by-step instructions, see the [Complete Workflow Guide](../pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
+For detailed step-by-step instructions, see the [Complete Workflow Guide](reviewer_responses/preprocessing/WORKFLOW.md).
 
 ---
 
