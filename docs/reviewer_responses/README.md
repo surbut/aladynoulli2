@@ -48,7 +48,7 @@ reviewer_responses/
 | **Q10**: Age-specific discrimination | [`notebooks/R1/R1_Q10_Age_Specific.html`](notebooks/R1/R1_Q10_Age_Specific.html) | ✅ Complete |
 | **Additional**: Biological plausibility (CHIP) | [`notebooks/R1/R1_Biological_Plausibility_CHIP.html`](notebooks/R1/R1_Biological_Plausibility_CHIP.html) | ✅ Complete |
 | **Additional**: Clinical utility (dynamic risk) | [`notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html`](notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html) | ✅ Complete |
-| **Additional**: Genetic validation (GWAS) | [`notebooks/R1/R1_Genetic_Validation_GWAS.html`](notebooks/R1/R1_Genetic_Validation_GWAS.html) | ✅ Complete<br>**Key Finding**: 10 novel loci for Signature 5 (cardiovascular) that are genome-wide significant in joint analysis but not detected in individual constituent trait GWAS (e.g., rs1532085/LIPC, rs6687726/IL6R, rs1499813/FNDC3B) |
+| **Additional**: Genetic validation (GWAS) | [`notebooks/R1/R1_Genetic_Validation_GWAS.html`](notebooks/R1/R1_Genetic_Validation_GWAS.html) | ✅ Complete |
 | **Additional**: Genetic validation (Gene-based RVAS) | [`notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html`](notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html) | ✅ Complete |
 | **Additional**: Multi-disease patterns | [`notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html`](notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html) | ✅ Complete |
 | **Additional**: Robustness (LOO validation) | [`notebooks/R1/R1_Robustness_LOO_Validation.html`](notebooks/R1/R1_Robustness_LOO_Validation.html) | ✅ Complete |
