@@ -149,8 +149,6 @@ These notebooks provide detailed analyses that support the reviewer responses. T
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.ipynb`](notebooks/R2/R2_R3_Model_Validity_Learning.ipynb)
 - Washout approaches comparison: [`notebooks/R2/R2_Washout_Comparisons.ipynb`](notebooks/R2/R2_Washout_Comparisons.ipynb)
 - Delphi Phecode mapping comparison: [`notebooks/R2/R2_Delphi_Phecode_Mapping.ipynb`](notebooks/R2/R2_Delphi_Phecode_Mapping.ipynb)
-- **Washout approaches comparison**: [`notebooks/R2/R2_Washout_Comparisons.ipynb`](notebooks/R2/R2_Washout_Comparisons.ipynb)
-- **Delphi comparison visualizations**: [`notebooks/R2/R2_Delphi_Comparison.ipynb`](notebooks/R2/R2_Delphi_Comparison.ipynb)
 
 **Referee #3 (11 notebooks):**
 - Avoiding reverse causation (washout analysis): [`notebooks/R3/R3_AvoidingReverseCausation.ipynb`](notebooks/R3/R3_AvoidingReverseCausation.ipynb)
