@@ -391,7 +391,7 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="preprocessing/WORKFLOW.md"><code>preprocessing/WORKFLOW.md</code></a></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md"><code>preprocessing/WORKFLOW.md</code></a></td>
 <td><strong>Complete end-to-end workflow documentation</strong> - Step-by-step guide from preprocessing → batch training → master checkpoint → prediction</td>
 </tr>
 <tr>
@@ -399,76 +399,17 @@
 <td>Interactive notebook for data preprocessing with visualizations (smoothed prevalence, clustering, signature references)</td>
 </tr>
 <tr>
-<td><a href="preprocessing/preprocessing_utils.py"><code>preprocessing/preprocessing_utils.py</code></a></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py"><code>preprocessing/preprocessing_utils.py</code></a></td>
 <td>Standalone preprocessing functions (<code>compute_smoothed_prevalence_at_risk</code>, <code>create_initial_clusters_and_psi</code>, <code>create_reference_trajectories</code>)</td>
 </tr>
 <tr>
-<td><a href="preprocessing/SIMPLE_EXAMPLE.py"><code>preprocessing/SIMPLE_EXAMPLE.py</code></a></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/SIMPLE_EXAMPLE.py"><code>preprocessing/SIMPLE_EXAMPLE.py</code></a></td>
 <td>Minimal copy-paste example demonstrating how to use the preprocessing functions</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Workflow Overview:</strong> 1. <strong>Preprocessing</strong>: Create smoothed prevalence, initial clusters, and reference trajectories 2. <strong>Batch Training</strong>: Run <code>run_aladyn_batch</code> with FULL E matrix 3. <strong>Master Checkpoint</strong>: Generate master checkpoint (phi and psi) 4. <strong>Prediction</strong>: Run <code>run_aladyn_predict_with_master</code> (automatically loads <code>E_enrollment_full.pt</code>)</p>
-<p>See <a href="preprocessing/WORKFLOW.md"><code>preprocessing/WORKFLOW.md</code></a> for detailed instructions.</p>
-<hr />
-<h2 id="supporting-analyses">Supporting Analyses</h2>
-<p>These notebooks provide detailed analyses that support the reviewer responses. They are located in the parent <code>new_notebooks/</code> directory:</p>
-<table>
-<colgroup>
-<col style="width: 31%" />
-<col style="width: 40%" />
-<col style="width: 28%" />
-</colgroup>
-<thead>
-<tr>
-<th>Notebook</th>
-<th>Description</th>
-<th>Used By</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="../additional_notebooks/performancen_notebook_clean.html"><code>../performancen_notebook_clean.html</code></a></td>
-<td>Performance evaluation (AUC, comparisons, washout, age offsets)</td>
-<td>R1 Q9, R1 Q2, R1 Q10, R2</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/fh_analysis_summary.html"><code>../fh_analysis_summary.html</code></a></td>
-<td>Familial Hypercholesterolemia carrier analysis</td>
-<td>R1 Q3</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/ipw_analysis_summary.html"><code>../ipw_analysis_summary.html</code></a></td>
-<td>Inverse Probability Weighting analysis</td>
-<td>R1 Q1</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/pc_analysis_clean.html"><code>../pc_analysis_clean.html</code></a></td>
-<td>Principal component adjustment analysis</td>
-<td>R3 Population Stratification</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/heritability_analysis_summary.html"><code>../heritability_analysis_summary.html</code></a></td>
-<td>LDSC heritability estimates</td>
-<td>R1 Q7</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/heterogeneity_analysis_summary.html"><code>../heterogeneity_analysis_summary.html</code></a></td>
-<td>Disease pathway heterogeneity</td>
-<td>R3 Q8</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/washout_analysis_summary.html"><code>../washout_analysis_summary.html</code></a></td>
-<td>Washout window analysis</td>
-<td>R2, R3 Q3</td>
-</tr>
-<tr>
-<td><a href="../additional_notebooks/delphicomp.html"><code>/delphicomp.html</code></a></td>
-<td>Delphi comparison analysis</td>
-<td>R1 Q9</td>
-</tr>
-</tbody>
-</table>
+<p><strong>Workflow Overview:</strong> 1. <strong>Preprocessing</strong>: Create smoothed prevalence, initial clusters, and reference trajectories 2. <strong>Batch Training</strong>: Run <code>run_aladyn_batch_vector_e_censor</code> with E matrix <em>using complete patient history</em> 3. <strong>Master Checkpoint</strong>: Generate master checkpoint (phi and psi) 4. <strong>Prediction</strong>: Run <code>run_aladyn_predict_with_master_vector_cenosrE</code> (automatically loads <code>E_enrollment_full.pt</code>) meaning it’s trained with only enrollment data.</p>
+<p>See <a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md"><code>preprocessing/WORKFLOW.md</code></a> for detailed instructions.</p>
 <hr />
 <h2 id="quick-navigation">Quick Navigation</h2>
 <h3 id="all-completed-analyses">✅ All Completed Analyses</h3>
