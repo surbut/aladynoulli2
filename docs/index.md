@@ -8,6 +8,13 @@
 
 **A Bayesian Survival Model for Disease Trajectory Prediction**
 
+
+How to use this resource:
+
+* Responsees to reviers
+* software scripts
+* get the table of contents
+
 [Preprint](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1) • [GitHub Repository](../) • [Quick Start](#-quick-start)
 
 </div>
