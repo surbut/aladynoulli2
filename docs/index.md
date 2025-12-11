@@ -63,7 +63,7 @@ pip install -r requirements.txt
 - **Python**: 3.8 or higher
 - **RAM**: 8GB minimum, 16GB+ recommended
 - **Storage**: 5GB free space
-- **GPU**: Optional but recommended (NVIDIA CUDA)
+- **CPU**: Optional but recommended (NVIDIA CUDA)
 
 For detailed installation instructions, see the [main README](../README.md) or [INSTALLATION.md](../INSTALLATION.md).
 
@@ -193,9 +193,9 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 ## 📈 Performance & Scalability
 
 - **Dataset Size**: 400K+ individuals, 348 diseases, 52 timepoints
-- **Training Time**: ~2-3 hours per 10K batch on GPU
-- **Prediction Time**: ~30 minutes for 400K individuals
-- **Memory**: ~8GB GPU memory for batch training
+- **Training Time**: ~8-10 minues per 10K batch on M4 CPU
+- **Prediction Time**: 8 minutes per 10K batch
+- **Memory**: ~8GB  memory for batch training
 
 ---
 
