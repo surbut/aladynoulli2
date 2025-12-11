@@ -181,24 +181,24 @@ def compute_smoothed_prevalence(Y, E_corrected=None, window_size=5, smooth_on_lo
         # This doesn't filter by at-risk status
         if verbose:
             print("  ⚠️  Warning: E_corrected not provided. Using simple mean (not recommended).")
+    
+    for d in range(D):
+        # Compute raw prevalence at each time point
+        raw_prev = Y[:, d, :].mean(axis=0)  # (T,)
         
-        for d in range(D):
-            # Compute raw prevalence at each time point
-            raw_prev = Y[:, d, :].mean(axis=0)  # (T,)
-            
-            if smooth_on_logit:
-                # Smooth on logit scale (matches original cluster_g.py)
-                # Better for rare events, preserves relative differences
-                epsilon = 1e-8
-                logit_prev = np.log((raw_prev + epsilon) / (1 - raw_prev + epsilon))
-                smoothed_logit = gaussian_filter1d(logit_prev, sigma=window_size)
-                prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
-            else:
-                # Smooth on probability scale (more intuitive)
-                # Clamp to avoid negative values
-                raw_prev = np.clip(raw_prev, 1e-8, 1 - 1e-8)
-                smoothed_prev = gaussian_filter1d(raw_prev, sigma=window_size)
-                prevalence_t[d, :] = np.clip(smoothed_prev, 0, 1)
+        if smooth_on_logit:
+            # Smooth on logit scale (matches original cluster_g.py)
+            # Better for rare events, preserves relative differences
+            epsilon = 1e-8
+            logit_prev = np.log((raw_prev + epsilon) / (1 - raw_prev + epsilon))
+            smoothed_logit = gaussian_filter1d(logit_prev, sigma=window_size)
+            prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
+        else:
+            # Smooth on probability scale (more intuitive)
+            # Clamp to avoid negative values
+            raw_prev = np.clip(raw_prev, 1e-8, 1 - 1e-8)
+            smoothed_prev = gaussian_filter1d(raw_prev, sigma=window_size)
+            prevalence_t[d, :] = np.clip(smoothed_prev, 0, 1)
     
     return prevalence_t
 
