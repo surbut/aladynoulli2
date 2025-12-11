@@ -127,7 +127,7 @@ The Aladynoulli workflow consists of **4 main steps**:
 3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
 4. **Prediction**: Run predictions using master checkpoint
 
-For detailed step-by-step instructions, see the [Complete Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
+For detailed step-by-step instructions, see the [Complete Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md)
 
 ---
 
@@ -199,9 +199,8 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | Component | File | Description |
 |-----------|------|-------------|
 | **Discovery Model** | [clust_huge_amp_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py) | Full model that learns phi and psi |
-| **Prediction Model** | [clust_huge_amp_fixedPhi.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) | Fixed-phi model for fast predictions |
-| **Discovery Notebook** | [aladynoulli_fit_for_understanding_and_discovery.ipynb](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb) | Interactive discovery mode |
-| **Prediction Notebook** | [aladynoulli_fit_for_prediction.ipynb](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb) | Interactive prediction mode |
+| **Prediction Model** | [clust_huge_amp_fixedPhi_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) | Fixed-phi model for fast predictions |
+
 
 ### Workflow Scripts
 
