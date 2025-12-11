@@ -11,7 +11,7 @@ import torch
 
 # Import preprocessing utilities
 from preprocessing_utils import (
-    compute_smoothed_prevalence,
+    compute_smoothed_prevalence_at_risk,
     create_initial_clusters_and_psi,
     create_reference_trajectories
 )
@@ -26,7 +26,7 @@ K = 20  # Number of signatures
 # Step 1: Compute prevalence (with at-risk filtering)
 # ============================================================================
 # IMPORTANT: Always pass E_corrected for proper prevalence computation
-prevalence_t = compute_smoothed_prevalence(Y, E_corrected=E_corrected, window_size=5, smooth_on_logit=True)
+prevalence_t = compute_smoothed_prevalence_at_risk(Y, E_corrected, window_size=5, smooth_on_logit=True)
 print(f"✓ Prevalence shape: {prevalence_t.shape}")
 
 # ============================================================================
