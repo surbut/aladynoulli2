@@ -118,17 +118,26 @@
 <div data-align="center">
 <p><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a> <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+" /></a> <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-1.9+-red.svg" alt="PyTorch" /></a></p>
 <p><strong>A Bayesian Survival Model for Disease Trajectory Prediction</strong></p>
-<p><a href="https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1">Preprint</a> • <a href="../">GitHub Repository</a> • <a href="#-quick-start">Quick Start</a></p>
+<p><a href="https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1">Preprint</a> • <a href="../">GitHub Repository</a></p>
 </div>
+<hr />
+<h2 id="how-to-use-this-documentation">📋 How to Use This Documentation</h2>
+<p>This documentation is organized into <strong>four main sections</strong> for reviewers:</p>
+<ol type="1">
+<li><strong><a href="#️-model-architecture">Model Architecture</a></strong> - Understand how the model works: core components, mathematical framework, and key concepts</li>
+<li><strong><a href="#-reviewer-response-analyses">Reviewer Response Analyses</a></strong> - Interactive analyses addressing all reviewer questions, organized by referee</li>
+<li><strong><a href="#-complete-workflow">Complete Workflow</a></strong> - Step-by-step guide to running the model: preprocessing, training, and prediction</li>
+<li><strong><a href="#-performance--scalability">Performance &amp; Scalability</a></strong> - Computational requirements and scaling characteristics</li>
+</ol>
+<p><strong>Note</strong>: Installation instructions are not required for reviewers. A pre-configured environment will be provided for running the code.</p>
 <hr />
 <h2 id="table-of-contents">📖 Table of Contents</h2>
 <ul>
+<li><a href="#-how-to-use-this-documentation">How to Use This Documentation</a></li>
 <li><a href="#-overview">Overview</a></li>
-<li><a href="#-quick-start">Quick Start</a></li>
 <li><a href="#️-model-architecture">Model Architecture</a></li>
-<li><a href="#-complete-workflow">Complete Workflow</a></li>
 <li><a href="#-reviewer-response-analyses">Reviewer Response Analyses</a></li>
-<li><a href="#-documentation">Documentation</a></li>
+<li><a href="#-complete-workflow">Complete Workflow</a></li>
 <li><a href="#-performance--scalability">Performance &amp; Scalability</a></li>
 <li><a href="#-citation">Citation</a></li>
 </ul>
@@ -178,32 +187,6 @@
 </tbody>
 </table>
 <hr />
-<h2 id="quick-start">🚀 Quick Start</h2>
-<h3 id="installation">Installation</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/surbut/aladynoulli2.git</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> aladynoulli2</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span></code></pre></div>
-<h3 id="system-requirements">System Requirements</h3>
-<ul>
-<li><strong>Python</strong>: 3.8 or higher</li>
-<li><strong>RAM</strong>: 8GB minimum, 16GB+ recommended for batch training (10K individuals)</li>
-<li><strong>Storage</strong>: 5GB free space</li>
-<li><strong>CPU</strong>: Multi-core processor (4+ cores recommended); PyTorch automatically parallelizes across cores</li>
-<li><strong>GPU</strong>: Optional (not required; model runs efficiently on CPU)</li>
-</ul>
-<h3 id="package-installation">Package Installation</h3>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create virtual environment (recommended)</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> venv aladyn_env</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> aladyn_env/bin/activate  <span class="co"># On Windows: aladyn_env\Scripts\activate</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Upgrade pip</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">--upgrade</span> pip</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Install required packages</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install torch numpy pandas scipy scikit-learn matplotlib seaborn statsmodels</span></code></pre></div>
-<p><strong>Package Details:</strong> - <strong>torch</strong>: PyTorch for tensor operations and automatic differentiation - <strong>numpy</strong>: Numerical computing - <strong>pandas</strong>: Data manipulation - <strong>scipy</strong>: Scientific computing (optimization, statistics) - <strong>scikit-learn</strong>: Machine learning utilities - <strong>matplotlib/seaborn</strong>: Plotting and visualization - <strong>statsmodels</strong>: Statistical modeling</p>
-<p>For detailed installation instructions, see the <a href="https://github.com/surbut/aladynoulli2/blob/main/README.md">main README</a> or <a href="https://github.com/surbut/aladynoulli2/blob/main/INSTALLATION.md">INSTALLATION.md</a> (if available).</p>
-<hr />
 <h2 id="model-architecture">🏗️ Model Architecture</h2>
 <h3 id="core-components">Core Components</h3>
 <ol type="1">
@@ -216,22 +199,15 @@
 <h3 id="mathematical-framework">Mathematical Framework</h3>
 <p>The model predicts disease probability at time <code>t</code> as:</p>
 <pre><code>π_i,d,t = κ × Σ_k θ_i,k,t × φ_k,d,t</code></pre>
-<p>Where: - <code>θ_i,k,t</code> = softmax(λ_i,k,t) (signature proportions) - <code>λ_i,k,t</code> ~ GP(μ_k + G_i γ_k, K_λ) (temporal dynamics) - <code>φ_k,d,t</code> = sigmoid(ψ_k,d + GP(μ_φ, K_φ)) (disease probabilities)</p>
-<hr />
-<h2 id="complete-workflow">💻 Complete Workflow</h2>
-<p>The Aladynoulli workflow consists of <strong>4 main steps</strong>:</p>
-<ol type="1">
-<li><strong>Preprocessing</strong>: Create smoothed prevalence, initial clusters, and reference trajectories</li>
-<li><strong>Batch Training</strong>: Train models on data batches with full E matrix</li>
-<li><strong>Master Checkpoint</strong>: Generate pooled checkpoint (phi and psi)</li>
-<li><strong>Prediction</strong>: Run predictions using master checkpoint</li>
-</ol>
-<p>For detailed step-by-step instructions, see the <a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md">Complete Workflow Guide</a></p>
+<p>Where: - <code>θ_i,k,t</code> = softmax(λ_i,k,t) (signature proportions) - <code>λ_i,k,t</code> ~ GP(μ_k + G_i γ_k, K_λ) (temporal dynamics) - <code>φ_k,d,t</code> = sigmoid(μ_d+ψ_k,d, K_φ) (disease probabilities)</p>
 <hr />
 <h2 id="reviewer-response-analyses">📊 Reviewer Response Analyses</h2>
-<p>Comprehensive interactive analyses addressing reviewer questions and model validation:</p>
+<p>Comprehensive interactive analyses addressing reviewer questions and model validation.</p>
 <h3 id="navigation-hub">📚 Navigation Hub</h3>
-<p><strong><a href="reviewer_responses/README.html">Reviewer Response README</a></strong> - Complete guide to all interactive analyses</p>
+<ul>
+<li><strong><a href="reviewer_responses/README.html">Reviewer Response README</a></strong> - Complete guide to all interactive analyses</li>
+<li><strong><a href="https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html">Framework Overview</a></strong> - Discovery vs prediction framework (essential reading)</li>
+</ul>
 <h3 id="analysis-categories">🔬 Analysis Categories</h3>
 <h4 id="referee-1-analyses"><strong>Referee #1 Analyses</strong></h4>
 <table>
@@ -419,7 +395,15 @@
 </tr>
 </tbody>
 </table>
-<h4 id="framework-preprocessing"><strong>Framework &amp; Preprocessing</strong></h4>
+<h2 id="complete-workflow">💻 Complete Workflow</h2>
+<p>The Aladynoulli workflow consists of <strong>4 main steps</strong>:</p>
+<ol type="1">
+<li><strong>Preprocessing</strong>: Create smoothed prevalence, initial clusters, and reference trajectories</li>
+<li><strong>Batch Training</strong>: Train models on data batches with full E matrix</li>
+<li><strong>Master Checkpoint</strong>: Generate pooled checkpoint (phi and psi)</li>
+<li><strong>Prediction</strong>: Run predictions using master checkpoint</li>
+</ol>
+<h3 id="essential-resources">Essential Resources</h3>
 <table>
 <colgroup>
 <col style="width: 34%" />
@@ -440,14 +424,17 @@
 <td><a href="https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html">Discovery_Prediction_Framework_Overview.html</a></td>
 </tr>
 <tr>
-<td><strong>Preprocessing</strong></td>
+<td><strong>Complete Workflow Guide</strong></td>
+<td>Detailed step-by-step instructions</td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md">WORKFLOW.md</a></td>
+</tr>
+<tr>
+<td><strong>Preprocessing Guide</strong></td>
 <td>Preprocessing file creation guide</td>
 <td><a href="https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html">create_preprocessing_files.html</a></td>
 </tr>
 </tbody>
 </table>
-<hr />
-<h2 id="documentation">📚 Documentation</h2>
 <h3 id="core-model-files">Core Model Files</h3>
 <table>
 <colgroup>
@@ -519,15 +506,16 @@
 <p><strong>Scaling:</strong> - <strong>Full UK Biobank (400K individuals)</strong>: Processed in 39 batches of ~10K each - <strong>Total training time</strong>: ~5-7 hours for all batches (can be parallelized) - <strong>Memory scales linearly</strong>: ~8GB per 10K batch</p>
 <p><strong>Why it’s fast:</strong> - Vectorized PyTorch operations (batched matrix decompositions) - BLAS Level 3 operations for efficient linear algebra - ~100-fold speedup compared to loop-based implementation</p>
 <hr />
+<hr />
 <h2 id="citation">📝 Citation</h2>
 <p>If you use Aladynoulli in your research, please cite:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">aladynoulli2024</span>,</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>={Sur, P. and others},</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span>={medRxiv},</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>={2024},</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">doi</span>={10.1101/2024.09.29.24314557}</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">aladynoulli2024</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>={Sur, P. and others},</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span>={medRxiv},</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>={2024},</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">doi</span>={10.1101/2024.09.29.24314557}</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="contact">📧 Contact</h2>
 <p>For questions or issues, please open an issue on <a href="https://github.com/surbut/aladynoulli2/issues">GitHub</a>.</p>

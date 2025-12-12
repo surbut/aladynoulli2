@@ -8,27 +8,32 @@
 
 **A Bayesian Survival Model for Disease Trajectory Prediction**
 
-
-How to use this resource:
-
-* Responsees to reviers
-* software scripts
-* get the table of contents
-
-[Preprint](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1) • [GitHub Repository](../) • [Quick Start](#-quick-start)
+[Preprint](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1) • [GitHub Repository](../)
 
 </div>
 
 ---
 
+## 📋 How to Use This Documentation
+
+This documentation is organized into **four main sections** for reviewers:
+
+1. **[Model Architecture](#️-model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
+2. **[Reviewer Response Analyses](#-reviewer-response-analyses)** - Interactive analyses addressing all reviewer questions, organized by referee
+3. **[Complete Workflow](#-complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
+4. **[Performance & Scalability](#-performance--scalability)** - Computational requirements and scaling characteristics
+
+**Note**: Installation instructions are not required for reviewers. A pre-configured environment will be provided for running the code.
+
+---
+
 ## 📖 Table of Contents
 
+- [How to Use This Documentation](#-how-to-use-this-documentation)
 - [Overview](#-overview)
-- [Quick Start](#-quick-start)
 - [Model Architecture](#️-model-architecture)
-- [Complete Workflow](#-complete-workflow)
 - [Reviewer Response Analyses](#-reviewer-response-analyses)
-- [Documentation](#-documentation)
+- [Complete Workflow](#-complete-workflow)
 - [Performance & Scalability](#-performance--scalability)
 - [Citation](#-citation)
 
@@ -55,50 +60,6 @@ How to use this resource:
 
 ---
 
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-git clone https://github.com/surbut/aladynoulli2.git
-cd aladynoulli2
-pip install -r requirements.txt
-```
-
-### System Requirements
-
-- **Python**: 3.8 or higher
-- **RAM**: 8GB minimum, 16GB+ recommended for batch training (10K individuals)
-- **Storage**: 5GB free space
-- **CPU**: Multi-core processor (4+ cores recommended); PyTorch automatically parallelizes across cores
-- **GPU**: Optional (not required; model runs efficiently on CPU)
-
-### Package Installation
-
-```bash
-# Create virtual environment (recommended)
-python3 -m venv aladyn_env
-source aladyn_env/bin/activate  # On Windows: aladyn_env\Scripts\activate
-
-# Upgrade pip
-pip install --upgrade pip
-
-# Install required packages
-pip install torch numpy pandas scipy scikit-learn matplotlib seaborn statsmodels
-```
-
-**Package Details:**
-- **torch**: PyTorch for tensor operations and automatic differentiation
-- **numpy**: Numerical computing
-- **pandas**: Data manipulation
-- **scipy**: Scientific computing (optimization, statistics)
-- **scikit-learn**: Machine learning utilities
-- **matplotlib/seaborn**: Plotting and visualization
-- **statsmodels**: Statistical modeling
-
-For detailed installation instructions, see the [main README](https://github.com/surbut/aladynoulli2/blob/main/README.md) or [INSTALLATION.md](https://github.com/surbut/aladynoulli2/blob/main/INSTALLATION.md) (if available).
-
----
 
 ## 🏗️ Model Architecture
 
@@ -121,30 +82,19 @@ The model predicts disease probability at time `t` as:
 Where:
 - `θ_i,k,t` = softmax(λ_i,k,t) (signature proportions)
 - `λ_i,k,t` ~ GP(μ_k + G_i γ_k, K_λ) (temporal dynamics)
-- `φ_k,d,t` = sigmoid(ψ_k,d + GP(μ_φ, K_φ)) (disease probabilities)
+- `φ_k,d,t` = sigmoid(μ_d+ψ_k,d, K_φ) (disease probabilities)
 
 ---
 
-## 💻 Complete Workflow
-
-The Aladynoulli workflow consists of **4 main steps**:
-
-1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
-2. **Batch Training**: Train models on data batches with full E matrix
-3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
-4. **Prediction**: Run predictions using master checkpoint
-
-For detailed step-by-step instructions, see the [Complete Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md)
-
----
 
 ## 📊 Reviewer Response Analyses
 
-Comprehensive interactive analyses addressing reviewer questions and model validation:
+Comprehensive interactive analyses addressing reviewer questions and model validation.
 
 ### 📚 Navigation Hub
 
-**[Reviewer Response README](reviewer_responses/README.html)** - Complete guide to all interactive analyses
+- **[Reviewer Response README](reviewer_responses/README.html)** - Complete guide to all interactive analyses
+- **[Framework Overview](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html)** - Discovery vs prediction framework (essential reading)
 
 ### 🔬 Analysis Categories
 
@@ -190,16 +140,23 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | **Heterogeneity (Continued)** | Complete pathway analysis demonstrating biological heterogeneity | [R3_Q8_Heterogeneity_Continued.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_Continued.html) |
 | **Cross-Cohort Similarity** | Cross-cohort signature correspondence analysis | [R3_Cross_Cohort_Similarity.html](reviewer_responses/notebooks/R3/R3_Cross_Cohort_Similarity.html) |
 
-#### **Framework & Preprocessing**
+
+## 💻 Complete Workflow
+
+The Aladynoulli workflow consists of **4 main steps**:
+
+1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
+2. **Batch Training**: Train models on data batches with full E matrix
+3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
+4. **Prediction**: Run predictions using master checkpoint
+
+### Essential Resources
 
 | Resource | Description | Link |
 |----------|-------------|------|
 | **Framework Overview** | **Discovery vs prediction framework - Essential reading** | [Discovery_Prediction_Framework_Overview.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) |
-| **Preprocessing** | Preprocessing file creation guide | [create_preprocessing_files.html](https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html) |
-
----
-
-## 📚 Documentation
+| **Complete Workflow Guide** | Detailed step-by-step instructions | [WORKFLOW.md](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) |
+| **Preprocessing Guide** | Preprocessing file creation guide | [create_preprocessing_files.html](https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html) |
 
 ### Core Model Files
 
@@ -207,7 +164,6 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 |-----------|------|-------------|
 | **Discovery Model** | [clust_huge_amp_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py) | Full model that learns phi and psi |
 | **Prediction Model** | [clust_huge_amp_fixedPhi_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) | Fixed-phi model for fast predictions |
-
 
 ### Workflow Scripts
 
@@ -239,6 +195,10 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 - Vectorized PyTorch operations (batched matrix decompositions)
 - BLAS Level 3 operations for efficient linear algebra
 - ~100-fold speedup compared to loop-based implementation
+
+---
+
+
 
 ---
 
