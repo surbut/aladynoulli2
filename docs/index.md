@@ -18,7 +18,7 @@
 
 This documentation is organized into **four main sections** for reviewers:
 
-1. **[Model Architecture](#️-model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
+1. **[Model Architecture](#-model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
 2. **[Reviewer Response Analyses](#-reviewer-response-analyses)** - Interactive analyses addressing all reviewer questions, organized by referee
 3. **[Complete Workflow](#-complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
 4. **[Performance & Scalability](#-performance--scalability)** - Computational requirements and scaling characteristics
@@ -31,7 +31,7 @@ This documentation is organized into **four main sections** for reviewers:
 
 - [How to Use This Documentation](#-how-to-use-this-documentation)
 - [Overview](#-overview)
-- [Model Architecture](#️-model-architecture)
+- [Model Architecture](#-model-architecture)
 - [Reviewer Response Analyses](#-reviewer-response-analyses)
 - [Complete Workflow](#-complete-workflow)
 - [Performance & Scalability](#-performance--scalability)
@@ -111,7 +111,7 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | **Biological Plausibility** | CHIP analysis and biological validation | [R1_Biological_Plausibility_CHIP.html](reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html) |
 | **LOO Validation** | Leave-one-out cross-validation robustness | [R1_Robustness_LOO_Validation.html](reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html) |
 | **Selection Bias** | Assessment of selection bias and participation | [R1_Q1_Selection_Bias.html](reviewer_responses/notebooks/R1/R1_Q1_Selection_Bias.html) |
-| **Clinical Meaning** | ICD vs PheCode comparison and clinical interpretation | [R1_Q3_Clinical_Meaning.html](reviewer_responses/notebooks/R1/R1_Q3_Clinical_Meaning.html) |
+| **Clinical Meaning** | Analysis of Familial hypercholesterolemia patients | [R1_Q3_Clinical_Meaning.html](reviewer_responses/notebooks/R1/R1_Q3_Clinical_Meaning.html) |
 | **ICD vs PheCode** | Detailed comparison of coding systems | [R1_Q3_ICD_vs_PheCode_Comparison.html](reviewer_responses/notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html) |
 | **Competing Risks** | Multi-disease patterns and competing risks | [R1_Multi_Disease_Patterns_Competing_Risks.html](reviewer_responses/notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html) |
 
@@ -119,7 +119,7 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 | Analysis | Description | Link |
 |----------|-------------|------|
-| **Temporal Leakage** | Washout analysis and temporal leakage assessment | [R2_Temporal_Leakage.html](reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html) |
+| **Temporal Leakage** | Assessment of temporal leakage and prediction accuracy | [R2_Temporal_Leakage.html](reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html) |
 | **Washout Comparisons** | Multi-approach washout analysis (time horizon, floating prediction, fixed timepoint) | [R2_Washout_Comparisons.html](reviewer_responses/notebooks/R2/R2_Washout_Comparisons.html) |
 | **Delphi Phecode Mapping** | Principled Delphi comparison using Phecode-based ICD mapping | [R2_Delphi_Phecode_Mapping.html](reviewer_responses/notebooks/R2/R2_Delphi_Phecode_Mapping.html) |
 | **Model Validity** | Model learning and validity assessment | [R2_R3_Model_Validity_Learning.html](reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html) |
