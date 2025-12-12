@@ -43,7 +43,7 @@ def load_external_scores_comparison():
 def plot_external_scores_comparison(df, output_dir):
     """Plot external scores comparison."""
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Aladynoulli vs External Risk Scores\n10-Year Predictions', 
+    fig.suptitle('Aladynoulli vs External Risk Scores\n10-Year and 1-Year Predictions', 
                  fontsize=16, fontweight='bold')
     
     # 1. ASCVD: Aladynoulli vs PCE vs QRISK3 vs PREVENT
@@ -81,11 +81,20 @@ def plot_external_scores_comparison(df, output_dir):
             ci_lowers.append(ascvd_row.get('QRISK3_CI_lower', np.nan))
             ci_uppers.append(ascvd_row.get('QRISK3_CI_upper', np.nan))
         
-        if 'PREVENT_AUC' in df.columns and pd.notna(ascvd_row.get('PREVENT_AUC', np.nan)):
+        # Check for PREVENT (could be PREVENT_AUC or PREVENT_10yr_AUC)
+        prevent_col = None
+        if 'PREVENT_10yr_AUC' in df.columns and pd.notna(ascvd_row.get('PREVENT_10yr_AUC', np.nan)):
+            prevent_col = 'PREVENT_10yr_AUC'
+        elif 'PREVENT_AUC' in df.columns and pd.notna(ascvd_row.get('PREVENT_AUC', np.nan)):
+            prevent_col = 'PREVENT_AUC'
+        
+        if prevent_col:
             models.append('PREVENT')
-            aucs.append(ascvd_row['PREVENT_AUC'])
-            ci_lowers.append(ascvd_row.get('PREVENT_CI_lower', np.nan))
-            ci_uppers.append(ascvd_row.get('PREVENT_CI_upper', np.nan))
+            aucs.append(ascvd_row[prevent_col])
+            ci_lower_col = prevent_col.replace('_AUC', '_CI_lower')
+            ci_upper_col = prevent_col.replace('_AUC', '_CI_upper')
+            ci_lowers.append(ascvd_row.get(ci_lower_col, np.nan))
+            ci_uppers.append(ascvd_row.get(ci_upper_col, np.nan))
         
         if models:
             x_pos = np.arange(len(models))
@@ -179,10 +188,66 @@ def plot_external_scores_comparison(df, output_dir):
         ax.text(0.5, 0.5, 'Breast Cancer data not found', ha='center', va='center', transform=ax.transAxes)
         ax.set_title('Breast Cancer (10-year)', fontsize=12, fontweight='bold')
     
-    # 3. Keep third plot for other comparisons (or remove if not needed)
+    # 3. Breast Cancer 1-year: Aladynoulli (washout 0yr) vs Gail (1-year) - both women only
     ax = axes[1, 0]
-    ax.text(0.5, 0.5, 'Additional comparison\n(if needed)', ha='center', va='center', transform=ax.transAxes)
-    ax.set_title('Additional Comparison', fontsize=12, fontweight='bold')
+    breast_1yr_rows = df[df.index.str.contains('Breast_Cancer_1yr', na=False)]
+    
+    if len(breast_1yr_rows) > 0:
+        breast_1yr_row = breast_1yr_rows.iloc[0]
+        
+        models = []
+        aucs = []
+        ci_lowers = []
+        ci_uppers = []
+        
+        if 'Aladynoulli_AUC' in df.columns and pd.notna(breast_1yr_row.get('Aladynoulli_AUC', np.nan)):
+            models.append('Aladynoulli\n(washout 0yr)')
+            aucs.append(breast_1yr_row['Aladynoulli_AUC'])
+            ci_lowers.append(breast_1yr_row.get('Aladynoulli_CI_lower', np.nan))
+            ci_uppers.append(breast_1yr_row.get('Aladynoulli_CI_upper', np.nan))
+        
+        if 'Gail_AUC' in df.columns and pd.notna(breast_1yr_row.get('Gail_AUC', np.nan)):
+            models.append('GAIL\n(1-year)')
+            aucs.append(breast_1yr_row['Gail_AUC'])
+            ci_lowers.append(breast_1yr_row.get('Gail_CI_lower', np.nan))
+            ci_uppers.append(breast_1yr_row.get('Gail_CI_upper', np.nan))
+        
+        if models:
+            x_pos = np.arange(len(models))
+            colors = ['#e74c3c' if 'Aladynoulli' in m else '#9b59b6' for m in models]
+            bars = ax.bar(x_pos, aucs, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+            
+            errors_lower = [aucs[i] - ci_lowers[i] for i in range(len(models))]
+            errors_upper = [ci_uppers[i] - aucs[i] for i in range(len(models))]
+            ax.errorbar(x_pos, aucs, yerr=[errors_lower, errors_upper], 
+                       fmt='none', color='black', capsize=5, capthick=2)
+            
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(models, fontsize=10)
+            ax.set_ylabel('AUC', fontsize=11)
+            ax.set_title('Breast Cancer (1-year, Women Only)', 
+                        fontsize=12, fontweight='bold')
+            ax.set_ylim(0.50, max(aucs) * 1.05)
+            ax.grid(axis='y', alpha=0.3)
+            
+            for i, (bar, auc) in enumerate(zip(bars, aucs)):
+                ax.text(bar.get_x() + bar.get_width()/2., auc + errors_upper[i] + 0.003,
+                        f'{auc:.3f}',
+                        ha='center', va='bottom', fontsize=9, fontweight='bold')
+            
+            # Add note about comparison
+            if len(models) == 2:
+                diff = aucs[0] - aucs[1]
+                ax.text(0.5, 0.05, f'Difference: {diff:+.3f}\n(Both use women only)', 
+                       transform=ax.transAxes, ha='center',
+                       bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5),
+                       fontsize=9, fontweight='bold')
+        else:
+            ax.text(0.5, 0.5, 'No data available', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title('Breast Cancer (1-year)', fontsize=12, fontweight='bold')
+    else:
+        ax.text(0.5, 0.5, 'Breast Cancer 1-year data not found', ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('Breast Cancer (1-year)', fontsize=12, fontweight='bold')
     
     # 4. Summary table
     ax = axes[1, 1]
@@ -192,21 +257,23 @@ def plot_external_scores_comparison(df, output_dir):
     COMPARISON SUMMARY:
     
     ASCVD (10-year):
-    • Aladynoulli outperforms PCE, QRISK3, and PREVENT
+    • Aladynoulli vs PCE, QRISK3, PREVENT
+    • Aladynoulli outperforms all three
     
     Breast Cancer (10-year):
-    • Women Only: Aladynoulli vs Gail (fair comparison)
-      - Both models apply to women
-      - Direct head-to-head comparison
+    • Aladynoulli (Full Population) vs Gail (Women Only)
+    • Shows Aladynoulli's ability to predict
+      breast cancer risk in both sexes
     
-    • All Patients: Aladynoulli only
-      - Gail model doesn't apply to men
-      - Shows Aladynoulli's ability to predict
-        breast cancer risk in both sexes
+    Breast Cancer (1-year):
+    • Aladynoulli (washout 0yr) vs Gail (1-year)
+    • Both use women only (fair comparison)
+    • Direct head-to-head comparison
     
-    NOTE: Gail comparison is fairest when limited
-    to women only, as Gail was specifically designed
-    for breast cancer risk prediction in women.
+    NOTE: Gail comparisons are fairest when
+    limited to women only, as Gail was
+    specifically designed for breast cancer
+    risk prediction in women.
     """
     
     ax.text(0.05, 0.95, summary_text,
