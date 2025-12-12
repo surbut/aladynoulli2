@@ -502,6 +502,150 @@ def evaluate_breast_cancer_comparison(pi_full, Y_full, E_full, gail_df, disease_
     
     return results
 
+def evaluate_breast_cancer_1yr_comparison(pi_full, Y_full, E_full, gail_df, disease_names, approach_name, washout_results_path, n_bootstraps=100):
+    """
+    Compare Aladynoulli 1-year predictions (from washout 0yr) with Gail 1-year model for Breast Cancer.
+    - For females only: Compare with Gail 1-year model (`Gail_absRisk_oneyr`)
+    - Uses pre-computed washout 0yr results for our model's performance (which are for women only)
+    - Evaluates Gail 1-year scores on the same female population
+    """
+    print("\n" + "="*80)
+    print("BREAST CANCER 1-YEAR COMPARISON: Aladynoulli (washout 0yr, women only) vs Gail Model (1yr, women only)")
+    print("="*80)
+    
+    # Load washout 0yr results (our model's 1-year performance for women only)
+    washout_results = pd.read_csv(washout_results_path)
+    breast_row = washout_results[washout_results['Disease'] == 'Breast_Cancer']
+    
+    if len(breast_row) == 0:
+        print("Warning: Breast_Cancer not found in washout results. Skipping 1-year comparison.")
+        return {}
+    
+    our_auc_1yr = breast_row.iloc[0]['AUC']
+    our_ci_lower_1yr = breast_row.iloc[0]['CI_lower']
+    our_ci_upper_1yr = breast_row.iloc[0]['CI_upper']
+    n_events_1yr = breast_row.iloc[0]['N_Events']
+    
+    print(f"\nLoaded washout 0yr results (women only):")
+    print(f"  Aladynoulli 1-year AUC: {our_auc_1yr:.4f} ({our_ci_lower_1yr:.4f}-{our_ci_upper_1yr:.4f})")
+    print(f"  N events: {n_events_1yr}")
+    
+    breast_indices = []
+    breast_diseases = ['Breast cancer [female]', 'Malignant neoplasm of female breast']
+    for disease in breast_diseases:
+        indices = [i for i, name in enumerate(disease_names) if disease.lower() in name.lower()]
+        breast_indices.extend(indices)
+    breast_indices = list(set(breast_indices))
+    
+    # Cap at 400K
+    MAX_PATIENTS = 400000
+    pi_full = pi_full[:MAX_PATIENTS]
+    Y_full = Y_full[:MAX_PATIENTS]
+    E_full = E_full[:MAX_PATIENTS]
+    
+    # Match Gail data with our data
+    gail_df_subset = gail_df.iloc[:MAX_PATIENTS].reset_index(drop=True)
+    
+    # Filter to females only
+    if 'Sex' in gail_df_subset.columns:
+        female_mask = gail_df_subset['Sex'] == 'Female'
+    elif 'sex' in gail_df_subset.columns:
+        female_mask = gail_df_subset['sex'] == 0  # Assuming 0=Female
+    else:
+        print("Warning: Could not find Sex column. Using all patients.")
+        female_mask = pd.Series(True, index=gail_df_subset.index)
+    
+    print(f"\nFemale patients: {female_mask.sum()}/{len(gail_df_subset)}")
+    
+    # Check if Gail_absRisk_oneyr column exists
+    if 'Gail_absRisk_oneyr' not in gail_df_subset.columns:
+        print("Warning: 'Gail_absRisk_oneyr' column not found. Skipping 1-year comparison.")
+        return {}
+    
+    # Collect Gail 1-year scores and outcomes for females only
+    gail_1yr_scores = []
+    actual_1yr = []
+    gail_indices = []
+    
+    for i in range(len(gail_df_subset)):
+        if not female_mask.iloc[i]:
+            continue
+        
+        # Check for Gail 1-year score
+        gail_val = gail_df_subset.iloc[i].get('Gail_absRisk_oneyr', np.nan)
+        if pd.isna(gail_val):
+            continue
+        
+        # Convert from percentage to probability if needed
+        if gail_val > 1:
+            gail_val = gail_val / 100
+        
+        # Get enrollment age
+        enroll_age = None
+        if 'T1' in gail_df_subset.columns:
+            t1_val = gail_df_subset.iloc[i]['T1']
+            if not pd.isna(t1_val):
+                enroll_age = t1_val
+        
+        if enroll_age is None and 'age' in gail_df_subset.columns:
+            enroll_age = gail_df_subset.iloc[i]['age']
+        
+        if enroll_age is None or pd.isna(enroll_age):
+            continue
+        
+        t_enroll = int(enroll_age - 30)
+        if t_enroll < 0 or t_enroll >= Y_full.shape[2]:
+            continue
+        
+        # Check for actual 1-year event (washout 0yr = prediction at enrollment, outcome in next year)
+        end_time_1yr = min(t_enroll + 1, Y_full.shape[2])
+        event_1yr = False
+        for d_idx in breast_indices:
+            if d_idx >= Y_full.shape[1]:
+                continue
+            if torch.any(Y_full[i, d_idx, t_enroll:end_time_1yr] > 0):
+                event_1yr = True
+                break
+        
+        gail_1yr_scores.append(gail_val)
+        actual_1yr.append(1 if event_1yr else 0)
+        gail_indices.append(i)
+    
+    results = {}
+    
+    if len(gail_1yr_scores) > 0:
+        gail_1yr_scores = np.array(gail_1yr_scores)
+        actual_1yr = np.array(actual_1yr)
+        
+        # Calculate Gail 1-year AUC
+        gail_auc_1yr, gail_ci_lower_1yr, gail_ci_upper_1yr = bootstrap_auc_ci(
+            actual_1yr, gail_1yr_scores, n_bootstraps
+        )
+        
+        results['Breast_Cancer_1yr'] = {
+            'Aladynoulli_AUC': our_auc_1yr,  # From washout 0yr (women only)
+            'Aladynoulli_CI_lower': our_ci_lower_1yr,
+            'Aladynoulli_CI_upper': our_ci_upper_1yr,
+            'Gail_AUC': gail_auc_1yr,  # Women only, 1-year
+            'Gail_CI_lower': gail_ci_lower_1yr,
+            'Gail_CI_upper': gail_ci_upper_1yr,
+            'Difference': our_auc_1yr - gail_auc_1yr,
+            'N_patients': len(gail_1yr_scores),  # Women with valid Gail scores
+            'N_events': actual_1yr.sum(),
+            'Note': 'Both Aladynoulli (washout 0yr) and Gail use women only'
+        }
+        
+        print(f"\n1-YEAR BREAST CANCER PREDICTION (WOMEN ONLY):")
+        print(f"  Aladynoulli (washout 0yr): {our_auc_1yr:.4f} ({our_ci_lower_1yr:.4f}-{our_ci_upper_1yr:.4f})")
+        print(f"  Gail (1-year):            {gail_auc_1yr:.4f} ({gail_ci_lower_1yr:.4f}-{gail_ci_upper_1yr:.4f})")
+        print(f"  Difference:               {our_auc_1yr - gail_auc_1yr:+.4f}")
+        print(f"  N patients (Gail):        {len(gail_1yr_scores)}")
+        print(f"  N events (Gail):          {actual_1yr.sum()}")
+    else:
+        print("\nNo valid Gail 1-year scores found!")
+    
+    return results
+
 def main():
     parser = argparse.ArgumentParser(description='Compare Aladynoulli with external risk scores')
     parser.add_argument('--approach', type=str, required=True,
@@ -562,6 +706,12 @@ def main():
         print(f"Warning: Missing columns in external scores file: {missing_cols}")
         print(f"Available columns: {list(pce_df.columns)}")
     
+    # Check for optional Gail 1-year column
+    if 'Gail_absRisk_oneyr' in pce_df.columns:
+        print(f"Found Gail_absRisk_oneyr column - will perform 1-year comparison")
+    else:
+        print(f"Note: Gail_absRisk_oneyr column not found - skipping 1-year comparison")
+    
     # For backward compatibility, also check old column names
     if 'pce_goff_imputed' not in pce_df.columns and 'pce_goff_fuull' in pce_df.columns:
         pce_df['pce_goff_imputed'] = pce_df['pce_goff_fuull']
@@ -605,6 +755,23 @@ def main():
         all_results.update(breast_results)
     else:
         print("\nWarning: Gail_absRisk column not found. Skipping Breast Cancer comparison.")
+    
+    # Breast Cancer 1-year comparison (using washout 0yr results)
+    washout_results_path = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/washout') / approach_name / 'washout_0yr_results.csv'
+    if washout_results_path.exists() and 'Gail_absRisk_oneyr' in pce_df.columns:
+        print("\n" + "="*80)
+        print("ADDING 1-YEAR BREAST CANCER COMPARISON")
+        print("="*80)
+        breast_1yr_results = evaluate_breast_cancer_1yr_comparison(
+            pi_full, Y_full, E_full, pce_df, disease_names, approach_name, 
+            washout_results_path, args.n_bootstraps
+        )
+        all_results.update(breast_1yr_results)
+    else:
+        if not washout_results_path.exists():
+            print(f"\nWarning: Washout results not found at {washout_results_path}. Skipping 1-year comparison.")
+        if 'Gail_absRisk_oneyr' not in pce_df.columns:
+            print("\nWarning: Gail_absRisk_oneyr column not found. Skipping 1-year comparison.")
     
     # Save results
     results_df = pd.DataFrame(all_results).T

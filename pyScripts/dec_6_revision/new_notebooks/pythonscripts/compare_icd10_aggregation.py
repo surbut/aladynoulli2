@@ -14,43 +14,59 @@ plt.rcParams['figure.dpi'] = 100
 plt.rcParams['savefig.dpi'] = 300
 
 # Major diseases and their phenotype names (from fig5utils.py
-major_diseases = {
-        'ASCVD': ['Myocardial infarction', 'Coronary atherosclerosis', 'Other acute and subacute forms of ischemic heart disease', 
-                  'Unstable angina (intermediate coronary syndrome)', 'Angina pectoris', 'Other chronic ischemic heart disease, unspecified'],
-        'Diabetes': ['Type 2 diabetes'],
-        'Atrial_Fib': ['Atrial fibrillation and flutter'],
-        'CKD': ['Chronic renal failure [CKD]', 'Chronic Kidney Disease, Stage III'],
-        'All_Cancers': ['Colon cancer', 'Cancer of bronchus; lung', 'Cancer of prostate', 'Malignant neoplasm of bladder', 'Secondary malignant neoplasm','Secondary malignant neoplasm of digestive systems', 'Secondary malignant neoplasm of liver'],
-        'Stroke': ['Cerebral artery occlusion, with cerebral infarction', 'Cerebral ischemia'],
-        'Heart_Failure': ['Congestive heart failure (CHF) NOS', 'Heart failure NOS'],
-        'Pneumonia': ['Pneumonia', 'Bacterial pneumonia', 'Pneumococcal pneumonia'],
-        'COPD': ['Chronic airway obstruction', 'Emphysema', 'Obstructive chronic bronchitis'],
-        'Osteoporosis': ['Osteoporosis NOS'],
-        'Anemia': ['Iron deficiency anemias, unspecified or not due to blood loss', 'Other anemias'],
-        'Colorectal_Cancer': ['Colon cancer', 'Malignant neoplasm of rectum, rectosigmoid junction, and anus'],
-        'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast'],# Sex-specific
-        'Prostate_Cancer': ['Cancer of prostate'], # Sex-specific
-        'Lung_Cancer': ['Cancer of bronchus; lung'],
-        'Bladder_Cancer': ['Malignant neoplasm of bladder'],
-        'Secondary_Cancer': ['Secondary malignant neoplasm', 'Secondary malignancy of lymph nodes', 'Secondary malignancy of respiratory organs', 'Secondary malignant neoplasm of digestive systems'],
-        'Depression': ['Major depressive disorder'],
-        'Anxiety': ['Anxiety disorder'],
-        'Bipolar_Disorder': ['Bipolar'],
-        'Rheumatoid_Arthritis': ['Rheumatoid arthritis'],
-        'Psoriasis': ['Psoriasis vulgaris'],
-        'Ulcerative_Colitis': ['Ulcerative colitis'],
-        'Crohns_Disease': ['Regional enteritis'],
-        'Asthma': ['Asthma'],
-        'Parkinsons': ["Parkinson's disease"],
-        'Multiple_Sclerosis': ['Multiple sclerosis'],
-        'Thyroid_Disorders': ['Thyrotoxicosis with or without goiter', 'Secondary hypothyroidism', 'Hypothyroidism NOS']
-    }
 
-def load_phecode_mapping(csv_path):
-    """Load the PheCode mapping CSV"""
-    print(f"Loading PheCode mapping from: {csv_path}")
-    df = pd.read_csv(csv_path)
-    print(f"Loaded {len(df)} rows")
+# Load major_diseases mapping from evaluate_major_disease_wsex_rolling_tte.py
+major_diseases = {
+    'ASCVD': ['Myocardial infarction', 'Coronary atherosclerosis', 'Other acute and subacute forms of ischemic heart disease', 
+              'Unstable angina (intermediate coronary syndrome)', 'Angina pectoris', 'Other chronic ischemic heart disease, unspecified'],
+    'Diabetes': ['Type 2 diabetes'],
+    'Atrial_Fib': ['Atrial fibrillation and flutter'],
+    'CKD': ['Chronic renal failure [CKD]', 'Chronic Kidney Disease, Stage III'],
+    'All_Cancers': ['Colon cancer', 'Cancer of bronchus; lung', 'Cancer of prostate', 'Malignant neoplasm of bladder', 'Secondary malignant neoplasm','Secondary malignant neoplasm of digestive systems', 'Secondary malignant neoplasm of liver'],
+    'Stroke': ['Cerebral artery occlusion, with cerebral infarction', 'Cerebral ischemia'],
+    'Heart_Failure': ['Congestive heart failure (CHF) NOS', 'Heart failure NOS'],
+    'Pneumonia': ['Pneumonia', 'Bacterial pneumonia', 'Pneumococcal pneumonia'],
+    'COPD': ['Chronic airway obstruction', 'Emphysema', 'Obstructive chronic bronchitis'],
+    'Osteoporosis': ['Osteoporosis NOS'],
+    'Anemia': ['Iron deficiency anemias, unspecified or not due to blood loss', 'Other anemias'],
+    'Colorectal_Cancer': ['Colon cancer', 'Malignant neoplasm of rectum, rectosigmoid junction, and anus'],
+    'Breast_Cancer': ['Breast cancer [female]', 'Malignant neoplasm of female breast'],
+    'Prostate_Cancer': ['Cancer of prostate'],
+    'Lung_Cancer': ['Cancer of bronchus; lung'],
+    'Bladder_Cancer': ['Malignant neoplasm of bladder'],
+    'Secondary_Cancer': ['Secondary malignant neoplasm', 'Secondary malignancy of lymph nodes', 'Secondary malignancy of respiratory organs', 'Secondary malignant neoplasm of digestive systems'],
+    'Depression': ['Major depressive disorder'],
+    'Anxiety': ['Anxiety disorder'],
+    'Bipolar_Disorder': ['Bipolar'],
+    'Rheumatoid_Arthritis': ['Rheumatoid arthritis'],
+    'Psoriasis': ['Psoriasis vulgaris'],
+    'Ulcerative_Colitis': ['Ulcerative colitis'],
+    'Crohns_Disease': ['Regional enteritis'],
+    'Asthma': ['Asthma'],
+    'Parkinsons': ["Parkinson's disease"],
+    'Multiple_Sclerosis': ['Multiple sclerosis'],
+    'Thyroid_Disorders': ['Thyrotoxicosis with or without goiter', 'Secondary hypothyroidism', 'Hypothyroidism NOS']
+}
+
+def load_phecode_mapping(file_path):
+    """Load the PheCode mapping file (CSV or RDS)"""
+    file_path = Path(file_path)
+    print(f"Loading PheCode mapping from: {file_path}")
+    
+    if file_path.suffix == '.rds':
+        try:
+            import pyreadr
+            result = pyreadr.read_r(str(file_path))
+            df = result[None]
+            print(f"Loaded {len(df)} rows from RDS")
+        except ImportError:
+            raise ImportError("pyreadr is required to read .rds files. Install with: pip install pyreadr")
+        except Exception as e:
+            raise Exception(f"Error loading RDS file: {e}")
+    else:
+        df = pd.read_csv(file_path)
+        print(f"Loaded {len(df)} rows from CSV")
+    
     print(f"Columns: {df.columns.tolist()}")
     return df
 
@@ -70,18 +86,38 @@ def map_diseases_to_phecodes(subset_df, full_df, major_diseases):
         phecodes_found = set()
         
         for phenotype_name in phenotype_names:
-            # Try exact match first
-            matches = subset_df[subset_df['phenotype'].str.contains(phenotype_name, case=False, na=False)]
-            
-            if len(matches) == 0:
-                # Try partial match (remove brackets and special chars)
-                clean_name = phenotype_name.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
-                matches = subset_df[subset_df['phenotype'].str.contains(clean_name, case=False, na=False)]
+            # Use the same matching approach as R2 notebook: str.contains with regex=False
+            matches = subset_df[
+                subset_df['phenotype'].str.contains(phenotype_name, case=False, na=False, regex=False)
+            ]
             
             if len(matches) > 0:
                 # Get unique Phecodes from matches
-                for phecode in matches['phecode'].unique():
+                matched_phecodes = matches['phecode'].unique()
+                if disease == 'ASCVD':  # Debug for ASCVD
+                    print(f"    DEBUG: '{phenotype_name}' matched {len(matches)} rows, Phecodes: {sorted(matched_phecodes)}")
+                    # Show sample matching phenotype names
+                    sample_phenotypes = matches['phenotype'].unique()[:3]
+                    print(f"      Sample matching phenotypes: {list(sample_phenotypes)}")
+                for phecode in matched_phecodes:
                     phecodes_found.add(phecode)
+            else:
+                if disease == 'ASCVD':  # Debug for ASCVD
+                    print(f"    DEBUG: '{phenotype_name}' - NO MATCH FOUND")
+                    # Show similar phenotype names for debugging
+                    if 'angina' in phenotype_name.lower():
+                        similar = subset_df[subset_df['phenotype'].str.contains('angina', case=False, na=False, regex=False)]
+                        if len(similar) > 0:
+                            print(f"      Similar phenotypes with 'angina': {similar['phenotype'].unique().tolist()[:5]}")
+                    # Also check what phenotypes exist for phecode 411.1
+                    phecode_411_1_rows = subset_df[subset_df['phecode'] == 411.1]
+                    if len(phecode_411_1_rows) > 0:
+                        print(f"      Phenotypes for PheCode 411.1: {phecode_411_1_rows['phenotype'].unique().tolist()}")
+        
+        # Debug: Show what was found before collapsing
+        if disease == 'ASCVD':
+            print(f"    DEBUG: Total phecodes found before collapsing: {len(phecodes_found)}")
+            print(f"    DEBUG: Phecodes: {sorted(phecodes_found)}")
         
         # Collapse sub-Phecodes to parent Phecodes
         # e.g., 250.2, 250.21, 250.22, 250.24 -> just use 250.2
@@ -161,9 +197,16 @@ def map_diseases_to_phecodes(subset_df, full_df, major_diseases):
                 phecode_all_codes[parent_pc] = all_codes_list
                 phecode_details.append(f"{parent_pc}(top:{icd_count_top}, all:{icd_count_all})")
         
-        # Sum up total codes across all parent Phecodes for this disease
-        total_top_level_icd10 = sum(phecode_info_top.values()) if phecode_info_top else 0
-        total_all_icd10 = sum(phecode_info_all.values()) if phecode_info_all else 0
+        # Count UNIQUE ICD-10 codes across all Phecodes for this disease (not sum, to avoid double-counting)
+        # Collect all unique codes from all Phecodes
+        all_disease_top_level_codes = set()
+        all_disease_all_codes = set()
+        for pc in phecodes_to_use:
+            all_disease_top_level_codes.update(phecode_top_level_codes.get(pc, []))
+            all_disease_all_codes.update(phecode_all_codes.get(pc, []))
+        
+        total_top_level_icd10 = len(all_disease_top_level_codes)
+        total_all_icd10 = len(all_disease_all_codes)
         n_phecodes = len(phecodes_to_use)
         
         results.append({
@@ -323,27 +366,30 @@ def create_plots(results_df, output_dir):
     return fig
 
 def main():
-    # We need TWO files:
-    # 1. Subset file: to find which Phecodes match our diseases (348 rows, one per PheCode)
-    # 2. Full file: to count all top-level ICD-10 codes for those Phecodes (88K rows)
+    # Use the same RDS file that the R2 notebook uses (which correctly finds all 6 ASCVD phenotypes)
+    # This file contains all ICD-10 codes mapped to Phecodes with phenotype names
+    rds_path = Path("/Users/sarahurbut/aladynoulli2/noulli_mapped_phecode_icd10cm.rds")
     
+    # Fallback to CSV files if RDS not available
     subset_path = Path("/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/icd2phecode_mergedwithdetailedphecode_subset.csv")
     full_path = Path("/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/icd2phecode_mergedwithdetailedphecode_info.csv")
     
-    if not subset_path.exists():
-        print(f"Error: Subset file not found at {subset_path}")
+    if rds_path.exists():
+        print(f"Using RDS file (same as R2 notebook): {rds_path}")
+        full_df = load_phecode_mapping(rds_path)
+        # For RDS file, we use the same dataframe for both finding phecodes and counting ICD-10 codes
+        subset_df = full_df
+    elif subset_path.exists() and full_path.exists():
+        print(f"RDS file not found, using CSV files instead")
+        print(f"Loading subset file (to find Phecodes): {subset_path}")
+        subset_df = load_phecode_mapping(subset_path)
+        print(f"\nLoading full file (to count ICD-10 codes): {full_path}")
+        full_df = load_phecode_mapping(full_path)
+    else:
+        print(f"Error: No mapping file found!")
+        print(f"  Expected RDS: {rds_path}")
+        print(f"  Or CSV files: {subset_path} and {full_path}")
         return
-    
-    if not full_path.exists():
-        print(f"Error: Full mapping file not found at {full_path}")
-        print(f"This file should have ~88K rows with all ICD-10 codes per PheCode")
-        return
-    
-    print(f"Loading subset file (to find Phecodes): {subset_path}")
-    subset_df = load_phecode_mapping(subset_path)
-    
-    print(f"\nLoading full file (to count ICD-10 codes): {full_path}")
-    full_df = load_phecode_mapping(full_path)
     
     # Map diseases to Phecodes using subset file, then count ICD-10 codes from full file
     print("\n" + "="*80)
