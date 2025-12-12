@@ -18,10 +18,10 @@
 
 This documentation is organized into **four main sections** for reviewers:
 
-1. **[Model Architecture](#-model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
-2. **[Reviewer Response Analyses](#-reviewer-response-analyses)** - Interactive analyses addressing all reviewer questions, organized by referee
-3. **[Complete Workflow](#-complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
-4. **[Performance & Scalability](#-performance--scalability)** - Computational requirements and scaling characteristics
+1. **[Model Architecture](#model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
+2. **[Reviewer Response Analyses](#reviewer-response-analyses)** - Interactive analyses addressing all reviewer questions, organized by referee
+3. **[Complete Workflow](#complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
+4. **[Performance & Scalability](#performance-scalability)** - Computational requirements and scaling characteristics
 
 **Note**: Installation instructions are not required for reviewers. A pre-configured environment will be provided for running the code.
 
@@ -29,13 +29,13 @@ This documentation is organized into **four main sections** for reviewers:
 
 ## 📖 Table of Contents
 
-- [How to Use This Documentation](#-how-to-use-this-documentation)
-- [Overview](#-overview)
-- [Model Architecture](#-model-architecture)
-- [Reviewer Response Analyses](#-reviewer-response-analyses)
-- [Complete Workflow](#-complete-workflow)
-- [Performance & Scalability](#-performance--scalability)
-- [Citation](#-citation)
+- [How to Use This Documentation](#how-to-use-this-documentation)
+- [Overview](#overview)
+- [Model Architecture](#model-architecture)
+- [Reviewer Response Analyses](#reviewer-response-analyses)
+- [Complete Workflow](#complete-workflow)
+- [Performance & Scalability](#performance-scalability)
+- [Citation](#citation)
 
 ---
 
