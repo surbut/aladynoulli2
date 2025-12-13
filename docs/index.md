@@ -8,7 +8,7 @@
 
 **A Bayesian Survival Model for Disease Trajectory Prediction**
 
-[Preprint](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1) • [GitHub Repository](../)
+[Preprint](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1) 
 
 </div>
 

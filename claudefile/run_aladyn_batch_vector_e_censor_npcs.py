@@ -129,8 +129,17 @@ def main():
 
     # Combine G with sex
     G_with_sex = np.column_stack([G_batch, sex_batch])
-   
-    print(f"G_with_sex shape: {G_with_sex.shape}")
+    
+    # Add PCs if requested
+    if args.include_pcs:
+        pc_columns = ['f.22009.0.1', 'f.22009.0.2', 'f.22009.0.3', 'f.22009.0.4', 'f.22009.0.5',
+                      'f.22009.0.6', 'f.22009.0.7', 'f.22009.0.8', 'f.22009.0.9', 'f.22009.0.10']
+        pcs = fh_processed.iloc[args.start_index:args.end_index][pc_columns].values
+        G_with_sex = np.column_stack([G_batch, sex_batch, pcs])
+        print(f"G_with_sex shape: {G_with_sex.shape} (36 PRS + 1 sex + 10 PCs = 47)")
+    else:
+        print(f"G_with_sex shape: {G_with_sex.shape} (36 PRS + 1 sex = 37)")
+    
     print(f"Covariates loaded: {fh_processed.shape[0]} total samples")
     print(f"Include PCs: {args.include_pcs}")
 

@@ -41,18 +41,27 @@ def load_averaged_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.000
             checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
             
             # Extract gamma
+            gamma = None
             if 'model_state_dict' in checkpoint and 'gamma' in checkpoint['model_state_dict']:
                 gamma = checkpoint['model_state_dict']['gamma']
-                if torch.is_tensor(gamma):
-                    gamma = gamma.cpu().numpy()
-                all_gammas.append(gamma)
-                print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
             elif 'gamma' in checkpoint:
                 gamma = checkpoint['gamma']
+            
+            if gamma is not None:
+                # Detach if tensor and convert to numpy
                 if torch.is_tensor(gamma):
-                    gamma = gamma.cpu().numpy()
-                all_gammas.append(gamma)
-                print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
+                    gamma = gamma.detach().cpu().numpy()
+                elif not isinstance(gamma, np.ndarray):
+                    gamma = np.array(gamma)
+                
+                # Check if gamma is all zeros (might indicate untrained model)
+                if np.allclose(gamma, 0):
+                    print(f"  Warning: {os.path.basename(checkpoint_path)} has gamma=0 (possibly untrained)")
+                else:
+                    all_gammas.append(gamma)
+                    print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
+            else:
+                print(f"  Warning: No gamma found in {os.path.basename(checkpoint_path)}")
         except Exception as e:
             print(f"  Warning: Could not load gamma from {os.path.basename(checkpoint_path)}: {e}")
             continue
@@ -61,9 +70,28 @@ def load_averaged_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.000
         print("No gamma values found in any checkpoint!")
         return None
     
+    # Debug: Check gamma values before averaging
+    print(f"\nDebugging gamma values:")
+    for i, gamma in enumerate(all_gammas):
+        gamma_min = np.min(gamma)
+        gamma_max = np.max(gamma)
+        gamma_mean = np.mean(gamma)
+        gamma_std = np.std(gamma)
+        non_zero_count = np.count_nonzero(gamma)
+        total_count = gamma.size
+        print(f"  Batch {i+1}: shape={gamma.shape}, min={gamma_min:.6f}, max={gamma_max:.6f}, "
+              f"mean={gamma_mean:.6f}, std={gamma_std:.6f}, non-zero={non_zero_count}/{total_count}")
+    
     # Stack and average
     gamma_stack = np.stack(all_gammas)
     gamma_mean = np.mean(gamma_stack, axis=0)
+    
+    # Debug: Check averaged gamma
+    print(f"\nAveraged gamma stats:")
+    print(f"  Shape: {gamma_mean.shape}")
+    print(f"  Min: {np.min(gamma_mean):.6f}, Max: {np.max(gamma_mean):.6f}")
+    print(f"  Mean: {np.mean(gamma_mean):.6f}, Std: {np.std(gamma_mean):.6f}")
+    print(f"  Non-zero: {np.count_nonzero(gamma_mean)}/{gamma_mean.size}")
     
     print(f"✓ Averaged gamma from {len(all_gammas)} batches. Final shape: {gamma_mean.shape}")
     return gamma_mean
@@ -455,6 +483,231 @@ def plot_predictions(pi, theta, Y, disease_names, time_window=None, age_offset=3
     plt.tight_layout()
     return fig
 
+def pad_G_to_match_gamma(patient_G, gamma):
+    """Pad patient_G to match gamma's expected P dimension (handles missing PCs/sex)."""
+    # Get expected P from gamma shape
+    expected_P = gamma.shape[0]  # Gamma is [P, K_total]
+    
+    # Flatten G to 1D
+    G_flat = np.array(patient_G).flatten() if isinstance(patient_G, (list, np.ndarray)) else patient_G
+    if len(G_flat.shape) > 1:
+        G_flat = G_flat[0] if G_flat.shape[0] == 1 else G_flat.flatten()
+    
+    P_input = len(G_flat)
+    
+    # Pad if necessary (missing PCs/sex)
+    if P_input < expected_P:
+        padding = np.zeros(expected_P - P_input)
+        G_flat = np.concatenate([G_flat, padding])
+    elif P_input > expected_P:
+        raise ValueError(f"Patient G has {P_input} components but gamma expects {expected_P}.")
+    
+    return G_flat
+
+def plot_counterfactual_signature_trajectory(model, signature_idx, patient_G, time_window=None):
+    """Plot actual vs counterfactual signature trajectory (PRS=0) for a patient."""
+    if time_window is None:
+        time_window = range(model.T)
+    
+    # Get actual lambda and theta
+    lambda_actual = model.lambda_[0, signature_idx, :].detach().cpu().numpy()  # [T]
+    theta_actual = torch.softmax(model.lambda_[0], dim=0)[signature_idx, :].detach().cpu().numpy()  # [T]
+    
+    # Compute counterfactual: remove genetic effect
+    # Pad G to match gamma dimensions (handles missing PCs/sex)
+    G_padded = pad_G_to_match_gamma(patient_G, model.gamma)
+    gamma_k = model.gamma[:, signature_idx].detach().cpu().numpy()
+    genetic_effect = float(model.genetic_scale * np.dot(G_padded, gamma_k))  # Ensure scalar
+    
+    # Debug: print genetic effect to verify it's non-zero
+    print(f"  Genetic effect for signature {signature_idx}: {genetic_effect:.4f}")
+    print(f"  G_padded range: [{G_padded.min():.4f}, {G_padded.max():.4f}]")
+    print(f"  gamma_k range: [{gamma_k.min():.4f}, {gamma_k.max():.4f}]")
+    
+    lambda_cf = lambda_actual - genetic_effect
+    
+    # Recompute theta for counterfactual
+    lambda_all_cf = model.lambda_[0].detach().cpu().numpy().copy()  # [K_total, T]
+    lambda_all_cf[signature_idx, :] = lambda_cf
+    theta_cf = torch.softmax(torch.tensor(lambda_all_cf), dim=0)[signature_idx, :].numpy()
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+    
+    # Plot lambda trajectories
+    ax1.plot(time_window, lambda_actual[time_window], label="Actual λ", linewidth=2, color='#e74c3c')
+    ax1.plot(time_window, lambda_cf[time_window], label="Counterfactual λ (PRS=0)", 
+             linestyle='--', linewidth=2, color='#3498db')
+    # Handle signature_refs - could be scalar or time-varying
+    ref_val = model.signature_refs[signature_idx]
+    if isinstance(ref_val, torch.Tensor):
+        ref_val = ref_val.detach().cpu().numpy()
+        if ref_val.ndim > 0:
+            # If time-varying, use mean or first value
+            ref_val = float(ref_val.mean() if len(ref_val) > 1 else ref_val[0])
+        else:
+            ref_val = float(ref_val.item())
+    else:
+        ref_val = float(ref_val)
+    ax1.axhline(y=ref_val, color='gray', 
+                linestyle=':', alpha=0.5, label='Reference')
+    ax1.set_title(f'Signature {signature_idx} Lambda Trajectory: Actual vs Counterfactual', fontsize=12, fontweight='bold')
+    ax1.set_xlabel('Time', fontsize=11)
+    ax1.set_ylabel('Lambda Value', fontsize=11)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot theta (signature proportions)
+    ax2.plot(time_window, theta_actual[time_window], label="Actual θ", linewidth=2, color='#e74c3c')
+    ax2.plot(time_window, theta_cf[time_window], label="Counterfactual θ (PRS=0)", 
+             linestyle='--', linewidth=2, color='#3498db')
+    ax2.set_title(f'Signature {signature_idx} Proportion: Actual vs Counterfactual', fontsize=12, fontweight='bold')
+    ax2.set_xlabel('Time', fontsize=11)
+    ax2.set_ylabel('Signature Proportion', fontsize=11)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
+
+def plot_gp_projection(model, signature_idx, patient_G, time_window=None):
+    """Plot patient's lambda trajectory vs GP prior mean (reference + genetic effect)."""
+    if time_window is None:
+        time_window = range(model.T)
+    
+    # Patient's actual lambda
+    lambda_patient = model.lambda_[0, signature_idx, :].detach().cpu().numpy()  # [T]
+    
+    # GP prior mean: reference + genetic effect
+    # Handle signature_refs - could be scalar or time-varying
+    ref_val = model.signature_refs[signature_idx]
+    if isinstance(ref_val, torch.Tensor):
+        ref_val = ref_val.detach().cpu().numpy()
+        if ref_val.ndim > 0:
+            # If time-varying, use mean or first value
+            reference = float(ref_val.mean() if len(ref_val) > 1 else ref_val[0])
+        else:
+            reference = float(ref_val.item())
+    else:
+        reference = float(ref_val)
+    
+    # Pad G to match gamma dimensions (handles missing PCs/sex)
+    G_padded = pad_G_to_match_gamma(patient_G, model.gamma)
+    gamma_k = model.gamma[:, signature_idx].detach().cpu().numpy()
+    genetic_effect = float(model.genetic_scale * np.dot(G_padded, gamma_k))  # Ensure scalar
+    gp_mean = reference + genetic_effect  # Constant over time
+    
+    # Compute deviation from GP mean
+    deviation = lambda_patient - gp_mean
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+    
+    # Plot lambda vs GP mean
+    ax1.plot(time_window, lambda_patient[time_window], label=f"Patient λ (Signature {signature_idx})", 
+             linewidth=2, color='#e74c3c')
+    ax1.axhline(y=gp_mean, label=f"GP Prior Mean (ref + genetic)", 
+                linestyle='--', linewidth=2, color='#3498db')
+    ax1.axhline(y=reference, label="Reference Only", 
+                linestyle=':', linewidth=1.5, color='gray', alpha=0.7)
+    ax1.fill_between(time_window, gp_mean - 1.96, gp_mean + 1.96, 
+                     alpha=0.2, color='#3498db', label='95% GP Prior (approx)')
+    ax1.set_title(f'GP Projection: Patient Lambda vs Prior Mean (Signature {signature_idx})', 
+                  fontsize=12, fontweight='bold')
+    ax1.set_xlabel('Time', fontsize=11)
+    ax1.set_ylabel('Lambda Value', fontsize=11)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot deviation from GP mean
+    ax2.plot(time_window, deviation[time_window], linewidth=2, color='#9b59b6')
+    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+    ax2.fill_between(time_window, -1.96, 1.96, alpha=0.2, color='gray', label='95% Prior (approx)')
+    ax2.set_title(f'Deviation from GP Prior Mean (Signature {signature_idx})', fontsize=12, fontweight='bold')
+    ax2.set_xlabel('Time', fontsize=11)
+    ax2.set_ylabel('Deviation (λ - μ)', fontsize=11)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
+
+def plot_signature_contribution_heatmap(pi, theta, phi_prob, disease_names, diseases_to_show=None, time_window=None):
+    """Plot heatmap showing signature contributions to diseases."""
+    D, T = pi.shape
+    K = theta.shape[0]
+    
+    if time_window is None:
+        time_window = range(T)
+    if diseases_to_show is None:
+        diseases_to_show = range(min(20, D))  # Show top 20 diseases
+    
+    # Compute average contribution: theta[k, t] * phi_prob[k, d, t] averaged over time
+    contributions = np.zeros((K, len(diseases_to_show)))
+    for i, d in enumerate(diseases_to_show):
+        for k in range(K):
+            contrib_t = theta[k, time_window] * phi_prob[k, d, time_window]
+            contributions[k, i] = np.mean(contrib_t)
+    
+    fig, ax = plt.subplots(figsize=(max(12, len(diseases_to_show) * 0.5), max(6, K * 0.3)))
+    
+    # Create labels
+    disease_labels = [disease_names[d] if d < len(disease_names) else f'Disease {d}' 
+                      for d in diseases_to_show]
+    
+    sns.heatmap(contributions, 
+                xticklabels=disease_labels,
+                yticklabels=[f'Sig {k}' for k in range(K)],
+                cmap='YlOrRd', 
+                annot=False,
+                fmt='.3f',
+                cbar_kws={'label': 'Average Contribution'})
+    
+    ax.set_title('Signature Contributions to Diseases (θ × φ)', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Disease', fontsize=11)
+    ax.set_ylabel('Signature', fontsize=11)
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    return fig
+
+def plot_genetic_effect_decomposition(model, patient_G, top_n=10):
+    """Plot which PRS features contribute most to each signature."""
+    K = model.K
+    # Pad G to match gamma dimensions (handles missing PCs/sex)
+    G_padded = pad_G_to_match_gamma(patient_G, model.gamma)
+    P = len(G_padded)
+    
+    # Compute genetic effects: G * gamma for each signature (element-wise)
+    genetic_effects = np.zeros((P, K))
+    for k in range(K):
+        gamma_k = model.gamma[:, k].detach().cpu().numpy()
+        genetic_effects[:, k] = G_padded * gamma_k
+    
+    # Get top contributing features for each signature
+    fig, axes = plt.subplots(2, (K + 1) // 2, figsize=(16, 10))
+    axes = axes.flatten() if K > 1 else [axes]
+    
+    for k in range(K):
+        ax = axes[k]
+        effects = genetic_effects[:, k]
+        top_indices = np.argsort(np.abs(effects))[-top_n:][::-1]
+        
+        colors = ['#e74c3c' if e > 0 else '#3498db' for e in effects[top_indices]]
+        bars = ax.barh(range(len(top_indices)), effects[top_indices], color=colors, alpha=0.7)
+        ax.set_yticks(range(len(top_indices)))
+        ax.set_yticklabels([f'Feature {i}' for i in top_indices])
+        ax.set_title(f'Sig {k} (Total: {np.sum(effects):.3f})', fontsize=10, fontweight='bold')
+        ax.set_xlabel('Genetic Effect', fontsize=9)
+        ax.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+        ax.grid(True, alpha=0.3, axis='x')
+    
+    # Hide unused subplots
+    for k in range(K, len(axes)):
+        axes[k].axis('off')
+    
+    plt.suptitle('Genetic Effect Decomposition by Signature (Top Features)', 
+                 fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    return fig
+
 def main():
     st.title("🔬 Real-Time Patient Refitting")
     st.markdown("**Fit model in real time for individual patients with editable disease history**")
@@ -660,6 +913,8 @@ def main():
                     st.session_state['theta'] = theta
                     st.session_state['losses'] = losses
                     st.session_state['Y_current'] = Y_patient
+                    st.session_state['model'] = model
+                    st.session_state['G_current'] = G_patient
                     
                     st.success("✓ Model fitted successfully!")
             
@@ -708,6 +963,91 @@ def main():
                 
                 if summary_data:
                     st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
+                
+                # Advanced visualizations
+                if 'model' in st.session_state:
+                    st.subheader("🔬 Advanced Visualizations")
+                    
+                    viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+                        "Counterfactual Genetics", 
+                        "GP Projection", 
+                        "Signature Contributions",
+                        "Genetic Decomposition"
+                    ])
+                    
+                    model_current = st.session_state['model']
+                    # Use model's G (the actual G used for fitting, properly padded)
+                    G_from_model = model_current.G[0].detach().cpu().numpy()  # [P]
+                    
+                    with viz_tab1:
+                        st.markdown("**What if this patient had PRS=0?** See how signature trajectories would change.")
+                        sig_idx_cf = st.selectbox(
+                            "Select Signature for Counterfactual",
+                            range(model_current.K),
+                            format_func=lambda x: f"Signature {x}",
+                            key="cf_sig"
+                        )
+                        if st.button("Generate Counterfactual Plot", key="cf_btn"):
+                            fig_cf = plot_counterfactual_signature_trajectory(
+                                model_current, sig_idx_cf, G_from_model
+                            )
+                            st.pyplot(fig_cf)
+                            st.caption("**Interpretation:** The counterfactual shows what would happen if all PRS values were set to zero. The difference shows the genetic contribution to this signature's trajectory.")
+                    
+                    with viz_tab2:
+                        st.markdown("**GP Projection:** See how the patient's lambda trajectory compares to the Gaussian Process prior mean (reference + genetic effect).")
+                        sig_idx_gp = st.selectbox(
+                            "Select Signature for GP Projection",
+                            range(model_current.K),
+                            format_func=lambda x: f"Signature {x}",
+                            key="gp_sig"
+                        )
+                        if st.button("Generate GP Projection Plot", key="gp_btn"):
+                            fig_gp = plot_gp_projection(
+                                model_current, sig_idx_gp, G_from_model
+                            )
+                            st.pyplot(fig_gp)
+                            st.caption("**Interpretation:** The GP prior mean is the expected lambda value (reference trajectory + genetic effect). Deviations show how the patient's disease history has shifted their signature trajectory.")
+                    
+                    with viz_tab3:
+                        st.markdown("**Signature Contribution Heatmap:** Which signatures drive risk for each disease?")
+                        n_diseases_heatmap = st.slider(
+                            "Number of Diseases to Show",
+                            5, min(50, D), 20,
+                            key="n_diseases_heatmap"
+                        )
+                        # Show diseases with highest mean risk
+                        mean_risks = np.mean(st.session_state['pi'], axis=1)
+                        top_diseases = np.argsort(mean_risks)[-n_diseases_heatmap:][::-1]
+                        
+                        if st.button("Generate Contribution Heatmap", key="heatmap_btn"):
+                            with torch.no_grad():
+                                _, theta_current, phi_prob_current = model_current.forward()
+                            fig_heatmap = plot_signature_contribution_heatmap(
+                                st.session_state['pi'],
+                                theta_current[0].cpu().numpy(),
+                                phi_prob_current[0].cpu().numpy(),
+                                disease_names,
+                                diseases_to_show=top_diseases
+                            )
+                            st.pyplot(fig_heatmap)
+                            st.caption("**Interpretation:** Each cell shows how much a signature contributes to a disease's risk (θ × φ). Darker colors = higher contribution.")
+                    
+                    with viz_tab4:
+                        st.markdown("**Genetic Effect Decomposition:** Which PRS features matter most for each signature?")
+                        top_n_features = st.slider(
+                            "Top N Features per Signature",
+                            5, 20, 10,
+                            key="top_n_features"
+                        )
+                        if st.button("Generate Genetic Decomposition", key="decomp_btn"):
+                            fig_decomp = plot_genetic_effect_decomposition(
+                                model_current, G_from_model, top_n=top_n_features
+                            )
+                            st.pyplot(fig_decomp)
+                            st.caption("**Interpretation:** Shows which genetic features (PRS components) contribute most to each signature. Red = positive effect, Blue = negative effect.")
+                else:
+                    st.info("👆 Please fit the model first to see advanced visualizations.")
     
     with tab2:
         st.header("Create Custom Patient")

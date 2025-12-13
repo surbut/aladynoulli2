@@ -115,12 +115,23 @@ def main():
         disease_names=disease_names_mgb
     )
 
-    # Set clusters and initialize
+    # Set clusters and initialize with psi_config (like notebook)
+    # This uses the old clusters and initializes psi where:
+    # - Diseases IN the cluster get positive values (in_cluster=1)
+    # - Diseases OUT of the cluster get negative values (out_cluster=-2)
+    print("Setting clusters and initializing with psi_config...")
+    torch.manual_seed(0)
+    np.random.seed(0)
+    
     model_mgb.clusters = initial_clusters_mgb
-    psi_config = initialized_checkpoint.get('psi_config', {'in_cluster': 1, 'out_cluster': -2, 'noise_in': 0.1, 'noise_out': 0.01})
+    psi_config = {'in_cluster': 1, 'out_cluster': -2, 'noise_in': 0.1, 'noise_out': 0.01}
     model_mgb.initialize_params(psi_config=psi_config)
-
-    print(f"✓ Model initialized")
+    
+    # Verify clusters match
+    clusters_match = np.array_equal(initial_clusters_mgb, model_mgb.clusters)
+    print(f"  Clusters match exactly: {clusters_match}")
+    print(f"  Psi config: in_cluster={psi_config['in_cluster']}, out_cluster={psi_config['out_cluster']}")
+    print(f"✓ Model initialized with psi_config (like notebook)")
 
     # Train the model
     print(f"\nTraining model for {args.num_epochs} epochs...")
@@ -131,19 +142,18 @@ def main():
                            learning_rate=args.learning_rate,
                            lambda_reg=args.lambda_reg)
 
-    # Save trained model
+    # Save trained model (like batch script)
     print(f"\nSaving trained model to {args.output_path}...")
     torch.save({
         'model_state_dict': model_mgb.state_dict(),
         'phi': model_mgb.phi,
         'Y': model_mgb.Y,
         'prevalence_t': prevalence_t_mgb,
-        'clusters': initial_clusters_mgb,
-        'signature_refs': signature_refs_mgb,
-        'disease_names': disease_names_mgb,
-        'G': G_mgb,
+        'logit_prevalence_t': model_mgb.logit_prev_t,
+        'G': model_mgb.G,
         'args': vars(args),
-        'history': history[-10:] if history else None,  # Save last 10 losses
+        'clusters': initial_clusters_mgb,  # Save initial_clusters directly
+        'version': 'VECTORIZED_TRAINED',  # Mark as trained version
     }, args.output_path)
 
     print(f"\n{'='*60}")
