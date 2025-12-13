@@ -111,8 +111,6 @@ def plot_single_signature_multi_cohort(phi_ukb, clusters_ukb, disease_names_ukb,
         plot_values_mgb = phi_mgb
         y_label = 'Log Hazard Ratio'
     
-    # Create figure with 3 subplots (one per cohort)
-    fig, axes = plt.subplots(1, 3, figsize=figsize, sharey=False)  # Don't share y-axis - each cohort may have different ranges
     # Map signature indices for each cohort
     k_ukb = signature_idx_ukb
     k_aou = signature_idx_aou if signature_idx_aou is not None else signature_idx_ukb
@@ -150,6 +148,65 @@ def plot_single_signature_multi_cohort(phi_ukb, clusters_ukb, disease_names_ukb,
             max_values = np.max(plot_values_ukb[k_ukb, sig_disease_indices_ukb, :], axis=1)
             top_indices = np.argsort(max_values)[-top_n_diseases:]
             sig_disease_indices_ukb = sig_disease_indices_ukb[top_indices]
+    
+    # Calculate shared y-axis range across all cohorts for overlapping diseases
+    # First, find overlapping disease indices in each cohort
+    all_sig_data = []
+    all_prev_data = []
+    
+    for cohort_name, plot_values, clusters, disease_names, prevalence, D, k in cohorts:
+        sig_disease_indices_all = np.where(clusters == k)[0]
+        
+        # Filter to overlapping diseases if specified
+        if overlapping_diseases is not None:
+            sig_disease_indices = []
+            for disease_name in overlapping_diseases:
+                for idx in sig_disease_indices_all:
+                    if idx < len(disease_names):
+                        cohort_name_str = disease_names[idx]
+                        if (disease_name.lower() in cohort_name_str.lower() or 
+                            cohort_name_str.lower() in disease_name.lower()):
+                            sig_disease_indices.append(idx)
+                            break
+            sig_disease_indices = np.array(sig_disease_indices)
+        else:
+            sig_disease_indices = sig_disease_indices_all
+        
+        if len(sig_disease_indices) > 0:
+            # Collect phi data
+            cohort_sig_data = plot_values[k, sig_disease_indices, :]
+            all_sig_data.append(cohort_sig_data)
+            
+            # Collect prevalence data if available
+            if prevalence is not None:
+                if isinstance(prevalence, torch.Tensor):
+                    prev_data = prevalence[sig_disease_indices, :].detach().cpu().numpy()
+                else:
+                    prev_data = prevalence[sig_disease_indices, :]
+                all_prev_data.append(prev_data)
+    
+    # Calculate global y-axis limits
+    if len(all_sig_data) > 0:
+        global_sig_min = min(np.min(data) for data in all_sig_data)
+        global_sig_max = max(np.max(data) for data in all_sig_data)
+        
+        if len(all_prev_data) > 0:
+            global_prev_min = min(np.min(data) for data in all_prev_data)
+            global_prev_max = max(np.max(data) for data in all_prev_data)
+            y_min = min(global_sig_min, max(0, global_prev_min)) * (0.95 if plot_probability else 1.05)
+            y_max = max(global_sig_max, global_prev_max) * 1.05
+        else:
+            y_min = max(0, global_sig_min * 0.95) if plot_probability else global_sig_min * 1.05
+            y_max = global_sig_max * 1.05
+        
+        shared_ylim = (y_min, y_max)
+    else:
+        shared_ylim = None
+    
+    # Create figure with 3 subplots (one per cohort)
+    # Use sharey=True if we have overlapping diseases to ensure same scale
+    share_y_axis = (overlapping_diseases is not None and len(sig_disease_indices_ukb) > 0)
+    fig, axes = plt.subplots(1, 3, figsize=figsize, sharey=share_y_axis)
     
     # Create color mapping based on UKB diseases
     if len(sig_disease_indices_ukb) > 0:
@@ -232,8 +289,12 @@ def plot_single_signature_multi_cohort(phi_ukb, clusters_ukb, disease_names_ukb,
         ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5, color='gray')
         ax.set_xlim(age_points[0], age_points[-1])
         
-        # Set y-axis limits based on data range for this cohort
-        if len(sig_disease_indices) > 0:
+        # Set y-axis limits
+        if shared_ylim is not None and overlapping_diseases is not None:
+            # Use shared y-axis limits for overlapping diseases
+            ax.set_ylim(shared_ylim)
+        elif len(sig_disease_indices) > 0:
+            # Use cohort-specific limits if not using overlapping diseases
             sig_data = plot_values[k, sig_disease_indices, :]
             y_min = max(0, np.min(sig_data) * 0.95) if plot_probability else np.min(sig_data) * 1.05
             y_max = np.max(sig_data) * 1.05
