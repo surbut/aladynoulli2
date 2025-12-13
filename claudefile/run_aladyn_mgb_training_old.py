@@ -115,23 +115,49 @@ def main():
         disease_names=disease_names_mgb
     )
 
-    # Set clusters and initialize with psi_config (like notebook)
-    # This uses the old clusters and initializes psi where:
-    # - Diseases IN the cluster get positive values (in_cluster=1)
-    # - Diseases OUT of the cluster get negative values (out_cluster=-2)
-    print("Setting clusters and initializing with psi_config...")
+    # Load initial psi and clusters (like batch script)
+    print("Loading initial psi and clusters...")
     torch.manual_seed(0)
     np.random.seed(0)
     
+    # Try to get psi from initialized checkpoint's model_state_dict
+    initial_psi_mgb = None
+    if 'model_state_dict' in initialized_checkpoint:
+        if 'psi' in initialized_checkpoint['model_state_dict']:
+            initial_psi_mgb = initialized_checkpoint['model_state_dict']['psi']
+            if torch.is_tensor(initial_psi_mgb):
+                initial_psi_mgb = initial_psi_mgb.detach().cpu()
+            print(f"  Loaded psi from initialized checkpoint model_state_dict: shape {initial_psi_mgb.shape}")
+    elif 'psi' in initialized_checkpoint:
+        initial_psi_mgb = initialized_checkpoint['psi']
+        if torch.is_tensor(initial_psi_mgb):
+            initial_psi_mgb = initial_psi_mgb.detach().cpu()
+        print(f"  Loaded psi from initialized checkpoint: shape {initial_psi_mgb.shape}")
+    
+    if initial_psi_mgb is None:
+        # Fallback: use UKB initial_psi as reference (same structure)
+        print("  Warning: No psi in initialized checkpoint, using UKB reference...")
+        ukb_psi_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/initial_psi_400k.pt'
+        if os.path.exists(ukb_psi_path):
+            initial_psi_mgb = torch.load(ukb_psi_path, map_location='cpu', weights_only=False)
+            if not torch.is_tensor(initial_psi_mgb):
+                initial_psi_mgb = torch.tensor(initial_psi_mgb, dtype=torch.float32)
+            print(f"  Using UKB psi as reference: shape {initial_psi_mgb.shape}")
+        else:
+            raise ValueError("Could not find initial_psi. Please ensure initialized checkpoint has psi or UKB reference exists.")
+    
+    # Ensure psi is a torch tensor
+    if not torch.is_tensor(initial_psi_mgb):
+        initial_psi_mgb = torch.tensor(initial_psi_mgb, dtype=torch.float32)
+    
+    # Set clusters and initialize with true_psi (like batch script)
     model_mgb.clusters = initial_clusters_mgb
-    psi_config = {'in_cluster': 1, 'out_cluster': -2, 'noise_in': 0.1, 'noise_out': 0.01}
-    model_mgb.initialize_params(psi_config=psi_config)
+    model_mgb.initialize_params(true_psi=initial_psi_mgb)
     
     # Verify clusters match
     clusters_match = np.array_equal(initial_clusters_mgb, model_mgb.clusters)
     print(f"  Clusters match exactly: {clusters_match}")
-    print(f"  Psi config: in_cluster={psi_config['in_cluster']}, out_cluster={psi_config['out_cluster']}")
-    print(f"✓ Model initialized with psi_config (like notebook)")
+    print(f"✓ Model initialized with true_psi (like batch script)")
 
     # Train the model
     print(f"\nTraining model for {args.num_epochs} epochs...")
