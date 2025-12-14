@@ -58,8 +58,8 @@ def load_averaged_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.000
                 if np.allclose(gamma, 0):
                     print(f"  Warning: {os.path.basename(checkpoint_path)} has gamma=0 (possibly untrained)")
                 else:
-                    all_gammas.append(gamma)
-                    print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
+                all_gammas.append(gamma)
+                print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
             else:
                 print(f"  Warning: No gamma found in {os.path.basename(checkpoint_path)}")
         except Exception as e:

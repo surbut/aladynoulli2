@@ -7531,7 +7531,7 @@ a.anchor-link {
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="c1"># ============================================================================</span>
@@ -7584,7 +7584,32 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># Load data</span>
+<span class="n">censor_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/censor_info.csv'</span><span class="p">)</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mi">52</span>
+<span class="n">E</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_matrix.pt'</span><span class="p">)</span>
+<span class="c1"># Convert to timepoints</span>
+<span class="n">max_timepoints</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">censor_df</span><span class="p">[</span><span class="s1">'max_censor'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># Only update censored cases (where E == T-1)</span>
+<span class="n">censored_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">E</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Shape: (N, D)</span>
+
+<span class="c1"># For each patient, cap censored diseases to their max_timepoint</span>
+<span class="c1"># Expand max_timepoints to match E shape</span>
+<span class="n">max_timepoints_expanded</span> <span class="o">=</span> <span class="n">max_timepoints</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
+
+<span class="c1"># Update only censored positions</span>
+<span class="n">E_corrected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+    <span class="n">censored_mask</span><span class="p">,</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">max_timepoints_expanded</span><span class="p">),</span>
+    <span class="n">E</span>  <span class="c1"># Keep event times as-is</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7612,6 +7637,396 @@ COMPARISON
 ================================================================================
 
 ✅ PERFECT MATCH! E_matrix_corrected.pt matches recomputation
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># ============================================================================</span>
+<span class="c1"># Step 1: Verify E_corrected matches recomputation (UKB pattern)</span>
+<span class="c1"># ============================================================================</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"STEP 1: VERIFYING E_MATRIX_CORRECTED.PT"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+<span class="n">Y</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/Y_tensor.pt'</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1"># Load saved E_corrected</span>
+<span class="n">E_corrected_saved</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_matrix_corrected.pt'</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">E_corrected_saved</span><span class="p">):</span>
+    <span class="n">E_corrected_saved</span> <span class="o">=</span> <span class="n">E_corrected_saved</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">✓ Loaded saved E_matrix_corrected: </span><span class="si">{</span><span class="n">E_corrected_saved</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># Load original E (assuming full follow-up)</span>
+<span class="n">E_original</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/E_matrix.pt'</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">E_original</span><span class="p">):</span>
+    <span class="n">E_original</span> <span class="o">=</span> <span class="n">E_original</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Loaded original E_matrix: </span><span class="si">{</span><span class="n">E_original</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># Load censor info</span>
+<span class="n">censor_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/censor_info.csv'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✓ Loaded censor_info.csv: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">censor_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> patients"</span><span class="p">)</span>
+
+<span class="c1"># Recompute E_corrected using UKB pattern</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">E_original</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">E_original</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># Adjust based on your data</span>
+<span class="n">max_timepoints</span> <span class="o">=</span> <span class="p">(</span><span class="n">censor_df</span><span class="p">[</span><span class="s1">'max_censor'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+<span class="c1"># Only update censored cases (where E == T-1)</span>
+<span class="n">censored_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">E_original</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Shape: (N, D)</span>
+
+<span class="c1"># Expand max_timepoints to match E shape</span>
+<span class="n">max_timepoints_expanded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+    <span class="n">max_timepoints</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> 
+    <span class="n">E_original</span><span class="o">.</span><span class="n">shape</span>
+<span class="p">)</span>
+
+<span class="c1"># Update only censored positions</span>
+<span class="n">E_corrected_recomputed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+    <span class="n">censored_mask</span><span class="p">,</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">E_original</span><span class="p">,</span> <span class="n">max_timepoints_expanded</span><span class="p">),</span>
+    <span class="n">E_original</span>  <span class="c1"># Keep event times as-is</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">✓ Recomputed E_matrix_corrected: </span><span class="si">{</span><span class="n">E_corrected_recomputed</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># Compare</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'='</span><span class="o">*</span><span class="mi">80</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"COMPARISON"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'='</span><span class="o">*</span><span class="mi">80</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">E_corrected_saved</span><span class="p">,</span> <span class="n">E_corrected_recomputed</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">✅ PERFECT MATCH! E_matrix_corrected.pt matches recomputation"</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">E_corrected_saved</span> <span class="o">-</span> <span class="n">E_corrected_recomputed</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">⚠️ MISMATCH DETECTED!"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   Max difference: </span><span class="si">{</span><span class="n">diff</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   Number of differences: </span><span class="si">{</span><span class="p">(</span><span class="n">diff</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>
+================================================================================
+STEP 1: VERIFYING E_MATRIX_CORRECTED.PT
+================================================================================
+
+✓ Loaded saved E_matrix_corrected: (407878, 348)
+✓ Loaded original E_matrix: (407878, 348)
+✓ Loaded censor_info.csv: 407878 patients
+
+✓ Recomputed E_matrix_corrected: (407878, 348)
+
+================================================================================
+COMPARISON
+================================================================================
+
+✅ PERFECT MATCH! E_matrix_corrected.pt matches recomputation
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># ============================================================================</span>
+<span class="c1"># Examples of People with Events (showing only first event per disease)</span>
+<span class="c1"># ============================================================================</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"EXAMPLES OF PEOPLE WITH EVENTS"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">80</span><span class="p">)</span>
+
+<span class="c1"># Convert Y to numpy if needed</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">Y</span><span class="p">):</span>
+    <span class="n">Y_np</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">Y_np</span> <span class="o">=</span> <span class="n">Y</span>
+
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">E_corrected</span><span class="p">):</span>
+    <span class="n">E_corrected_np</span> <span class="o">=</span> <span class="n">E_corrected</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">E_corrected_np</span> <span class="o">=</span> <span class="n">E_corrected</span>
+
+<span class="c1"># Find patients with at least one event</span>
+<span class="n">patients_with_events</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">patient_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Y_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="c1"># Check if patient has any events (E &lt; T-1 means event occurred)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">E_corrected_np</span><span class="p">[</span><span class="n">patient_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">patients_with_events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patient_idx</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Total patients with at least one event: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">patients_with_events</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">Y_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># Show examples</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="si">{</span><span class="s1">'='</span><span class="o">*</span><span class="mi">80</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"EXAMPLE PATIENTS WITH EVENTS"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'='</span><span class="o">*</span><span class="mi">80</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># Load disease names if available (adjust path as needed)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">disease_names</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'path/to/disease_names.csv'</span><span class="p">)[</span><span class="s1">'name'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">disease_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"Disease </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Y_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+
+<span class="c1"># Show first 10 patients with events</span>
+<span class="k">for</span> <span class="n">example_idx</span><span class="p">,</span> <span class="n">patient_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">patients_with_events</span><span class="p">[:</span><span class="mi">10</span><span class="p">]):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Patient </span><span class="si">{</span><span class="n">patient_idx</span><span class="si">}</span><span class="s2">:"</span><span class="p">)</span>
+    
+    <span class="c1"># Find diseases with events for this patient</span>
+    <span class="n">event_diseases</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">disease_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Y_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">event_timepoint</span> <span class="o">=</span> <span class="n">E_corrected_np</span><span class="p">[</span><span class="n">patient_idx</span><span class="p">,</span> <span class="n">disease_idx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">event_timepoint</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># Event occurred (not censored at max time)</span>
+            <span class="c1"># Find FIRST event in Y (not all events)</span>
+            <span class="n">Y_events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Y_np</span><span class="p">[</span><span class="n">patient_idx</span><span class="p">,</span> <span class="n">disease_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Y_events</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">first_event_timepoint</span> <span class="o">=</span> <span class="n">Y_events</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">event_diseases</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">disease_idx</span><span class="p">,</span> <span class="n">event_timepoint</span><span class="p">,</span> <span class="n">first_event_timepoint</span><span class="p">))</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Number of diseases with events: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">event_diseases</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    
+    <span class="c1"># Show first 5 diseases (or all if &lt;= 5)</span>
+    <span class="k">for</span> <span class="n">disease_idx</span><span class="p">,</span> <span class="n">event_timepoint</span><span class="p">,</span> <span class="n">first_event_timepoint</span> <span class="ow">in</span> <span class="n">event_diseases</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+        <span class="n">disease_name</span> <span class="o">=</span> <span class="n">disease_names</span><span class="p">[</span><span class="n">disease_idx</span><span class="p">]</span> <span class="k">if</span> <span class="n">disease_idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">disease_names</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"Disease </span><span class="si">{</span><span class="n">disease_idx</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">age_at_event</span> <span class="o">=</span> <span class="mi">30</span> <span class="o">+</span> <span class="n">event_timepoint</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    Disease </span><span class="si">{</span><span class="n">disease_idx</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">disease_name</span><span class="si">}</span><span class="s2">):"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      E[</span><span class="si">{</span><span class="n">patient_idx</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">disease_idx</span><span class="si">}</span><span class="s2">] = </span><span class="si">{</span><span class="n">event_timepoint</span><span class="si">}</span><span class="s2"> (age </span><span class="si">{</span><span class="n">age_at_event</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      Y[</span><span class="si">{</span><span class="n">patient_idx</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">disease_idx</span><span class="si">}</span><span class="s2">, :] has events at timepoints: [</span><span class="si">{</span><span class="n">first_event_timepoint</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
+        
+        <span class="c1"># Verify first event matches E</span>
+        <span class="n">first_event_match</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_event_timepoint</span> <span class="o">==</span> <span class="n">event_timepoint</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      ✓ First event in Y matches E: </span><span class="si">{</span><span class="n">first_event_match</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">first_event_match</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      ⚠️ WARNING: First event at timepoint </span><span class="si">{</span><span class="n">first_event_timepoint</span><span class="si">}</span><span class="s2">, but E = </span><span class="si">{</span><span class="n">event_timepoint</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">event_diseases</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    ... and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">event_diseases</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">5</span><span class="si">}</span><span class="s2"> more diseases with events"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>
+================================================================================
+EXAMPLES OF PEOPLE WITH EVENTS
+================================================================================
+
+Total patients with at least one event: 407,137 / 407,878
+
+================================================================================
+EXAMPLE PATIENTS WITH EVENTS
+================================================================================
+
+Patient 0:
+  Number of diseases with events: 2
+    Disease 161 (Disease 161):
+      E[0, 161] = 44 (age 74)
+      Y[0, 161, :] has events at timepoints: [44]
+      ✓ First event in Y matches E: True
+    Disease 326 (Disease 326):
+      E[0, 326] = 44 (age 74)
+      Y[0, 326, :] has events at timepoints: [44]
+      ✓ First event in Y matches E: True
+
+Patient 1:
+  Number of diseases with events: 2
+    Disease 150 (Disease 150):
+      E[1, 150] = 22 (age 52)
+      Y[1, 150, :] has events at timepoints: [22]
+      ✓ First event in Y matches E: True
+    Disease 157 (Disease 157):
+      E[1, 157] = 23 (age 53)
+      Y[1, 157, :] has events at timepoints: [23]
+      ✓ First event in Y matches E: True
+
+Patient 2:
+  Number of diseases with events: 3
+    Disease 180 (Disease 180):
+      E[2, 180] = 40 (age 70)
+      Y[2, 180, :] has events at timepoints: [40]
+      ✓ First event in Y matches E: True
+    Disease 195 (Disease 195):
+      E[2, 195] = 40 (age 70)
+      Y[2, 195, :] has events at timepoints: [40]
+      ✓ First event in Y matches E: True
+    Disease 299 (Disease 299):
+      E[2, 299] = 42 (age 72)
+      Y[2, 299, :] has events at timepoints: [42]
+      ✓ First event in Y matches E: True
+
+Patient 3:
+  Number of diseases with events: 26
+    Disease 10 (Disease 10):
+      E[3, 10] = 46 (age 76)
+      Y[3, 10, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 11 (Disease 11):
+      E[3, 11] = 46 (age 76)
+      Y[3, 11, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 21 (Disease 21):
+      E[3, 21] = 40 (age 70)
+      Y[3, 21, :] has events at timepoints: [40]
+      ✓ First event in Y matches E: True
+    Disease 33 (Disease 33):
+      E[3, 33] = 46 (age 76)
+      Y[3, 33, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 55 (Disease 55):
+      E[3, 55] = 46 (age 76)
+      Y[3, 55, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    ... and 21 more diseases with events
+
+Patient 4:
+  Number of diseases with events: 24
+    Disease 37 (Disease 37):
+      E[4, 37] = 13 (age 43)
+      Y[4, 37, :] has events at timepoints: [13]
+      ✓ First event in Y matches E: True
+    Disease 43 (Disease 43):
+      E[4, 43] = 37 (age 67)
+      Y[4, 43, :] has events at timepoints: [37]
+      ✓ First event in Y matches E: True
+    Disease 45 (Disease 45):
+      E[4, 45] = 21 (age 51)
+      Y[4, 45, :] has events at timepoints: [21]
+      ✓ First event in Y matches E: True
+    Disease 47 (Disease 47):
+      E[4, 47] = 37 (age 67)
+      Y[4, 47, :] has events at timepoints: [37]
+      ✓ First event in Y matches E: True
+    Disease 60 (Disease 60):
+      E[4, 60] = 35 (age 65)
+      Y[4, 60, :] has events at timepoints: [35]
+      ✓ First event in Y matches E: True
+    ... and 19 more diseases with events
+
+Patient 5:
+  Number of diseases with events: 1
+    Disease 52 (Disease 52):
+      E[5, 52] = 31 (age 61)
+      Y[5, 52, :] has events at timepoints: [31]
+      ✓ First event in Y matches E: True
+
+Patient 6:
+  Number of diseases with events: 32
+    Disease 14 (Disease 14):
+      E[6, 14] = 41 (age 71)
+      Y[6, 14, :] has events at timepoints: [41]
+      ✓ First event in Y matches E: True
+    Disease 30 (Disease 30):
+      E[6, 30] = 43 (age 73)
+      Y[6, 30, :] has events at timepoints: [43]
+      ✓ First event in Y matches E: True
+    Disease 45 (Disease 45):
+      E[6, 45] = 45 (age 75)
+      Y[6, 45, :] has events at timepoints: [45]
+      ✓ First event in Y matches E: True
+    Disease 50 (Disease 50):
+      E[6, 50] = 43 (age 73)
+      Y[6, 50, :] has events at timepoints: [43]
+      ✓ First event in Y matches E: True
+    Disease 52 (Disease 52):
+      E[6, 52] = 43 (age 73)
+      Y[6, 52, :] has events at timepoints: [43]
+      ✓ First event in Y matches E: True
+    ... and 27 more diseases with events
+
+Patient 7:
+  Number of diseases with events: 10
+    Disease 1 (Disease 1):
+      E[7, 1] = 27 (age 57)
+      Y[7, 1, :] has events at timepoints: [27]
+      ✓ First event in Y matches E: True
+    Disease 33 (Disease 33):
+      E[7, 33] = 19 (age 49)
+      Y[7, 33, :] has events at timepoints: [19]
+      ✓ First event in Y matches E: True
+    Disease 162 (Disease 162):
+      E[7, 162] = 24 (age 54)
+      Y[7, 162, :] has events at timepoints: [24]
+      ✓ First event in Y matches E: True
+    Disease 206 (Disease 206):
+      E[7, 206] = 27 (age 57)
+      Y[7, 206, :] has events at timepoints: [27]
+      ✓ First event in Y matches E: True
+    Disease 208 (Disease 208):
+      E[7, 208] = 19 (age 49)
+      Y[7, 208, :] has events at timepoints: [19]
+      ✓ First event in Y matches E: True
+    ... and 5 more diseases with events
+
+Patient 8:
+  Number of diseases with events: 4
+    Disease 261 (Disease 261):
+      E[8, 261] = 12 (age 42)
+      Y[8, 261, :] has events at timepoints: [12]
+      ✓ First event in Y matches E: True
+    Disease 266 (Disease 266):
+      E[8, 266] = 11 (age 41)
+      Y[8, 266, :] has events at timepoints: [11]
+      ✓ First event in Y matches E: True
+    Disease 273 (Disease 273):
+      E[8, 273] = 11 (age 41)
+      Y[8, 273, :] has events at timepoints: [11]
+      ✓ First event in Y matches E: True
+    Disease 279 (Disease 279):
+      E[8, 279] = 11 (age 41)
+      Y[8, 279, :] has events at timepoints: [11]
+      ✓ First event in Y matches E: True
+
+Patient 9:
+  Number of diseases with events: 15
+    Disease 60 (Disease 60):
+      E[9, 60] = 46 (age 76)
+      Y[9, 60, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 61 (Disease 61):
+      E[9, 61] = 46 (age 76)
+      Y[9, 61, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 68 (Disease 68):
+      E[9, 68] = 46 (age 76)
+      Y[9, 68, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 112 (Disease 112):
+      E[9, 112] = 46 (age 76)
+      Y[9, 112, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    Disease 117 (Disease 117):
+      E[9, 117] = 46 (age 76)
+      Y[9, 117, :] has events at timepoints: [46]
+      ✓ First event in Y matches E: True
+    ... and 10 more diseases with events
 </pre>
 </div>
 </div>
