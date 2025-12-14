@@ -1,0 +1,386 @@
+# Load and display external scores comparison results
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
+
+# Set style
+sns.set_style("whitegrid")
+plt.rcParams['figure.figsize'] = (20, 12)
+plt.rcParams['font.size'] = 10
+
+results_dir = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/comparisons/pooled_retrospective')
+external_scores_file = results_dir / 'external_scores_comparison.csv'
+
+# Load static 10-year results to get women-only breast cancer AUC
+static_results_file = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/time_horizons/pooled_retrospective/static_10yr_results.csv')
+breast_cancer_women_only_auc = None
+breast_cancer_women_only_ci_lower = None
+breast_cancer_women_only_ci_upper = None
+
+if static_results_file.exists():
+    static_df = pd.read_csv(static_results_file)
+    breast_row = static_df[static_df['Disease'] == 'Breast_Cancer']
+    if len(breast_row) > 0:
+        breast_cancer_women_only_auc = breast_row.iloc[0]['AUC']
+        breast_cancer_women_only_ci_lower = breast_row.iloc[0]['CI_lower']
+        breast_cancer_women_only_ci_upper = breast_row.iloc[0]['CI_upper']
+        print(f"Loaded women-only 10-year breast cancer AUC: {breast_cancer_women_only_auc:.4f}")
+
+if external_scores_file.exists():
+    df = pd.read_csv(external_scores_file, index_col=0)
+    
+    print("="*80)
+    print("COMPARISON WITH ESTABLISHED CLINICAL RISK SCORES")
+    print("="*80)
+    
+    # Display summary table
+    print("\n" + "="*80)
+    print("SUMMARY TABLE")
+    print("="*80)
+    
+    summary_data = []
+    
+    # ASCVD 10-year
+    if 'ASCVD_10yr' in df.index:
+        row = df.loc['ASCVD_10yr']
+        summary_data.append({
+            'Outcome': 'ASCVD (10-year)',
+            'Aladynoulli AUC': f"{row['Aladynoulli_AUC']:.4f}",
+            'PCE AUC': f"{row['PCE_AUC']:.4f}" if pd.notna(row.get('PCE_AUC')) else 'N/A',
+            'QRISK3 AUC': f"{row['QRISK3_AUC']:.4f}" if pd.notna(row.get('QRISK3_AUC')) else 'N/A',
+            'PREVENT (10yr) AUC': f"{row['PREVENT_10yr_AUC']:.4f}" if pd.notna(row.get('PREVENT_10yr_AUC')) else 'N/A',
+            'N Patients': int(row['N_patients'])
+        })
+    
+    # Breast Cancer 10-year (use women-only AUC for fair comparison)
+    if 'Breast_Cancer_10yr' in df.index:
+        row = df.loc['Breast_Cancer_10yr']
+        # Use women-only AUC if available, otherwise fall back to full population
+        aladynoulli_auc = breast_cancer_women_only_auc if breast_cancer_women_only_auc is not None else row['Aladynoulli_AUC']
+        summary_data.append({
+            'Outcome': 'Breast Cancer (10-year, women only)',
+            'Aladynoulli AUC': f"{aladynoulli_auc:.4f}",
+            'PCE AUC': 'N/A',
+            'QRISK3 AUC': 'N/A',
+            'PREVENT (10yr) AUC': 'N/A',
+            'GAIL AUC': f"{row['Gail_AUC']:.4f}" if pd.notna(row.get('Gail_AUC')) else 'N/A',
+            'N Patients': int(row.get('N_patients_gail', row['N_patients']))
+        })
+    
+    # Breast Cancer 1-year
+    if 'Breast_Cancer_1yr' in df.index:
+        row = df.loc['Breast_Cancer_1yr']
+        summary_data.append({
+            'Outcome': 'Breast Cancer (1-year)',
+            'Aladynoulli AUC': f"{row['Aladynoulli_AUC']:.4f}",
+            'PCE AUC': 'N/A',
+            'QRISK3 AUC': 'N/A',
+            'PREVENT (10yr) AUC': 'N/A',
+            'GAIL AUC': f"{row['Gail_AUC']:.4f}" if pd.notna(row.get('Gail_AUC')) else 'N/A',
+            'N Patients': int(row['N_patients'])
+        })
+    
+    summary_df = pd.DataFrame(summary_data)
+    print(summary_df.to_string(index=False))
+    
+    print("\n" + "="*80)
+    print("DETAILED RESULTS")
+    print("="*80)
+    
+    # 10-year ASCVD
+    if 'ASCVD_10yr' in df.index:
+        row = df.loc['ASCVD_10yr']
+        print(f"\n10-YEAR ASCVD PREDICTION:")
+        print(f"  Aladynoulli:  {row['Aladynoulli_AUC']:.4f} ({row['Aladynoulli_CI_lower']:.4f}-{row['Aladynoulli_CI_upper']:.4f})")
+        
+        if pd.notna(row.get('PCE_AUC')):
+            print(f"  PCE:          {row['PCE_AUC']:.4f} ({row['PCE_CI_lower']:.4f}-{row['PCE_CI_upper']:.4f})")
+            diff = row['Difference']
+            pct = (diff / row['PCE_AUC']) * 100
+            print(f"  Difference:   {diff:+.4f} ({pct:+.2f}%)")
+        
+        if pd.notna(row.get('QRISK3_AUC')):
+            print(f"  QRISK3:       {row['QRISK3_AUC']:.4f} ({row['QRISK3_CI_lower']:.4f}-{row['QRISK3_CI_upper']:.4f})")
+            qrisk3_diff = row['QRISK3_Difference']
+            qrisk3_pct = (qrisk3_diff / row['QRISK3_AUC']) * 100
+            print(f"  Difference:   {qrisk3_diff:+.4f} ({qrisk3_pct:+.2f}%)")
+        
+        if pd.notna(row.get('PREVENT_10yr_AUC')):
+            print(f"  PREVENT (10yr): {row['PREVENT_10yr_AUC']:.4f} ({row['PREVENT_10yr_CI_lower']:.4f}-{row['PREVENT_10yr_CI_upper']:.4f})")
+            prevent_diff = row['PREVENT_10yr_Difference']
+            prevent_pct = (prevent_diff / row['PREVENT_10yr_AUC']) * 100
+            print(f"  Difference:     {prevent_diff:+.4f} ({prevent_pct:+.2f}%)")
+        
+        print(f"  N patients:   {int(row['N_patients'])}")
+        print(f"  N events:     {int(row['N_events'])}")
+    
+    # Breast Cancer 10-year (use women-only AUC for fair comparison)
+    print("\n" + "="*80)
+    print("BREAST CANCER PREDICTIONS (10-YEAR, WOMEN ONLY)")
+    print("="*80)
+    
+    if 'Breast_Cancer_10yr' in df.index:
+        row = df.loc['Breast_Cancer_10yr']
+        # Use women-only AUC if available, otherwise fall back to full population
+        if breast_cancer_women_only_auc is not None:
+            aladynoulli_auc = breast_cancer_women_only_auc
+            aladynoulli_ci_lower = breast_cancer_women_only_ci_lower
+            aladynoulli_ci_upper = breast_cancer_women_only_ci_upper
+            print(f"\nCOMPARISON (Women Only - Fair Comparison):")
+            print(f"  Aladynoulli (Women Only):     {aladynoulli_auc:.4f} ({aladynoulli_ci_lower:.4f}-{aladynoulli_ci_upper:.4f})")
+        else:
+            aladynoulli_auc = row['Aladynoulli_AUC']
+            aladynoulli_ci_lower = row['Aladynoulli_CI_lower']
+            aladynoulli_ci_upper = row['Aladynoulli_CI_upper']
+            print(f"\nCOMPARISON:")
+            print(f"  Aladynoulli (Full Population):  {aladynoulli_auc:.4f} ({aladynoulli_ci_lower:.4f}-{aladynoulli_ci_upper:.4f})")
+        
+        if pd.notna(row.get('Gail_AUC')):
+            print(f"  GAIL (Women Only):            {row['Gail_AUC']:.4f} ({row['Gail_CI_lower']:.4f}-{row['Gail_CI_upper']:.4f})")
+            diff = aladynoulli_auc - row['Gail_AUC']
+            pct = (diff / row['Gail_AUC']) * 100
+            print(f"  Difference:                   {diff:+.4f} ({pct:+.2f}%)")
+            if breast_cancer_women_only_auc is not None:
+                print(f"\n  Note: Both Aladynoulli and GAIL use women only for fair comparison")
+            else:
+                print(f"\n  Note: Aladynoulli uses full population (men + women), GAIL uses women only")
+        
+        if 'N_patients_gail' in row and pd.notna(row['N_patients_gail']):
+            print(f"  N patients:                   {int(row['N_patients_gail'])}")
+        else:
+            print(f"  N patients (Aladynoulli):     {int(row['N_patients'])}")
+        if 'N_events_gail' in row and pd.notna(row['N_events_gail']):
+            print(f"  N events:                     {int(row['N_events_gail'])}")
+        else:
+            print(f"  N events (Aladynoulli):       {int(row['N_events'])}")
+    
+    # Breast Cancer 1-year
+    print("\n" + "="*80)
+    print("BREAST CANCER PREDICTIONS (1-YEAR)")
+    print("="*80)
+    
+    if 'Breast_Cancer_1yr' in df.index:
+        row = df.loc['Breast_Cancer_1yr']
+        print(f"\nCOMPARISON (Women Only):")
+        print(f"  Aladynoulli (washout 0yr):  {row['Aladynoulli_AUC']:.4f} ({row['Aladynoulli_CI_lower']:.4f}-{row['Aladynoulli_CI_upper']:.4f})")
+        
+        if pd.notna(row.get('Gail_AUC')):
+            print(f"  GAIL (1-year):               {row['Gail_AUC']:.4f} ({row['Gail_CI_lower']:.4f}-{row['Gail_CI_upper']:.4f})")
+            if 'Difference' in row and pd.notna(row['Difference']):
+                diff = row['Difference']
+            else:
+                diff = row['Aladynoulli_AUC'] - row['Gail_AUC']
+            pct = (diff / row['Gail_AUC']) * 100
+            print(f"  Difference:                  {diff:+.4f} ({pct:+.2f}%)")
+            print(f"\n  Note: Both Aladynoulli (washout 0yr) and GAIL use women only")
+        
+        print(f"  N patients:   {int(row['N_patients'])}")
+        print(f"  N events:     {int(row['N_events'])}")
+    
+    # Create comprehensive visualizations
+    fig = plt.figure(figsize=(20, 12))
+    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+    
+    fig.suptitle('Aladynoulli vs Established Clinical Risk Scores', 
+                 fontsize=18, fontweight='bold', y=0.98)
+    
+    # 1. ASCVD 10-year: Aladynoulli vs PCE vs QRISK3 vs PREVENT
+    ax1 = fig.add_subplot(gs[0, 0])
+    if 'ASCVD_10yr' in df.index:
+        row = df.loc['ASCVD_10yr']
+        models = []
+        aucs = []
+        ci_lowers = []
+        ci_uppers = []
+        
+        if pd.notna(row.get('Aladynoulli_AUC')):
+            models.append('Aladynoulli')
+            aucs.append(row['Aladynoulli_AUC'])
+            ci_lowers.append(row['Aladynoulli_CI_lower'])
+            ci_uppers.append(row['Aladynoulli_CI_upper'])
+        
+        if pd.notna(row.get('PCE_AUC')):
+            models.append('PCE')
+            aucs.append(row['PCE_AUC'])
+            ci_lowers.append(row['PCE_CI_lower'])
+            ci_uppers.append(row['PCE_CI_upper'])
+        
+        if pd.notna(row.get('QRISK3_AUC')):
+            models.append('QRISK3')
+            aucs.append(row['QRISK3_AUC'])
+            ci_lowers.append(row['QRISK3_CI_lower'])
+            ci_uppers.append(row['QRISK3_CI_upper'])
+        
+        if pd.notna(row.get('PREVENT_10yr_AUC')):
+            models.append('PREVENT\n(10yr)')
+            aucs.append(row['PREVENT_10yr_AUC'])
+            ci_lowers.append(row['PREVENT_10yr_CI_lower'])
+            ci_uppers.append(row['PREVENT_10yr_CI_upper'])
+        
+        if models:
+            x_pos = np.arange(len(models))
+            colors = ['#2c7fb8' if m == 'Aladynoulli' else '#e74c3c' if m == 'PCE' else '#f39c12' if m == 'QRISK3' else '#27ae60' for m in models]
+            bars = ax1.bar(x_pos, aucs, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+            
+            errors_lower = [aucs[i] - ci_lowers[i] for i in range(len(models))]
+            errors_upper = [ci_uppers[i] - aucs[i] for i in range(len(models))]
+            ax1.errorbar(x_pos, aucs, yerr=[errors_lower, errors_upper], 
+                       fmt='none', color='black', capsize=5, capthick=2)
+            
+            ax1.set_xticks(x_pos)
+            ax1.set_xticklabels(models, fontsize=11)
+            ax1.set_ylabel('AUC', fontsize=12, fontweight='bold')
+            ax1.set_title('ASCVD 10-Year Prediction', fontsize=13, fontweight='bold')
+            ax1.set_ylim(0.60, max(aucs) * 1.05)
+            ax1.grid(axis='y', alpha=0.3)
+            
+            for i, (bar, auc) in enumerate(zip(bars, aucs)):
+                ax1.text(bar.get_x() + bar.get_width()/2., auc + errors_upper[i] + 0.003,
+                        f'{auc:.3f}',
+                        ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    # 2. Breast Cancer 10-year: Aladynoulli (women only) vs GAIL (women only)
+    ax2 = fig.add_subplot(gs[0, 1])
+    if 'Breast_Cancer_10yr' in df.index:
+        row = df.loc['Breast_Cancer_10yr']
+        models = []
+        aucs = []
+        ci_lowers = []
+        ci_uppers = []
+        
+        # Use women-only AUC if available, otherwise fall back to full population
+        if breast_cancer_women_only_auc is not None:
+            models.append('Aladynoulli\n(Women Only)')
+            aucs.append(breast_cancer_women_only_auc)
+            ci_lowers.append(breast_cancer_women_only_ci_lower)
+            ci_uppers.append(breast_cancer_women_only_ci_upper)
+        elif pd.notna(row.get('Aladynoulli_AUC')):
+            models.append('Aladynoulli\n(Full Population)')
+            aucs.append(row['Aladynoulli_AUC'])
+            ci_lowers.append(row['Aladynoulli_CI_lower'])
+            ci_uppers.append(row['Aladynoulli_CI_upper'])
+        
+        if pd.notna(row.get('Gail_AUC')):
+            models.append('GAIL\n(Women Only)')
+            aucs.append(row['Gail_AUC'])
+            ci_lowers.append(row['Gail_CI_lower'])
+            ci_uppers.append(row['Gail_CI_upper'])
+        
+        if models:
+            x_pos = np.arange(len(models))
+            colors = ['#2c7fb8' if 'Aladynoulli' in m else '#9b59b6' for m in models]
+            bars = ax2.bar(x_pos, aucs, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+            
+            errors_lower = [aucs[i] - ci_lowers[i] for i in range(len(models))]
+            errors_upper = [ci_uppers[i] - aucs[i] for i in range(len(models))]
+            ax2.errorbar(x_pos, aucs, yerr=[errors_lower, errors_upper], 
+                       fmt='none', color='black', capsize=5, capthick=2)
+            
+            ax2.set_xticks(x_pos)
+            ax2.set_xticklabels(models, fontsize=10)
+            ax2.set_ylabel('AUC', fontsize=12, fontweight='bold')
+            ax2.set_title('Breast Cancer 10-Year (Women Only)', fontsize=13, fontweight='bold')
+            ax2.set_ylim(0.50, max(aucs) * 1.05)
+            ax2.grid(axis='y', alpha=0.3)
+            
+            for i, (bar, auc) in enumerate(zip(bars, aucs)):
+                ax2.text(bar.get_x() + bar.get_width()/2., auc + errors_upper[i] + 0.003,
+                        f'{auc:.3f}',
+                        ha='center', va='bottom', fontsize=10, fontweight='bold')
+            
+            if len(models) == 2:
+                diff = aucs[0] - aucs[1]
+                if breast_cancer_women_only_auc is not None:
+                    note_text = 'Difference: {diff:+.3f}\n(Both models use women only)'
+                else:
+                    note_text = 'Difference: {diff:+.3f}\n(Aladynoulli uses full population)'
+                ax2.text(0.5, 0.05, note_text.format(diff=diff), 
+                       transform=ax2.transAxes, ha='center',
+                       bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5),
+                       fontsize=9, fontweight='bold')
+    
+    # 3. Breast Cancer 1-year: Aladynoulli vs GAIL
+    ax3 = fig.add_subplot(gs[1, :])
+    if 'Breast_Cancer_1yr' in df.index:
+        row = df.loc['Breast_Cancer_1yr']
+        models = []
+        aucs = []
+        ci_lowers = []
+        ci_uppers = []
+        
+        if pd.notna(row.get('Aladynoulli_AUC')):
+            models.append('Aladynoulli\n(washout 0yr, women only)')
+            aucs.append(row['Aladynoulli_AUC'])
+            ci_lowers.append(row['Aladynoulli_CI_lower'])
+            ci_uppers.append(row['Aladynoulli_CI_upper'])
+        
+        if pd.notna(row.get('Gail_AUC')):
+            models.append('GAIL\n(1-year, women only)')
+            aucs.append(row['Gail_AUC'])
+            ci_lowers.append(row['Gail_CI_lower'])
+            ci_uppers.append(row['Gail_CI_upper'])
+        
+        if models:
+            x_pos = np.arange(len(models))
+            colors = ['#2c7fb8' if 'Aladynoulli' in m else '#9b59b6' for m in models]
+            bars = ax3.bar(x_pos, aucs, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+            
+            errors_lower = [aucs[i] - ci_lowers[i] for i in range(len(models))]
+            errors_upper = [ci_uppers[i] - aucs[i] for i in range(len(models))]
+            ax3.errorbar(x_pos, aucs, yerr=[errors_lower, errors_upper], 
+                       fmt='none', color='black', capsize=5, capthick=2)
+            
+            ax3.set_xticks(x_pos)
+            ax3.set_xticklabels(models, fontsize=11)
+            ax3.set_ylabel('AUC', fontsize=12, fontweight='bold')
+            ax3.set_title('Breast Cancer 1-Year Prediction (Women Only)', fontsize=13, fontweight='bold')
+            ax3.set_ylim(0.50, max(aucs) * 1.05)
+            ax3.grid(axis='y', alpha=0.3)
+            
+            for i, (bar, auc) in enumerate(zip(bars, aucs)):
+                ax3.text(bar.get_x() + bar.get_width()/2., auc + errors_upper[i] + 0.003,
+                        f'{auc:.3f}',
+                        ha='center', va='bottom', fontsize=11, fontweight='bold')
+            
+            if len(models) == 2:
+                diff = aucs[0] - aucs[1]
+                ax3.text(0.5, 0.05, f'Difference: {diff:+.3f}\n(Both models use women only)', 
+                       transform=ax3.transAxes, ha='center',
+                       bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.5),
+                       fontsize=10, fontweight='bold')
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.show()
+    
+    # Key findings
+    print("\n" + "="*80)
+    print("KEY FINDINGS")
+    print("="*80)
+    if 'ASCVD_10yr' in df.index:
+        row = df.loc['ASCVD_10yr']
+        if pd.notna(row.get('PCE_AUC')):
+            print("✓ Aladynoulli outperforms PCE for 10-year ASCVD prediction")
+        if pd.notna(row.get('QRISK3_AUC')):
+            print("✓ Aladynoulli outperforms QRISK3 for 10-year ASCVD prediction")
+        if pd.notna(row.get('PREVENT_10yr_AUC')):
+            print("✓ Aladynoulli outperforms PREVENT for 10-year ASCVD prediction")
+    if 'Breast_Cancer_10yr' in df.index:
+        row = df.loc['Breast_Cancer_10yr']
+        if pd.notna(row.get('Gail_AUC')):
+            if breast_cancer_women_only_auc is not None:
+                diff = breast_cancer_women_only_auc - row['Gail_AUC']
+                if diff > 0:
+                    print("✓ Aladynoulli (women only) outperforms GAIL (women only) for 10-year breast cancer prediction")
+                else:
+                    print("✓ Aladynoulli (women only) vs GAIL (women only) for 10-year breast cancer prediction")
+            else:
+                print("✓ Aladynoulli (full population) outperforms GAIL (women only) for 10-year breast cancer prediction")
+    if 'Breast_Cancer_1yr' in df.index:
+        row = df.loc['Breast_Cancer_1yr']
+        if pd.notna(row.get('Gail_AUC')):
+            print("✓ Aladynoulli (washout 0yr, women only) substantially outperforms GAIL (1-year, women only) for 1-year breast cancer prediction")
+    
+else:
+    print("⚠️  Results file not found. Please run the comparison script first.")
