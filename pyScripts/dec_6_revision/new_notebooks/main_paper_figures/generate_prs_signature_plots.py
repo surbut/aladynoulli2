@@ -24,6 +24,8 @@ import seaborn as sns
 from pathlib import Path
 import glob
 import argparse
+from scipy import stats
+from statsmodels.stats.multitest import multipletests
 
 # Set style for publication-quality figures
 sns.set_style("whitegrid")
@@ -148,7 +150,8 @@ def load_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.0001_batch_*
     gamma_stack = np.stack(all_gammas)
     gamma_mean = np.mean(gamma_stack, axis=0)
     gamma_std = np.std(gamma_stack, axis=0)
-    # Standard error of the mean (SEM) = std / sqrt(n)
+    # Standard error of the mean (
+    # ) = std / sqrt(n)
     gamma_sem = gamma_std / np.sqrt(len(all_gammas))
     
     print(f"\n✓ Averaged gamma from {len(all_gammas)} batches")
@@ -158,6 +161,65 @@ def load_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.0001_batch_*
     print(f"  Mean SEM: {np.mean(gamma_sem):.6f}, Median SEM: {np.median(gamma_sem):.6f}")
     
     return gamma_mean, gamma_sem, len(all_gammas)  # Return SEM instead of std
+
+
+def load_gamma_from_old_structure(results_dir, pattern="output_*_*/model.pt"):
+    """Load and average gamma from old folder structure: results/output_*_*/model.pt"""
+    model_files = sorted(glob.glob(os.path.join(results_dir, pattern)))
+    
+    if not model_files:
+        print(f"No model files found matching pattern: {pattern}")
+        print(f"  Searched in: {results_dir}")
+        return None
+    
+    print(f"Found {len(model_files)} model files. Loading gamma...")
+    all_gammas = []
+    
+    for model_path in model_files:
+        try:
+            checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+            
+            gamma = None
+            if 'model_state_dict' in checkpoint and 'gamma' in checkpoint['model_state_dict']:
+                gamma = checkpoint['model_state_dict']['gamma']
+            elif 'gamma' in checkpoint:
+                gamma = checkpoint['gamma']
+            
+            if gamma is not None:
+                if torch.is_tensor(gamma):
+                    gamma = gamma.detach().cpu().numpy()
+                
+                # Skip if all zeros
+                if not np.allclose(gamma, 0):
+                    all_gammas.append(gamma)
+                    folder_name = os.path.basename(os.path.dirname(model_path))
+                    print(f"  Loaded gamma from {folder_name}/model.pt (shape: {gamma.shape})")
+                else:
+                    folder_name = os.path.basename(os.path.dirname(model_path))
+                    print(f"  Skipping {folder_name}/model.pt - gamma is all zeros")
+        except Exception as e:
+            folder_name = os.path.basename(os.path.dirname(model_path))
+            print(f"  Warning: Could not load gamma from {folder_name}/model.pt: {e}")
+            continue
+    
+    if not all_gammas:
+        print("No non-zero gamma values found!")
+        return None
+    
+    # Stack and average
+    gamma_stack = np.stack(all_gammas)
+    gamma_mean = np.mean(gamma_stack, axis=0)
+    gamma_std = np.std(gamma_stack, axis=0)
+    # Standard error of the mean (SEM) = std / sqrt(n)
+    gamma_sem = gamma_std / np.sqrt(len(all_gammas))
+    
+    print(f"\n✓ Averaged gamma from {len(all_gammas)} batches")
+    print(f"  Final shape: {gamma_mean.shape}")
+    print(f"  Min: {np.min(gamma_mean):.6f}, Max: {np.max(gamma_mean):.6f}")
+    print(f"  Mean: {np.mean(gamma_mean):.6f}, Std: {np.std(gamma_mean):.6f}")
+    print(f"  Mean SEM: {np.mean(gamma_sem):.6f}, Median SEM: {np.median(gamma_sem):.6f}")
+    
+    return gamma_mean, gamma_sem, len(all_gammas)
 
 
 def load_gamma_from_file(gamma_file_path):
@@ -208,7 +270,7 @@ def load_gamma_from_file(gamma_file_path):
     return None
 
 
-def create_gamma_dataframe(gamma, prs_names, n_signatures=21):
+def create_gamma_dataframe(gamma, prs_names, n_signatures=21, gamma_sem=None):
     """Create melted dataframe from gamma matrix.
     
     Note: gamma structure when PCs are included:
@@ -218,6 +280,12 @@ def create_gamma_dataframe(gamma, prs_names, n_signatures=21):
       Total: 47 features
     
     We only extract the first 36 rows (PRS) for plotting.
+    
+    Args:
+        gamma: (P_full, K) array of effect sizes
+        prs_names: List of PRS names
+        n_signatures: Number of signatures to include
+        gamma_sem: Optional (P_full, K) array of standard errors of the mean
     """
     P_full, K = gamma.shape
     n_prs = len(prs_names)
@@ -232,8 +300,13 @@ def create_gamma_dataframe(gamma, prs_names, n_signatures=21):
         else:
             print(f"  (Remaining {P_full - n_prs} features are likely sex + PCs)")
         gamma_prs = gamma[:n_prs, :]  # Extract only PRS rows
+        if gamma_sem is not None:
+            gamma_sem_prs = gamma_sem[:n_prs, :]
+        else:
+            gamma_sem_prs = None
     else:
         gamma_prs = gamma
+        gamma_sem_prs = gamma_sem
     
     P = gamma_prs.shape[0]
     
@@ -250,10 +323,20 @@ def create_gamma_dataframe(gamma, prs_names, n_signatures=21):
     data = []
     for p in range(P):
         for k in range(K):
+            effect = float(gamma_prs[p, k])
+            sem = float(gamma_sem_prs[p, k]) if gamma_sem_prs is not None else np.nan
+            # Calculate z-score (effect / standard error)
+            z_score = effect / sem if (gamma_sem_prs is not None and sem > 0) else np.nan
+            # Calculate p-value (two-tailed test)
+            p_value = 2 * (1 - stats.norm.cdf(abs(z_score))) if not np.isnan(z_score) else np.nan
+            
             data.append({
                 'prs': str(prs_names[p]),  # Ensure string type
                 'signature': f'Sig {k}',
-                'effect': float(gamma_prs[p, k])  # Ensure float type
+                'effect': effect,
+                'sem': sem,
+                'z_score': z_score,  # Effect size / standard error
+                'p_value': p_value  # Two-tailed p-value
             })
     
     gamma_df = pd.DataFrame(data)
@@ -263,20 +346,85 @@ def create_gamma_dataframe(gamma, prs_names, n_signatures=21):
     prs_to_category = dict(zip([str(p) for p in prs_names], disease_categories))
     gamma_df['category'] = gamma_df['prs'].map(prs_to_category)
     
+    # Apply FDR correction for multiple testing (Benjamini-Hochberg)
+    # With 36 PRS × 21 signatures = 756 tests, we need to correct
+    valid_p_mask = ~gamma_df['p_value'].isna()
+    if valid_p_mask.sum() > 0:
+        p_values = gamma_df.loc[valid_p_mask, 'p_value'].values
+        # Apply FDR correction
+        rejected, p_adjusted, _, _ = multipletests(
+            p_values, 
+            alpha=0.05, 
+            method='fdr_bh'  # Benjamini-Hochberg FDR correction
+        )
+        
+        # Add FDR-corrected p-values
+        gamma_df['p_value_fdr'] = np.nan
+        gamma_df.loc[valid_p_mask, 'p_value_fdr'] = p_adjusted
+        gamma_df['significant_fdr'] = False
+        gamma_df.loc[valid_p_mask, 'significant_fdr'] = rejected
+        
+        n_significant_fdr = rejected.sum()
+        print(f"\n  Multiple Testing Correction (FDR):")
+        print(f"    Total tests: {len(p_values)}")
+        print(f"    Significant at FDR < 0.05: {n_significant_fdr} ({100*n_significant_fdr/len(p_values):.1f}%)")
+        print(f"    Significant at uncorrected p < 0.05: {(p_values < 0.05).sum()} ({100*(p_values < 0.05).sum()/len(p_values):.1f}%)")
+    else:
+        gamma_df['p_value_fdr'] = np.nan
+        gamma_df['significant_fdr'] = False
+        print(f"\n  Multiple Testing Correction: Not applied (no p-values available)")
+    
     return gamma_df
 
 
-def plot_top_associations_bar(gamma_df, output_dir, n_top=30, significance_threshold=0.1):
-    """Create bar plot of top PRS-signature associations."""
-    # Filter by absolute effect size
-    gamma_df['abs_effect'] = gamma_df['effect'].abs()
-    top_associations = gamma_df.nlargest(n_top, 'abs_effect').copy()
+def plot_top_associations_bar(gamma_df, output_dir, n_top=30, fdr_threshold=0.05):
+    """Create bar plot of top PRS-signature associations by z-score."""
+    # Filter by absolute z-score (only include valid z-scores)
+    valid_z = gamma_df['z_score'].dropna()
+    if len(valid_z) == 0:
+        print("  Warning: No valid z-scores available. Falling back to effect size.")
+        gamma_df['abs_effect'] = gamma_df['effect'].abs()
+        top_associations = gamma_df.nlargest(n_top, 'abs_effect').copy()
+        sort_col = 'effect'
+        xlabel = 'Effect Size'
+    else:
+        gamma_df['abs_z_score'] = gamma_df['z_score'].abs()
+        top_associations = gamma_df.nlargest(n_top, 'abs_z_score').copy()
+        sort_col = 'z_score'
+        xlabel = 'Z-Score (Effect / SEM)'
     
-    # Sort by effect size
-    top_associations = top_associations.sort_values('effect')
+    # Sort by z-score or effect
+    top_associations = top_associations.sort_values(sort_col)
     
-    # Create label
-    top_associations['label'] = top_associations['prs'] + " - " + top_associations['signature']
+    # Create label with FDR-corrected p-value if available
+    def make_label(row):
+        label = row['prs'] + " - " + row['signature']
+        # Prefer FDR-corrected p-value, fall back to uncorrected
+        pval_fdr = row.get('p_value_fdr', np.nan)
+        pval_uncorr = row.get('p_value', np.nan)
+        
+        if not np.isnan(pval_fdr):
+            # Show FDR-corrected p-value
+            if pval_fdr < 0.001:
+                label += " (FDR<0.001)"
+            elif pval_fdr < 0.01:
+                label += f" (FDR={pval_fdr:.3f})"
+            else:
+                label += f" (FDR={pval_fdr:.2f})"
+            # Add asterisk if significant after FDR correction
+            if row.get('significant_fdr', False):
+                label += "*"
+        elif not np.isnan(pval_uncorr):
+            # Fall back to uncorrected p-value
+            if pval_uncorr < 0.001:
+                label += " (p<0.001)"
+            elif pval_uncorr < 0.01:
+                label += f" (p={pval_uncorr:.3f})"
+            else:
+                label += f" (p={pval_uncorr:.2f})"
+        return label
+    
+    top_associations['label'] = top_associations.apply(make_label, axis=1)
     
     # Create plot
     fig, ax = plt.subplots(figsize=(10, max(8, len(top_associations) * 0.35)))
@@ -284,12 +432,12 @@ def plot_top_associations_bar(gamma_df, output_dir, n_top=30, significance_thres
     # Map categories to colors
     colors = [CATEGORY_COLORS.get(cat, CATEGORY_COLORS['Other']) for cat in top_associations['category']]
     
-    bars = ax.barh(range(len(top_associations)), top_associations['effect'], color=colors, alpha=0.8)
+    bars = ax.barh(range(len(top_associations)), top_associations[sort_col], color=colors, alpha=0.8)
     
     ax.set_yticks(range(len(top_associations)))
     ax.set_yticklabels(top_associations['label'], fontsize=9)
-    ax.set_xlabel('Effect Size', fontsize=12, fontweight='bold')
-    ax.set_title(f'Top {n_top} PRS-Signature Associations', fontsize=14, fontweight='bold', pad=15)
+    ax.set_xlabel(xlabel, fontsize=12, fontweight='bold')
+    ax.set_title(f'Top {n_top} PRS-Signature Associations (by Z-Score)', fontsize=14, fontweight='bold', pad=15)
     ax.axvline(x=0, color='black', linestyle='--', linewidth=0.5, alpha=0.5)
     ax.grid(True, alpha=0.3, axis='x')
     
@@ -310,24 +458,53 @@ def plot_top_associations_bar(gamma_df, output_dir, n_top=30, significance_thres
     return top_associations
 
 
-def plot_significant_heatmap(gamma_df, output_dir, effect_threshold=0.1):
-    """Create heatmap of significant PRS-signature associations."""
-    # Ensure abs_effect column exists
-    if 'abs_effect' not in gamma_df.columns:
-        gamma_df = gamma_df.copy()
-        gamma_df['abs_effect'] = gamma_df['effect'].abs()
-    
-    # Filter by effect size threshold
-    significant_effects = gamma_df[gamma_df['abs_effect'] > effect_threshold].copy()
+def plot_significant_heatmap(gamma_df, output_dir, fdr_threshold=0.05):
+    """Create heatmap of significant PRS-signature associations by FDR-corrected p-value."""
+    # Prefer FDR-corrected p-values, fall back to uncorrected if not available
+    valid_fdr = gamma_df['p_value_fdr'].dropna()
+    if len(valid_fdr) > 0:
+        # Use FDR-corrected p-value threshold
+        significant_effects = gamma_df[gamma_df['p_value_fdr'] < fdr_threshold].copy()
+        value_col = 'z_score'
+        cbar_label = 'Z-Score'
+        vmin, vmax = -5, 5  # Reasonable z-score range
+        print(f"  Filtering by FDR-corrected p-value < {fdr_threshold}")
+        print(f"    Found {len(significant_effects)} significant associations")
+    else:
+        # Fallback to uncorrected p-value
+        valid_p = gamma_df['p_value'].dropna()
+        if len(valid_p) > 0:
+            significant_effects = gamma_df[gamma_df['p_value'] < fdr_threshold].copy()
+            value_col = 'z_score'
+            cbar_label = 'Z-Score'
+            vmin, vmax = -5, 5
+            print(f"  FDR correction not available. Filtering by uncorrected p-value < {fdr_threshold}")
+        else:
+            # Fallback to z-score threshold (|z| > 2 roughly corresponds to p < 0.05)
+            if 'abs_z_score' not in gamma_df.columns:
+                gamma_df = gamma_df.copy()
+                gamma_df['abs_z_score'] = gamma_df['z_score'].abs()
+            z_threshold = 2.0
+            significant_effects = gamma_df[gamma_df['abs_z_score'] > z_threshold].copy()
+            value_col = 'z_score'
+            cbar_label = 'Z-Score'
+            vmin, vmax = -5, 5
+            print(f"  No p-values available. Filtering by |z-score| > {z_threshold}")
     
     if len(significant_effects) == 0:
-        print(f"Warning: No associations with |effect| > {effect_threshold}. Using top 50.")
-        significant_effects = gamma_df.nlargest(50, 'abs_effect').copy()
+        print(f"Warning: No significant associations. Using top 50 by |z-score| or |effect|.")
+        if 'abs_z_score' in gamma_df.columns:
+            significant_effects = gamma_df.nlargest(50, 'abs_z_score').copy()
+            value_col = 'z_score'
+        else:
+            gamma_df['abs_effect'] = gamma_df['effect'].abs()
+            significant_effects = gamma_df.nlargest(50, 'abs_effect').copy()
+            value_col = 'effect'
     
     # Create pivot table
     try:
         heatmap_data = significant_effects.pivot_table(
-            values='effect',
+            values=value_col,
             index='prs',
             columns='signature',
             aggfunc='mean'
@@ -364,14 +541,19 @@ def plot_significant_heatmap(gamma_df, output_dir, effect_threshold=0.1):
     sns.heatmap(heatmap_data, 
                 cmap='RdBu_r', 
                 center=0,
-                vmin=-0.3, vmax=0.3,
-                cbar_kws={'label': 'Effect Size'},
+                vmin=vmin, vmax=vmax,
+                cbar_kws={'label': cbar_label},
                 ax=ax,
                 linewidths=0.5,
                 linecolor='gray',
-                fmt='.3f')
+                fmt='.2f')
     
-    ax.set_title('Significant PRS-Signature Associations', fontsize=14, fontweight='bold', pad=15)
+    title = 'Significant PRS-Signature Associations'
+    if 'p_value_fdr' in gamma_df.columns and gamma_df['p_value_fdr'].notna().sum() > 0:
+        title += ' (FDR < 0.05)'
+    elif 'p_value' in gamma_df.columns and gamma_df['p_value'].notna().sum() > 0:
+        title += ' (uncorrected p < 0.05)'
+    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
     ax.set_xlabel('Signature', fontsize=12, fontweight='bold')
     ax.set_ylabel('Polygenic Risk Score', fontsize=12, fontweight='bold')
     plt.xticks(rotation=45, ha='right')
@@ -388,15 +570,20 @@ def plot_significant_heatmap(gamma_df, output_dir, effect_threshold=0.1):
 
 
 def plot_full_heatmap(gamma_df, output_dir):
-    """Create full heatmap with all PRS-signature associations."""
+    """Create full heatmap with all PRS-signature associations (using z-scores)."""
     # Ensure prs column is string type
     gamma_df = gamma_df.copy()
     gamma_df['prs'] = gamma_df['prs'].astype(str)
     
+    # Use z-score if available, fall back to effect
+    value_col = 'z_score' if 'z_score' in gamma_df.columns and gamma_df['z_score'].notna().sum() > 0 else 'effect'
+    cbar_label = 'Z-Score' if value_col == 'z_score' else 'Effect Size'
+    vmin, vmax = (-5, 5) if value_col == 'z_score' else (-0.3, 0.3)
+    
     # Create pivot table
     try:
         heatmap_data = gamma_df.pivot_table(
-            values='effect',
+            values=value_col,
             index='prs',
             columns='signature',
             aggfunc='mean'
@@ -431,14 +618,17 @@ def plot_full_heatmap(gamma_df, output_dir):
     sns.heatmap(heatmap_data, 
                 cmap='RdBu_r', 
                 center=0,
-                vmin=-0.3, vmax=0.3,
-                cbar_kws={'label': 'Effect Size'},
+                vmin=vmin, vmax=vmax,
+                cbar_kws={'label': cbar_label},
                 ax=ax,
                 linewidths=0.5,
                 linecolor='gray',
-                fmt='.3f')
+                fmt='.2f')
     
-    ax.set_title('Complete PRS-Signature Association Matrix', fontsize=14, fontweight='bold', pad=15)
+    title = 'Complete PRS-Signature Association Matrix'
+    if value_col == 'z_score':
+        title += ' (Z-Scores)'
+    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
     ax.set_xlabel('Signature', fontsize=12, fontweight='bold')
     ax.set_ylabel('Polygenic Risk Score', fontsize=12, fontweight='bold')
     plt.xticks(rotation=45, ha='right')
@@ -458,6 +648,8 @@ def main():
     parser = argparse.ArgumentParser(description='Generate PRS-Signature association plots')
     parser.add_argument('--batch_dir', type=str,
                         help='Directory containing batch checkpoints')
+    parser.add_argument('--old_results_dir', type=str,
+                        help='Directory with old structure: results/output_*_*/model.pt')
     parser.add_argument('--gamma_file', type=str,
                         default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_noPCS/enrollment_model_VECTORIZED_W0.0001_batch_0_10000.pt',
                         help='Path to single gamma file (.pt or .npy)')
@@ -470,8 +662,8 @@ def main():
     parser.add_argument('--output_dir', type=str,
                         default='/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/prs_signatures',
                         help='Output directory for plots')
-    parser.add_argument('--effect_threshold', type=float, default=0.1,
-                        help='Effect size threshold for significance')
+    parser.add_argument('--fdr_threshold', type=float, default=0.05,
+                        help='FDR threshold for significance (default: 0.05)')
     parser.add_argument('--n_top', type=int, default=30,
                         help='Number of top associations to show in bar plot')
     parser.add_argument('--n_signatures', type=int, default=21,
@@ -493,44 +685,116 @@ def main():
     gamma = None
     gamma_sem = None
     n_batches = 0
+    loading_method = None
     
-    if args.batch_dir:
-        print(f"\nLoading gamma from batch directory: {args.batch_dir}")
+    # Priority: old_results_dir > batch_dir > gamma_file (single file is a fallback)
+    # If old_results_dir is provided, use old folder structure
+    if args.old_results_dir:
+        print(f"\n{'='*60}")
+        print(f"METHOD: Loading gamma from OLD FOLDER STRUCTURE (results/output_*_*/model.pt)")
+        print(f"{'='*60}")
+        print(f"Directory: {args.old_results_dir}")
+        result = load_gamma_from_old_structure(args.old_results_dir)
+        if result:
+            gamma, gamma_sem, n_batches = result
+            loading_method = "old_structure"
+            print(f"\n✓ Successfully loaded gamma from {n_batches} batches")
+            if gamma_sem is not None:
+                print(f"  SEM available: Yes (mean={np.mean(gamma_sem):.6f}, median={np.median(gamma_sem):.6f})")
+                print(f"  Z-scores (effect/SEM) will be calculated")
+            else:
+                print(f"  SEM available: No")
+        else:
+            print(f"  ⚠ Old structure loading failed, will try other methods...")
+    
+    # If batch_dir is provided, try batch loading first
+    if gamma is None and args.batch_dir:
+        print(f"\n{'='*60}")
+        print(f"METHOD: Loading gamma from BATCH DIRECTORY (will average across batches)")
+        print(f"{'='*60}")
+        print(f"Directory: {args.batch_dir}")
+        print(f"Pattern: {args.pattern}")
         result = load_gamma_from_batches(args.batch_dir, args.pattern)
         if result:
             gamma, gamma_sem, n_batches = result
+            loading_method = "batch"
+            print(f"\n✓ Successfully loaded gamma from {n_batches} batches")
+            if gamma_sem is not None:
+                print(f"  SEM available: Yes (mean={np.mean(gamma_sem):.6f}, median={np.median(gamma_sem):.6f})")
+                print(f"  Z-scores (effect/SEM) will be calculated")
+            else:
+                print(f"  SEM available: No")
+        else:
+            print(f"  ⚠ Batch loading failed, will try single file fallback...")
+    
+    # Fallback: if batch loading failed or wasn't attempted, use single file
     if gamma is None and args.gamma_file:
-        print(f"\nLoading gamma from file: {args.gamma_file}")
+        print(f"\n{'='*60}")
+        print(f"METHOD: Loading gamma from SINGLE FILE (fallback - no SEM available)")
+        print(f"{'='*60}")
+        print(f"File: {args.gamma_file}")
         result = load_gamma_from_file(args.gamma_file)
         if result:
             gamma, gamma_sem, n_batches = result
+            loading_method = "single_file"
+            print(f"\n✓ Successfully loaded gamma from single file")
+            print(f"  SEM available: No (single file - cannot calculate SEM without multiple batches)")
+            print(f"  Z-scores cannot be calculated (need SEM)")
+        else:
+            print(f"  ⚠ Single file loading also failed")
     
     if gamma is None:
         print("Error: Could not load gamma data")
         return
     
+    print(f"\n{'='*60}")
+    print(f"Loading method: {loading_method.upper()}")
+    print(f"{'='*60}")
+    
     # Create dataframe
     print(f"\nCreating gamma dataframe...")
-    gamma_df = create_gamma_dataframe(gamma, prs_names, args.n_signatures)
+    gamma_df = create_gamma_dataframe(gamma, prs_names, args.n_signatures, gamma_sem)
     print(f"  Created dataframe: {gamma_df.shape}")
     print(f"  Effect range: [{gamma_df['effect'].min():.6f}, {gamma_df['effect'].max():.6f}]")
     
-    # Count significant associations
-    n_significant = (gamma_df['effect'].abs() > args.effect_threshold).sum()
+    # Print SEM and z-score statistics
+    if gamma_sem is not None:
+        print(f"\nStandard Error Statistics:")
+        print(f"  SEM range: [{gamma_df['sem'].min():.6f}, {gamma_df['sem'].max():.6f}]")
+        print(f"  Mean SEM: {gamma_df['sem'].mean():.6f}, Median SEM: {gamma_df['sem'].median():.6f}")
+        print(f"\nZ-score Statistics (effect / SEM):")
+        valid_z = gamma_df['z_score'].dropna()
+        if len(valid_z) > 0:
+            print(f"  Z-score range: [{valid_z.min():.2f}, {valid_z.max():.2f}]")
+            print(f"  Mean |z-score|: {valid_z.abs().mean():.2f}")
+            print(f"  |z-score| > 2: {(valid_z.abs() > 2).sum()} / {len(valid_z)} ({(valid_z.abs() > 2).sum()/len(valid_z)*100:.1f}%)")
+            print(f"  |z-score| > 3: {(valid_z.abs() > 3).sum()} / {len(valid_z)} ({(valid_z.abs() > 3).sum()/len(valid_z)*100:.1f}%)")
+        else:
+            print(f"  No valid z-scores (all SEM values are zero or NaN)")
+    else:
+        print(f"\nNote: SEM not available (single file), z-scores cannot be calculated")
+    
+    # Count significant associations (using FDR if available)
     total_tests = len(gamma_df)
-    print(f"\nSignificance Statistics:")
-    print(f"  Associations with |effect| > {args.effect_threshold}: {n_significant} / {total_tests} ({100*n_significant/total_tests:.2f}%)")
+    if 'significant_fdr' in gamma_df.columns:
+        n_significant_fdr = gamma_df['significant_fdr'].sum()
+        print(f"\nSignificance Statistics (FDR-corrected):")
+        print(f"  Significant at FDR < {args.fdr_threshold}: {n_significant_fdr} / {total_tests} ({100*n_significant_fdr/total_tests:.2f}%)")
+    else:
+        print(f"\nSignificance Statistics:")
+        print(f"  Total tests: {total_tests}")
+        print(f"  (FDR correction not available - need batch data)")
     
     # Generate plots
     print("\nGenerating plots...")
     
     # 1. Top associations bar plot
-    print("\n1. Creating top associations bar plot...")
-    top_associations = plot_top_associations_bar(gamma_df, output_dir, args.n_top, args.effect_threshold)
+    print("\n1. Creating top associations bar plot (by z-score)...")
+    top_associations = plot_top_associations_bar(gamma_df, output_dir, args.n_top, args.fdr_threshold)
     
     # 2. Significant associations heatmap
-    print("\n2. Creating significant associations heatmap...")
-    plot_significant_heatmap(gamma_df, output_dir, args.effect_threshold)
+    print("\n2. Creating significant associations heatmap (FDR < 0.05)...")
+    plot_significant_heatmap(gamma_df, output_dir, args.fdr_threshold)
     
     # 3. Full heatmap
     print("\n3. Creating full heatmap...")

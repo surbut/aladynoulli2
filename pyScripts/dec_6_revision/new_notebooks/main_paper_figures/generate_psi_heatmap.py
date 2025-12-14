@@ -194,7 +194,7 @@ def main():
     print("Loading UKB data...")
     
     # Load UKB checkpoint
-    ukb_checkpoint_path = '/Users/sarahurbut/Dropbox-Personal/model_with_kappa_bigam.pt'
+    ukb_checkpoint_path = '/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized/enrollment_model_W0.0001_batch_0_10000.pt'
     ukb_checkpoint = torch.load(ukb_checkpoint_path, map_location='cpu')
     
     # Extract PSI, clusters, and disease names
@@ -209,8 +209,10 @@ def main():
     clusters = ukb_checkpoint['clusters']
     if torch.is_tensor(clusters):
         clusters = clusters.numpy()
-    
-    disease_names = ukb_checkpoint['disease_names']
+
+    ukb_old_checkpoint_path = '/Users/sarahurbut/Dropbox-Personal/model_with_kappa_bigam.pt'
+    ukb_old_checkpoint = torch.load(ukb_old_checkpoint_path, map_location='cpu')
+    disease_names = ukb_old_checkpoint['disease_names']
     if isinstance(disease_names, (list, tuple)):
         disease_names = list(disease_names)
     elif hasattr(disease_names, 'values'):

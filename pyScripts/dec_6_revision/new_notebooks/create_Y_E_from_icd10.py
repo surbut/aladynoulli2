@@ -95,11 +95,13 @@ def create_Y_E_arrays(icd10_df, age_offset=30, output_dir=None, disease_order_cs
     
     # Step 2: Determine time dimension
     min_age = icd10_df['age_diag'].min()
-    max_age = icd10_df['age_diag'].max()
-    T = max_age - age_offset + 1
+    max_age_data = icd10_df['age_diag'].max()
+    max_age = 81  # Cap at age 81 (timepoint 51), matching UKB
+    T = max_age - age_offset + 1  # T = 52 (ages 30-81)
     
     print(f"\nStep 2: Time dimension")
-    print(f"  Age range: {min_age} to {max_age}")
+    print(f"  Age range in data: {min_age} to {max_age_data}")
+    print(f"  Capped at age: {max_age} (timepoint {max_age - age_offset})")
     print(f"  Timepoints T: {T} (ages {age_offset} to {max_age})")
     
     # Step 3: Create Y array
@@ -115,7 +117,8 @@ def create_Y_E_arrays(icd10_df, age_offset=30, output_dir=None, disease_order_cs
         disease_idx = disease_to_idx[disease_code]
         
         # Convert age to timepoint (age 30 = timepoint 0)
-        if age >= age_offset:
+        # Only include diagnoses up to age 81 (timepoint 51)
+        if age >= age_offset and age <= max_age:
             timepoint = int(age - age_offset)
             if timepoint < T:
                 Y[patient_idx, disease_idx, timepoint] = 1
@@ -132,13 +135,17 @@ def create_Y_E_arrays(icd10_df, age_offset=30, output_dir=None, disease_order_cs
     print(f"\nStep 4: Computing max censor...")
     max_censor = icd10_df.groupby('eid')['age_diag'].max().reset_index()
     max_censor.columns = ['eid', 'max_censor']
+    # Cap max_censor at age 81
+    max_censor['max_censor'] = max_censor['max_censor'].clip(upper=max_age)
     
-    max_age_default = max_censor['max_censor'].max() if len(max_censor) > 0 else 81
+    max_age_default = max_age  # Use 81 as default, not max from data
     
     # Create full max_censor dataframe for all patients
     all_patients_df = pd.DataFrame({'eid': unique_patients})
     max_censor_full = all_patients_df.merge(max_censor, on='eid', how='left')
     max_censor_full['max_censor'] = max_censor_full['max_censor'].fillna(max_age_default)
+    # Cap all max_censor values at 81
+    max_censor_full['max_censor'] = max_censor_full['max_censor'].clip(upper=max_age)
     max_censor_full = max_censor_full.set_index('eid').reindex(unique_patients).reset_index()
     
     print(f"  ✓ Max censor computed")
@@ -173,7 +180,8 @@ def create_Y_E_arrays(icd10_df, age_offset=30, output_dir=None, disease_order_cs
         disease_idx = disease_to_idx[disease_code]
         
         # Convert age to timepoint (age 30 = timepoint 0)
-        if age >= age_offset:
+        # Only consider events up to age 81
+        if age >= age_offset and age <= max_age:
             event_timepoint = int(age - age_offset)
             if event_timepoint < T:
                 # Update E: event occurred at this timepoint, so E should be event_timepoint
@@ -210,7 +218,8 @@ def create_Y_E_arrays(icd10_df, age_offset=30, output_dir=None, disease_order_cs
         disease_idx = disease_to_idx[disease_code]
         
         # Convert age to timepoint (age 30 = timepoint 0)
-        if age >= age_offset:
+        # Only consider events up to age 81
+        if age >= age_offset and age <= max_age:
             event_timepoint = int(age - age_offset)
             if event_timepoint < T:
                 # E_corrected stores the event timepoint (or max censor timepoint if no event)
@@ -222,23 +231,44 @@ def create_Y_E_arrays(icd10_df, age_offset=30, output_dir=None, disease_order_cs
     print(f"    Range: {E_corrected.min()} - {E_corrected.max()}")
     
     # Step 7: Compute prevalence
+    # Step 7: Compute prevalence with smoothing
     print(f"\nStep 7: Computing prevalence ({D}, {T})...")
+    from scipy.ndimage import gaussian_filter1d
+    
     prevalence_t = np.zeros((D, T))
+    window_size = 5
+    smooth_on_logit = True
     
     for d in range(D):
         for t in range(T):
-            age_at_t = age_offset + t
-            at_risk_mask = E_corrected[:, d] >= age_at_t
+            # E_corrected stores timepoints, not ages, so compare directly
+            at_risk_mask = E_corrected[:, d] >= t
             
             if at_risk_mask.sum() > 0:
                 prevalence_t[d, t] = Y[at_risk_mask, d, t].mean()
             else:
                 prevalence_t[d, t] = np.nan
         
+        # Apply smoothing
+        if smooth_on_logit:
+            epsilon = 1e-8
+            valid_mask = ~np.isnan(prevalence_t[d, :])
+            if valid_mask.sum() > 0:
+                logit_prev = np.full(T, np.nan)
+                logit_prev[valid_mask] = np.log(
+                    (prevalence_t[d, valid_mask] + epsilon) / 
+                    (1 - prevalence_t[d, valid_mask] + epsilon)
+                )
+                smoothed_logit = gaussian_filter1d(np.nan_to_num(logit_prev, nan=0), sigma=window_size)
+                smoothed_logit[~valid_mask] = np.nan
+                prevalence_t[d, :] = 1 / (1 + np.exp(-smoothed_logit))
+        else:
+            prevalence_t[d, :] = gaussian_filter1d(np.nan_to_num(prevalence_t[d, :], nan=0), sigma=window_size)
+        
         if (d + 1) % 50 == 0:
             print(f"  Processed {d + 1}/{D} diseases...")
     
-    print(f"  ✓ Prevalence computed")
+    print(f"  ✓ Prevalence computed and smoothed")
     print(f"    Mean: {np.nanmean(prevalence_t):.6f}")
     print(f"    Range: {np.nanmin(prevalence_t):.6f} - {np.nanmax(prevalence_t):.6f}")
     

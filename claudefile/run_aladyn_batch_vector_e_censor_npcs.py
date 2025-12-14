@@ -129,7 +129,7 @@ def main():
 
     # Combine G with sex
     G_with_sex = np.column_stack([G_batch, sex_batch])
-    
+   
     # Add PCs if requested
     if args.include_pcs:
         pc_columns = ['f.22009.0.1', 'f.22009.0.2', 'f.22009.0.3', 'f.22009.0.4', 'f.22009.0.5',

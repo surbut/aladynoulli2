@@ -126,7 +126,7 @@ def main():
     model_mgb.clusters = initial_clusters_mgb
     psi_config = {'in_cluster': 1, 'out_cluster': -2, 'noise_in': 0.1, 'noise_out': 0.01}
     model_mgb.initialize_params(psi_config=psi_config)
-    
+
     # Verify clusters match
     clusters_match = np.array_equal(initial_clusters_mgb, model_mgb.clusters)
     print(f"  Clusters match exactly: {clusters_match}")

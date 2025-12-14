@@ -77,7 +77,7 @@ ax2.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5, linewidth=1)
 plt.tight_layout()
 
 # Save figure
-output_path = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/washout_evaluation/washout_performance_plot.png')
+output_path = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/washout_evaluation/washout_performance_plot.pdf')
 output_path.parent.mkdir(parents=True, exist_ok=True)
 plt.savefig(output_path, dpi=300, bbox_inches='tight')
 print(f"✓ Saved plot to: {output_path}")
@@ -147,7 +147,7 @@ for bars in [bars1, bars2]:
 
 plt.tight_layout()
 
-output_path2 = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/washout_evaluation/washout_drop_summary.png')
+output_path2 = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/washout_evaluation/washout_drop_summary.pdf')
 plt.savefig(output_path2, dpi=300, bbox_inches='tight')
 print(f"✓ Saved summary plot to: {output_path2}")
 
