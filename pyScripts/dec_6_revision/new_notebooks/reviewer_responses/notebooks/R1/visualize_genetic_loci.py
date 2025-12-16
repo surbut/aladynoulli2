@@ -41,6 +41,61 @@ loci_df['SIG_NUM'] = loci_df['SIG'].str.replace('SIG', '').astype(int)
 print(f"Loaded {len(loci_df)} lead variants across {loci_df['SIG_NUM'].nunique()} signatures")
 
 # ============================================================================
+# DEFINE THE 10 UNIQUE SIGNATURE 5 LOCI (to be highlighted in green)
+# ============================================================================
+# These are the 10 loci that are genome-wide significant in Signature 5
+# but NOT present in any constituent trait GWAS (novel discoveries)
+THE_10_UNIQUE_SIG5_LOCI = {
+    'rs6687726': 'IL6R',
+    'rs2509121': 'HYOU1',
+    'rs4760278': 'R3HDM2',
+    'rs1532085': 'LIPC',
+    'rs7168222': 'NR2F2-AS1',
+    'rs35039495': 'PLCG2',
+    'rs8121509': 'OPRL1',
+    'rs1499813': 'FNDC3B',
+    '4:96088139': 'UNC5C',  # Position-based ID
+    'rs4732365': 'C7orf55'
+}
+
+# Biological roles for annotation
+BIOLOGICAL_ROLES = {
+    'IL6R': 'Interleukin-6 receptor, inflammatory pathway',
+    'HYOU1': 'Hypoxia up-regulated protein, ER stress response',
+    'R3HDM2': 'RNA binding protein',
+    'LIPC': 'Hepatic lipase, HDL metabolism',
+    'NR2F2-AS1': 'Nuclear receptor antisense RNA',
+    'PLCG2': 'Phospholipase C gamma 2, platelet activation',
+    'OPRL1': 'Opioid receptor, pain/stress signaling',
+    'FNDC3B': 'Fibronectin domain, insulin signaling',
+    'UNC5C': 'Netrin receptor, axon guidance',
+    'C7orf55': 'Unknown function'
+}
+
+# Mark these in the dataframe
+loci_df['is_top10_sig5'] = False
+if 'rsid' in loci_df.columns:
+    for rsid, gene in THE_10_UNIQUE_SIG5_LOCI.items():
+        # Try to match by rsid column
+        mask = loci_df['rsid'].str.contains(rsid, case=False, na=False)
+        loci_df.loc[mask, 'is_top10_sig5'] = True
+        # Also try matching by position if rsid doesn't work
+        if not mask.any() and ':' in rsid:
+            # Handle position-based IDs like '4:96088139'
+            chr_pos = rsid.split(':')
+            if len(chr_pos) == 2:
+                mask_pos = (loci_df['#CHR'] == int(chr_pos[0])) & (loci_df['POS'] == int(chr_pos[1]))
+                loci_df.loc[mask_pos, 'is_top10_sig5'] = True
+
+# Also check by gene name if available
+if 'nearestgene' in loci_df.columns:
+    for rsid, gene in THE_10_UNIQUE_SIG5_LOCI.items():
+        gene_mask = (loci_df['SIG_NUM'] == 5) & (loci_df['nearestgene'].str.contains(gene, case=False, na=False))
+        loci_df.loc[gene_mask, 'is_top10_sig5'] = True
+
+print(f"\nMarked {loci_df['is_top10_sig5'].sum()} variants as 'Top 10 Unique Sig 5' loci")
+
+# ============================================================================
 # IDENTIFY NOVEL VS KNOWN LOCI
 # ============================================================================
 # Note: Component trait GWAS files are only available for Signature 5 (cardiovascular)
@@ -166,6 +221,33 @@ if len(component_trait_loci) > 0:
 else:
     print("  ⚠️  No component trait GWAS files found - cannot identify novel loci")
 
+# ============================================================================
+# SIGNATURE LABELS (based on top disease associations)
+# ============================================================================
+SIGNATURE_LABELS = {
+    0: 'Cardiac Arrhythmia/Heart Failure',
+    1: 'Musculoskeletal',
+    2: 'GI/Upper Digestive',
+    3: 'Vascular/Misc',
+    4: 'Upper Respiratory',
+    5: 'Ischemia/Cardiovascular',
+    6: 'Neoplastic',
+    7: 'Asthma/Migraine/Metabolic',
+    8: 'Female Reproductive',
+    9: 'Back/Spine',
+    10: 'Ophthalmologic',
+    11: 'Cerebrovascular',
+    12: 'Renal',
+    13: 'Male Urogenital',
+    14: 'Pulmonary',
+    15: 'Diabetes/Metabolic',
+    16: 'Infections/Septic',
+    17: 'GI/Colorectal',
+    18: 'Gallbladder/Biliary',
+    19: 'Skin/Kidney',
+    20: 'Healthy/Protective'
+}
+
 # Load mask3 canonical rare variants
 results_dir = Path("/Users/sarahurbut/Desktop/SIG/gene_based_analysis")
 canonical_dir = results_dir / "canonical"
@@ -207,7 +289,9 @@ else:
 # ============================================================================
 
 fig = plt.figure(figsize=(22, 16))
-gs = fig.add_gridspec(3, 2, hspace=0.35, wspace=0.3, height_ratios=[1.2, 1, 1])
+# Use a 3x3 grid: main panels on left 2 columns, legend/panels on right
+gs = fig.add_gridspec(3, 3, hspace=0.35, wspace=0.25, 
+                      width_ratios=[1, 1, 0.8], height_ratios=[1.2, 1, 1])
 
 # Main title (optional - can be removed for publication)
 # fig.suptitle('Genetic Associations: Lead Variants and Rare Variant Gene-Based Associations', 
@@ -244,14 +328,33 @@ for sig_num in sorted(loci_df['SIG_NUM'].unique()):
                         edgecolors='black', linewidths=0.5, marker='o',
                         label='Known (Sig 5)' if sig_num == 5 and sig_num == sorted(loci_df['SIG_NUM'].unique())[0] else '')
         
-        # Plot novel loci (highlighted) - only for Sig 5
+        # Plot novel loci - separate the Top 10 Unique Sig 5 loci (highlighted in green)
         novel_data = sig_data[sig_data['is_novel'] == True]
         if len(novel_data) > 0:
-            x_pos_novel = sig_num + np.random.normal(0, 0.08, len(novel_data))
-            ax1.scatter(x_pos_novel, novel_data['LOG10P'], 
-                        alpha=0.9, s=120, color=sig_color_dict[sig_num],
-                        edgecolors='red', linewidths=2, marker='*',
-                        label='Novel (Sig 5)' if sig_num == 5 and sig_num == sorted(loci_df['SIG_NUM'].unique())[0] else '')
+            # Separate Top 10 Unique loci from other novel loci
+            if 'is_top10_sig5' in novel_data.columns:
+                top10_data = novel_data[novel_data['is_top10_sig5'] == True]
+                other_novel_data = novel_data[novel_data['is_top10_sig5'] != True]
+            else:
+                top10_data = pd.DataFrame()
+                other_novel_data = novel_data
+            
+            # Plot Top 10 Unique loci with green highlighting
+            if len(top10_data) > 0:
+                x_pos_top10 = sig_num + np.random.normal(0, 0.08, len(top10_data))
+                ax1.scatter(x_pos_top10, top10_data['LOG10P'], 
+                            alpha=0.95, s=200, color='#2ecc71',  # Green color
+                            edgecolors='darkgreen', linewidths=2.5, marker='*',
+                            zorder=5,  # Draw on top
+                            label='Top 10 Unique Sig 5 (green)' if sig_num == 5 else '')
+            
+            # Plot other novel loci (red star)
+            if len(other_novel_data) > 0:
+                x_pos_other_novel = sig_num + np.random.normal(0, 0.08, len(other_novel_data))
+                ax1.scatter(x_pos_other_novel, other_novel_data['LOG10P'], 
+                            alpha=0.9, s=120, color=sig_color_dict[sig_num],
+                            edgecolors='red', linewidths=2, marker='*',
+                            label='Novel (Sig 5)' if sig_num == 5 and len(top10_data) == 0 and sig_num == sorted(loci_df['SIG_NUM'].unique())[0] else '')
         
         # Plot other loci (no novelty info available)
         other_data = sig_data[sig_data['is_novel'].isna()]
@@ -269,26 +372,44 @@ for sig_num in sorted(loci_df['SIG_NUM'].unique()):
                     edgecolors='black', linewidths=0.5,
                     label=f'Sig {sig_num}' if sig_num == sorted(loci_df['SIG_NUM'].unique())[0] else '')
 
-# Label top variants, prioritizing novel ones
+# Label variants, prioritizing Top 10 Unique Sig 5 loci, then other novel, then top variants
 for sig_num in sorted(loci_df['SIG_NUM'].unique()):
     sig_data = loci_df[loci_df['SIG_NUM'] == sig_num]
     if len(sig_data) > 0:
-        # Prioritize novel variants for labeling (Sig 5 only)
-        novel_data = sig_data[sig_data['is_novel'] == True] if 'is_novel' in sig_data.columns else pd.DataFrame()
-        
-        if len(novel_data) > 0:
-            # Label top novel variant
-            top_novel = novel_data.loc[novel_data['LOG10P'].idxmax()]
-            if top_novel['LOG10P'] > 7:  # Label novel variants above threshold
-                gene_name = top_novel.get('nearestgene', '')
+        # First, label all Top 10 Unique Sig 5 loci with green callout boxes
+        if sig_num == 5 and 'is_top10_sig5' in sig_data.columns:
+            top10_data = sig_data[sig_data['is_top10_sig5'] == True]
+            for idx, row in top10_data.iterrows():
+                gene_name = row.get('nearestgene', '')
                 if pd.notna(gene_name) and gene_name != '':
-                    ax1.annotate(f'{gene_name}*',  # Asterisk indicates novel
-                                xy=(sig_num, top_novel['LOG10P']),
-                                xytext=(5, 5), textcoords='offset points',
-                                fontsize=9, alpha=0.9, fontweight='bold', color='red',
-                                bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7, edgecolor='red'))
-        else:
-            # Label top variant if no novel variants
+                    # Use green background with dark green border for Top 10 Unique
+                    ax1.annotate(gene_name, 
+                                xy=(sig_num, row['LOG10P']),
+                                xytext=(8, 8), textcoords='offset points',
+                                fontsize=10, alpha=0.95, fontweight='bold', color='darkgreen',
+                                bbox=dict(boxstyle='round,pad=0.4', facecolor='#90EE90',  # Light green
+                                         alpha=0.85, edgecolor='darkgreen', linewidth=2),
+                                zorder=10)  # Draw annotations on top
+        
+        # Then label other novel variants (Sig 5, non-Top10)
+        novel_data = sig_data[sig_data['is_novel'] == True] if 'is_novel' in sig_data.columns else pd.DataFrame()
+        if len(novel_data) > 0:
+            if 'is_top10_sig5' in novel_data.columns:
+                other_novel = novel_data[novel_data['is_top10_sig5'] != True]
+            else:
+                other_novel = novel_data
+            if len(other_novel) > 0:
+                top_other_novel = other_novel.loc[other_novel['LOG10P'].idxmax()]
+                if top_other_novel['LOG10P'] > 7:
+                    gene_name = top_other_novel.get('nearestgene', '')
+                    if pd.notna(gene_name) and gene_name != '':
+                        ax1.annotate(f'{gene_name}*',  # Asterisk indicates novel
+                                    xy=(sig_num, top_other_novel['LOG10P']),
+                                    xytext=(5, 5), textcoords='offset points',
+                                    fontsize=9, alpha=0.9, fontweight='bold', color='red',
+                                    bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7, edgecolor='red'))
+        elif 'is_top10_sig5' not in sig_data.columns or len(sig_data[sig_data['is_top10_sig5'] == True]) == 0:
+            # Label top variant if no novel variants (and no Top10)
             top_variant = sig_data.loc[sig_data['LOG10P'].idxmax()]
             if top_variant['LOG10P'] > 8:
                 gene_name = top_variant.get('nearestgene', '')
@@ -305,9 +426,9 @@ ax1.axhline(y=-np.log10(5e-8), color='red', linestyle='--', alpha=0.7, linewidth
 
 ax1.set_xlabel('Signature', fontsize=13, fontweight='bold')
 ax1.set_ylabel('-log₁₀(P-value)', fontsize=13, fontweight='bold')
-ax1.set_title('A. Lead Variants by Signature (GWAS)\n★ = Novel Sig 5 loci (not in component traits)', fontsize=14, fontweight='bold', pad=10)
+ax1.set_title('A. Lead Variants by Signature (GWAS)\n★ = Novel Sig 5 loci; Green ★ = Top 10 Unique Sig 5 discoveries', fontsize=14, fontweight='bold', pad=10)
 ax1.set_xticks(range(n_sigs))
-ax1.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right')
+ax1.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
 ax1.grid(True, alpha=0.3, axis='y')
 
 # Create custom legend (only show if we have novelty info)
@@ -316,8 +437,11 @@ if 'is_novel' in loci_df.columns and loci_df['is_novel'].notna().any():
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', markerfacecolor='gray', 
                markersize=8, label='Known Sig 5 (in component traits)', markeredgecolor='black'),
+        Line2D([0], [0], marker='*', color='w', markerfacecolor='#2ecc71', 
+               markersize=14, label='Top 10 Unique Sig 5 (green, highlighted)', 
+               markeredgecolor='darkgreen', markeredgewidth=2.5),
         Line2D([0], [0], marker='*', color='w', markerfacecolor='gray', 
-               markersize=12, label='Novel Sig 5 (not in component traits)', 
+               markersize=12, label='Other Novel Sig 5 (red border)', 
                markeredgecolor='red', markeredgewidth=2)
     ]
     ax1.legend(handles=legend_elements, loc='upper left', fontsize=9, framealpha=0.9)
@@ -326,7 +450,7 @@ if 'is_novel' in loci_df.columns and loci_df['is_novel'].notna().any():
 # PANEL B: Significant Genes by Signature (mask3) - Scatter Plot (Top Right)
 # ============================================================================
 
-ax2 = fig.add_subplot(gs[0, 1])
+ax2 = fig.add_subplot(gs[0, 2])  # Right column
 
 if best_results is not None and len(best_results) > 0:
     # Group by signature and plot
@@ -355,7 +479,7 @@ if best_results is not None and len(best_results) > 0:
     ax2.set_ylabel('-log₁₀(P-value)', fontsize=13, fontweight='bold')
     ax2.set_title('B. Significant Genes by Signature (mask3: LoF Variants)', fontsize=14, fontweight='bold', pad=10)
     ax2.set_xticks(range(n_sigs))
-    ax2.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right')
+    ax2.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
     ax2.grid(True, alpha=0.3, axis='y')
     ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2, framealpha=0.9)
 else:
@@ -368,7 +492,7 @@ else:
 # PANEL C: Number of Lead Variants per Signature (Bottom Left)
 # ============================================================================
 
-ax3 = fig.add_subplot(gs[1, 0])
+ax3 = fig.add_subplot(gs[1, 0:2])  # Span first two columns
 
 sig_counts_loci = loci_df.groupby('SIG_NUM').size().sort_index()
 bars1 = ax3.bar(sig_counts_loci.index, sig_counts_loci.values, 
@@ -387,14 +511,14 @@ ax3.set_xlabel('Signature', fontsize=13, fontweight='bold')
 ax3.set_ylabel('Number of Lead Variants', fontsize=13, fontweight='bold')
 ax3.set_title('C. Number of Lead Variants per Signature', fontsize=14, fontweight='bold', pad=10)
 ax3.set_xticks(range(n_sigs))
-ax3.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right')
+ax3.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
 ax3.grid(True, alpha=0.3, axis='y')
 
 # ============================================================================
 # PANEL D: Number of Significant Genes per Signature (mask3) - Bottom Right
 # ============================================================================
 
-ax4 = fig.add_subplot(gs[1, 1])
+ax4 = fig.add_subplot(gs[1, 2])  # Right column
 
 if best_results is not None and len(best_results) > 0:
     sig_counts_genes = best_results.groupby('SIG').size().sort_index()
@@ -414,7 +538,7 @@ if best_results is not None and len(best_results) > 0:
     ax4.set_ylabel('Number of Significant Genes', fontsize=13, fontweight='bold')
     ax4.set_title('D. Number of Significant Genes per Signature (mask3)', fontsize=14, fontweight='bold', pad=10)
     ax4.set_xticks(range(n_sigs))
-    ax4.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right')
+    ax4.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
     ax4.grid(True, alpha=0.3, axis='y')
 else:
     ax4.text(0.5, 0.5, 'Mask3 data not available', 
@@ -426,7 +550,7 @@ else:
 # PANEL E: Gene Overlap - Lead Variant Genes vs Rare Variant Genes (Bottom Span)
 # ============================================================================
 
-ax5 = fig.add_subplot(gs[2, :])
+ax5 = fig.add_subplot(gs[2, 0:2])  # Span first two columns
 
 if best_results is not None and len(best_results) > 0:
     # Get unique genes from each analysis
@@ -486,7 +610,7 @@ if best_results is not None and len(best_results) > 0:
     ax5.set_title('E. Gene Overlap: Lead Variants vs Rare Variants (mask3) by Signature', 
                   fontsize=14, fontweight='bold', pad=10)
     ax5.set_xticks(range(n_sigs))
-    ax5.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right')
+    ax5.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
     ax5.legend(loc='upper right', fontsize=10, framealpha=0.9)
     ax5.grid(True, alpha=0.3, axis='y')
     
@@ -519,10 +643,68 @@ else:
     ax5.set_title('E. Gene Overlap: Lead Variants vs Rare Variants (mask3)', 
                   fontsize=14, fontweight='bold', pad=10)
 
+# ============================================================================
+# RIGHT PANEL: Signature Labels Legend + Top 10 Unique Sig 5 List
+# ============================================================================
+
+ax_legend = fig.add_subplot(gs[:, 2])  # Right column, spans all rows
+ax_legend.axis('off')
+
+# Create signature labels table
+legend_text = "Signature Categories:\n\n"
+for i in range(n_sigs):
+    sig_label = SIGNATURE_LABELS.get(i, f'Sig {i}')
+    legend_text += f"Sig {i:2d}: {sig_label}\n"
+
+ax_legend.text(0.05, 0.95, legend_text, transform=ax_legend.transAxes,
+              fontsize=10, verticalalignment='top', family='monospace',
+              bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.3))
+
+# Add Top 10 Unique Sig 5 list below
+if 'is_top10_sig5' in loci_df.columns:
+    top10_sig5 = loci_df[(loci_df['SIG_NUM'] == 5) & (loci_df['is_top10_sig5'] == True)].copy()
+    
+    if len(top10_sig5) > 0:
+        # Sort by LOG10P
+        top10_sig5 = top10_sig5.sort_values('LOG10P', ascending=False)
+        
+        # Get gene names and rsids
+        top10_list = []
+        for idx, row in top10_sig5.iterrows():
+            gene = row.get('nearestgene', 'N/A')
+            rsid = row.get('rsid', 'N/A')
+            if pd.isna(gene) or gene == '' or gene == 'N/A':
+                # Try to find gene from THE_10_UNIQUE_SIG5_LOCI dict
+                for r, g in THE_10_UNIQUE_SIG5_LOCI.items():
+                    if (pd.notna(rsid) and str(rsid) == str(r)) or \
+                       (':' in r and pd.notna(row.get('#CHR')) and pd.notna(row.get('POS')) and 
+                        str(row.get('#CHR', '')) + ':' + str(row.get('POS', '')) == r):
+                        gene = g
+                        break
+            
+            gene_name = gene if pd.notna(gene) else 'N/A'
+            rsid_str = str(rsid) if pd.notna(rsid) else 'N/A'
+            role = BIOLOGICAL_ROLES.get(gene_name, 'Unknown function')
+            top10_list.append((gene_name, rsid_str, role))
+        
+        # Create list text - simpler format
+        top10_text = "\n\n" + "─"*40 + "\n"
+        top10_text += "Top 10 Unique Sig 5 Loci\n"
+        top10_text += "(Not in component trait GWAS)\n"
+        top10_text += "─"*40 + "\n\n"
+        
+        for i, (gene, rsid, role) in enumerate(top10_list, 1):
+            top10_text += f"{i:2d}. {gene} ({rsid})\n"
+            top10_text += f"    {role}\n\n"
+        
+        ax_legend.text(0.05, 0.40, top10_text, transform=ax_legend.transAxes,
+                      fontsize=9, verticalalignment='top', family='monospace',
+                      bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.4, edgecolor='darkgreen', linewidth=1.5))
+
 plt.tight_layout(rect=[0, 0, 1, 0.97])
 
 # Save figure
-output_dir = Path("/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/genetic_validation")
+output_dir = Path("/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/supp")
 output_dir.mkdir(parents=True, exist_ok=True)
 output_file = output_dir / "genetic_loci_visualization.pdf"
 plt.savefig(output_file, dpi=300, bbox_inches='tight')
@@ -573,6 +755,30 @@ if best_results is not None and len(best_results) > 0:
         sig_data = best_results[best_results['SIG'] == sig_num]
         mean_log10p = sig_data['LOG10P'].mean()
         print(f"    Signature {sig_num}: {mean_log10p:.2f} ({len(sig_data)} genes)")
+
+# ============================================================================
+# PRINT SUMMARY OF TOP 10 UNIQUE SIGNATURE 5 LOCI
+# ============================================================================
+if 'is_top10_sig5' in loci_df.columns:
+    top10_sig5 = loci_df[(loci_df['SIG_NUM'] == 5) & (loci_df['is_top10_sig5'] == True)]
+    if len(top10_sig5) > 0:
+        print("\n" + "="*80)
+        print("THE 10 UNIQUE SIGNATURE 5 LOCI (Highlighted in Green)")
+        print("="*80)
+        print("These loci are genome-wide significant in Signature 5 but NOT present")
+        print("in any constituent trait GWAS (Angina, MI, Hypercholesterolemia, etc.)")
+        print("\nList:")
+        for idx, row in top10_sig5.sort_values('LOG10P', ascending=False).iterrows():
+            rsid = row.get('rsid', 'N/A')
+            gene = row.get('nearestgene', 'N/A')
+            log10p = row['LOG10P']
+            role = BIOLOGICAL_ROLES.get(gene, 'Unknown function')
+            print(f"  {rsid:15} {gene:12} LOG10P={log10p:6.2f} - {role}")
+        print(f"\nTotal found in data: {len(top10_sig5)} / 10 expected")
+        if len(top10_sig5) < 10:
+            missing = set(THE_10_UNIQUE_SIG5_LOCI.values()) - set(top10_sig5.get('nearestgene', []).dropna())
+            if len(missing) > 0:
+                print(f"  Missing genes: {', '.join(missing)}")
 
 print("\n" + "="*80)
 print("VISUALIZATION COMPLETE")

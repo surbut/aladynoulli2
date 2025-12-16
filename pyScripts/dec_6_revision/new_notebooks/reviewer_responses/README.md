@@ -96,6 +96,7 @@ reviewer_responses/
 |----------|-------------|
 | [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) | **Complete end-to-end workflow documentation** - Step-by-step guide from preprocessing → batch training → master checkpoint → prediction |
 | [`preprocessing/create_preprocessing_files.ipynb`](preprocessing/create_preprocessing_files.ipynb) | Interactive notebook for data preprocessing with visualizations (smoothed prevalence, clustering, signature references) |
+| [`preprocessing/enhanced_simulation_showcase_v2.ipynb`](preprocessing/enhanced_simulation_showcase_v2.ipynb) | Enhanced simulation framework with comprehensive parameter recovery analysis, training progress tracking, and calibration validation |
 | [`preprocessing/preprocessing_utils.py`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Standalone preprocessing functions (`compute_smoothed_prevalence_at_risk`, `create_initial_clusters_and_psi`, `create_reference_trajectories`) |
 | [`preprocessing/SIMPLE_EXAMPLE.py`](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/SIMPLE_EXAMPLE.py) | Minimal copy-paste example demonstrating how to use the preprocessing functions |
 

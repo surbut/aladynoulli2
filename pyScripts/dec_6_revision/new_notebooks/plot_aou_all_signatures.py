@@ -150,7 +150,7 @@ plt.suptitle('All of Us: Disease Probabilities by Signature',
              fontsize=16, fontweight='bold', y=0.995)
 plt.tight_layout()
 
-output_path = '/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/aou_analysis/aou_all_signatures_probabilities.pdf'
+output_path = '/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/supp/aou_all_signatures_probabilities.pdf'
 Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 plt.savefig(output_path, dpi=300, bbox_inches='tight')
 print(f"\n✓ Saved plot to: {output_path}")
