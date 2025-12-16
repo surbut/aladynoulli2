@@ -58,8 +58,8 @@ def load_averaged_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.000
                 if np.allclose(gamma, 0):
                     print(f"  Warning: {os.path.basename(checkpoint_path)} has gamma=0 (possibly untrained)")
                 else:
-                all_gammas.append(gamma)
-                print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
+                    all_gammas.append(gamma)
+                    print(f"  Loaded gamma from {os.path.basename(checkpoint_path)} (shape: {gamma.shape})")
             else:
                 print(f"  Warning: No gamma found in {os.path.basename(checkpoint_path)}")
         except Exception as e:
@@ -198,29 +198,75 @@ def load_fixed_components(data_dir, gamma_checkpoint_path=None, batch_dir=None, 
     refs = torch.load(refs_path, map_location='cpu', weights_only=False)
     signature_refs = refs['signature_refs']
     
+    # Load corrected prevalence (computed with corrected E_corrected)
+    # This should match the prevalence used in training/prediction with corrected E
+    prevalence_corrected_path = os.path.join(data_dir, 'prevalence_t_corrected.pt')
+    if os.path.exists(prevalence_corrected_path):
+        print(f"Loading corrected prevalence from: {prevalence_corrected_path}")
+        prevalence_t = torch.load(prevalence_corrected_path, map_location='cpu', weights_only=False)
+        if torch.is_tensor(prevalence_t):
+            prevalence_t = prevalence_t.cpu().numpy()
+        print(f"  Loaded corrected prevalence shape: {prevalence_t.shape}")
+    else:
+        print(f"Warning: Corrected prevalence not found at {prevalence_corrected_path}")
+        print(f"  Falling back to prevalence_t from model_essentials.pt")
+        prevalence_t = essentials['prevalence_t']
+        if torch.is_tensor(prevalence_t):
+            prevalence_t = prevalence_t.cpu().numpy()
+    
     return {
         'phi': phi,
         'psi': psi,
         'gamma': gamma,  # May be None if not available
-        'prevalence_t': essentials['prevalence_t'],
+        'prevalence_t': prevalence_t,  # Use corrected prevalence
         'signature_refs': signature_refs,
         'disease_names': essentials['disease_names']
     }
 
 @st.cache_data
 def load_sample_patients(data_dir, n_patients=10):
-    """Load a small subset of Y and G for sample patients"""
+    """Load a small subset of Y, G, and E_corrected for sample patients"""
     Y_path = os.path.join(data_dir, 'Y_tensor.pt')
     G_path = os.path.join(data_dir, 'G_matrix.pt')
     
     Y_full = torch.load(Y_path, map_location='cpu', weights_only=False)
     G_full = torch.load(G_path, map_location='cpu', weights_only=False)
     
+    # Try to load E_corrected from full retrospective data
+    # Note: We use E_corrected (full retrospective) not E_enrollment_full (enrollment-only)
+    # because we're working with patients where we see everything
+    E_corrected = None
+    possible_E_paths = [
+        os.path.join(data_dir, 'E_matrix_corrected.pt'),  # Full retrospective corrected E
+        os.path.join(data_dir, 'E_corrected.pt'),  # Alternative name
+        os.path.join(data_dir, 'aou_E_corrected.pt'),  # AOU-specific name
+    ]
+    
+    for E_path in possible_E_paths:
+        if os.path.exists(E_path):
+            print(f"Loading E_corrected (full retrospective) from: {E_path}")
+            E_corrected = torch.load(E_path, map_location='cpu', weights_only=False)
+            if torch.is_tensor(E_corrected):
+                E_corrected = E_corrected.numpy()
+            print(f"  Loaded E_corrected shape: {E_corrected.shape}")
+            break
+    
+    if E_corrected is None:
+        print("Warning: E_corrected (full retrospective) not found. Will create E from Y (may be inaccurate for censoring).")
+        print(f"  Tried paths: {possible_E_paths}")
+        print(f"  Note: NOT using E_enrollment_full.pt (that's for enrollment-only prediction, not full retrospective data)")
+    
     # Take first n_patients
     Y_sample = Y_full[:n_patients].numpy()
     G_sample = G_full[:n_patients].numpy()
+    if E_corrected is not None:
+        E_sample = E_corrected[:n_patients]
+        if torch.is_tensor(E_sample):
+            E_sample = E_sample.numpy()
+    else:
+        E_sample = None
     
-    return Y_sample, G_sample
+    return Y_sample, G_sample, E_sample
 
 def fit_patient_model(patient_G, patient_Y, patient_E, fixed_components, num_epochs=30, learning_rate=0.1):
     """Fit model for a single patient in real time using fixed-gamma model"""
@@ -822,10 +868,14 @@ def main():
         if st.button("Load Sample Patients"):
             try:
                 with st.spinner("Loading sample patients..."):
-                    Y_sample, G_sample = load_sample_patients(data_dir, n_patients=10)
+                    Y_sample, G_sample, E_sample = load_sample_patients(data_dir, n_patients=10)
                     st.session_state['Y_sample'] = Y_sample
                     st.session_state['G_sample'] = G_sample
-                    st.success(f"Loaded {len(Y_sample)} sample patients!")
+                    st.session_state['E_sample'] = E_sample
+                    if E_sample is not None:
+                        st.success(f"Loaded {len(Y_sample)} sample patients with E_corrected!")
+                    else:
+                        st.warning(f"Loaded {len(Y_sample)} sample patients, but E_corrected not found. Will create E from Y.")
             except Exception as e:
                 st.error(f"Error loading sample patients: {e}")
         
@@ -838,8 +888,25 @@ def main():
             
             Y_patient = st.session_state['Y_sample'][patient_idx]  # [D, T]
             G_patient = st.session_state['G_sample'][patient_idx]  # [P]
+            # Use E_corrected if available, otherwise create from Y
+            if 'E_sample' in st.session_state and st.session_state['E_sample'] is not None:
+                E_patient = st.session_state['E_sample'][patient_idx]  # [D] - E_corrected
+                using_E_corrected = True
+            else:
+                E_patient = None  # Will create from Y later
+                using_E_corrected = False
             
             st.subheader("Patient Disease History")
+            
+            # Show E_corrected info if available
+            if using_E_corrected:
+                st.info(f"ℹ️ Using E_corrected for this patient (shape: {E_patient.shape}). E_corrected incorporates max follow-up time and is more accurate than creating E from Y alone.")
+                # Show summary of E_corrected values
+                if len(E_patient.shape) == 1:
+                    events = (E_patient < T - 1).sum()
+                    censored = (E_patient == T - 1).sum()
+                    mean_E = E_patient.mean()
+                    st.caption(f"E_corrected summary: {events} diseases with events, {censored} censored at max time. Mean E: {mean_E:.2f}")
             
             # Show diagnosis progression narrative
             age_offset = st.number_input("Patient Age at Baseline", min_value=0, max_value=100, value=30, 
@@ -900,12 +967,17 @@ def main():
             # Fit model
             if st.button("🔄 Refit Model in Real Time", type="primary"):
                 with st.spinner("Fitting model... This may take a few seconds."):
-                    # Create event times
-                    E_patient = create_event_times_from_Y(Y_patient)
+                    # Use E_corrected if available, otherwise create from Y
+                    if E_patient is None or not using_E_corrected:
+                        st.info("ℹ️ Creating E from Y (E_corrected not available). For better results, ensure E_corrected.pt or E_matrix_corrected.pt is available in data directory.")
+                        E_patient_for_fit = create_event_times_from_Y(Y_patient)
+                    else:
+                        E_patient_for_fit = E_patient  # Use loaded E_corrected
+                        st.success("✓ Using E_corrected for fitting (incorporates max follow-up time)")
                     
                     # Fit model
                     pi, theta, model, losses = fit_patient_model(
-                        G_patient, Y_patient, E_patient, 
+                        G_patient, Y_patient, E_patient_for_fit, 
                         fixed_components, num_epochs, learning_rate
                     )
                     
@@ -1023,10 +1095,17 @@ def main():
                         if st.button("Generate Contribution Heatmap", key="heatmap_btn"):
                             with torch.no_grad():
                                 _, theta_current, phi_prob_current = model_current.forward()
+                            # phi_prob is [K, D, T] (no N dimension), theta is [N, K_total, T]
+                            # For single patient (N=1), index theta but not phi_prob
+                            theta_np = theta_current[0].cpu().numpy()  # [K_total, T]
+                            phi_prob_np = phi_prob_current.cpu().numpy()  # [K, D, T]
+                            # Use only first K signatures (exclude healthy state if present)
+                            K_disease = phi_prob_np.shape[0]  # Number of disease signatures
+                            theta_disease = theta_np[:K_disease, :]  # [K, T]
                             fig_heatmap = plot_signature_contribution_heatmap(
                                 st.session_state['pi'],
-                                theta_current[0].cpu().numpy(),
-                                phi_prob_current[0].cpu().numpy(),
+                                theta_disease,
+                                phi_prob_np,
                                 disease_names,
                                 diseases_to_show=top_diseases
                             )
