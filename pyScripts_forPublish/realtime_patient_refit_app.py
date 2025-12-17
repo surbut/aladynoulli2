@@ -550,6 +550,203 @@ def pad_G_to_match_gamma(patient_G, gamma):
     
     return G_flat
 
+def diagnose_genetic_penalty(model, fixed_components, sample_G=None):
+    """Diagnose whether the genetic penalty W is appropriate.
+    
+    Returns a dictionary with diagnostic metrics and recommendations.
+    """
+    gamma = fixed_components['gamma']
+    if gamma is None:
+        return {
+            'status': 'error',
+            'message': 'Gamma not available for diagnosis'
+        }
+    
+    gamma_np = gamma if isinstance(gamma, np.ndarray) else gamma.cpu().numpy()
+    P, K = gamma_np.shape
+    
+    # 1. Gamma magnitude statistics
+    gamma_abs = np.abs(gamma_np)
+    gamma_mean_abs = np.mean(gamma_abs)
+    gamma_std_abs = np.std(gamma_abs)
+    gamma_max_abs = np.max(gamma_abs)
+    gamma_percentiles = np.percentile(gamma_abs, [25, 50, 75, 95, 99])
+    
+    # 2. Estimate GP prior variance (from lambda amplitude)
+    # The GP prior variance is approximately lambda_amplitude^2
+    # For a GP with amplitude A, the variance is A^2
+    lambda_amplitude = model.lambda_amplitude if hasattr(model, 'lambda_amplitude') else 1.0
+    gp_prior_var = lambda_amplitude ** 2
+    
+    # 3. Genetic effect scale (typical genetic effect magnitude)
+    # For a typical patient with G ~ N(0,1), the genetic effect is G @ gamma
+    # Expected magnitude: sqrt(sum(gamma^2)) for standardized G
+    typical_genetic_effect_std = np.sqrt(np.sum(gamma_np**2, axis=0))  # [K] - per signature
+    
+    # 4. Signal-to-noise ratio: genetic effect / GP prior std
+    snr_per_signature = typical_genetic_effect_std / np.sqrt(gp_prior_var)
+    
+    # 5. Counterfactual effect assessment (if sample_G provided)
+    counterfactual_effects = None
+    if sample_G is not None:
+        G_padded = pad_G_to_match_gamma(sample_G, gamma)
+        genetic_effects = model.genetic_scale * (G_padded @ gamma_np)  # [K]
+        counterfactual_effects = {
+            'mean_abs': np.mean(np.abs(genetic_effects)),
+            'max_abs': np.max(np.abs(genetic_effects)),
+            'std': np.std(genetic_effects),
+            'per_signature': genetic_effects
+        }
+    
+    # 6. Recommendations
+    recommendations = []
+    warnings = []
+    
+    # Check if gamma values are too small (W too high)
+    if gamma_max_abs < 0.001:
+        warnings.append("⚠️ **W may be too high**: Maximum |gamma| < 0.001. Genetic effects are very small.")
+        recommendations.append("Consider reducing W (e.g., try W/10) to allow larger genetic effects.")
+    elif gamma_max_abs < 0.01:
+        warnings.append("⚠️ **W may be moderately high**: Maximum |gamma| < 0.01. Genetic effects are small.")
+        recommendations.append("Consider reducing W (e.g., try W/2) to allow larger genetic effects.")
+    
+    # Check if gamma values are too large (W too low)
+    if gamma_max_abs > 1.0:
+        warnings.append("⚠️ **W may be too low**: Maximum |gamma| > 1.0. Genetic effects are very large.")
+        recommendations.append("Consider increasing W (e.g., try W*10) to regularize genetic effects.")
+    elif gamma_max_abs > 0.5:
+        warnings.append("⚠️ **W may be moderately low**: Maximum |gamma| > 0.5. Genetic effects are large.")
+        recommendations.append("Consider increasing W (e.g., try W*2) to regularize genetic effects.")
+    
+    # Check SNR
+    mean_snr = np.mean(snr_per_signature)
+    if mean_snr < 0.1:
+        warnings.append("⚠️ **Low signal-to-noise**: Genetic effects are <10% of GP prior std. Effects may be negligible.")
+        recommendations.append("Consider reducing W to increase genetic signal strength.")
+    elif mean_snr > 2.0:
+        warnings.append("⚠️ **High signal-to-noise**: Genetic effects are >2x GP prior std. May be overfitting.")
+        recommendations.append("Consider increasing W to prevent overfitting.")
+    
+    # Check counterfactual effects
+    if counterfactual_effects is not None:
+        cf_max = counterfactual_effects['max_abs']
+        if cf_max < 0.01:
+            warnings.append("⚠️ **Counterfactual effects negligible**: Max genetic effect < 0.01. PRS=0 vs actual makes little difference.")
+            recommendations.append("This suggests W may be too high - genetic effects are too small to be meaningful.")
+        elif cf_max > 1.0:
+            warnings.append("⚠️ **Counterfactual effects very large**: Max genetic effect > 1.0. PRS dominates predictions.")
+            recommendations.append("This suggests W may be too low - genetic effects may be overfitting.")
+    
+    # Overall assessment
+    if len(warnings) == 0:
+        status = 'good'
+        status_message = "✓ **W appears appropriate**: Genetic effects are in a reasonable range."
+    elif any('too high' in w for w in warnings):
+        status = 'too_high'
+        status_message = "🔴 **W likely too high**: Genetic effects are being over-penalized."
+    elif any('too low' in w for w in warnings):
+        status = 'too_low'
+        status_message = "🟡 **W likely too low**: Genetic effects may be overfitting."
+    else:
+        status = 'moderate'
+        status_message = "🟠 **W may need adjustment**: Some concerns about genetic effect scale."
+    
+    return {
+        'status': status,
+        'status_message': status_message,
+        'gamma_stats': {
+            'mean_abs': gamma_mean_abs,
+            'std_abs': gamma_std_abs,
+            'max_abs': gamma_max_abs,
+            'percentiles': gamma_percentiles,
+            'shape': (P, K)
+        },
+        'gp_prior_var': gp_prior_var,
+        'lambda_amplitude': lambda_amplitude,
+        'typical_genetic_effect_std': typical_genetic_effect_std,
+        'snr_per_signature': snr_per_signature,
+        'mean_snr': mean_snr,
+        'counterfactual_effects': counterfactual_effects,
+        'warnings': warnings,
+        'recommendations': recommendations
+    }
+
+def plot_genetic_penalty_diagnostics(diagnosis):
+    """Plot diagnostic visualizations for genetic penalty assessment."""
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 1. Gamma distribution
+    ax1 = axes[0, 0]
+    gamma_abs = diagnosis['gamma_stats']['percentiles']
+    ax1.barh(['P25', 'P50', 'P75', 'P95', 'P99'], gamma_abs, color='steelblue', alpha=0.7)
+    ax1.axvline(x=0.001, color='red', linestyle='--', alpha=0.5, label='Very Small')
+    ax1.axvline(x=0.01, color='orange', linestyle='--', alpha=0.5, label='Small')
+    ax1.axvline(x=0.1, color='green', linestyle='--', alpha=0.5, label='Moderate')
+    ax1.set_xlabel('|Gamma| Value')
+    ax1.set_title('Gamma Magnitude Distribution', fontweight='bold')
+    ax1.legend(fontsize=8)
+    ax1.grid(True, alpha=0.3)
+    
+    # 2. SNR per signature
+    ax2 = axes[0, 1]
+    snr = diagnosis['snr_per_signature']
+    ax2.bar(range(len(snr)), snr, color='coral', alpha=0.7)
+    ax2.axhline(y=0.1, color='red', linestyle='--', alpha=0.5, label='Low (0.1)')
+    ax2.axhline(y=1.0, color='green', linestyle='--', alpha=0.5, label='Good (1.0)')
+    ax2.axhline(y=2.0, color='orange', linestyle='--', alpha=0.5, label='High (2.0)')
+    ax2.set_xlabel('Signature Index')
+    ax2.set_ylabel('Signal-to-Noise Ratio')
+    ax2.set_title('Genetic Effect SNR per Signature', fontweight='bold')
+    ax2.legend(fontsize=8)
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. Counterfactual effects (if available)
+    ax3 = axes[1, 0]
+    if diagnosis['counterfactual_effects'] is not None:
+        cf_effects = diagnosis['counterfactual_effects']['per_signature']
+        colors = ['red' if abs(e) < 0.01 else 'orange' if abs(e) < 0.1 else 'green' for e in cf_effects]
+        ax3.bar(range(len(cf_effects)), cf_effects, color=colors, alpha=0.7)
+        ax3.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+        ax3.axhline(y=0.01, color='red', linestyle='--', alpha=0.5, label='Negligible')
+        ax3.axhline(y=-0.01, color='red', linestyle='--', alpha=0.5)
+        ax3.set_xlabel('Signature Index')
+        ax3.set_ylabel('Genetic Effect (PRS contribution)')
+        ax3.set_title('Counterfactual Genetic Effects', fontweight='bold')
+        ax3.legend(fontsize=8)
+        ax3.grid(True, alpha=0.3)
+    else:
+        ax3.text(0.5, 0.5, 'No sample patient data\nfor counterfactual analysis', 
+                ha='center', va='center', transform=ax3.transAxes)
+        ax3.set_title('Counterfactual Genetic Effects', fontweight='bold')
+    
+    # 4. Summary statistics table
+    ax4 = axes[1, 1]
+    ax4.axis('off')
+    stats_text = f"""
+    **Gamma Statistics:**
+    Mean |γ|: {diagnosis['gamma_stats']['mean_abs']:.6f}
+    Std |γ|: {diagnosis['gamma_stats']['std_abs']:.6f}
+    Max |γ|: {diagnosis['gamma_stats']['max_abs']:.6f}
+    
+    **GP Prior:**
+    Lambda Amplitude: {diagnosis['lambda_amplitude']:.4f}
+    GP Prior Variance: {diagnosis['gp_prior_var']:.4f}
+    
+    **Signal-to-Noise:**
+    Mean SNR: {diagnosis['mean_snr']:.4f}
+    Min SNR: {np.min(diagnosis['snr_per_signature']):.4f}
+    Max SNR: {np.max(diagnosis['snr_per_signature']):.4f}
+    
+    **Assessment:**
+    {diagnosis['status_message']}
+    """
+    ax4.text(0.1, 0.5, stats_text, transform=ax4.transAxes, 
+            fontsize=10, verticalalignment='center', family='monospace')
+    
+    plt.suptitle('Genetic Penalty (W) Diagnostic Assessment', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    return fig
+
 def plot_counterfactual_signature_trajectory(model, signature_idx, patient_G, time_window=None):
     """Plot actual vs counterfactual signature trajectory (PRS=0) for a patient."""
     if time_window is None:
@@ -770,8 +967,8 @@ def main():
     st.sidebar.subheader("Gamma Loading")
     gamma_option = st.sidebar.radio(
         "Gamma Source",
-        ["Pre-saved Averaged Gamma", "Average from Batch Directory", "Single Checkpoint", "Try Master Checkpoint"],
-        help="Choose how to load gamma. Recommended: Pre-saved Averaged Gamma (fastest) or Average from Batch Directory."
+        ["Average from Prediction Batches (Unshrunken)", "Pre-saved Averaged Gamma", "Average from Batch Directory", "Single Checkpoint", "Try Master Checkpoint"],
+        help="Choose how to load gamma. 'Average from Prediction Batches' matches your current predictions (unshrunken gamma)."
     )
     
     batch_dir = None
@@ -779,7 +976,39 @@ def main():
     gamma_file_path = None
     gamma_pattern = "enrollment_model_W0.0001_batch_*_*.pt"  # Default pattern
     
-    if gamma_option == "Pre-saved Averaged Gamma":
+    if gamma_option == "Average from Prediction Batches (Unshrunken)":
+        batch_dir = st.sidebar.text_input(
+            "Prediction Batch Directory",
+            value="/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/",
+            help="Directory containing prediction batch checkpoints (e.g., enrollment_predictions_fixedphi_correctedE_vectorized/)"
+        )
+        gamma_pattern = st.sidebar.text_input(
+            "Checkpoint Pattern",
+            value="model_enroll_fixedphi_sex_*_*.pt",
+            help="Glob pattern to match prediction checkpoint files"
+        )
+        st.sidebar.info("ℹ️ This loads unshrunken gamma from prediction batches, matching your current prediction runs.")
+        
+        # Warn if loading from withLR directory (has shrunken gamma)
+        if batch_dir and "_withLR" in batch_dir:
+            st.sidebar.warning("⚠️ **Warning:** You're loading from a `_withLR` directory, which contains **shrunken gamma** (with penalty). For unshrunken gamma, use `enrollment_predictions_fixedphi_correctedE_vectorized/` (without `_withLR`).")
+        
+        # Preview files that will be loaded
+        if batch_dir and os.path.exists(batch_dir):
+            preview_files = glob.glob(os.path.join(batch_dir, gamma_pattern))
+            if preview_files:
+                preview_files.sort()
+                st.sidebar.caption(f"📁 Found {len(preview_files)} files matching pattern")
+                if len(preview_files) <= 5:
+                    for f in preview_files:
+                        st.sidebar.caption(f"  • {os.path.basename(f)}")
+                else:
+                    for f in preview_files[:3]:
+                        st.sidebar.caption(f"  • {os.path.basename(f)}")
+                    st.sidebar.caption(f"  ... and {len(preview_files) - 3} more")
+            else:
+                st.sidebar.warning(f"⚠️ No files found matching pattern '{gamma_pattern}' in {batch_dir}")
+    elif gamma_option == "Pre-saved Averaged Gamma":
         gamma_file_path = st.sidebar.text_input(
             "Gamma File Path",
             value="/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/averaged_gamma_from_batches.pt",
@@ -807,7 +1036,13 @@ def main():
     if st.sidebar.button("Load Model Components", type="primary"):
         try:
             with st.spinner("Loading fixed components..."):
-                if gamma_option == "Pre-saved Averaged Gamma":
+                if gamma_option == "Average from Prediction Batches (Unshrunken)":
+                    fixed_components = load_fixed_components(
+                        data_dir, 
+                        batch_dir=batch_dir if batch_dir else None,
+                        gamma_pattern=gamma_pattern
+                    )
+                elif gamma_option == "Pre-saved Averaged Gamma":
                     fixed_components = load_fixed_components(
                         data_dir,
                         gamma_file_path=gamma_file_path if gamma_file_path else None
@@ -829,7 +1064,28 @@ def main():
                 if fixed_components.get('gamma') is None:
                     st.sidebar.warning("⚠️ Gamma not loaded. Please provide a batch directory or checkpoint path.")
                 else:
-                    st.sidebar.success(f"✓ Components loaded! Gamma shape: {fixed_components['gamma'].shape}")
+                    gamma = fixed_components['gamma']
+                    gamma_max_abs = np.abs(gamma).max()
+                    gamma_mean_abs = np.abs(gamma).mean()
+                    
+                    # Determine if gamma is shrunken or unshrunken
+                    if gamma_max_abs < 0.01:
+                        gamma_status = "🔴 Shrunken (regularized)"
+                        gamma_note = "Max |γ| < 0.01 - likely from batches with penalty"
+                    elif gamma_max_abs < 0.1:
+                        gamma_status = "🟡 Moderately shrunken"
+                        gamma_note = "Max |γ| < 0.1 - may be from batches with penalty"
+                    else:
+                        gamma_status = "🟢 Unshrunken"
+                        gamma_note = "Max |γ| ≥ 0.1 - likely from prediction batches (no penalty)"
+                    
+                    st.sidebar.success(f"✓ Components loaded! Gamma shape: {gamma.shape}")
+                    st.sidebar.info(f"""
+                    **Gamma Status:** {gamma_status}
+                    - Max |γ|: {gamma_max_abs:.6f}
+                    - Mean |γ|: {gamma_mean_abs:.6f}
+                    - {gamma_note}
+                    """)
                 st.session_state['fixed_components'] = fixed_components
                 st.session_state['disease_names'] = fixed_components['disease_names']
         except Exception as e:
@@ -1040,11 +1296,12 @@ def main():
                 if 'model' in st.session_state:
                     st.subheader("🔬 Advanced Visualizations")
                     
-                    viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+                    viz_tab1, viz_tab2, viz_tab3, viz_tab4, viz_tab5 = st.tabs([
                         "Counterfactual Genetics", 
                         "GP Projection", 
                         "Signature Contributions",
-                        "Genetic Decomposition"
+                        "Genetic Decomposition",
+                        "W Penalty Diagnostics"
                     ])
                     
                     model_current = st.session_state['model']
@@ -1053,6 +1310,34 @@ def main():
                     
                     with viz_tab1:
                         st.markdown("**What if this patient had PRS=0?** See how signature trajectories would change.")
+                        # Check if gamma is shrunken or unshrunken based on its magnitude
+                        gamma_current = fixed_components.get('gamma')
+                        if gamma_current is not None:
+                            gamma_max_abs = np.abs(gamma_current).max()
+                            gamma_mean_abs = np.abs(gamma_current).mean()
+                            if gamma_max_abs < 0.01:
+                                gamma_type = "**regularized (shrunken) gamma**"
+                                gamma_note = "⚠️ Small effects are expected with regularized gamma. If you want unshrunken gamma, make sure you're loading from `enrollment_predictions_fixedphi_correctedE_vectorized/` (NOT the `_withLR` version)."
+                            else:
+                                gamma_type = "**unshrunken gamma**"
+                                gamma_note = "✓ This matches your current prediction runs (unshrunken gamma)."
+                            
+                            # Show gamma statistics
+                            with st.expander("📊 Gamma Statistics (click to view)"):
+                                st.write(f"**Max |γ|:** {gamma_max_abs:.6f}")
+                                st.write(f"**Mean |γ|:** {gamma_mean_abs:.6f}")
+                                st.write(f"**Shape:** {gamma_current.shape}")
+                                st.write(f"**Status:** {gamma_type}")
+                        else:
+                            gamma_type = "gamma"
+                            gamma_note = "⚠️ Gamma not loaded!"
+                        
+                        st.info(f"""
+                        **ℹ️ About the Counterfactual:**
+                        - This visualization uses {gamma_type} (loaded from your selected source)
+                        - {gamma_note}
+                        - Check the 'W Penalty Diagnostics' tab to see detailed metrics about genetic effect magnitudes
+                        """)
                         sig_idx_cf = st.selectbox(
                             "Select Signature for Counterfactual",
                             range(model_current.K),
@@ -1060,11 +1345,33 @@ def main():
                             key="cf_sig"
                         )
                         if st.button("Generate Counterfactual Plot", key="cf_btn"):
+                            # Compute genetic effect to show magnitude
+                            G_padded = pad_G_to_match_gamma(G_from_model, model_current.gamma)
+                            gamma_k = model_current.gamma[:, sig_idx_cf].detach().cpu().numpy()
+                            genetic_effect = float(model_current.genetic_scale * np.dot(G_padded, gamma_k))
+                            
                             fig_cf = plot_counterfactual_signature_trajectory(
                                 model_current, sig_idx_cf, G_from_model
                             )
                             st.pyplot(fig_cf)
-                            st.caption("**Interpretation:** The counterfactual shows what would happen if all PRS values were set to zero. The difference shows the genetic contribution to this signature's trajectory.")
+                            # Determine gamma type for caption
+                            gamma_current = fixed_components.get('gamma')
+                            if gamma_current is not None:
+                                gamma_max_abs = np.abs(gamma_current).max()
+                                if gamma_max_abs < 0.01:
+                                    gamma_note = "Small effects (<0.01) are expected with regularized gamma and reflect the model's conservative genetic estimates."
+                                else:
+                                    gamma_note = "This uses unshrunken gamma, matching your current prediction runs."
+                            else:
+                                gamma_note = ""
+                            
+                            st.caption(f"""
+                            **Interpretation:** The counterfactual shows what would happen if all PRS values were set to zero. 
+                            Genetic effect magnitude: {genetic_effect:.6f}. 
+                            
+                            **Note:** {gamma_note} This is consistent with your findings that genetics are statistically significant 
+                            but don't substantially improve predictive performance (AUC).
+                            """)
                     
                     with viz_tab2:
                         st.markdown("**GP Projection:** See how the patient's lambda trajectory compares to the Gaussian Process prior mean (reference + genetic effect).")
@@ -1125,6 +1432,78 @@ def main():
                             )
                             st.pyplot(fig_decomp)
                             st.caption("**Interpretation:** Shows which genetic features (PRS components) contribute most to each signature. Red = positive effect, Blue = negative effect.")
+                    
+                    with viz_tab5:
+                        st.markdown("**Genetic Penalty (W) Diagnostics:** Assess whether W is too high, too low, or appropriate.")
+                        st.markdown("""
+                        **How to interpret:**
+                        - **W too high**: Gamma values are very small, genetic effects negligible, counterfactuals show no difference
+                        - **W too low**: Gamma values are very large, genetic effects dominate, risk of overfitting
+                        - **W appropriate**: Genetic effects are meaningful but not dominant, good balance between data fit and regularization
+                        """)
+                        
+                        if st.button("Run W Penalty Diagnostics", key="w_diag_btn"):
+                            # Run diagnostics
+                            sample_G_for_diag = G_from_model if 'G_current' in st.session_state else None
+                            diagnosis = diagnose_genetic_penalty(
+                                model_current, 
+                                fixed_components,
+                                sample_G=sample_G_for_diag
+                            )
+                            
+                            if diagnosis['status'] == 'error':
+                                st.error(diagnosis['message'])
+                            else:
+                                # Show status
+                                if diagnosis['status'] == 'good':
+                                    st.success(diagnosis['status_message'])
+                                elif diagnosis['status'] == 'too_high':
+                                    st.error(diagnosis['status_message'])
+                                elif diagnosis['status'] == 'too_low':
+                                    st.warning(diagnosis['status_message'])
+                                else:
+                                    st.warning(diagnosis['status_message'])
+                                
+                                # Show warnings and recommendations
+                                if diagnosis['warnings']:
+                                    st.subheader("⚠️ Warnings")
+                                    for warning in diagnosis['warnings']:
+                                        st.markdown(warning)
+                                
+                                if diagnosis['recommendations']:
+                                    st.subheader("💡 Recommendations")
+                                    for rec in diagnosis['recommendations']:
+                                        st.markdown(f"- {rec}")
+                                
+                                # Plot diagnostics
+                                fig_diag = plot_genetic_penalty_diagnostics(diagnosis)
+                                st.pyplot(fig_diag)
+                                
+                                # Detailed statistics
+                                with st.expander("📊 Detailed Statistics"):
+                                    st.json({
+                                        'gamma_stats': {
+                                            'mean_abs': float(diagnosis['gamma_stats']['mean_abs']),
+                                            'std_abs': float(diagnosis['gamma_stats']['std_abs']),
+                                            'max_abs': float(diagnosis['gamma_stats']['max_abs']),
+                                            'percentiles': {
+                                                'P25': float(diagnosis['gamma_stats']['percentiles'][0]),
+                                                'P50': float(diagnosis['gamma_stats']['percentiles'][1]),
+                                                'P75': float(diagnosis['gamma_stats']['percentiles'][2]),
+                                                'P95': float(diagnosis['gamma_stats']['percentiles'][3]),
+                                                'P99': float(diagnosis['gamma_stats']['percentiles'][4])
+                                            }
+                                        },
+                                        'gp_prior': {
+                                            'lambda_amplitude': float(diagnosis['lambda_amplitude']),
+                                            'variance': float(diagnosis['gp_prior_var'])
+                                        },
+                                        'signal_to_noise': {
+                                            'mean': float(diagnosis['mean_snr']),
+                                            'per_signature': [float(x) for x in diagnosis['snr_per_signature']]
+                                        },
+                                        'counterfactual_effects': diagnosis['counterfactual_effects'] if diagnosis['counterfactual_effects'] else None
+                                    })
                 else:
                     st.info("👆 Please fit the model first to see advanced visualizations.")
     
