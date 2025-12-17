@@ -8,7 +8,16 @@ Creates:
 3. Full heatmap of all associations
 
 Usage:
+    # Default: Load from enrollment batches (shrunken gamma from fit):
+    python generate_prs_signature_plots.py
+    
+    # Compare with prediction batches (unshrunken gamma):
+    python generate_prs_signature_plots.py --prediction_batch_dir /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/
+    
+    # Load from enrollment batches (custom path):
     python generate_prs_signature_plots.py --batch_dir <path> [--prs_names_csv <path>]
+    
+    # Load from single file:
     python generate_prs_signature_plots.py --gamma_file <path> [--prs_names_csv <path>]
 """
 
@@ -24,6 +33,7 @@ import seaborn as sns
 from pathlib import Path
 import glob
 import argparse
+import re
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
@@ -109,7 +119,19 @@ def assign_disease_categories(prs_names):
 
 def load_gamma_from_batches(batch_dir, pattern="enrollment_model_W0.0001_batch_*_*.pt"):
     """Load and average gamma from multiple batch checkpoints."""
-    checkpoint_files = sorted(glob.glob(os.path.join(batch_dir, pattern)))
+    checkpoint_files = glob.glob(os.path.join(batch_dir, pattern))
+    
+    # Sort files by numeric start index (for prediction batches: model_enroll_fixedphi_sex_0_10000.pt)
+    def extract_start_index(filepath):
+        """Extract numeric start index from filename for sorting."""
+        filename = os.path.basename(filepath)
+        # Try to extract numbers from filename (e.g., "0_10000" -> 0)
+        numbers = re.findall(r'\d+', filename)
+        if numbers:
+            return int(numbers[0])  # Use first number as start index
+        return 0
+    
+    checkpoint_files = sorted(checkpoint_files, key=extract_start_index)
     
     if not checkpoint_files:
         print(f"No batch checkpoints found matching pattern: {pattern}")
@@ -647,7 +669,11 @@ def plot_full_heatmap(gamma_df, output_dir):
 def main():
     parser = argparse.ArgumentParser(description='Generate PRS-Signature association plots')
     parser.add_argument('--batch_dir', type=str,
-                        help='Directory containing batch checkpoints')
+                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized/',
+                        help='Directory containing enrollment batch checkpoints (shrunken gamma from fit). Default: censor_e_batchrun_vectorized/')
+    parser.add_argument('--prediction_batch_dir', type=str,
+                        default=None,
+                        help='Directory containing prediction batch checkpoints (unshrunken gamma). Set this to compare with prediction batches. Example: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/')
     parser.add_argument('--old_results_dir', type=str,
                         help='Directory with old structure: results/output_*_*/model.pt')
     parser.add_argument('--gamma_file', type=str,
@@ -655,12 +681,15 @@ def main():
                         help='Path to single gamma file (.pt or .npy)')
     parser.add_argument('--pattern', type=str,
                         default='enrollment_model_W0.0001_batch_*_*.pt',
-                        help='Glob pattern for batch files')
+                        help='Glob pattern for batch files (default for enrollment batches)')
+    parser.add_argument('--prediction_pattern', type=str,
+                        default='model_enroll_fixedphi_sex_*_*.pt',
+                        help='Glob pattern for prediction batch files (default: model_enroll_fixedphi_sex_*_*.pt)')
     parser.add_argument('--prs_names_csv', type=str,
                         default='/Users/sarahurbut/aladynoulli2/prs_names.csv',
                         help='Path to PRS names CSV file')
     parser.add_argument('--output_dir', type=str,
-                        default='/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/prs_signatures',
+                        default='/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/fig4',
                         help='Output directory for plots')
     parser.add_argument('--fdr_threshold', type=float, default=0.05,
                         help='FDR threshold for significance (default: 0.05)')
@@ -687,7 +716,7 @@ def main():
     n_batches = 0
     loading_method = None
     
-    # Priority: old_results_dir > batch_dir > gamma_file (single file is a fallback)
+    # Priority: old_results_dir > prediction_batch_dir > batch_dir > gamma_file (single file is a fallback)
     # If old_results_dir is provided, use old folder structure
     if args.old_results_dir:
         print(f"\n{'='*60}")
@@ -707,25 +736,47 @@ def main():
         else:
             print(f"  ⚠ Old structure loading failed, will try other methods...")
     
-    # If batch_dir is provided, try batch loading first
-    if gamma is None and args.batch_dir:
+    # If prediction_batch_dir is provided, load from prediction batches (unshrunken gamma)
+    if gamma is None and args.prediction_batch_dir:
         print(f"\n{'='*60}")
-        print(f"METHOD: Loading gamma from BATCH DIRECTORY (will average across batches)")
+        print(f"METHOD: Loading gamma from PREDICTION BATCHES (unshrunken gamma)")
         print(f"{'='*60}")
-        print(f"Directory: {args.batch_dir}")
-        print(f"Pattern: {args.pattern}")
-        result = load_gamma_from_batches(args.batch_dir, args.pattern)
+        print(f"Directory: {args.prediction_batch_dir}")
+        print(f"Pattern: {args.prediction_pattern}")
+        result = load_gamma_from_batches(args.prediction_batch_dir, args.prediction_pattern)
         if result:
             gamma, gamma_sem, n_batches = result
-            loading_method = "batch"
-            print(f"\n✓ Successfully loaded gamma from {n_batches} batches")
+            loading_method = "prediction_batches"
+            print(f"\n✓ Successfully loaded gamma from {n_batches} prediction batches")
+            print(f"  Note: These are unshrunken gamma values (no penalty applied)")
             if gamma_sem is not None:
                 print(f"  SEM available: Yes (mean={np.mean(gamma_sem):.6f}, median={np.median(gamma_sem):.6f})")
                 print(f"  Z-scores (effect/SEM) will be calculated")
             else:
                 print(f"  SEM available: No")
         else:
-            print(f"  ⚠ Batch loading failed, will try single file fallback...")
+            print(f"  ⚠ Prediction batch loading failed, will try other methods...")
+    
+    # If batch_dir is provided, try batch loading (enrollment batches with penalty)
+    if gamma is None and args.batch_dir:
+        print(f"\n{'='*60}")
+        print(f"METHOD: Loading gamma from ENROLLMENT BATCH DIRECTORY (will average across batches)")
+        print(f"{'='*60}")
+        print(f"Directory: {args.batch_dir}")
+        print(f"Pattern: {args.pattern}")
+        result = load_gamma_from_batches(args.batch_dir, args.pattern)
+        if result:
+            gamma, gamma_sem, n_batches = result
+            loading_method = "enrollment_batches"
+            print(f"\n✓ Successfully loaded gamma from {n_batches} enrollment batches")
+            print(f"  Note: These may be shrunken gamma values (if penalty was applied)")
+            if gamma_sem is not None:
+                print(f"  SEM available: Yes (mean={np.mean(gamma_sem):.6f}, median={np.median(gamma_sem):.6f})")
+                print(f"  Z-scores (effect/SEM) will be calculated")
+            else:
+                print(f"  SEM available: No")
+        else:
+            print(f"  ⚠ Enrollment batch loading failed, will try single file fallback...")
     
     # Fallback: if batch loading failed or wasn't attempted, use single file
     if gamma is None and args.gamma_file:

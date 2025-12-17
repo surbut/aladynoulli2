@@ -1,0 +1,759 @@
+================================================================================
+COMPARING AUC: NO-PENALTY vs WITH-PENALTY
+================================================================================
+No-penalty directory: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/
+With-penalty directory: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized_withLR/
+Number of batches: 5
+Bootstrap iterations: 100
+Output directory: /Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/penalty_comparison
+================================================================================
+
+================================================================================
+LOADING PREDICTIONS
+================================================================================
+
+Loading pi batches from: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/
+Found 5 batch files (loading first 5 in order)
+  Loading batch 1/5: pi_enroll_fixedphi_sex_0_10000.pt
+  Loading batch 2/5: pi_enroll_fixedphi_sex_10000_20000.pt
+  Loading batch 3/5: pi_enroll_fixedphi_sex_20000_30000.pt
+  Loading batch 4/5: pi_enroll_fixedphi_sex_30000_40000.pt
+  Loading batch 5/5: pi_enroll_fixedphi_sex_40000_50000.pt
+  Concatenated shape: torch.Size([50000, 348, 52])
+
+Loading pi batches from: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized_withLR/
+Found 5 batch files (loading first 5 in order)
+  Loading batch 1/5: pi_enroll_fixedphi_sex_0_10000.pt
+  Loading batch 2/5: pi_enroll_fixedphi_sex_10000_20000.pt
+  Loading batch 3/5: pi_enroll_fixedphi_sex_20000_30000.pt
+  Loading batch 4/5: pi_enroll_fixedphi_sex_30000_40000.pt
+  Loading batch 5/5: pi_enroll_fixedphi_sex_40000_50000.pt
+  Concatenated shape: torch.Size([50000, 348, 52])
+
+✓ Both pi tensors have shape: torch.Size([50000, 348, 52])
+
+================================================================================
+LOADING DATA
+================================================================================
+
+Subsetting data to first 50000 patients...
+Y_subset: torch.Size([50000, 348, 52]), E_subset: torch.Size([50000, 348]), pce_df_subset: 50000
+
+================================================================================
+EVALUATING 1-YEAR PREDICTIONS (0 WASHOUT)
+================================================================================
+
+Evaluating no-penalty version...
+Filtering for 1: Found 22893 individuals in cohort
+
+Summary of Results (1-Year Risk, Sex-Adjusted, Offset=0):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)   C-index   
+--------------------------------------------------------------------------------
+ASCVD                0.873 (0.847-0.899)       397        0.8        N/A
+Diabetes             0.714 (0.671-0.753)       195        0.4        N/A
+Atrial_Fib           0.838 (0.793-0.872)       120        0.2        N/A
+CKD                  0.684 (0.529-0.824)       16         0.0        N/A
+All_Cancers          0.737 (0.698-0.781)       115        0.2        N/A
+Stroke               0.658 (0.566-0.718)       30         0.1        N/A
+Heart_Failure        0.812 (0.739-0.863)       51         0.1        N/A
+Pneumonia            0.611 (0.532-0.699)       56         0.1        N/A
+COPD                 0.724 (0.682-0.770)       99         0.2        N/A
+Osteoporosis         0.786 (0.707-0.848)       44         0.1        N/A
+Anemia               0.633 (0.593-0.687)       144        0.3        N/A
+Colorectal_Cancer    0.852 (0.790-0.908)       37         0.1        N/A
+Breast_Cancer        0.833 (0.777-0.887)       89         0.2        N/A
+Prostate_Cancer      0.801 (0.751-0.852)       56         0.2        N/A
+Lung_Cancer          0.744 (0.591-0.894)       11         0.0        N/A
+Bladder_Cancer       0.822 (0.667-0.971)       9          0.0        N/A
+Secondary_Cancer     0.598 (0.514-0.681)       51         0.1        N/A
+Depression           0.668 (0.593-0.734)       62         0.1        N/A
+Anxiety              0.682 (0.516-0.808)       24         0.0        N/A
+Bipolar_Disorder     0.715 (0.342-0.994)       4          0.0        N/A
+Rheumatoid_Arthritis 0.803 (0.723-0.866)       34         0.1        N/A
+Psoriasis            0.683 (0.527-0.893)       9          0.0        N/A
+Ulcerative_Colitis   0.937 (0.863-0.988)       17         0.0        N/A
+Crohns_Disease       0.970 (0.951-0.992)       7          0.0        N/A
+Asthma               0.666 (0.638-0.696)       251        0.5        N/A
+Parkinsons           0.767 (0.585-0.897)       10         0.0        N/A
+Multiple_Sclerosis   0.935 (0.880-0.978)       13         0.0        N/A
+Thyroid_Disorders    0.658 (0.613-0.711)       137        0.3        N/A
+--------------------------------------------------------------------------------
+
+Evaluating with-penalty version...
+Filtering for 1: Found 22893 individuals in cohort
+
+Summary of Results (1-Year Risk, Sex-Adjusted, Offset=0):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)   C-index   
+--------------------------------------------------------------------------------
+ASCVD                0.873 (0.850-0.889)       397        0.8        N/A
+Diabetes             0.714 (0.673-0.753)       195        0.4        N/A
+Atrial_Fib           0.838 (0.808-0.882)       120        0.2        N/A
+CKD                  0.684 (0.507-0.836)       16         0.0        N/A
+All_Cancers          0.737 (0.694-0.778)       115        0.2        N/A
+Stroke               0.658 (0.598-0.718)       30         0.1        N/A
+Heart_Failure        0.812 (0.733-0.872)       51         0.1        N/A
+Pneumonia            0.611 (0.533-0.678)       56         0.1        N/A
+COPD                 0.724 (0.671-0.780)       99         0.2        N/A
+Osteoporosis         0.786 (0.715-0.859)       44         0.1        N/A
+Anemia               0.633 (0.596-0.670)       144        0.3        N/A
+Colorectal_Cancer    0.852 (0.803-0.915)       37         0.1        N/A
+Breast_Cancer        0.833 (0.775-0.883)       89         0.2        N/A
+Prostate_Cancer      0.801 (0.732-0.855)       56         0.2        N/A
+Lung_Cancer          0.744 (0.582-0.855)       11         0.0        N/A
+Bladder_Cancer       0.822 (0.590-0.977)       9          0.0        N/A
+Secondary_Cancer     0.598 (0.517-0.661)       51         0.1        N/A
+Depression           0.668 (0.596-0.722)       62         0.1        N/A
+Anxiety              0.682 (0.525-0.808)       24         0.0        N/A
+Bipolar_Disorder     0.715 (0.419-0.994)       4          0.0        N/A
+Rheumatoid_Arthritis 0.803 (0.729-0.869)       34         0.1        N/A
+Psoriasis            0.683 (0.517-0.836)       9          0.0        N/A
+Ulcerative_Colitis   0.937 (0.876-0.984)       17         0.0        N/A
+Crohns_Disease       0.970 (0.953-0.987)       7          0.0        N/A
+Asthma               0.666 (0.629-0.708)       251        0.5        N/A
+Parkinsons           0.767 (0.632-0.916)       10         0.0        N/A
+Multiple_Sclerosis   0.935 (0.882-0.971)       13         0.0        N/A
+Thyroid_Disorders    0.658 (0.589-0.708)       137        0.3        N/A
+--------------------------------------------------------------------------------
+
+================================================================================
+EVALUATING 10-YEAR PREDICTIONS
+================================================================================
+
+Evaluating no-penalty version...
+
+Evaluating ASCVD (10-Year Outcome, 1-Year Score)...
+AUC: 0.732 (0.725-0.741) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 4333 (8.7%) (from 50000 individuals)
+Excluded 0 prevalent cases for ASCVD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.710, Events = 1446/27107
+   Male: AUC = 0.714, Events = 2887/22893
+
+   ASCVD risk in patients with pre-existing conditions:
+   RA: AUC = 0.710, Events = 36/248
+   Breast_Cancer: AUC = 0.657, Events = 48/840
+
+Evaluating Diabetes (10-Year Outcome, 1-Year Score)...
+AUC: 0.629 (0.619-0.639) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2921 (5.8%) (from 50000 individuals)
+Excluded 0 prevalent cases for Diabetes.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.624, Events = 1193/27107
+   Male: AUC = 0.624, Events = 1728/22893
+
+Evaluating Atrial_Fib (10-Year Outcome, 1-Year Score)...
+AUC: 0.709 (0.698-0.720) (calculated on 49353 individuals)
+Events (10-Year in Eval Cohort): 1919 (3.8%) (from 50000 individuals)
+Excluded 647 prevalent cases for Atrial_Fib.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.713, Events = 1041/26933
+   Male: AUC = 0.712, Events = 852/22420
+
+Evaluating CKD (10-Year Outcome, 1-Year Score)...
+AUC: 0.703 (0.687-0.718) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 1135 (2.3%) (from 50000 individuals)
+Excluded 0 prevalent cases for CKD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.708, Events = 530/27107
+   Male: AUC = 0.696, Events = 605/22893
+
+Evaluating All_Cancers (10-Year Outcome, 1-Year Score)...
+AUC: 0.674 (0.663-0.683) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2521 (5.0%) (from 50000 individuals)
+Excluded 0 prevalent cases for All_Cancers.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.640, Events = 785/27107
+   Male: AUC = 0.676, Events = 1736/22893
+
+Evaluating Stroke (10-Year Outcome, 1-Year Score)...
+AUC: 0.676 (0.657-0.692) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 692 (1.4%) (from 50000 individuals)
+Excluded 0 prevalent cases for Stroke.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.673, Events = 313/27107
+   Male: AUC = 0.673, Events = 379/22893
+
+Evaluating Heart_Failure (10-Year Outcome, 1-Year Score)...
+AUC: 0.706 (0.687-0.721) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 991 (2.0%) (from 50000 individuals)
+Excluded 0 prevalent cases for Heart_Failure.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.732, Events = 352/27107
+   Male: AUC = 0.681, Events = 639/22893
+
+Evaluating Pneumonia (10-Year Outcome, 1-Year Score)...
+AUC: 0.650 (0.636-0.662) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 1758 (3.5%) (from 50000 individuals)
+Excluded 0 prevalent cases for Pneumonia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.651, Events = 773/27107
+   Male: AUC = 0.644, Events = 985/22893
+
+Evaluating COPD (10-Year Outcome, 1-Year Score)...
+AUC: 0.665 (0.652-0.677) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2071 (4.1%) (from 50000 individuals)
+Excluded 0 prevalent cases for COPD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.667, Events = 925/27107
+   Male: AUC = 0.659, Events = 1146/22893
+
+Evaluating Osteoporosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.675 (0.662-0.689) (calculated on 49858 individuals)
+Events (10-Year in Eval Cohort): 1101 (2.2%) (from 50000 individuals)
+Excluded 142 prevalent cases for Osteoporosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.675, Events = 611/26995
+   Male: AUC = 0.677, Events = 489/22863
+
+Evaluating Anemia (10-Year Outcome, 1-Year Score)...
+AUC: 0.595 (0.583-0.605) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2676 (5.4%) (from 50000 individuals)
+Excluded 0 prevalent cases for Anemia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.568, Events = 1430/27107
+   Male: AUC = 0.625, Events = 1246/22893
+
+Evaluating Colorectal_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.653 (0.627-0.671) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 613 (1.2%) (from 50000 individuals)
+Excluded 0 prevalent cases for Colorectal_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.629, Events = 282/27107
+   Male: AUC = 0.669, Events = 331/22893
+
+Evaluating Breast_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Female: Found 27107 individuals in cohort
+AUC: 0.548 (0.524-0.567) (calculated on 27107 individuals)
+Events (10-Year in Eval Cohort): 1098 (4.1%) (from 27107 individuals)
+Excluded 0 prevalent cases for Breast_Cancer.
+
+Evaluating Prostate_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Male: Found 22893 individuals in cohort
+AUC: 0.681 (0.665-0.693) (calculated on 22640 individuals)
+Events (10-Year in Eval Cohort): 952 (4.2%) (from 22893 individuals)
+Excluded 253 prevalent cases for Prostate_Cancer.
+
+Evaluating Lung_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.675 (0.658-0.704) (calculated on 49963 individuals)
+Events (10-Year in Eval Cohort): 432 (0.9%) (from 50000 individuals)
+Excluded 37 prevalent cases for Lung_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.681, Events = 218/27088
+   Male: AUC = 0.671, Events = 212/22875
+
+Evaluating Bladder_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.716 (0.693-0.748) (calculated on 49870 individuals)
+Events (10-Year in Eval Cohort): 255 (0.5%) (from 50000 individuals)
+Excluded 130 prevalent cases for Bladder_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.693, Events = 148/27077
+   Male: AUC = 0.748, Events = 107/22793
+
+Evaluating Secondary_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.607 (0.592-0.620) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 1497 (3.0%) (from 50000 individuals)
+Excluded 0 prevalent cases for Secondary_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.586, Events = 857/27107
+   Male: AUC = 0.636, Events = 640/22893
+
+Evaluating Depression (10-Year Outcome, 1-Year Score)...
+AUC: 0.478 (0.463-0.490) (calculated on 49510 individuals)
+Events (10-Year in Eval Cohort): 1995 (4.0%) (from 50000 individuals)
+Excluded 490 prevalent cases for Depression.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.475, Events = 1071/26809
+   Male: AUC = 0.493, Events = 909/22701
+
+Evaluating Anxiety (10-Year Outcome, 1-Year Score)...
+AUC: 0.515 (0.500-0.532) (calculated on 49863 individuals)
+Events (10-Year in Eval Cohort): 1289 (2.6%) (from 50000 individuals)
+Excluded 137 prevalent cases for Anxiety.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.523, Events = 692/27021
+   Male: AUC = 0.510, Events = 597/22842
+
+Evaluating Bipolar_Disorder (10-Year Outcome, 1-Year Score)...
+AUC: 0.449 (0.390-0.500) (calculated on 49925 individuals)
+Events (10-Year in Eval Cohort): 121 (0.2%) (from 50000 individuals)
+Excluded 75 prevalent cases for Bipolar_Disorder.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.464, Events = 69/27055
+   Male: AUC = 0.420, Events = 51/22870
+
+Evaluating Rheumatoid_Arthritis (10-Year Outcome, 1-Year Score)...
+AUC: 0.612 (0.588-0.631) (calculated on 49752 individuals)
+Events (10-Year in Eval Cohort): 595 (1.2%) (from 50000 individuals)
+Excluded 248 prevalent cases for Rheumatoid_Arthritis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.617, Events = 314/26913
+   Male: AUC = 0.609, Events = 279/22839
+
+Evaluating Psoriasis (10-Year Outcome, 1-Year Score)...
+AUC: 0.550 (0.514-0.589) (calculated on 49901 individuals)
+Events (10-Year in Eval Cohort): 236 (0.5%) (from 50000 individuals)
+Excluded 99 prevalent cases for Psoriasis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.532, Events = 111/27069
+   Male: AUC = 0.565, Events = 124/22832
+
+Evaluating Ulcerative_Colitis (10-Year Outcome, 1-Year Score)...
+AUC: 0.572 (0.536-0.610) (calculated on 49750 individuals)
+Events (10-Year in Eval Cohort): 248 (0.5%) (from 50000 individuals)
+Excluded 250 prevalent cases for Ulcerative_Colitis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.576, Events = 144/26979
+   Male: AUC = 0.570, Events = 103/22771
+
+Evaluating Crohns_Disease (10-Year Outcome, 1-Year Score)...
+AUC: 0.578 (0.524-0.630) (calculated on 49850 individuals)
+Events (10-Year in Eval Cohort): 136 (0.3%) (from 50000 individuals)
+Excluded 150 prevalent cases for Crohns_Disease.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.593, Events = 77/27034
+   Male: AUC = 0.562, Events = 59/22816
+
+Evaluating Asthma (10-Year Outcome, 1-Year Score)...
+AUC: 0.526 (0.514-0.537) (calculated on 48407 individuals)
+Events (10-Year in Eval Cohort): 3038 (6.1%) (from 50000 individuals)
+Excluded 1593 prevalent cases for Asthma.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.544, Events = 1591/26140
+   Male: AUC = 0.543, Events = 1350/22267
+
+Evaluating Parkinsons (10-Year Outcome, 1-Year Score)...
+AUC: 0.728 (0.695-0.751) (calculated on 49971 individuals)
+Events (10-Year in Eval Cohort): 223 (0.4%) (from 50000 individuals)
+Excluded 29 prevalent cases for Parkinsons.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.740, Events = 124/27095
+   Male: AUC = 0.713, Events = 99/22876
+
+Evaluating Multiple_Sclerosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.525 (0.464-0.583) (calculated on 49869 individuals)
+Events (10-Year in Eval Cohort): 97 (0.2%) (from 50000 individuals)
+Excluded 131 prevalent cases for Multiple_Sclerosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.517, Events = 61/27009
+   Male: AUC = 0.542, Events = 36/22860
+
+Evaluating Thyroid_Disorders (10-Year Outcome, 1-Year Score)...
+AUC: 0.574 (0.564-0.587) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2238 (4.5%) (from 50000 individuals)
+Excluded 0 prevalent cases for Thyroid_Disorders.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.574, Events = 1792/27107
+   Male: AUC = 0.561, Events = 446/22893
+
+Summary of Results (Prospective 10-Year Outcome, 1-Year Score, Sex-Adjusted):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)  
+--------------------------------------------------------------------------------
+ASCVD                0.732 (0.725-0.741)       4333       8.7
+Diabetes             0.629 (0.619-0.639)       2921       5.8
+Atrial_Fib           0.709 (0.698-0.720)       1919       3.8
+CKD                  0.703 (0.687-0.718)       1135       2.3
+All_Cancers          0.674 (0.663-0.683)       2521       5.0
+Stroke               0.676 (0.657-0.692)       692        1.4
+Heart_Failure        0.706 (0.687-0.721)       991        2.0
+Pneumonia            0.650 (0.636-0.662)       1758       3.5
+COPD                 0.665 (0.652-0.677)       2071       4.1
+Osteoporosis         0.675 (0.662-0.689)       1101       2.2
+Anemia               0.595 (0.583-0.605)       2676       5.4
+Colorectal_Cancer    0.653 (0.627-0.671)       613        1.2
+Breast_Cancer        0.548 (0.524-0.567)       1098       4.1
+Prostate_Cancer      0.681 (0.665-0.693)       952        4.2
+Lung_Cancer          0.675 (0.658-0.704)       432        0.9
+Bladder_Cancer       0.716 (0.693-0.748)       255        0.5
+Secondary_Cancer     0.607 (0.592-0.620)       1497       3.0
+Depression           0.478 (0.463-0.490)       1995       4.0
+Anxiety              0.515 (0.500-0.532)       1289       2.6
+Bipolar_Disorder     0.449 (0.390-0.500)       121        0.2
+Rheumatoid_Arthritis 0.612 (0.588-0.631)       595        1.2
+Psoriasis            0.550 (0.514-0.589)       236        0.5
+Ulcerative_Colitis   0.572 (0.536-0.610)       248        0.5
+Crohns_Disease       0.578 (0.524-0.630)       136        0.3
+Asthma               0.526 (0.514-0.537)       3038       6.1
+Parkinsons           0.728 (0.695-0.751)       223        0.4
+Multiple_Sclerosis   0.525 (0.464-0.583)       97         0.2
+Thyroid_Disorders    0.574 (0.564-0.587)       2238       4.5
+--------------------------------------------------------------------------------
+
+Evaluating with-penalty version...
+
+Evaluating ASCVD (10-Year Outcome, 1-Year Score)...
+AUC: 0.732 (0.724-0.740) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 4333 (8.7%) (from 50000 individuals)
+Excluded 0 prevalent cases for ASCVD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.710, Events = 1446/27107
+   Male: AUC = 0.714, Events = 2887/22893
+
+   ASCVD risk in patients with pre-existing conditions:
+   RA: AUC = 0.710, Events = 36/248
+   Breast_Cancer: AUC = 0.657, Events = 48/840
+
+Evaluating Diabetes (10-Year Outcome, 1-Year Score)...
+AUC: 0.629 (0.618-0.639) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2921 (5.8%) (from 50000 individuals)
+Excluded 0 prevalent cases for Diabetes.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.624, Events = 1193/27107
+   Male: AUC = 0.624, Events = 1728/22893
+
+Evaluating Atrial_Fib (10-Year Outcome, 1-Year Score)...
+AUC: 0.709 (0.697-0.719) (calculated on 49353 individuals)
+Events (10-Year in Eval Cohort): 1919 (3.8%) (from 50000 individuals)
+Excluded 647 prevalent cases for Atrial_Fib.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.713, Events = 1041/26933
+   Male: AUC = 0.712, Events = 852/22420
+
+Evaluating CKD (10-Year Outcome, 1-Year Score)...
+AUC: 0.703 (0.688-0.716) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 1135 (2.3%) (from 50000 individuals)
+Excluded 0 prevalent cases for CKD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.708, Events = 530/27107
+   Male: AUC = 0.696, Events = 605/22893
+
+Evaluating All_Cancers (10-Year Outcome, 1-Year Score)...
+AUC: 0.674 (0.663-0.681) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2521 (5.0%) (from 50000 individuals)
+Excluded 0 prevalent cases for All_Cancers.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.640, Events = 785/27107
+   Male: AUC = 0.676, Events = 1736/22893
+
+Evaluating Stroke (10-Year Outcome, 1-Year Score)...
+AUC: 0.676 (0.656-0.695) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 692 (1.4%) (from 50000 individuals)
+Excluded 0 prevalent cases for Stroke.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.673, Events = 313/27107
+   Male: AUC = 0.673, Events = 379/22893
+
+Evaluating Heart_Failure (10-Year Outcome, 1-Year Score)...
+AUC: 0.706 (0.690-0.724) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 991 (2.0%) (from 50000 individuals)
+Excluded 0 prevalent cases for Heart_Failure.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.732, Events = 352/27107
+   Male: AUC = 0.681, Events = 639/22893
+
+Evaluating Pneumonia (10-Year Outcome, 1-Year Score)...
+AUC: 0.650 (0.636-0.663) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 1758 (3.5%) (from 50000 individuals)
+Excluded 0 prevalent cases for Pneumonia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.651, Events = 773/27107
+   Male: AUC = 0.644, Events = 985/22893
+
+Evaluating COPD (10-Year Outcome, 1-Year Score)...
+AUC: 0.665 (0.653-0.678) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2071 (4.1%) (from 50000 individuals)
+Excluded 0 prevalent cases for COPD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.667, Events = 925/27107
+   Male: AUC = 0.659, Events = 1146/22893
+
+Evaluating Osteoporosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.675 (0.660-0.690) (calculated on 49858 individuals)
+Events (10-Year in Eval Cohort): 1101 (2.2%) (from 50000 individuals)
+Excluded 142 prevalent cases for Osteoporosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.675, Events = 611/26995
+   Male: AUC = 0.677, Events = 489/22863
+
+Evaluating Anemia (10-Year Outcome, 1-Year Score)...
+AUC: 0.595 (0.584-0.608) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2676 (5.4%) (from 50000 individuals)
+Excluded 0 prevalent cases for Anemia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.568, Events = 1430/27107
+   Male: AUC = 0.625, Events = 1246/22893
+
+Evaluating Colorectal_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.653 (0.633-0.676) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 613 (1.2%) (from 50000 individuals)
+Excluded 0 prevalent cases for Colorectal_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.629, Events = 282/27107
+   Male: AUC = 0.669, Events = 331/22893
+
+Evaluating Breast_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Female: Found 27107 individuals in cohort
+AUC: 0.548 (0.531-0.565) (calculated on 27107 individuals)
+Events (10-Year in Eval Cohort): 1098 (4.1%) (from 27107 individuals)
+Excluded 0 prevalent cases for Breast_Cancer.
+
+Evaluating Prostate_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Male: Found 22893 individuals in cohort
+AUC: 0.681 (0.665-0.696) (calculated on 22640 individuals)
+Events (10-Year in Eval Cohort): 952 (4.2%) (from 22893 individuals)
+Excluded 253 prevalent cases for Prostate_Cancer.
+
+Evaluating Lung_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.675 (0.660-0.699) (calculated on 49963 individuals)
+Events (10-Year in Eval Cohort): 432 (0.9%) (from 50000 individuals)
+Excluded 37 prevalent cases for Lung_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.681, Events = 218/27088
+   Male: AUC = 0.671, Events = 212/22875
+
+Evaluating Bladder_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.716 (0.689-0.744) (calculated on 49870 individuals)
+Events (10-Year in Eval Cohort): 255 (0.5%) (from 50000 individuals)
+Excluded 130 prevalent cases for Bladder_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.693, Events = 148/27077
+   Male: AUC = 0.748, Events = 107/22793
+
+Evaluating Secondary_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.607 (0.591-0.622) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 1497 (3.0%) (from 50000 individuals)
+Excluded 0 prevalent cases for Secondary_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.586, Events = 857/27107
+   Male: AUC = 0.636, Events = 640/22893
+
+Evaluating Depression (10-Year Outcome, 1-Year Score)...
+AUC: 0.478 (0.467-0.489) (calculated on 49510 individuals)
+Events (10-Year in Eval Cohort): 1995 (4.0%) (from 50000 individuals)
+Excluded 490 prevalent cases for Depression.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.475, Events = 1071/26809
+   Male: AUC = 0.493, Events = 909/22701
+
+Evaluating Anxiety (10-Year Outcome, 1-Year Score)...
+AUC: 0.515 (0.499-0.530) (calculated on 49863 individuals)
+Events (10-Year in Eval Cohort): 1289 (2.6%) (from 50000 individuals)
+Excluded 137 prevalent cases for Anxiety.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.523, Events = 692/27021
+   Male: AUC = 0.510, Events = 597/22842
+
+Evaluating Bipolar_Disorder (10-Year Outcome, 1-Year Score)...
+AUC: 0.449 (0.389-0.506) (calculated on 49925 individuals)
+Events (10-Year in Eval Cohort): 121 (0.2%) (from 50000 individuals)
+Excluded 75 prevalent cases for Bipolar_Disorder.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.464, Events = 69/27055
+   Male: AUC = 0.420, Events = 51/22870
+
+Evaluating Rheumatoid_Arthritis (10-Year Outcome, 1-Year Score)...
+AUC: 0.612 (0.587-0.630) (calculated on 49752 individuals)
+Events (10-Year in Eval Cohort): 595 (1.2%) (from 50000 individuals)
+Excluded 248 prevalent cases for Rheumatoid_Arthritis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.617, Events = 314/26913
+   Male: AUC = 0.609, Events = 279/22839
+
+Evaluating Psoriasis (10-Year Outcome, 1-Year Score)...
+AUC: 0.550 (0.510-0.591) (calculated on 49901 individuals)
+Events (10-Year in Eval Cohort): 236 (0.5%) (from 50000 individuals)
+Excluded 99 prevalent cases for Psoriasis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.532, Events = 111/27069
+   Male: AUC = 0.565, Events = 124/22832
+
+Evaluating Ulcerative_Colitis (10-Year Outcome, 1-Year Score)...
+AUC: 0.572 (0.535-0.608) (calculated on 49750 individuals)
+Events (10-Year in Eval Cohort): 248 (0.5%) (from 50000 individuals)
+Excluded 250 prevalent cases for Ulcerative_Colitis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.576, Events = 144/26979
+   Male: AUC = 0.570, Events = 103/22771
+
+Evaluating Crohns_Disease (10-Year Outcome, 1-Year Score)...
+AUC: 0.578 (0.532-0.626) (calculated on 49850 individuals)
+Events (10-Year in Eval Cohort): 136 (0.3%) (from 50000 individuals)
+Excluded 150 prevalent cases for Crohns_Disease.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.593, Events = 77/27034
+   Male: AUC = 0.562, Events = 59/22816
+
+Evaluating Asthma (10-Year Outcome, 1-Year Score)...
+AUC: 0.526 (0.515-0.537) (calculated on 48407 individuals)
+Events (10-Year in Eval Cohort): 3038 (6.1%) (from 50000 individuals)
+Excluded 1593 prevalent cases for Asthma.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.544, Events = 1591/26140
+   Male: AUC = 0.543, Events = 1350/22267
+
+Evaluating Parkinsons (10-Year Outcome, 1-Year Score)...
+AUC: 0.728 (0.703-0.756) (calculated on 49971 individuals)
+Events (10-Year in Eval Cohort): 223 (0.4%) (from 50000 individuals)
+Excluded 29 prevalent cases for Parkinsons.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.740, Events = 124/27095
+   Male: AUC = 0.713, Events = 99/22876
+
+Evaluating Multiple_Sclerosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.525 (0.458-0.589) (calculated on 49869 individuals)
+Events (10-Year in Eval Cohort): 97 (0.2%) (from 50000 individuals)
+Excluded 131 prevalent cases for Multiple_Sclerosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.517, Events = 61/27009
+   Male: AUC = 0.542, Events = 36/22860
+
+Evaluating Thyroid_Disorders (10-Year Outcome, 1-Year Score)...
+AUC: 0.574 (0.560-0.585) (calculated on 50000 individuals)
+Events (10-Year in Eval Cohort): 2238 (4.5%) (from 50000 individuals)
+Excluded 0 prevalent cases for Thyroid_Disorders.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.574, Events = 1792/27107
+   Male: AUC = 0.561, Events = 446/22893
+
+Summary of Results (Prospective 10-Year Outcome, 1-Year Score, Sex-Adjusted):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)  
+--------------------------------------------------------------------------------
+ASCVD                0.732 (0.724-0.740)       4333       8.7
+Diabetes             0.629 (0.618-0.639)       2921       5.8
+Atrial_Fib           0.709 (0.697-0.719)       1919       3.8
+CKD                  0.703 (0.688-0.716)       1135       2.3
+All_Cancers          0.674 (0.663-0.681)       2521       5.0
+Stroke               0.676 (0.656-0.695)       692        1.4
+Heart_Failure        0.706 (0.690-0.724)       991        2.0
+Pneumonia            0.650 (0.636-0.663)       1758       3.5
+COPD                 0.665 (0.653-0.678)       2071       4.1
+Osteoporosis         0.675 (0.660-0.690)       1101       2.2
+Anemia               0.595 (0.584-0.608)       2676       5.4
+Colorectal_Cancer    0.653 (0.633-0.676)       613        1.2
+Breast_Cancer        0.548 (0.531-0.565)       1098       4.1
+Prostate_Cancer      0.681 (0.665-0.696)       952        4.2
+Lung_Cancer          0.675 (0.660-0.699)       432        0.9
+Bladder_Cancer       0.716 (0.689-0.744)       255        0.5
+Secondary_Cancer     0.607 (0.591-0.622)       1497       3.0
+Depression           0.478 (0.467-0.489)       1995       4.0
+Anxiety              0.515 (0.499-0.530)       1289       2.6
+Bipolar_Disorder     0.449 (0.389-0.506)       121        0.2
+Rheumatoid_Arthritis 0.612 (0.587-0.630)       595        1.2
+Psoriasis            0.550 (0.510-0.591)       236        0.5
+Ulcerative_Colitis   0.572 (0.535-0.608)       248        0.5
+Crohns_Disease       0.578 (0.532-0.626)       136        0.3
+Asthma               0.526 (0.515-0.537)       3038       6.1
+Parkinsons           0.728 (0.703-0.756)       223        0.4
+Multiple_Sclerosis   0.525 (0.458-0.589)       97         0.2
+Thyroid_Disorders    0.574 (0.560-0.585)       2238       4.5
+--------------------------------------------------------------------------------
+
+================================================================================
+CREATING COMPARISON TABLES
+================================================================================
+
+Saving results...
+✓ Saved 1-year comparison to: /Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/penalty_comparison/comparison_1yr_0washout.csv
+✓ Saved 10-year comparison to: /Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/penalty_comparison/comparison_10yr.csv
+
+================================================================================
+SUMMARY
+================================================================================
+
+1-YEAR PREDICTIONS (0 WASHOUT):
+--------------------------------------------------------------------------------
+Disease                        No-Penalty AUC       With-Penalty AUC     Difference     
+--------------------------------------------------------------------------------
+ASCVD                          0.8728               0.8728               0.0000         
+All_Cancers                    0.7366               0.7366               0.0000         
+Thyroid_Disorders              0.6577               0.6577               0.0000         
+Stroke                         0.6577               0.6577               0.0000         
+Secondary_Cancer               0.5985               0.5985               0.0000         
+Rheumatoid_Arthritis           0.8033               0.8033               0.0000         
+Psoriasis                      0.6827               0.6827               0.0000         
+Prostate_Cancer                0.8006               0.8006               0.0000         
+Pneumonia                      0.6105               0.6105               0.0000         
+Parkinsons                     0.7674               0.7674               0.0000         
+
+10-YEAR PREDICTIONS:
+--------------------------------------------------------------------------------
+Disease                        No-Penalty AUC       With-Penalty AUC     Difference     
+--------------------------------------------------------------------------------
+ASCVD                          0.7325               0.7325               0.0000         
+All_Cancers                    0.6739               0.6739               0.0000         
+Thyroid_Disorders              0.5743               0.5743               0.0000         
+Stroke                         0.6757               0.6757               0.0000         
+Secondary_Cancer               0.6069               0.6069               0.0000         
+Rheumatoid_Arthritis           0.6116               0.6116               0.0000         
+Psoriasis                      0.5499               0.5499               0.0000         
+Prostate_Cancer                0.6807               0.6807               0.0000         
+Pneumonia                      0.6496               0.6496               0.0000         
+Parkinsons                     0.7276               0.7276               0.0000         
+
+================================================================================
+OVERALL STATISTICS
+================================================================================
+
+1-Year Predictions:
+  Mean AUC difference: 0.000000
+  Median AUC difference: 0.000000
+  Max absolute difference: 0.000000
+  Diseases with difference > 0.01: 0
+  Diseases with difference > 0.005: 0
+
+10-Year Predictions:
+  Mean AUC difference: 0.000000
+  Median AUC difference: 0.000000
+  Max absolute difference: 0.000000
+  Diseases with difference > 0.01: 0
+  Diseases with difference > 0.005: 0
+
+================================================================================
+COMPLETED SUCCESSFULLY
+================================================================================
+Results saved to: /Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/penalty_comparison

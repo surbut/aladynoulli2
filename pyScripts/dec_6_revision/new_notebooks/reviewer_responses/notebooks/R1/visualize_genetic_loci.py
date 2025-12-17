@@ -288,10 +288,11 @@ else:
 # CREATE MULTIPANEL FIGURE
 # ============================================================================
 
-fig = plt.figure(figsize=(22, 16))
-# Use a 3x3 grid: main panels on left 2 columns, legend/panels on right
-gs = fig.add_gridspec(3, 3, hspace=0.35, wspace=0.25, 
-                      width_ratios=[1, 1, 0.8], height_ratios=[1.2, 1, 1])
+# Improved layout: 3x4 grid with better spacing for GWAS/RVAS emphasis
+fig = plt.figure(figsize=(20, 14))
+# Layout: Panels A-E in columns 0-2, legend in column 3
+gs = fig.add_gridspec(3, 4, hspace=0.4, wspace=0.3, 
+                      width_ratios=[1, 1, 1, 0.7], height_ratios=[1.2, 1, 1.1])
 
 # Main title (optional - can be removed for publication)
 # fig.suptitle('Genetic Associations: Lead Variants and Rare Variant Gene-Based Associations', 
@@ -308,7 +309,7 @@ sig_color_dict = {i: sig_colors[i] for i in range(n_sigs)}
 # PANEL A: Lead Variants by Signature (Top Left)
 # ============================================================================
 
-ax1 = fig.add_subplot(gs[0, 0])
+ax1 = fig.add_subplot(gs[0, 0:2])  # Top row, spans first two columns for better visibility
 
 # Group lead variants by signature
 sig_groups = loci_df.groupby('SIG_NUM')
@@ -429,6 +430,10 @@ ax1.set_ylabel('-log₁₀(P-value)', fontsize=13, fontweight='bold')
 ax1.set_title('A. Lead Variants by Signature (GWAS)\n★ = Novel Sig 5 loci; Green ★ = Top 10 Unique Sig 5 discoveries', fontsize=14, fontweight='bold', pad=10)
 ax1.set_xticks(range(n_sigs))
 ax1.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
+# Set axis limits to ensure data is visible with padding
+y_max = loci_df['LOG10P'].max() * 1.1 if len(loci_df) > 0 else 10
+ax1.set_ylim([0, max(y_max, 10)])
+ax1.set_xlim([-0.5, n_sigs - 0.5])
 ax1.grid(True, alpha=0.3, axis='y')
 
 # Create custom legend (only show if we have novelty info)
@@ -450,7 +455,7 @@ if 'is_novel' in loci_df.columns and loci_df['is_novel'].notna().any():
 # PANEL B: Significant Genes by Signature (mask3) - Scatter Plot (Top Right)
 # ============================================================================
 
-ax2 = fig.add_subplot(gs[0, 2])  # Right column
+ax2 = fig.add_subplot(gs[0, 2])  # Top row, third column
 
 if best_results is not None and len(best_results) > 0:
     # Group by signature and plot
@@ -480,8 +485,13 @@ if best_results is not None and len(best_results) > 0:
     ax2.set_title('B. Significant Genes by Signature (mask3: LoF Variants)', fontsize=14, fontweight='bold', pad=10)
     ax2.set_xticks(range(n_sigs))
     ax2.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
+    # Set axis limits to ensure data is visible
+    if len(best_results) > 0:
+        y_max = best_results['LOG10P'].max() * 1.15 if len(best_results) > 0 else 10
+        ax2.set_ylim([0, max(y_max, 10)])
+    ax2.set_xlim([-0.5, n_sigs - 0.5])
     ax2.grid(True, alpha=0.3, axis='y')
-    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=7, ncol=2, framealpha=0.9)
+    ax2.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=7, ncol=1, framealpha=0.9)
 else:
     ax2.text(0.5, 0.5, 'Mask3 data not available', 
              ha='center', va='center', fontsize=14,
@@ -492,7 +502,7 @@ else:
 # PANEL C: Number of Lead Variants per Signature (Bottom Left)
 # ============================================================================
 
-ax3 = fig.add_subplot(gs[1, 0:2])  # Span first two columns
+ax3 = fig.add_subplot(gs[1, 0:2])  # Middle row, spans first two columns
 
 sig_counts_loci = loci_df.groupby('SIG_NUM').size().sort_index()
 bars1 = ax3.bar(sig_counts_loci.index, sig_counts_loci.values, 
@@ -512,13 +522,17 @@ ax3.set_ylabel('Number of Lead Variants', fontsize=13, fontweight='bold')
 ax3.set_title('C. Number of Lead Variants per Signature', fontsize=14, fontweight='bold', pad=10)
 ax3.set_xticks(range(n_sigs))
 ax3.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
+# Set axis limits with padding
+y_max = sig_counts_loci.max() * 1.1 if len(sig_counts_loci) > 0 else 1
+ax3.set_ylim([0, max(y_max, 1)])
+ax3.set_xlim([-0.5, n_sigs - 0.5])
 ax3.grid(True, alpha=0.3, axis='y')
 
 # ============================================================================
 # PANEL D: Number of Significant Genes per Signature (mask3) - Bottom Right
 # ============================================================================
 
-ax4 = fig.add_subplot(gs[1, 2])  # Right column
+ax4 = fig.add_subplot(gs[1, 2])  # Middle row, third column
 
 if best_results is not None and len(best_results) > 0:
     sig_counts_genes = best_results.groupby('SIG').size().sort_index()
@@ -539,6 +553,10 @@ if best_results is not None and len(best_results) > 0:
     ax4.set_title('D. Number of Significant Genes per Signature (mask3)', fontsize=14, fontweight='bold', pad=10)
     ax4.set_xticks(range(n_sigs))
     ax4.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
+    # Set axis limits with padding
+    y_max = sig_counts_genes.max() * 1.1 if len(sig_counts_genes) > 0 else 1
+    ax4.set_ylim([0, max(y_max, 1)])
+    ax4.set_xlim([-0.5, n_sigs - 0.5])
     ax4.grid(True, alpha=0.3, axis='y')
 else:
     ax4.text(0.5, 0.5, 'Mask3 data not available', 
@@ -550,7 +568,7 @@ else:
 # PANEL E: Gene Overlap - Lead Variant Genes vs Rare Variant Genes (Bottom Span)
 # ============================================================================
 
-ax5 = fig.add_subplot(gs[2, 0:2])  # Span first two columns
+ax5 = fig.add_subplot(gs[2, 0:3])  # Bottom row, spans first three columns
 
 if best_results is not None and len(best_results) > 0:
     # Get unique genes from each analysis
@@ -611,6 +629,11 @@ if best_results is not None and len(best_results) > 0:
                   fontsize=14, fontweight='bold', pad=10)
     ax5.set_xticks(range(n_sigs))
     ax5.set_xticklabels([f'Sig {i}' for i in range(n_sigs)], rotation=45, ha='right', fontsize=10)
+    # Set axis limits with padding
+    max_total = overlap_df[['Lead Only', 'Overlap', 'Rare Only']].sum(axis=1).max()
+    y_max = max_total * 1.15 if max_total > 0 else 1
+    ax5.set_ylim([0, max(y_max, 1)])
+    ax5.set_xlim([-0.5, n_sigs - 0.5])
     ax5.legend(loc='upper right', fontsize=10, framealpha=0.9)
     ax5.grid(True, alpha=0.3, axis='y')
     
@@ -647,7 +670,7 @@ else:
 # RIGHT PANEL: Signature Labels Legend + Top 10 Unique Sig 5 List
 # ============================================================================
 
-ax_legend = fig.add_subplot(gs[:, 2])  # Right column, spans all rows
+ax_legend = fig.add_subplot(gs[:, 3])  # Rightmost column (column 3), spans all rows
 ax_legend.axis('off')
 
 # Create signature labels table
@@ -704,7 +727,7 @@ if 'is_top10_sig5' in loci_df.columns:
 plt.tight_layout(rect=[0, 0, 1, 0.97])
 
 # Save figure
-output_dir = Path("/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/supp")
+output_dir = Path("/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/fig4")
 output_dir.mkdir(parents=True, exist_ok=True)
 output_file = output_dir / "genetic_loci_visualization.pdf"
 plt.savefig(output_file, dpi=300, bbox_inches='tight')

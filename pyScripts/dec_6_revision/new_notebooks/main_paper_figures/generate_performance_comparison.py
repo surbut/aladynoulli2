@@ -2,8 +2,9 @@
 Generate publication-ready performance comparison figure and summary table:
 - Highlights 10-year static as the ideal model
 - Compares Aladynoulli models (1yr baseline, 1yr median, 10yr static)
-- Includes baseline comparisons (Cox, Delphi, external scores)
+- Includes baseline comparisons (Cox, external scores)
 - Creates both a comprehensive plot and summary table
+- Note: Delphi excluded from plot
 """
 
 import pandas as pd
@@ -93,12 +94,7 @@ cox_comparison = cox_comparison.rename(columns={'Cox_AUC': 'Cox_without_Aladynou
                                                 'CI_lower': 'Cox_with_Aladynoulli_CI_lower',
                                                 'CI_upper': 'Cox_with_Aladynoulli_CI_upper'})
 
-# 5. Delphi
-delphi_comparison = pd.read_csv(results_dir / "comparisons/pooled_retrospective/delphi_comparison_simple_mapping_1yr.csv")
-delphi_comparison = delphi_comparison.rename(columns={'Aladynoulli_1yr': 'Delphi_Aladynoulli_1yr',
-                                                      'Delphi_0gap_avg': 'Delphi_1yr'})
-
-# 6. External scores
+# 5. External scores (Delphi excluded from plot)
 external_scores = pd.read_csv(results_dir / "comparisons/pooled_retrospective/external_scores_comparison.csv", index_col=0)
 
 print(f"Loaded data for {len(washout_0yr)} diseases")
@@ -124,9 +120,6 @@ merged = merged.merge(time_horizons[['Disease', 'Aladynoulli_10yr_best',
 merged = merged.merge(cox_comparison[['Disease', 'Cox_without_Aladynoulli', 'Cox_with_Aladynoulli',
                                      'Cox_with_Aladynoulli_CI_lower', 'Cox_with_Aladynoulli_CI_upper']], 
                      on='Disease', how='left')
-
-# Merge Delphi
-merged = merged.merge(delphi_comparison[['Disease', 'Delphi_1yr']], on='Disease', how='left')
 
 # Add external scores for specific diseases
 # ASCVD: PCE, PREVENT, QRISK3
@@ -204,8 +197,7 @@ for disease in key_diseases:
             row.get('Aladynoulli_1yr_baseline_CI_upper')
         ),
         'Aladynoulli 1yr (Median)': format_auc(row.get('Aladynoulli_1yr_median')),
-        'Cox 10yr (Baseline)': format_auc(row.get('Cox_without_Aladynoulli')),
-        'Delphi 1yr': format_auc(row.get('Delphi_1yr'))
+        'Cox 10yr (Baseline)': format_auc(row.get('Cox_without_Aladynoulli'))
     }
     
     # Add external scores where applicable
@@ -280,7 +272,6 @@ colors = {
     'Aladynoulli_1yr_baseline': '#E74C3C',    # Red
     'Aladynoulli_1yr_median': '#3498DB',      # Blue
     'Cox_without_Aladynoulli': '#F39C12',     # Orange
-    'Delphi_1yr': '#1ABC9C',                  # Teal
     'PCE_10yr': '#95A5A6',                    # Grey
     'PREVENT_10yr': '#34495E',                # Dark grey
     'QRISK3_10yr': '#7F8C8D',                 # Medium grey
@@ -293,7 +284,6 @@ markers = {
     'Aladynoulli_1yr_baseline': 'o',          # Circle
     'Aladynoulli_1yr_median': 's',            # Square
     'Cox_without_Aladynoulli': 'D',           # Diamond
-    'Delphi_1yr': 'v',                        # Inverted triangle
     'PCE_10yr': 'p',                          # Pentagon
     'PREVENT_10yr': 'p',                      # Pentagon
     'QRISK3_10yr': 'p',                       # Pentagon
@@ -301,14 +291,13 @@ markers = {
     'GAIL_10yr': 'h'                          # Hexagon
 }
 
-# Define model order (as specified by user):
+# Define model order:
 # 1. 1 year (at enrollment)
 # 2. 1 year median
-# 3. 1 year delphi
-# 4. 1 year gail (if applies)
-# 5. 10 year (best)
-# 6. External 10-year scores (Gail/PCE/PREVENT/QRISK when applied)
-# 7. 10 year cox (without Aladynoulli)
+# 3. 1 year gail (if applies)
+# 4. 10 year (best)
+# 5. External 10-year scores (Gail/PCE/PREVENT/QRISK when applied)
+# 6. 10 year cox (without Aladynoulli)
 
 # Plot each disease in its own panel
 for disease_idx, disease in enumerate(plot_diseases):
@@ -350,12 +339,7 @@ for disease_idx, disease in enumerate(plot_diseases):
     if pd.notna(auc_val):
         add_model('Aladynoulli_1yr_median', auc_val)
     
-    # 3. 1 year delphi
-    auc_val = disease_data.get('Delphi_1yr')
-    if pd.notna(auc_val):
-        add_model('Delphi_1yr', auc_val)
-    
-    # 4. 1 year gail (if applies - only for Breast_Cancer)
+    # 3. 1 year gail (if applies - only for Breast_Cancer)
     if disease == 'Breast_Cancer':
         auc_val = disease_data.get('GAIL_1yr')
         if pd.notna(auc_val):
@@ -363,14 +347,14 @@ for disease_idx, disease in enumerate(plot_diseases):
             ci_upper = disease_data.get('GAIL_1yr_CI_upper', auc_val)
             add_model('GAIL_1yr', auc_val, ci_lower, ci_upper)
     
-    # 5. 10 year (best)
+    # 4. 10 year (best)
     auc_val = disease_data.get('Aladynoulli_10yr_best')
     if pd.notna(auc_val):
         ci_lower = disease_data.get('Aladynoulli_10yr_best_CI_lower', auc_val)
         ci_upper = disease_data.get('Aladynoulli_10yr_best_CI_upper', auc_val)
         add_model('Aladynoulli_10yr_best', auc_val, ci_lower, ci_upper)
     
-    # 6. External 10-year scores (when applied)
+    # 5. External 10-year scores (when applied)
     if disease == 'ASCVD':
         # PCE, PREVENT, QRISK3 (in that order)
         for model in ['PCE_10yr', 'PREVENT_10yr', 'QRISK3_10yr']:
@@ -387,7 +371,7 @@ for disease_idx, disease in enumerate(plot_diseases):
             ci_upper = disease_data.get('GAIL_10yr_CI_upper', auc_val)
             add_model('GAIL_10yr', auc_val, ci_lower, ci_upper)
     
-    # 7. 10 year cox (without Aladynoulli)
+    # 6. 10 year cox (without Aladynoulli)
     auc_val = disease_data.get('Cox_without_Aladynoulli')
     if pd.notna(auc_val):
         add_model('Cox_without_Aladynoulli', auc_val)
@@ -424,8 +408,6 @@ for disease_idx, disease in enumerate(plot_diseases):
                 labels.append('1yr enroll')
             elif model == 'Aladynoulli_1yr_median':
                 labels.append('1yr med')
-            elif model == 'Delphi_1yr':
-                labels.append('Delphi')
             elif model == 'GAIL_1yr':
                 labels.append('GAIL 1yr')
             elif model == 'Aladynoulli_10yr_best':
@@ -458,7 +440,6 @@ legend_elements = []
 legend_order = [
     'Aladynoulli_1yr_baseline',
     'Aladynoulli_1yr_median',
-    'Delphi_1yr',
     'GAIL_1yr',
     'Aladynoulli_10yr_best',  # Highlight with star
     'PCE_10yr',
@@ -478,8 +459,6 @@ for model_name in legend_order:
             label = 'Aladynoulli 1yr (Enrollment)'
         elif model_name == 'Aladynoulli_1yr_median':
             label = 'Aladynoulli 1yr (Median)'
-        elif model_name == 'Delphi_1yr':
-            label = 'Delphi 1yr'
         elif model_name == 'GAIL_1yr':
             label = 'GAIL 1yr'
         elif model_name == 'Aladynoulli_10yr_best':
@@ -554,7 +533,6 @@ if dynamic_count > 0:
 print(f"  - Aladynoulli 1yr Baseline: {merged['Aladynoulli_1yr_baseline'].notna().sum()} diseases")
 print(f"  - Aladynoulli 1yr Median: {merged['Aladynoulli_1yr_median'].notna().sum()} diseases")
 print(f"  - Cox 10yr (Baseline): {merged['Cox_without_Aladynoulli'].notna().sum()} diseases")
-print(f"  - Delphi 1yr: {merged['Delphi_1yr'].notna().sum()} diseases")
 print(f"\nExternal scores:")
 print(f"  - PCE 10yr (ASCVD): {merged['PCE_10yr'].notna().sum()} disease")
 print(f"  - PREVENT 10yr (ASCVD): {merged['PREVENT_10yr'].notna().sum()} disease")
