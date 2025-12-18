@@ -440,7 +440,7 @@ if 'is_top10_sig5' in loci_df.columns:
 # SAVE FIGURE
 # ============================================================================
 
-output_dir = Path("/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/fig5")
+output_dir = Path("/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/paper_figs/fig4")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 plt.tight_layout(rect=[0, 0, 1, 0.97])
