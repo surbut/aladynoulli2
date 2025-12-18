@@ -9,7 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-import glob
 from scipy.special import expit as sigmoid
 
 # Set style
@@ -34,40 +33,26 @@ D = len(clusters)
 print(f"Number of signatures: {K}")
 print(f"Number of diseases: {D}")
 
-# Load phi from all batches
-batch_pattern = '/Users/sarahurbut/Library/CloudStorage/Dropbox/aou_batches/aou_model_batch_*_*_*.pt'
-batch_files = sorted(glob.glob(batch_pattern))
-print(f"\nFound {len(batch_files)} batch files")
+# Load pooled phi from master checkpoint
+master_checkpoint = '/Users/sarahurbut/aladynoulli2/aou_model_master_correctedE.pt'
+print(f"\nLoading pooled phi from {Path(master_checkpoint).name}...")
 
-all_phis = []
-for batch_file in batch_files:
-    print(f"  Loading {Path(batch_file).name}...")
-    ckpt = torch.load(batch_file, map_location='cpu', weights_only=False)
-    
-    if 'model_state_dict' in ckpt and 'phi' in ckpt['model_state_dict']:
-        phi = ckpt['model_state_dict']['phi']
-    elif 'phi' in ckpt:
-        phi = ckpt['phi']
-    else:
-        print(f"    Warning: No phi found in {Path(batch_file).name}")
-        continue
-    
-    if torch.is_tensor(phi):
-        phi = phi.detach().cpu().numpy()
-    
-    all_phis.append(phi)
+ckpt = torch.load(master_checkpoint, map_location='cpu', weights_only=False)
 
-if len(all_phis) == 0:
-    raise ValueError("No phi arrays loaded!")
+if 'model_state_dict' in ckpt and 'phi' in ckpt['model_state_dict']:
+    phi_mean = ckpt['model_state_dict']['phi']
+elif 'phi' in ckpt:
+    phi_mean = ckpt['phi']
+else:
+    raise ValueError(f"No phi found in {master_checkpoint}")
 
-# Stack and compute mean
-phi_stack = np.stack(all_phis, axis=0)  # (n_batches, K, D, T)
-phi_mean = np.mean(phi_stack, axis=0)  # (K, D, T)
-n_batches, K, D, T = phi_stack.shape
+if torch.is_tensor(phi_mean):
+    phi_mean = phi_mean.detach().cpu().numpy()
+
+K, D, T = phi_mean.shape
 ages = np.arange(30, 30 + T)
 
-print(f"\nStacked phi shape: {phi_stack.shape}")
-print(f"Number of batches: {n_batches}")
+print(f"Loaded phi shape: {phi_mean.shape} (K={K}, D={D}, T={T})")
 
 # Group diseases by signature
 sig_to_diseases = {}

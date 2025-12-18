@@ -480,7 +480,7 @@ def main():
     
     # Load AOU data
     print("\n2. Loading AOU data...")
-    aou_checkpoint = torch.load('/Users/sarahurbut/aladynoulli2/aou_model_initialized.pt', map_location='cpu')
+    aou_checkpoint = torch.load('/Users/sarahurbut/aladynoulli2/aou_model_master_correctedE.pt', map_location='cpu')
     phi_aou = aou_checkpoint['model_state_dict']['phi']
     if torch.is_tensor(phi_aou):
         phi_aou = phi_aou.detach().cpu().numpy()
@@ -493,7 +493,7 @@ def main():
     if disease_names_aou is None:
         # Try to load from old checkpoint
         try:
-            aou_old = torch.load('/Users/sarahurbut/Dropbox-Personal/model_with_kappa_bigam_aou_psi12.pt', map_location='cpu')
+            aou_old = torch.load('/Users/sarahurbut/Dropbox-Personal/model_with_kappa_bigam_AOU.pt', map_location='cpu')
             disease_names_aou = aou_old.get('disease_names', [f"Disease_{i}" for i in range(phi_aou.shape[1])])
         except:
             disease_names_aou = [f"Disease_{i}" for i in range(phi_aou.shape[1])]

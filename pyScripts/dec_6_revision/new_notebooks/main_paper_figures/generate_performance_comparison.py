@@ -158,7 +158,7 @@ print("\n" + "="*80)
 print("CREATING SUMMARY TABLE")
 print("="*80)
 
-# Select key diseases for main table
+# Select key diseases for plot prioritization
 key_diseases = ['ASCVD', 'Breast_Cancer', 'Prostate_Cancer', 'Colorectal_Cancer', 
                 'Heart_Failure', 'Diabetes', 'Atrial_Fib', 'CKD', 'Stroke',
                 'Parkinsons', 'Rheumatoid_Arthritis', 'Depression', 'All_Cancers']
@@ -166,9 +166,12 @@ key_diseases = ['ASCVD', 'Breast_Cancer', 'Prostate_Cancer', 'Colorectal_Cancer'
 # Filter to available diseases
 key_diseases = [d for d in key_diseases if d in merged['Disease'].values]
 
+# Use ALL diseases for summary table (not just key diseases)
+all_diseases_for_table = sorted(merged['Disease'].values.tolist())
+
 # Create summary table
 summary_data = []
-for disease in key_diseases:
+for disease in all_diseases_for_table:
     row = merged[merged['Disease'] == disease].iloc[0]
     
     # Format AUC with CI
@@ -496,7 +499,7 @@ print(f"\n✓ Saved publication figure to: {output_file}")
 summary_with_type = summary_df.copy()
 # Add a column showing which type was chosen for each disease
 type_info = []
-for disease in key_diseases:
+for disease in all_diseases_for_table:
     row = merged[merged['Disease'] == disease].iloc[0]
     tenyr_type = row.get('Aladynoulli_10yr_type', '')
     type_info.append(tenyr_type.capitalize() if tenyr_type else 'N/A')
@@ -516,7 +519,7 @@ print("\n" + "="*80)
 print("FINAL SUMMARY")
 print("="*80)
 print(f"Total diseases in comparison: {len(merged)}")
-print(f"Key diseases in summary table: {len(key_diseases)}")
+print(f"Diseases in summary table: {len(all_diseases_for_table)}")
 print(f"\nModels compared:")
 print(f"  - Aladynoulli 10yr Best: {merged['Aladynoulli_10yr_best'].notna().sum()} diseases")
 # Print breakdown of static vs dynamic

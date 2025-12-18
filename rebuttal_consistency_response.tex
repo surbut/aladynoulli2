@@ -1,0 +1,17 @@
+% Response to Referee \#1, Question 8 (and Referee \#2 interpretability concerns)
+
+We acknowledge the reviewer's concern that modeling correlated phenotypes jointly can reduce specificity and potentially compromise interpretability. However, our analyses demonstrate that the disease-to-signature assignments in \aladyn{} are highly robust and interpretable.
+
+To assess the stability and interpretability of signature assignments, we evaluated consistency across independent data subsets. We split the UK Biobank data into 40 independent batches (each containing 10,000 individuals), fit the model separately to each batch, and examined whether each disease's top signature (the signature with the highest PSI value for that disease) remained consistent across batches. 
+
+\textbf{Results:} For all 348 diseases, the top signature assignment was identical across all 40 batches (100\% consistency). This finding demonstrates that disease-to-signature assignments are stable and reproducible across independent data subsets, rather than being unstable amalgamations that vary with data sampling.
+
+This high consistency across 40 independent batches provides several important insights:
+\begin{itemize}
+    \item \textbf{Interpretability:} The stable assignment of diseases to signatures across 40 independent data subsets indicates that the signatures capture reproducible, interpretable disease relationships rather than arbitrary data-driven patterns.
+    \item \textbf{Robustness:} The consistency across 40 batches demonstrates that signature structure is not dependent on specific subsets of individuals, supporting the generalizability of our findings.
+    \item \textbf{Biological coherence:} The fact that each disease consistently associates most strongly with the same signature across all 40 batches suggests that signatures reflect coherent biological processes, which enhances their interpretability despite being composites of multiple diseases.
+\end{itemize}
+
+While we acknowledge that signature-based associations may be less specific than individual disease associations, the stability demonstrated here indicates that the loss of specificity comes with a gain in robustness and interpretability. The signatures represent stable, reproducible patterns of disease co-occurrence that can be consistently identified across independent data subsets, making them suitable for both discovery (as evidenced by the novel genetic associations reported) and clinical application (as evidenced by the predictive performance improvements).
+

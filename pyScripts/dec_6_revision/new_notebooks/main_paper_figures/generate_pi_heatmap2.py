@@ -31,6 +31,31 @@ plt.rcParams['figure.titlesize'] = 16
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans', 'Helvetica', 'Liberation Sans']
 
+# Signature labels for grouping
+SIGNATURE_LABELS = {
+    0: 'Cardiac Arrhythmias',
+    1: 'Musculoskeletal',
+    2: 'Upper GI/Esophageal',
+    3: 'Mixed/General Medical',
+    4: 'Upper Respiratory',
+    5: 'Ischemic cardiovascular',
+    6: 'Metastatic Cancer',
+    7: 'Pain/Inflammation',
+    8: 'Gynecologic',
+    9: 'Spinal Disorders',
+    10: 'Ophthalmologic',
+    11: 'Cerebrovascular',
+    12: 'Renal/Urologic',
+    13: 'Male Urogenital',
+    14: 'Pulmonary/Smoking',
+    15: 'Metabolic/Diabetes',
+    16: 'Infectious/Critical Care',
+    17: 'Lower GI/Colon',
+    18: 'Hepatobiliary',
+    19: 'Dermatologic/Oncologic',
+    20: 'Health'
+}
+
 
 def plot_pi_heatmap(pi_avg, psi, clusters, disease_names, age_offset=30,
                    output_path=None, figsize=(14, 16)):
@@ -111,13 +136,10 @@ def plot_pi_heatmap(pi_avg, psi, clusters, disease_names, age_offset=30,
     ax.set_xticklabels([f'{age_points[i]:.0f}' for i in age_tick_indices], 
                       fontsize=11, fontweight='bold')
     
-    # Set y-axis ticks (show disease indices only for readability)
+    # Set y-axis ticks (no disease labels - keep blank for cleaner look)
     n_diseases_show = len(disease_order)
-    y_tick_interval = max(1, n_diseases_show // 20)  # Show ~20 labels
-    y_tick_indices = np.arange(0, n_diseases_show, y_tick_interval)
-    # Just show disease indices (not names) for readability
-    ax.set_yticks(y_tick_indices)
-    ax.set_yticklabels([f'{disease_order[i]}' for i in y_tick_indices], fontsize=10)
+    ax.set_yticks([])
+    ax.set_yticklabels([])
     
     # Add colorbar
     cbar = fig.colorbar(im, ax=ax, label='Average probability', pad=0.02, shrink=0.8)
@@ -125,20 +147,72 @@ def plot_pi_heatmap(pi_avg, psi, clusters, disease_names, age_offset=30,
     cbar.set_label('Average probability', fontsize=14, fontweight='bold')
     
     # Add horizontal lines to separate signature groups
+    # Also add signature labels as brackets on the right side
     # Draw these AFTER the heatmap so they appear on top
     # Use dark lines for better contrast on red heatmap
     current_y = 0
+    sig_y_positions = {}  # Store y positions for each signature group
+    
     for sig in sorted(sig_to_diseases.keys()):
         n_diseases_in_sig = len(sig_to_diseases[sig])
         if current_y > 0:
             # Draw dark separator line between signature groups
             # Use zorder to ensure it appears on top of the heatmap
             ax.axhline(current_y - 0.5, color='black', linewidth=2.0, alpha=0.8, zorder=10)
+        
+        # Store the middle y position for this signature group
+        sig_y_positions[sig] = current_y + n_diseases_in_sig / 2 - 0.5
         current_y += n_diseases_in_sig
     
     # Also add a line at the very bottom (after all diseases)
     if current_y > 0:
         ax.axhline(current_y - 0.5, color='black', linewidth=2.0, alpha=0.8, zorder=10)
+    
+    # Add signature labels on the right side with brackets
+    ax2 = ax.twinx()  # Create a second y-axis for labels
+    ax2.set_ylim(ax.get_ylim())
+    ax2.set_yticks([])
+    ax2.set_yticklabels([])
+    
+    # Get x position for labels (just to the right of the heatmap)
+    x_label_pos = T + 0.5
+    
+    # Add brackets and labels for each signature group
+    for sig in sorted(sig_to_diseases.keys()):
+        n_diseases_in_sig = len(sig_to_diseases[sig])
+        sig_start_y = sum(len(sig_to_diseases[s]) for s in sorted(sig_to_diseases.keys()) if s < sig) - 0.5
+        sig_end_y = sig_start_y + n_diseases_in_sig
+        
+        # Get label text
+        label_text = SIGNATURE_LABELS.get(sig, f'Signature {sig}')
+        
+        # Draw bracket (curly brace)
+        y_mid = (sig_start_y + sig_end_y) / 2
+        
+        # Draw bracket using lines
+        bracket_width = 0.3
+        bracket_x_start = x_label_pos - bracket_width
+        bracket_x_end = x_label_pos
+        
+        # Top of bracket
+        ax2.plot([bracket_x_start, bracket_x_end], [sig_start_y, sig_start_y], 
+                 'k-', linewidth=1.5, clip_on=False)
+        # Bottom of bracket
+        ax2.plot([bracket_x_start, bracket_x_end], [sig_end_y, sig_end_y], 
+                 'k-', linewidth=1.5, clip_on=False)
+        # Vertical line
+        ax2.plot([bracket_x_start, bracket_x_start], [sig_start_y, sig_end_y], 
+                 'k-', linewidth=1.5, clip_on=False)
+        
+        # Add label text
+        ax2.text(x_label_pos + 0.1, y_mid, label_text, 
+                 fontsize=9, va='center', ha='left', 
+                 rotation=0, fontweight='bold',
+                 clip_on=False)
+    
+    # Adjust x-axis limits to accommodate labels
+    ax.set_xlim(-0.5, x_label_pos + 3)
+    ax2.set_xlim(-0.5, x_label_pos + 3)
     
     plt.tight_layout()
     

@@ -14,7 +14,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyBboxPatch
 import seaborn as sns
 from pathlib import Path
 
@@ -31,6 +31,31 @@ plt.rcParams['legend.fontsize'] = 9
 plt.rcParams['figure.titlesize'] = 16
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans', 'Helvetica', 'Liberation Sans']
+
+# Signature labels for grouping
+SIGNATURE_LABELS = {
+    0: 'Cardiac Arrhythmias',
+    1: 'Musculoskeletal',
+    2: 'Upper GI/Esophageal',
+    3: 'Mixed/General Medical',
+    4: 'Upper Respiratory',
+    5: 'Ischemic cardiovascular',
+    6: 'Metastatic Cancer',
+    7: 'Pain/Inflammation',
+    8: 'Gynecologic',
+    9: 'Spinal Disorders',
+    10: 'Ophthalmologic',
+    11: 'Cerebrovascular',
+    12: 'Renal/Urologic',
+    13: 'Male Urogenital',
+    14: 'Pulmonary/Smoking',
+    15: 'Metabolic/Diabetes',
+    16: 'Infectious/Critical Care',
+    17: 'Lower GI/Colon',
+    18: 'Hepatobiliary',
+    19: 'Dermatologic/Oncologic',
+    20: 'Health'
+}
 
 
 def plot_psi_heatmap_with_arrows(psi, clusters, disease_names, 
@@ -90,8 +115,8 @@ def plot_psi_heatmap_with_arrows(psi, clusters, disease_names,
     disease_names_ordered = [disease_names[i] if i < len(disease_names) else f"Disease_{i}" 
                             for i in disease_order]
     
-    # Create figure
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    # Create figure (increased height to accommodate all disease names)
+    fig, ax = plt.subplots(1, 1, figsize=(figsize[0], max(figsize[1], 24)))
     
     # Create heatmap
     im = ax.imshow(psi_ordered, aspect='auto', cmap='RdBu_r', 
@@ -99,21 +124,19 @@ def plot_psi_heatmap_with_arrows(psi, clusters, disease_names,
     
     # Set labels
     ax.set_xlabel('Signatures', fontsize=16, fontweight='bold')
-    ax.set_ylabel('Diseases (ordered by signature)', fontsize=16, fontweight='bold')
+    ax.set_ylabel('Disease index (psi kd)', fontsize=16, fontweight='bold')
     ax.set_title('Panel B: Disease-Signature Associations (Log Odds Ratio)', 
                  fontsize=18, fontweight='bold', pad=25)
     
     # Set x-axis ticks (signatures 0-K)
     ax.set_xticks(np.arange(K))
-    ax.set_xticklabels([f'Sig {i}' for i in range(K)], fontsize=11, fontweight='bold')
+    ax.set_xticklabels([f'{i}' for i in range(K)], fontsize=11, fontweight='bold')
     
-    # Set y-axis ticks (show fewer labels for readability)
+    # Set y-axis ticks (show all disease names - will be hard to read but comprehensive)
     n_diseases = len(disease_order)
-    y_tick_interval = max(1, n_diseases // 30)  # Show ~30 labels
-    y_ticks = np.arange(0, n_diseases, y_tick_interval)
-    ax.set_yticks(y_ticks)
-    ax.set_yticklabels([f'{disease_order[i]}' for i in range(0, n_diseases, y_tick_interval)], 
-                      fontsize=8)
+    ax.set_yticks(np.arange(n_diseases))
+    ax.set_yticklabels([disease_names_ordered[i] for i in range(n_diseases)], 
+                      fontsize=6)  # Small font size to fit all names
     
     # Add colorbar
     cbar = fig.colorbar(im, ax=ax, label='Log odds ratio (psi)', pad=0.02, shrink=0.8)
@@ -124,57 +147,65 @@ def plot_psi_heatmap_with_arrows(psi, clusters, disease_names,
     for k in range(K + 1):
         ax.axvline(k - 0.5, color='white', linewidth=1.5, alpha=0.8)
     
-    # Add horizontal lines to separate signature groups
+    # Add horizontal lines to separate signature groups (diseases grouped by signature)
+    # Also add signature labels as brackets on the right side
     current_y = 0
+    sig_y_positions = {}  # Store y positions for each signature group
+
     for sig in sorted(sig_to_diseases.keys()):
         n_diseases_in_sig = len(sig_to_diseases[sig])
         if current_y > 0:
             ax.axhline(current_y - 0.5, color='white', linewidth=1.5, alpha=0.8)
+        
+        # Store the middle y position for this signature group
+        sig_y_positions[sig] = current_y + n_diseases_in_sig / 2 - 0.5
         current_y += n_diseases_in_sig
-    
-    # Add arrows and labels for top diseases in each signature
-    # We'll add arrows pointing from the disease name (on the left) to its signature column
-    current_y = 0
+
+    # Add signature labels on the right side with brackets
+    ax2 = ax.twinx()  # Create a second y-axis for labels
+    ax2.set_ylim(ax.get_ylim())
+    ax2.set_yticks([])
+    ax2.set_yticklabels([])
+
+    # Get x position for labels (just to the right of the heatmap)
+    x_label_pos = K + 0.5
+
+    # Add brackets and labels for each signature group
     for sig in sorted(sig_to_diseases.keys()):
-        diseases_in_sig = sig_to_diseases[sig]
-        # Get top diseases by psi value in this signature
-        psi_values = [(psi[sig, d], d) for d in diseases_in_sig]
-        psi_values.sort(reverse=True)  # Sort descending
+        n_diseases_in_sig = len(sig_to_diseases[sig])
+        sig_start_y = sum(len(sig_to_diseases[s]) for s in sorted(sig_to_diseases.keys()) if s < sig) - 0.5
+        sig_end_y = sig_start_y + n_diseases_in_sig
         
-        # Label top N diseases
-        top_diseases = psi_values[:show_top_diseases_per_sig]
+        # Get label text
+        label_text = SIGNATURE_LABELS.get(sig, f'Signature {sig}')
         
-        for rank, (psi_val, d_idx) in enumerate(top_diseases):
-            # Find position in ordered list
-            y_pos = disease_order.index(d_idx)
-            x_start = -0.5  # Start from left edge
-            x_end = sig + 0.5  # Point to signature column
-            
-            # Get disease name (truncate if too long)
-            disease_name = disease_names[d_idx] if d_idx < len(disease_names) else f"Disease_{d_idx}"
-            if len(disease_name) > 40:
-                disease_name = disease_name[:37] + "..."
-            
-            # Create arrow
-            arrow = FancyArrowPatch(
-                (x_start, y_pos), (x_end, y_pos),
-                arrowstyle='->', mutation_scale=15, 
-                linewidth=1.5, color='black', alpha=0.6,
-                zorder=10
-            )
-            ax.add_patch(arrow)
-            
-            # Add text label on the left
-            ax.text(x_start - 0.3, y_pos, disease_name, 
-                   fontsize=8, ha='right', va='center',
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
-                            edgecolor='gray', alpha=0.8),
-                   zorder=11)
+        # Draw bracket (curly brace)
+        y_mid = (sig_start_y + sig_end_y) / 2
         
-        current_y += len(diseases_in_sig)
-    
+        # Draw bracket using lines
+        bracket_width = 0.3
+        bracket_x_start = x_label_pos - bracket_width
+        bracket_x_end = x_label_pos
+        
+        # Top of bracket
+        ax2.plot([bracket_x_start, bracket_x_end], [sig_start_y, sig_start_y], 
+                 'k-', linewidth=1.5, clip_on=False)
+        # Bottom of bracket
+        ax2.plot([bracket_x_start, bracket_x_end], [sig_end_y, sig_end_y], 
+                 'k-', linewidth=1.5, clip_on=False)
+        # Vertical line
+        ax2.plot([bracket_x_start, bracket_x_start], [sig_start_y, sig_end_y], 
+                 'k-', linewidth=1.5, clip_on=False)
+        
+        # Add label text
+        ax2.text(x_label_pos + 0.1, y_mid, label_text, 
+                 fontsize=9, va='center', ha='left', 
+                 rotation=0, fontweight='bold',
+                 clip_on=False)
+
     # Adjust x-axis limits to accommodate labels
-    ax.set_xlim(-5, K)
+    ax.set_xlim(-0.5, x_label_pos + 3)
+    ax2.set_xlim(-0.5, x_label_pos + 3)
     
     plt.tight_layout()
     
