@@ -160,7 +160,7 @@ def plot_psi_heatmap_with_arrows(psi, clusters, disease_names,
         # Store the middle y position for this signature group
         sig_y_positions[sig] = current_y + n_diseases_in_sig / 2 - 0.5
         current_y += n_diseases_in_sig
-
+    
     # Add signature labels on the right side with brackets
     ax2 = ax.twinx()  # Create a second y-axis for labels
     ax2.set_ylim(ax.get_ylim())
@@ -196,13 +196,13 @@ def plot_psi_heatmap_with_arrows(psi, clusters, disease_names,
         # Vertical line
         ax2.plot([bracket_x_start, bracket_x_start], [sig_start_y, sig_end_y], 
                  'k-', linewidth=1.5, clip_on=False)
-        
+            
         # Add label text
         ax2.text(x_label_pos + 0.1, y_mid, label_text, 
                  fontsize=9, va='center', ha='left', 
                  rotation=0, fontweight='bold',
                  clip_on=False)
-
+    
     # Adjust x-axis limits to accommodate labels
     ax.set_xlim(-0.5, x_label_pos + 3)
     ax2.set_xlim(-0.5, x_label_pos + 3)
