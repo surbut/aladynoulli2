@@ -7733,7 +7733,40 @@ Generated data shapes:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span>
+<div class="highlight hl-python"><pre><span></span><span class="c1"># Initialize model with true clusters</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">70</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"FITTING MODEL"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">70</span><span class="p">)</span>
+
+<span class="c1"># Compute prevalence for initialization</span>
+<span class="n">prevalence_t</span> <span class="o">=</span> <span class="n">compute_smoothed_prevalence</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">'Y'</span><span class="p">])</span>
+
+<span class="c1"># Initialize model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest</span><span class="p">(</span>
+    <span class="n">N</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'Y'</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">D</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'Y'</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">T</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'Y'</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+    <span class="n">K</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'K'</span><span class="p">],</span>
+    <span class="n">P</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'G'</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">init_sd_scaler</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span>
+    <span class="n">G</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'G'</span><span class="p">],</span>
+    <span class="n">Y</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'Y'</span><span class="p">],</span>
+    <span class="n">genetic_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">W</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
+    <span class="n">R</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">prevalence_t</span><span class="o">=</span><span class="n">prevalence_t</span><span class="p">,</span>
+    <span class="n">signature_references</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">healthy_reference</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">disease_names</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">)</span>
+
+<span class="c1"># Initialize with true clusters and psi</span>
+<span class="n">model</span><span class="o">.</span><span class="n">clusters</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">'clusters'</span><span class="p">]</span>
+<span class="n">model</span><span class="o">.</span><span class="n">initialize_params</span><span class="p">(</span><span class="n">true_psi</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'psi'</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Model initialized:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Clusters: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">clusters</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  K=</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">K</span><span class="si">}</span><span class="s2">, D=</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">D</span><span class="si">}</span><span class="s2">, T=</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">T</span><span class="si">}</span><span class="s2">, P=</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">P</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7875,7 +7908,20 @@ Model initialized successfully!
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span>
+<div class="highlight hl-python"><pre><span></span><span class="c1"># Train the model</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"="</span><span class="o">*</span><span class="mi">70</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"TRAINING MODEL"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"="</span><span class="o">*</span><span class="mi">70</span><span class="p">)</span>
+
+<span class="c1"># Fit model</span>
+<span class="n">history</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">event_times</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'event_times'</span><span class="p">],</span>
+    <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+    <span class="n">lambda_reg</span><span class="o">=</span><span class="mf">1e-2</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Training complete!"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
