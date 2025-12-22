@@ -86,3 +86,5 @@ def compare_gamma_loop_vs_vectorized():
 if __name__ == "__main__":
     compare_gamma_loop_vs_vectorized()
 
+
+

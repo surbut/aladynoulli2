@@ -177,8 +177,8 @@ def plot_single_signature_multi_cohort(phi_ukb, clusters_ukb, disease_names_ukb,
             cohort_sig_data = plot_values[k, sig_disease_indices, :]
             all_sig_data.append(cohort_sig_data)
             
-            # Collect prevalence data if available
-            if prevalence is not None:
+            # Collect prevalence data if available (only when plotting in probability space)
+            if plot_probability and prevalence is not None:
                 if isinstance(prevalence, torch.Tensor):
                     prev_data = prevalence[sig_disease_indices, :].detach().cpu().numpy()
                 else:
@@ -271,8 +271,8 @@ def plot_single_signature_multi_cohort(phi_ukb, clusters_ukb, disease_names_ukb,
                 ax.plot(age_points, plot_values[k, d, :], 
                        color=color, linewidth=3.0, label=disease_name, zorder=3, alpha=0.9)
                 
-                # Overlay smoothed prevalence if available
-                if prevalence is not None and d < prevalence.shape[0]:
+                # Overlay smoothed prevalence if available (only when plotting in probability space)
+                if plot_probability and prevalence is not None and d < prevalence.shape[0]:
                     if isinstance(prevalence, torch.Tensor):
                         prev_values = prevalence[d, :].detach().cpu().numpy()
                     else:
@@ -299,8 +299,8 @@ def plot_single_signature_multi_cohort(phi_ukb, clusters_ukb, disease_names_ukb,
             y_min = max(0, np.min(sig_data) * 0.95) if plot_probability else np.min(sig_data) * 1.05
             y_max = np.max(sig_data) * 1.05
             
-            # Also consider prevalence if available
-            if prevalence is not None:
+            # Also consider prevalence if available (only when plotting in probability space)
+            if plot_probability and prevalence is not None:
                 if isinstance(prevalence, torch.Tensor):
                     prev_data = prevalence[sig_disease_indices, :].detach().cpu().numpy()
                 else:
@@ -407,8 +407,8 @@ def plot_single_signature(phi_np, clusters_np, disease_names, signature_idx,
             ax.plot(age_points, plot_values[k, d, :], 
                    color=color, linewidth=2.5, label=disease_name, zorder=3, alpha=0.9)
             
-            # Overlay smoothed prevalence if available
-            if prevalence_t_np is not None and d < prevalence_t_np.shape[0]:
+            # Overlay smoothed prevalence if available (only when plotting in probability space)
+            if plot_probability and prevalence_t_np is not None and d < prevalence_t_np.shape[0]:
                 if isinstance(prevalence_t_np, torch.Tensor):
                     prev_values = prevalence_t_np[d, :].detach().cpu().numpy()
                 else:
@@ -430,8 +430,8 @@ def plot_single_signature(phi_np, clusters_np, disease_names, signature_idx,
         y_min = max(0, np.min(sig_data) * 0.95) if plot_probability else np.min(sig_data) * 1.05
         y_max = np.max(sig_data) * 1.05
         
-        # Also consider prevalence if available
-        if prevalence_t_np is not None:
+        # Also consider prevalence if available (only when plotting in probability space)
+        if plot_probability and prevalence_t_np is not None:
             if isinstance(prevalence_t_np, torch.Tensor):
                 prev_data = prevalence_t_np[sig_disease_indices, :].detach().cpu().numpy()
             else:

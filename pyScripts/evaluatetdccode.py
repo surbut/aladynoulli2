@@ -1564,15 +1564,15 @@ def evaluate_major_diseases_rolling_1year_roc_curves_highres(
                 # INCIDENT DISEASE FILTER: Only for single-disease outcomes
                 # This matches the logic in evaluate_major_diseases_rolling_1year_roc_curves
                 if len(disease_indices) == 1:
-                    prevalent = False
-                    for d_idx in disease_indices:
-                        if d_idx >= Y_100k.shape[1]:
-                            continue
-                        if torch.any(Y_100k[i, d_idx, :t_start] > 0):
-                            prevalent = True
-                            break
-                    if prevalent:
+                prevalent = False
+                for d_idx in disease_indices:
+                    if d_idx >= Y_100k.shape[1]:
                         continue
+                    if torch.any(Y_100k[i, d_idx, :t_start] > 0):
+                        prevalent = True
+                        break
+                if prevalent:
+                    continue
                 # Prediction for this year (1-year risk)
                 pi_diseases = pi_batches[k][i, disease_indices, t_start]
                 yearly_risk = 1 - torch.prod(1 - pi_diseases)

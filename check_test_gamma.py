@@ -69,3 +69,5 @@ elif ratio_mean > 0.9:
 else:
     print(f"⚠ Penalty has moderate effect - gamma shrunk by {1/ratio_mean:.2f}x")
 
+
+

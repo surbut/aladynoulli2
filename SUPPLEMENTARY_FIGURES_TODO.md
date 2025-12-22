@@ -12,14 +12,14 @@
 
 ### Existing Figures to Update/Regenerate
 
-#### ⬜ S1: Robustness of φ estimation across subsets
+#### ✅ S1: Robustness of φ estimation across subsets
 - **Status**: Needs remake
 - **Method**: Borrow phi values from `censor_e_batchrun_vectorized`
 - **Output**: `alffigures/S1.pdf`
 - **Description**: Show φ trajectory stability across subsets with standard errors
 - **Code Location**: Main paper figures directory
 
-#### ⬜ S2: Simulation study
+#### ✅ S2: Simulation study
 - **Status**: Needs regeneration
 - **Method**: Use `enhanced_simulation_showcase_v2` notebook
 - **Output**: `alffigures/S2.pdf`

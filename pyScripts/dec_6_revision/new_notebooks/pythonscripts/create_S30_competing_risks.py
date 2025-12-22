@@ -135,18 +135,10 @@ def create_S30_figure(
         {
             'patient_idx': 769,
             'first_disease': 'Myocardial infarction',
-            'second_disease': 'Colon Cancer',
+            'second_disease': 'Hemorrhage of rectum and anus',
             'first_search': ['myocardial infarction'],
             'second_search': ['colon cancer', 'rectum', 'rectosigmoid', 'anus', 'hemorrhage'],
             'second_preferred': ['colon cancer', 'rectum', 'rectosigmoid', 'anus', 'hemorrhage']
-        },
-        {
-            'patient_idx': 801,
-            'first_disease': 'Breast cancer',
-            'second_disease': 'Angina pectoris',
-            'first_search': ['breast', 'female'],
-            'second_search': ['angina', 'pectoris'],
-            'second_preferred': ['angina', 'pectoris']
         }
     ]
     
@@ -207,14 +199,13 @@ def create_S30_figure(
     print("="*80)
     
     # Create figure with 6 panels (3 patients × 2 panels each)
-    fig = plt.figure(figsize=(16, 18))
+    fig = plt.figure(figsize=(16, 12))
     
-    # Define panel layout: 3 rows × 2 columns
+    # Define panel layout: 2 rows × 2 columns
     # Row 1: Patient 23941 (absolute risk, risk ratio)
     # Row 2: Patient 769 (absolute risk, risk ratio)
-    # Row 3: Patient 801 (absolute risk, risk ratio)
     
-    gs = fig.add_gridspec(3, 2, hspace=0.35, wspace=0.3, left=0.08, right=0.95, top=0.98, bottom=0.05)
+    gs = fig.add_gridspec(2, 2, hspace=0.35, wspace=0.3, left=0.08, right=0.95, top=0.98, bottom=0.05)
     
     ages = np.arange(30, 82)  # Ages 30-81 (52 timepoints)
     

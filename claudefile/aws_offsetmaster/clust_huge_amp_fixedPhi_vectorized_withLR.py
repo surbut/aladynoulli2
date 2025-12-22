@@ -290,7 +290,7 @@ class AladynSurvivalFixedPhi(nn.Module):
         # Return combined loss with appropriate scaling
         return gp_loss_lambda / self.N + self.phi_gp_loss 
     
-    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.1):
+    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
         """Modified fit method that only updates lambda and gamma"""
         
         optimizer = optim.Adam([
