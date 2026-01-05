@@ -12,3 +12,8 @@ The Aladynoulli framework has been adapted to create digital twins—computation
 
 We demonstrated the utility of the digital twin approach by evaluating statin effects on cardiovascular outcomes, comparing results from digital twin matching to traditional propensity-score matching methods. In this analysis, we matched statin-treated patients to untreated controls using time-varying signature trajectories from the 10 years prior to treatment initiation, creating matched pairs based on similar disease signature evolution patterns rather than static point-in-time covariates. The digital twin matching approach achieved superior confounding control compared to traditional methods: while naive (unadjusted) analysis showed a hazard ratio (HR) of 1.70, clinical matching alone reduced this to 1.55, and static signature matching achieved HR=1.38. However, time-varying signature matching—which accounts for temporal evolution patterns in disease signatures—achieved HR=1.02, representing a 90% reduction in confounding compared to static matching (35% reduction). The best-performing model, incorporating full temporal signature trajectories, propensity scores, PCE risk scores, and medication history, achieved HR=0.95, closely approaching the RCT benchmark of HR=0.75 for statin efficacy. This demonstrates that digital twin matching using disease signature trajectories provides superior confounding control in observational studies compared to traditional propensity-score matching, while maintaining clinical interpretability through the biological meaning of disease signatures.
 
+
+
+
+
+

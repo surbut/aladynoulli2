@@ -45,42 +45,60 @@ loci_df['SIG_NUM'] = loci_df['SIG'].str.replace('SIG', '').astype(int)
 print(f"Loaded {len(loci_df)} lead variants across {loci_df['SIG_NUM'].nunique()} signatures")
 
 # ============================================================================
-# DEFINE THE 10 UNIQUE SIGNATURE 5 LOCI (to be highlighted in green)
+# DEFINE THE 23 UNIQUE SIGNATURE 5 LOCI (exact matching - to be highlighted in green)
 # ============================================================================
-THE_10_UNIQUE_SIG5_LOCI = {
+# Dictionary mapping rsID/position to gene name for known variants
+# For variants without known rsID, we'll match by gene name
+THE_23_UNIQUE_SIG5_LOCI = {
+    # Original 10 from 1MB window analysis (with known rsIDs)
     'rs6687726': 'IL6R',
     'rs2509121': 'HYOU1',
     'rs4760278': 'R3HDM2',
-    'rs1532085': 'LIPC',  # Hepatic lipase (not ALDH1A2)
+    'rs1532085': 'LIPC',
     'rs7168222': 'NR2F2-AS1',
     'rs35039495': 'PLCG2',
     'rs8121509': 'OPRL1',
     'rs1499813': 'FNDC3B',
     '4:96088139': 'UNC5C',
-    'rs4732365': 'C7orf55'
+    'rs4732365': 'C7orf55',
+    # Additional 13 from exact matching (will be matched by gene name)
+    # These will be found by gene name matching below
 }
 
+# List of all 23 unique genes (for gene name matching)
+# Based on exact matching analysis - includes both original_nearestgene and ensembl_gene_symbol
+THE_23_UNIQUE_SIG5_GENES = [
+    'PDGFD', 'ZNF259', 'ZPR1', 'CFDP1', 'SCARB1', 'FNDC3B', 'C1S', 'RAB23',
+    'SMAD3', 'ARMS2', 'HYOU1', 'EHBP1', 'C7orf55', 'HLA-DOB', 'WWP2', 'OPRL1',
+    'LKAAEAR1', 'ZC3HC1', 'IL6R', 'PLCG2', 'NR2F2-AS1', 'R3HDM2', 'UNC5C', 'ALDH1A2',
+    # Also include non-coding RNAs that might be in the data
+    'RP11-20J15.3', 'RP11-306G20.1'
+]
+
 # Mark these in the dataframe
-loci_df['is_top10_sig5'] = False
+loci_df['is_unique_sig5'] = False
 if 'rsid' in loci_df.columns:
-    for rsid, gene in THE_10_UNIQUE_SIG5_LOCI.items():
+    # First, match by rsID/position for known variants
+    for rsid, gene in THE_23_UNIQUE_SIG5_LOCI.items():
         mask = loci_df['rsid'].str.contains(rsid, case=False, na=False)
-        loci_df.loc[mask, 'is_top10_sig5'] = True
+        loci_df.loc[mask, 'is_unique_sig5'] = True
         if not mask.any() and ':' in rsid:
             chr_pos = rsid.split(':')
             if len(chr_pos) == 2:
                 mask_pos = (loci_df['#CHR'] == int(chr_pos[0])) & (loci_df['POS'] == int(chr_pos[1]))
-                loci_df.loc[mask_pos, 'is_top10_sig5'] = True
+                loci_df.loc[mask_pos, 'is_unique_sig5'] = True
 
-# Replace ALDH1A2 with LIPC if found
+# Match by gene name for all 23 unique genes (including those without known rsIDs)
 if 'nearestgene' in loci_df.columns:
+    # Handle ALDH1A2 -> LIPC mapping if needed
     loci_df['nearestgene'] = loci_df['nearestgene'].replace('ALDH1A2', 'LIPC')
     
-    for rsid, gene in THE_10_UNIQUE_SIG5_LOCI.items():
+    # Match all unique genes by name
+    for gene in THE_23_UNIQUE_SIG5_GENES:
         gene_mask = (loci_df['SIG_NUM'] == 5) & (loci_df['nearestgene'].str.contains(gene, case=False, na=False))
-        loci_df.loc[gene_mask, 'is_top10_sig5'] = True
+        loci_df.loc[gene_mask, 'is_unique_sig5'] = True
 
-print(f"Marked {loci_df['is_top10_sig5'].sum()} variants as 'Top 10 Unique Sig 5' loci")
+print(f"Marked {loci_df['is_unique_sig5'].sum()} variants as '23 Unique Sig 5' loci (exact matching)")
 
 # ============================================================================
 # IDENTIFY NOVEL VS KNOWN LOCI (optional - for highlighting)
@@ -195,11 +213,11 @@ for sig_num in sorted(loci_df['SIG_NUM'].unique()):
     y_jitter = y_pos + np.random.normal(0, 0.1, len(sig_data))
     
     # Plot all variants (regular markers, no stars)
-    # Top 10 Unique Sig 5 in green, others in signature color
+    # 23 Unique Sig 5 in green, others in signature color
     if sig_num == 5:
-        # Separate top10 and others for Sig 5
-        top10_data = sig_data[sig_data['is_top10_sig5'] == True]
-        other_data = sig_data[sig_data['is_top10_sig5'] == False]
+        # Separate unique and others for Sig 5
+        unique_data = sig_data[sig_data['is_unique_sig5'] == True]
+        other_data = sig_data[sig_data['is_unique_sig5'] == False]
         
         if len(other_data) > 0:
             ax1.scatter(-other_data['LOG10P_clipped'], 
@@ -207,22 +225,22 @@ for sig_num in sorted(loci_df['SIG_NUM'].unique()):
                        alpha=0.6, s=60, color=sig_color_dict[sig_num],
                        edgecolors='black', linewidths=0.5, marker='o', zorder=2)
         
-        if len(top10_data) > 0:
+        if len(unique_data) > 0:
             # Sort by significance for consistent annotation
-            top10_data = top10_data.sort_values('LOG10P', ascending=False)
-            y_top10 = y_pos + np.random.normal(0, 0.1, len(top10_data))
-            ax1.scatter(-top10_data['LOG10P_clipped'], y_top10,
+            unique_data = unique_data.sort_values('LOG10P', ascending=False)
+            y_unique = y_pos + np.random.normal(0, 0.1, len(unique_data))
+            ax1.scatter(-unique_data['LOG10P_clipped'], y_unique,
                        alpha=0.9, s=100, color='#2ecc71',  # Green
                        edgecolors='darkgreen', linewidths=2, marker='o', zorder=3)
             
-            # Annotate Top 5 genes (most significant ones)
-            for idx in range(min(5, len(top10_data))):
-                row = top10_data.iloc[idx]
+            # Annotate Top 8 genes (most significant ones) - increased from 5 to show more
+            for idx in range(min(8, len(unique_data))):
+                row = unique_data.iloc[idx]
                 gene = row.get('nearestgene', 'N/A')
                 if pd.notna(gene) and gene != 'N/A':
                     ax1.annotate(gene, 
-                               xy=(-row['LOG10P_clipped'], y_top10[idx]),
-                               xytext=(-row['LOG10P_clipped'] - 2, y_top10[idx]),
+                               xy=(-row['LOG10P_clipped'], y_unique[idx]),
+                               xytext=(-row['LOG10P_clipped'] - 2, y_unique[idx]),
                                fontsize=9, alpha=0.9, fontweight='bold',
                                ha='right', va='center',
                                bbox=dict(boxstyle='round,pad=0.3', facecolor='lightgreen', alpha=0.8, edgecolor='darkgreen', linewidth=1.5),
@@ -318,10 +336,10 @@ legend_elements = [
     Line2D([0], [0], marker='s', color='w', markerfacecolor='gray', 
            markersize=8, label='RVAS (Rare Variants)', markeredgecolor='black'),
 ]
-if loci_df['is_top10_sig5'].sum() > 0:
+if loci_df['is_unique_sig5'].sum() > 0:
     legend_elements.append(
         Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ecc71', 
-               markersize=10, label='Top 10 Unique Sig 5', 
+               markersize=10, label='23 Unique Sig 5 (exact)', 
                markeredgecolor='darkgreen', markeredgewidth=2)
     )
 ax1.legend(handles=legend_elements, loc='upper right', fontsize=9, framealpha=0.9)
@@ -383,7 +401,7 @@ ax2.legend(loc='upper right', fontsize=9, framealpha=0.9)
 ax2.grid(True, alpha=0.3, axis='y')
 
 # ============================================================================
-# RIGHT PANEL: Signature Labels Legend + Top 10 Unique Sig 5 List
+# RIGHT PANEL: Signature Labels Legend + 23 Unique Sig 5 List
 # ============================================================================
 
 ax_legend = fig.add_subplot(gs[:, 1])  # Spans both rows
@@ -399,19 +417,19 @@ ax_legend.text(0.05, 0.95, legend_text, transform=ax_legend.transAxes,
               fontsize=9.5, verticalalignment='top', family='monospace',
               bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.3))
 
-# Add Top 10 Unique Sig 5 list
-if 'is_top10_sig5' in loci_df.columns:
-    top10_sig5 = loci_df[(loci_df['SIG_NUM'] == 5) & (loci_df['is_top10_sig5'] == True)].copy()
+# Add 23 Unique Sig 5 list
+if 'is_unique_sig5' in loci_df.columns:
+    unique_sig5 = loci_df[(loci_df['SIG_NUM'] == 5) & (loci_df['is_unique_sig5'] == True)].copy()
     
-    if len(top10_sig5) > 0:
-        top10_sig5 = top10_sig5.sort_values('LOG10P', ascending=False)
+    if len(unique_sig5) > 0:
+        unique_sig5 = unique_sig5.sort_values('LOG10P', ascending=False)
         
-        top10_list = []
-        for idx, row in top10_sig5.iterrows():
+        unique_list = []
+        for idx, row in unique_sig5.iterrows():
             gene = row.get('nearestgene', 'N/A')
             rsid = row.get('rsid', 'N/A')
             if pd.isna(gene) or gene == '' or gene == 'N/A':
-                for r, g in THE_10_UNIQUE_SIG5_LOCI.items():
+                for r, g in THE_23_UNIQUE_SIG5_LOCI.items():
                     if (pd.notna(rsid) and str(rsid) == str(r)) or \
                        (':' in r and pd.notna(row.get('#CHR')) and pd.notna(row.get('POS')) and 
                         str(row.get('#CHR', '')) + ':' + str(row.get('POS', '')) == r):
@@ -420,20 +438,54 @@ if 'is_top10_sig5' in loci_df.columns:
             
             gene_name = gene if pd.notna(gene) else 'N/A'
             rsid_str = str(rsid) if pd.notna(rsid) else 'N/A'
-            top10_list.append((gene_name, rsid_str))
+            unique_list.append((gene_name, rsid_str))
         
-        top10_text = "\n\n" + "─"*35 + "\n"
-        top10_text += "Top 10 Unique Sig 5 Loci\n"
-        top10_text += "─"*35 + "\n\n"
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_list_dedup = []
+        for gene, rsid in unique_list:
+            if gene not in seen:
+                seen.add(gene)
+                unique_list_dedup.append((gene, rsid))
         
-        for i, (gene, rsid) in enumerate(top10_list, 1):
-            top10_text += f"{i:2d}. {gene}\n"
-            if len(str(rsid)) > 20:
-                rsid = str(rsid)[:17] + "..."
-            top10_text += f"    {rsid}\n\n"
+        unique_text = "\n\n" + "─"*50 + "\n"
+        unique_text += "23 Unique Sig 5 Loci\n"
+        unique_text += "(exact matching)\n"
+        unique_text += "─"*50 + "\n\n"
         
-        ax_legend.text(0.05, 0.40, top10_text, transform=ax_legend.transAxes,
-                      fontsize=8.5, verticalalignment='top', family='monospace',
+        # Display in two columns - just gene names for compactness
+        n_items = len(unique_list_dedup)
+        n_per_col = (n_items + 1) // 2  # Split roughly in half
+        
+        # Create two columns
+        col1_items = unique_list_dedup[:n_per_col]
+        col2_items = unique_list_dedup[n_per_col:]
+        
+        # Format as two columns side by side
+        max_lines = max(len(col1_items), len(col2_items))
+        for i in range(max_lines):
+            line = ""
+            
+            # Left column
+            if i < len(col1_items):
+                gene, rsid = col1_items[i]
+                # Truncate long gene names
+                gene_display = gene[:15] if len(gene) > 15 else gene
+                line += f"{i+1:2d}. {gene_display:15s}"
+            else:
+                line += " " * 20  # Empty space for alignment
+            
+            # Right column
+            if i < len(col2_items):
+                gene, rsid = col2_items[i]
+                # Truncate long gene names
+                gene_display = gene[:15] if len(gene) > 15 else gene
+                line += f"  {i+n_per_col+1:2d}. {gene_display:15s}"
+            
+            unique_text += line + "\n"
+        
+        ax_legend.text(0.05, 0.35, unique_text, transform=ax_legend.transAxes,
+                      fontsize=8, verticalalignment='top', family='monospace',
                       bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.3))
 
 # ============================================================================
@@ -468,8 +520,8 @@ if best_results is not None and len(best_results) > 0:
     print(f"  Unique genes: {best_results['SYMBOL'].nunique()}")
     print(f"  Signatures with associations: {best_results['SIG'].nunique()}")
 
-if 'is_top10_sig5' in loci_df.columns:
-    top10_count = loci_df['is_top10_sig5'].sum()
-    print(f"\nTop 10 Unique Sig 5 Loci: {top10_count}")
+if 'is_unique_sig5' in loci_df.columns:
+    unique_count = loci_df['is_unique_sig5'].sum()
+    print(f"\n23 Unique Sig 5 Loci (exact matching): {unique_count}")
 
 print("="*80)

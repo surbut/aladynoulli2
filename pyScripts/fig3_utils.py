@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.lines import Line2D
 import torch
 import numpy as np
 import os
@@ -24,15 +25,28 @@ from typing import List, Dict, Optional, Any
 
 
 def get_signature_colors(K):
-    """Return a list of K distinct colors for signatures."""
-    import matplotlib.pyplot as plt
-    cmap = plt.get_cmap('tab20')
-    if K <= 20:
-        return [cmap(i) for i in range(K)]
+    """
+    Returns the specific BrewerPlus color palette for K signatures.
+    Uses a carefully curated set of distinct colors for better visualization.
+    """
+    # BrewerPlus colors - a curated palette of distinct colors
+    brewer_plus_colors = [
+        "#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", 
+        "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", 
+        "#FFFF99", "#B15928", "#1ff8ff", "#1B9E77", "#D95F02", 
+        "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", 
+        "#666666", "#4b6a53", "#b249d5", "#7edc45", "#5c47b8", 
+        "#cfd251", "#ff69b4", "#69c86c", "#cd3e50", "#83d5af", 
+        "#da6130", "#5e79b2", "#c29545", "#532a5a", "#5f7b35", 
+        "#c497cf", "#773a27", "#7cb9cb", "#594e50", "#d3c4a8", 
+        "#c17e7f", "lightgrey"
+    ]
+    
+    # If K is greater than available colors, cycle through them
+    if K > len(brewer_plus_colors):
+        return [brewer_plus_colors[i % len(brewer_plus_colors)] for i in range(K)]
     else:
-        # If more than 20, repeat or use another palette
-        import seaborn as sns
-        return sns.color_palette("hsv", K)
+        return brewer_plus_colors[:K]
 
 
 

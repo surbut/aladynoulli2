@@ -1,0 +1,552 @@
+Start time: Wed Dec 17 07:05:47 2025
+
+              |=============================|
+              |      REGENIE v3.2.5.gz      |
+              |=============================|
+
+Copyright (c) 2020-2022 Joelle Mbatchou, Andrey Ziyatdinov and Jonathan Marchini.
+Distributed under the MIT License.
+Compiled with Boost Iostream library.
+Using Intel MKL with Eigen.
+
+Log of output saved in file : result/06_step2/sig_weight_eur_step2.chr21_eur.log
+
+Options in effect:
+  --step 2 \
+  --bgen /broad/ukbb/imputed_v3/ukb_imp_chr21_v3.bgen \
+  --sample /medpop/esp2/pradeep/UKBiobank/v3data/ukb7089_imp_chr3_v3_s487395.sample \
+  --ref-first \
+  --extract ../data/step2/var.chr21_eur.list.snplist \
+  --keep ../data/sample_list_eur.txt \
+  --covarFile ../data/sig_weight_cov_file.tsv \
+  --phenoFile /medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/import/signature_auc_phenotypes_last.txt \
+  --bsize 200 \
+  --threads 4 \
+  --qt \
+  --catCovarList genotyping_array,Inferred_Gender \
+  --pred result/04_step1/sig_weight_eur_step1_pred.list \
+  --minINFO 0.7 \
+  --out result/06_step2/sig_weight_eur_step2.chr21_eur
+
+Association testing mode with fast multithreading using OpenMP
+ * bgen             : [/broad/ukbb/imputed_v3/ukb_imp_chr21_v3.bgen]
+   -summary : bgen file (v1.2 layout, zlib compressed) with 487409 anonymous samples and 1261158 variants with 8-bit encoding.
+   -index bgi file [/broad/ukbb/imputed_v3/ukb_imp_chr21_v3.bgen.bgi]
+   -keeping variants specified by --extract
+   -number of variants remaining in the analysis = 84994
+   -sample file: /medpop/esp2/pradeep/UKBiobank/v3data/ukb7089_imp_chr3_v3_s487395.sample
+   -keeping only individuals specified by --keep
+   -number of genotyped individuals remaining in the analysis = 361171
+ * phenotypes       : [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/import/signature_auc_phenotypes_last.txt] n_pheno = 21
+   -number of phenotyped individuals  = 361171
+ * covariates       : [../data/sig_weight_cov_file.tsv] n_cov = 13
+   -number of individuals with covariate data = 361171
+ * number of individuals used in analysis = 361171
+ * number of observations for each trait:
+   - 'SIG0_AUC': 361171 observations
+   - 'SIG1_AUC': 361171 observations
+   - 'SIG2_AUC': 361171 observations
+   - 'SIG3_AUC': 361171 observations
+   - 'SIG4_AUC': 361171 observations
+   - 'SIG5_AUC': 361171 observations
+   - 'SIG6_AUC': 361171 observations
+   - 'SIG7_AUC': 361171 observations
+   - 'SIG8_AUC': 361171 observations
+   - 'SIG9_AUC': 361171 observations
+   - 'SIG10_AUC': 361171 observations
+   - 'SIG11_AUC': 361171 observations
+   - 'SIG12_AUC': 361171 observations
+   - 'SIG13_AUC': 361171 observations
+   - 'SIG14_AUC': 361171 observations
+   - 'SIG15_AUC': 361171 observations
+   - 'SIG16_AUC': 361171 observations
+   - 'SIG17_AUC': 361171 observations
+   - 'SIG18_AUC': 361171 observations
+   - 'SIG19_AUC': 361171 observations
+   - 'SIG20_AUC': 361171 observations
+ * LOCO predictions : [result/04_step1/sig_weight_eur_step1_pred.list]
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_1.loco] for phenotype 'SIG0_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_2.loco] for phenotype 'SIG1_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_3.loco] for phenotype 'SIG2_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_4.loco] for phenotype 'SIG3_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_5.loco] for phenotype 'SIG4_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_6.loco] for phenotype 'SIG5_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_7.loco] for phenotype 'SIG6_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_8.loco] for phenotype 'SIG7_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_9.loco] for phenotype 'SIG8_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_10.loco] for phenotype 'SIG9_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_11.loco] for phenotype 'SIG10_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_12.loco] for phenotype 'SIG11_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_13.loco] for phenotype 'SIG12_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_14.loco] for phenotype 'SIG13_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_15.loco] for phenotype 'SIG14_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_16.loco] for phenotype 'SIG15_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_17.loco] for phenotype 'SIG16_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_18.loco] for phenotype 'SIG17_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_19.loco] for phenotype 'SIG18_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_20.loco] for phenotype 'SIG19_AUC'
+   -file [/medpop/esp2/tnakao/analyses/projects/collab/Sarah_signature_weights_GWAS/96_last_250319/result/04_step1/sig_weight_eur_step1_21.loco] for phenotype 'SIG20_AUC'
+   -residualizing and scaling phenotypes...done (84ms) 
+ * # threads        : [4]
+ * block size       : [200]
+ * # blocks         : [425]
+ * approximate memory usage : 2GB
+ * using minimum MAC of 5 (variants with lower MAC are ignored)
+ * using minimum imputation info score of 0.7 (variants with lower info score are ignored)
+
+Chromosome 21 [425 blocks in total]
+   -reading loco predictions for the chromosome...done (9469ms) 
+ block [1/425] : done (2487ms) 
+ block [2/425] : done (2232ms) 
+ block [3/425] : done (2285ms) 
+ block [4/425] : done (2292ms) 
+ block [5/425] : done (2048ms) 
+ block [6/425] : done (2127ms) 
+ block [7/425] : done (2098ms) 
+ block [8/425] : done (2043ms) 
+ block [9/425] : done (2025ms) 
+ block [10/425] : done (2033ms) 
+ block [11/425] : done (2000ms) 
+ block [12/425] : done (2037ms) 
+ block [13/425] : done (2019ms) 
+ block [14/425] : done (2066ms) 
+ block [15/425] : done (2026ms) 
+ block [16/425] : done (1997ms) 
+ block [17/425] : done (2057ms) 
+ block [18/425] : done (2031ms) 
+ block [19/425] : done (2037ms) 
+ block [20/425] : done (2075ms) 
+ block [21/425] : done (2085ms) 
+ block [22/425] : done (2097ms) 
+ block [23/425] : done (2021ms) 
+ block [24/425] : done (2016ms) 
+ block [25/425] : done (2058ms) 
+ block [26/425] : done (2082ms) 
+ block [27/425] : done (1997ms) 
+ block [28/425] : done (1965ms) 
+ block [29/425] : done (2028ms) 
+ block [30/425] : done (2054ms) 
+ block [31/425] : done (2064ms) 
+ block [32/425] : done (2047ms) 
+ block [33/425] : done (2101ms) 
+ block [34/425] : done (2063ms) 
+ block [35/425] : done (2089ms) 
+ block [36/425] : done (2090ms) 
+ block [37/425] : done (2075ms) 
+ block [38/425] : done (2098ms) 
+ block [39/425] : done (2138ms) 
+ block [40/425] : done (2093ms) 
+ block [41/425] : done (2080ms) 
+ block [42/425] : done (2191ms) 
+ block [43/425] : done (2190ms) 
+ block [44/425] : done (2229ms) 
+ block [45/425] : done (2237ms) 
+ block [46/425] : done (2278ms) 
+ block [47/425] : done (2238ms) 
+ block [48/425] : done (2273ms) 
+ block [49/425] : done (2262ms) 
+ block [50/425] : done (2264ms) 
+ block [51/425] : done (2290ms) 
+ block [52/425] : done (2298ms) 
+ block [53/425] : done (2280ms) 
+ block [54/425] : done (2254ms) 
+ block [55/425] : done (2251ms) 
+ block [56/425] : done (2241ms) 
+ block [57/425] : done (2253ms) 
+ block [58/425] : done (2235ms) 
+ block [59/425] : done (2188ms) 
+ block [60/425] : done (2210ms) 
+ block [61/425] : done (2268ms) 
+ block [62/425] : done (2266ms) 
+ block [63/425] : done (2222ms) 
+ block [64/425] : done (2238ms) 
+ block [65/425] : done (2297ms) 
+ block [66/425] : done (2146ms) 
+ block [67/425] : done (2270ms) 
+ block [68/425] : done (2191ms) 
+ block [69/425] : done (2149ms) 
+ block [70/425] : done (2178ms) 
+ block [71/425] : done (2168ms) 
+ block [72/425] : done (2180ms) 
+ block [73/425] : done (2171ms) 
+ block [74/425] : done (2203ms) 
+ block [75/425] : done (2164ms) 
+ block [76/425] : done (2134ms) 
+ block [77/425] : done (2131ms) 
+ block [78/425] : done (2205ms) 
+ block [79/425] : done (2245ms) 
+ block [80/425] : done (2318ms) 
+ block [81/425] : done (2218ms) 
+ block [82/425] : done (2164ms) 
+ block [83/425] : done (2247ms) 
+ block [84/425] : done (2250ms) 
+ block [85/425] : done (2113ms) 
+ block [86/425] : done (2150ms) 
+ block [87/425] : done (2123ms) 
+ block [88/425] : done (2198ms) 
+ block [89/425] : done (2176ms) 
+ block [90/425] : done (2155ms) 
+ block [91/425] : done (2169ms) 
+ block [92/425] : done (2190ms) 
+ block [93/425] : done (2194ms) 
+ block [94/425] : done (2149ms) 
+ block [95/425] : done (2170ms) 
+ block [96/425] : done (2179ms) 
+ block [97/425] : done (2235ms) 
+ block [98/425] : done (2185ms) 
+ block [99/425] : done (2149ms) 
+ block [100/425] : done (2161ms) 
+ block [101/425] : done (2180ms) 
+ block [102/425] : done (2138ms) 
+ block [103/425] : done (2226ms) 
+ block [104/425] : done (2219ms) 
+ block [105/425] : done (2113ms) 
+ block [106/425] : done (2135ms) 
+ block [107/425] : done (2157ms) 
+ block [108/425] : done (2164ms) 
+ block [109/425] : done (2146ms) 
+ block [110/425] : done (2129ms) 
+ block [111/425] : done (2193ms) 
+ block [112/425] : done (2209ms) 
+ block [113/425] : done (2152ms) 
+ block [114/425] : done (2235ms) 
+ block [115/425] : done (2212ms) 
+ block [116/425] : done (2152ms) 
+ block [117/425] : done (2166ms) 
+ block [118/425] : done (2234ms) 
+ block [119/425] : done (2211ms) 
+ block [120/425] : done (2206ms) 
+ block [121/425] : done (2178ms) 
+ block [122/425] : done (2165ms) 
+ block [123/425] : done (2212ms) 
+ block [124/425] : done (2199ms) 
+ block [125/425] : done (2175ms) 
+ block [126/425] : done (2173ms) 
+ block [127/425] : done (2170ms) 
+ block [128/425] : done (2198ms) 
+ block [129/425] : done (2291ms) 
+ block [130/425] : done (2200ms) 
+ block [131/425] : done (2178ms) 
+ block [132/425] : done (2167ms) 
+ block [133/425] : done (2151ms) 
+ block [134/425] : done (2138ms) 
+ block [135/425] : done (2177ms) 
+ block [136/425] : done (2180ms) 
+ block [137/425] : done (2184ms) 
+ block [138/425] : done (2171ms) 
+ block [139/425] : done (2148ms) 
+ block [140/425] : done (2171ms) 
+ block [141/425] : done (2180ms) 
+ block [142/425] : done (2177ms) 
+ block [143/425] : done (2148ms) 
+ block [144/425] : done (2171ms) 
+ block [145/425] : done (2120ms) 
+ block [146/425] : done (2153ms) 
+ block [147/425] : done (2229ms) 
+ block [148/425] : done (2037ms) 
+ block [149/425] : done (2038ms) 
+ block [150/425] : done (2127ms) 
+ block [151/425] : done (2086ms) 
+ block [152/425] : done (2087ms) 
+ block [153/425] : done (2046ms) 
+ block [154/425] : done (2134ms) 
+ block [155/425] : done (2118ms) 
+ block [156/425] : done (2101ms) 
+ block [157/425] : done (2217ms) 
+ block [158/425] : done (2112ms) 
+ block [159/425] : done (2099ms) 
+ block [160/425] : done (2067ms) 
+ block [161/425] : done (2095ms) 
+ block [162/425] : done (2107ms) 
+ block [163/425] : done (2158ms) 
+ block [164/425] : done (2051ms) 
+ block [165/425] : done (2092ms) 
+ block [166/425] : done (2068ms) 
+ block [167/425] : done (2068ms) 
+ block [168/425] : done (2147ms) 
+ block [169/425] : done (2134ms) 
+ block [170/425] : done (2076ms) 
+ block [171/425] : done (2145ms) 
+ block [172/425] : done (2100ms) 
+ block [173/425] : done (2078ms) 
+ block [174/425] : done (2093ms) 
+ block [175/425] : done (2167ms) 
+ block [176/425] : done (2086ms) 
+ block [177/425] : done (2078ms) 
+ block [178/425] : done (2109ms) 
+ block [179/425] : done (2113ms) 
+ block [180/425] : done (2118ms) 
+ block [181/425] : done (2055ms) 
+ block [182/425] : done (2120ms) 
+ block [183/425] : done (2122ms) 
+ block [184/425] : done (2130ms) 
+ block [185/425] : done (2144ms) 
+ block [186/425] : done (2092ms) 
+ block [187/425] : done (2109ms) 
+ block [188/425] : done (2100ms) 
+ block [189/425] : done (2086ms) 
+ block [190/425] : done (2132ms) 
+ block [191/425] : done (2120ms) 
+ block [192/425] : done (2085ms) 
+ block [193/425] : done (2084ms) 
+ block [194/425] : done (2064ms) 
+ block [195/425] : done (2035ms) 
+ block [196/425] : done (2073ms) 
+ block [197/425] : done (2045ms) 
+ block [198/425] : done (2020ms) 
+ block [199/425] : done (2034ms) 
+ block [200/425] : done (2047ms) 
+ block [201/425] : done (2076ms) 
+ block [202/425] : done (2112ms) 
+ block [203/425] : done (2093ms) 
+ block [204/425] : done (2067ms) 
+ block [205/425] : done (2056ms) 
+ block [206/425] : done (2090ms) 
+ block [207/425] : done (2024ms) 
+ block [208/425] : done (2041ms) 
+ block [209/425] : done (2053ms) 
+ block [210/425] : done (2048ms) 
+ block [211/425] : done (2052ms) 
+ block [212/425] : done (2008ms) 
+ block [213/425] : done (2008ms) 
+ block [214/425] : done (1992ms) 
+ block [215/425] : done (1988ms) 
+ block [216/425] : done (1979ms) 
+ block [217/425] : done (2048ms) 
+ block [218/425] : done (2046ms) 
+ block [219/425] : done (2042ms) 
+ block [220/425] : done (2068ms) 
+ block [221/425] : done (2014ms) 
+ block [222/425] : done (2042ms) 
+ block [223/425] : done (2041ms) 
+ block [224/425] : done (2047ms) 
+ block [225/425] : done (2005ms) 
+ block [226/425] : done (2111ms) 
+ block [227/425] : done (2101ms) 
+ block [228/425] : done (2081ms) 
+ block [229/425] : done (2079ms) 
+ block [230/425] : done (2082ms) 
+ block [231/425] : done (2037ms) 
+ block [232/425] : done (2057ms) 
+ block [233/425] : done (2051ms) 
+ block [234/425] : done (2059ms) 
+ block [235/425] : done (2035ms) 
+ block [236/425] : done (2077ms) 
+ block [237/425] : done (2071ms) 
+ block [238/425] : done (2156ms) 
+ block [239/425] : done (2031ms) 
+ block [240/425] : done (2054ms) 
+ block [241/425] : done (2057ms) 
+ block [242/425] : done (2037ms) 
+ block [243/425] : done (2081ms) 
+ block [244/425] : done (2073ms) 
+ block [245/425] : done (2033ms) 
+ block [246/425] : done (2061ms) 
+ block [247/425] : done (2059ms) 
+ block [248/425] : done (2100ms) 
+ block [249/425] : done (2052ms) 
+ block [250/425] : done (2059ms) 
+ block [251/425] : done (2050ms) 
+ block [252/425] : done (2041ms) 
+ block [253/425] : done (2008ms) 
+ block [254/425] : done (2034ms) 
+ block [255/425] : done (2065ms) 
+ block [256/425] : done (2069ms) 
+ block [257/425] : done (2027ms) 
+ block [258/425] : done (2036ms) 
+ block [259/425] : done (2093ms) 
+ block [260/425] : done (2042ms) 
+ block [261/425] : done (2191ms) 
+ block [262/425] : done (2084ms) 
+ block [263/425] : done (2025ms) 
+ block [264/425] : done (2038ms) 
+ block [265/425] : done (2108ms) 
+ block [266/425] : done (2120ms) 
+ block [267/425] : done (2095ms) 
+ block [268/425] : done (2141ms) 
+ block [269/425] : done (2082ms) 
+ block [270/425] : done (2054ms) 
+ block [271/425] : done (2064ms) 
+ block [272/425] : done (2024ms) 
+ block [273/425] : done (2048ms) 
+ block [274/425] : done (2036ms) 
+ block [275/425] : done (2019ms) 
+ block [276/425] : done (2052ms) 
+ block [277/425] : done (2090ms) 
+ block [278/425] : done (2102ms) 
+ block [279/425] : done (2066ms) 
+ block [280/425] : done (2070ms) 
+ block [281/425] : done (2023ms) 
+ block [282/425] : done (2069ms) 
+ block [283/425] : done (2043ms) 
+ block [284/425] : done (2060ms) 
+ block [285/425] : done (2077ms) 
+ block [286/425] : done (2008ms) 
+ block [287/425] : done (2071ms) 
+ block [288/425] : done (2059ms) 
+ block [289/425] : done (2063ms) 
+ block [290/425] : done (2102ms) 
+ block [291/425] : done (2120ms) 
+ block [292/425] : done (2050ms) 
+ block [293/425] : done (2050ms) 
+ block [294/425] : done (2074ms) 
+ block [295/425] : done (2089ms) 
+ block [296/425] : done (2014ms) 
+ block [297/425] : done (2020ms) 
+ block [298/425] : done (2094ms) 
+ block [299/425] : done (2075ms) 
+ block [300/425] : done (1985ms) 
+ block [301/425] : done (2016ms) 
+ block [302/425] : done (2070ms) 
+ block [303/425] : done (2020ms) 
+ block [304/425] : done (2035ms) 
+ block [305/425] : done (2105ms) 
+ block [306/425] : done (2039ms) 
+ block [307/425] : done (2010ms) 
+ block [308/425] : done (2027ms) 
+ block [309/425] : done (2027ms) 
+ block [310/425] : done (2022ms) 
+ block [311/425] : done (2067ms) 
+ block [312/425] : done (2025ms) 
+ block [313/425] : done (1956ms) 
+ block [314/425] : done (2096ms) 
+ block [315/425] : done (2021ms) 
+ block [316/425] : done (2000ms) 
+ block [317/425] : done (2091ms) 
+ block [318/425] : done (2080ms) 
+ block [319/425] : done (1961ms) 
+ block [320/425] : done (1967ms) 
+ block [321/425] : done (1972ms) 
+ block [322/425] : done (2003ms) 
+ block [323/425] : done (1975ms) 
+ block [324/425] : done (1955ms) 
+ block [325/425] : done (1980ms) 
+ block [326/425] : done (2017ms) 
+ block [327/425] : done (1985ms) 
+ block [328/425] : done (1966ms) 
+ block [329/425] : done (1936ms) 
+ block [330/425] : done (2021ms) 
+ block [331/425] : done (2024ms) 
+ block [332/425] : done (1990ms) 
+ block [333/425] : done (2009ms) 
+ block [334/425] : done (1992ms) 
+ block [335/425] : done (2048ms) 
+ block [336/425] : done (2004ms) 
+ block [337/425] : done (2006ms) 
+ block [338/425] : done (1955ms) 
+ block [339/425] : done (2010ms) 
+ block [340/425] : done (2018ms) 
+ block [341/425] : done (1989ms) 
+ block [342/425] : done (2008ms) 
+ block [343/425] : done (2046ms) 
+ block [344/425] : done (2018ms) 
+ block [345/425] : done (2024ms) 
+ block [346/425] : done (1999ms) 
+ block [347/425] : done (2073ms) 
+ block [348/425] : done (2013ms) 
+ block [349/425] : done (1968ms) 
+ block [350/425] : done (1987ms) 
+ block [351/425] : done (1981ms) 
+ block [352/425] : done (2021ms) 
+ block [353/425] : done (2025ms) 
+ block [354/425] : done (2088ms) 
+ block [355/425] : done (1989ms) 
+ block [356/425] : done (1989ms) 
+ block [357/425] : done (2059ms) 
+ block [358/425] : done (2028ms) 
+ block [359/425] : done (1981ms) 
+ block [360/425] : done (1986ms) 
+ block [361/425] : done (1982ms) 
+ block [362/425] : done (1985ms) 
+ block [363/425] : done (1951ms) 
+ block [364/425] : done (2004ms) 
+ block [365/425] : done (1988ms) 
+ block [366/425] : done (1967ms) 
+ block [367/425] : done (1958ms) 
+ block [368/425] : done (1967ms) 
+ block [369/425] : done (2040ms) 
+ block [370/425] : done (1996ms) 
+ block [371/425] : done (1978ms) 
+ block [372/425] : done (1968ms) 
+ block [373/425] : done (1976ms) 
+ block [374/425] : done (1969ms) 
+ block [375/425] : done (1951ms) 
+ block [376/425] : done (1945ms) 
+ block [377/425] : done (2000ms) 
+ block [378/425] : done (1966ms) 
+ block [379/425] : done (2056ms) 
+ block [380/425] : done (2071ms) 
+ block [381/425] : done (2024ms) 
+ block [382/425] : done (1968ms) 
+ block [383/425] : done (1964ms) 
+ block [384/425] : done (2010ms) 
+ block [385/425] : done (1969ms) 
+ block [386/425] : done (2027ms) 
+ block [387/425] : done (2004ms) 
+ block [388/425] : done (2006ms) 
+ block [389/425] : done (1971ms) 
+ block [390/425] : done (1985ms) 
+ block [391/425] : done (2007ms) 
+ block [392/425] : done (2008ms) 
+ block [393/425] : done (1990ms) 
+ block [394/425] : done (1980ms) 
+ block [395/425] : done (1952ms) 
+ block [396/425] : done (1911ms) 
+ block [397/425] : done (1994ms) 
+ block [398/425] : done (2003ms) 
+ block [399/425] : done (1945ms) 
+ block [400/425] : done (1984ms) 
+ block [401/425] : done (1980ms) 
+ block [402/425] : done (1971ms) 
+ block [403/425] : done (1925ms) 
+ block [404/425] : done (1937ms) 
+ block [405/425] : done (1981ms) 
+ block [406/425] : done (2040ms) 
+ block [407/425] : done (1964ms) 
+ block [408/425] : done (1940ms) 
+ block [409/425] : done (2017ms) 
+ block [410/425] : done (2013ms) 
+ block [411/425] : done (1969ms) 
+ block [412/425] : done (1952ms) 
+ block [413/425] : done (1971ms) 
+ block [414/425] : done (1984ms) 
+ block [415/425] : done (2192ms) 
+ block [416/425] : done (2007ms) 
+ block [417/425] : done (1937ms) 
+ block [418/425] : done (1931ms) 
+ block [419/425] : done (1949ms) 
+ block [420/425] : done (1945ms) 
+ block [421/425] : done (1932ms) 
+ block [422/425] : done (1947ms) 
+ block [423/425] : done (1935ms) 
+ block [424/425] : done (1952ms) 
+ block [425/425] : done (2009ms) 
+
+Association results stored separately for each trait in files : 
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG0_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG1_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG2_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG3_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG4_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG5_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG6_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG7_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG8_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG9_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG10_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG11_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG12_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG13_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG14_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG15_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG16_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG17_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG18_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG19_AUC.regenie]
+* [result/06_step2/sig_weight_eur_step2.chr21_eur_SIG20_AUC.regenie]
+
+Number of ignored tests due to low MAC or info score : 0
+
+Elapsed time : 915.53s
+End time: Wed Dec 17 07:21:03 2025
+
