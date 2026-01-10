@@ -7544,11 +7544,11 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">import</span> <span class="nn">sys</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 </pre></div>
 </div>
 </div>
@@ -7662,7 +7662,7 @@ Example mappings:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pyreadr</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pyreadr</span>
 
 <span class="n">phecode_mapping_path</span> <span class="o">=</span> <span class="s1">'/Users/sarahurbut/aladynoulli2/noulli_mapped_phecode_icd10cm.rds'</span>
 
@@ -8031,7 +8031,7 @@ First few rows:
                 <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">matching_rows</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
                 
                 <span class="c1"># Create one row per Delphi ICD code match (1-to-many structure)</span>
-                <span class="kn">import</span> <span class="nn">re</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
                 
                 <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">combined</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
                     <span class="c1"># Extract ICD code and name from Delphi row</span>
@@ -10032,7 +10032,7 @@ Disease Delphi_ICD_code  Aladynoulli_t0  Aladynoulli_1yr  Delphi_t0  Advantage_t
                         <span class="n">name_val</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">name_col</span><span class="p">])</span>
                         
                         <span class="c1"># Extract ICD code</span>
-                        <span class="kn">import</span> <span class="nn">re</span>
+                        <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
                         <span class="n">icd_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">'^([A-Z]\d</span><span class="si">{2}</span><span class="s1">)'</span><span class="p">,</span> <span class="n">name_val</span><span class="p">)</span>
                         <span class="k">if</span> <span class="n">icd_match</span><span class="p">:</span>
                             <span class="n">icd_code</span> <span class="o">=</span> <span class="n">icd_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -10120,8 +10120,8 @@ Disease Delphi_ICD_code  Aladynoulli_t0  Aladynoulli_1yr  Delphi_t0  Advantage_t
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">✓ Results saved to: </span><span class="si">{</span><span class="n">output_dir</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'delphi_comparison_simple_mapping_1yr.csv'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             
             <span class="c1"># Create visualization</span>
-            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-            <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
             
             <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
             
