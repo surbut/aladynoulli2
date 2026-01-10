@@ -7600,16 +7600,129 @@ pce_df shape: (10000, 16)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="n">run</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">sarahurbut</span><span class="o">/</span><span class="n">aladynoulli2</span><span class="o">/</span><span class="n">pyScripts</span><span class="o">/</span><span class="n">dec_6_revision</span><span class="o">/</span><span class="n">new_notebooks</span><span class="o">/</span><span class="n">pythonscripts</span><span class="o">/</span><span class="n">verify_age_offset0_equivalence</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">run</span> /Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/pythonscripts/verify_age_offset0_equivalence.py
 </pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>================================================================================
+VERIFYING AGE OFFSET 0 EQUIVALENCE
+================================================================================
+
+Age offset file:
+  /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/age_offset_local_vectorized_E_corrected/pi_enroll_fixedphi_age_offset_0_sex_0_10000_try2_withpcs_newrun_pooledall.pt
+
+Enrollment file:
+  /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/pi_enroll_fixedphi_sex_0_10000.pt
+
+Loading files...
+✓ Loaded age_offset file: torch.Size([10000, 348, 52])
+✓ Loaded enrollment file: torch.Size([10000, 348, 52])
+
+================================================================================
+COMPARISON RESULTS
+================================================================================
+
+1. STRICT COMPARISON (exact match):
+
+================================================================================
+COMPARING: Age Offset 0 vs Enrollment
+================================================================================
+
+Age Offset 0 shape: torch.Size([10000, 348, 52])
+Enrollment shape: torch.Size([10000, 348, 52])
+
+Element-wise differences:
+  Max absolute difference: 0.00e+00
+  Mean absolute difference: 0.00e+00
+  Median absolute difference: 0.00e+00
+  Std of differences: 0.00e+00
+
+Differences &gt; 0.0:
+  Number: 0 / 180,960,000
+  Percentage: 0.000000%
+
+✅ TENSORS ARE EQUAL (within tolerance 0.0)
+
+2. RELAXED COMPARISON (numerical precision, tol=1e-6):
+
+================================================================================
+COMPARING: Age Offset 0 vs Enrollment
+================================================================================
+
+Age Offset 0 shape: torch.Size([10000, 348, 52])
+Enrollment shape: torch.Size([10000, 348, 52])
+
+Element-wise differences:
+  Max absolute difference: 0.00e+00
+  Mean absolute difference: 0.00e+00
+  Median absolute difference: 0.00e+00
+  Std of differences: 0.00e+00
+
+Differences &gt; 1e-06:
+  Number: 0 / 180,960,000
+  Percentage: 0.000000%
+
+✅ TENSORS ARE EQUAL (within tolerance 1e-06)
+
+3. VERY RELAXED COMPARISON (practical equivalence, tol=1e-4):
+
+================================================================================
+COMPARING: Age Offset 0 vs Enrollment
+================================================================================
+
+Age Offset 0 shape: torch.Size([10000, 348, 52])
+Enrollment shape: torch.Size([10000, 348, 52])
+
+Element-wise differences:
+  Max absolute difference: 0.00e+00
+  Mean absolute difference: 0.00e+00
+  Median absolute difference: 0.00e+00
+  Std of differences: 0.00e+00
+
+Differences &gt; 0.0001:
+  Number: 0 / 180,960,000
+  Percentage: 0.000000%
+
+✅ TENSORS ARE EQUAL (within tolerance 0.0001)
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+Age Offset 0:
+  Min: 0.000000
+  Max: 0.079837
+  Mean: 0.000594
+  Std: 0.001656
+
+Enrollment:
+  Min: 0.000000
+  Max: 0.079837
+  Mean: 0.000594
+  Std: 0.001656
+
+================================================================================
+VERDICT
+================================================================================
+✅ EXACT MATCH: Files are identical
+</pre>
 </div>
 </div>
 </div>
@@ -7642,144 +7755,144 @@ At year k after enrollment, we use predictions from offset k model.
 
 
 Evaluating ASCVD (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.836 (0.824-0.851) (calculated on 10000 individuals)
+AUC: 0.836 (0.819-0.853) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 831 (8.3%) (from 10000 individuals)
 Excluded 0 prevalent cases for ASCVD.
 
 Evaluating Diabetes (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.725 (0.703-0.750) (calculated on 10000 individuals)
+AUC: 0.725 (0.700-0.748) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 581 (5.8%) (from 10000 individuals)
 Excluded 0 prevalent cases for Diabetes.
 
 Evaluating Atrial_Fib (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.781 (0.758-0.811) (calculated on 9864 individuals)
+AUC: 0.781 (0.751-0.801) (calculated on 9864 individuals)
 Events (10-Year in Eval Cohort): 376 (3.8%) (from 9864 individuals)
 Excluded 136 prevalent cases for Atrial_Fib.
 
 Evaluating CKD (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.737 (0.705-0.774) (calculated on 10000 individuals)
+AUC: 0.737 (0.709-0.772) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 207 (2.1%) (from 10000 individuals)
 Excluded 0 prevalent cases for CKD.
 
 Evaluating All_Cancers (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.735 (0.712-0.754) (calculated on 10000 individuals)
+AUC: 0.735 (0.714-0.758) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 480 (4.8%) (from 10000 individuals)
 Excluded 0 prevalent cases for All_Cancers.
 
 Evaluating Stroke (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.663 (0.605-0.710) (calculated on 10000 individuals)
+AUC: 0.663 (0.613-0.720) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 129 (1.3%) (from 10000 individuals)
 Excluded 0 prevalent cases for Stroke.
 
 Evaluating Heart_Failure (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.779 (0.740-0.804) (calculated on 10000 individuals)
+AUC: 0.779 (0.740-0.816) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 205 (2.1%) (from 10000 individuals)
 Excluded 0 prevalent cases for Heart_Failure.
 
 Evaluating Pneumonia (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.740 (0.710-0.766) (calculated on 10000 individuals)
+AUC: 0.740 (0.705-0.770) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 335 (3.4%) (from 10000 individuals)
 Excluded 0 prevalent cases for Pneumonia.
 
 Evaluating COPD (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.715 (0.688-0.744) (calculated on 10000 individuals)
+AUC: 0.715 (0.689-0.737) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 394 (3.9%) (from 10000 individuals)
 Excluded 0 prevalent cases for COPD.
 
 Evaluating Osteoporosis (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.707 (0.668-0.735) (calculated on 9961 individuals)
+AUC: 0.707 (0.674-0.738) (calculated on 9961 individuals)
 Events (10-Year in Eval Cohort): 219 (2.2%) (from 9961 individuals)
 Excluded 39 prevalent cases for Osteoporosis.
 
 Evaluating Anemia (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.658 (0.632-0.681) (calculated on 10000 individuals)
+AUC: 0.658 (0.628-0.684) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 523 (5.2%) (from 10000 individuals)
 Excluded 0 prevalent cases for Anemia.
 
 Evaluating Colorectal_Cancer (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.791 (0.741-0.840) (calculated on 10000 individuals)
+AUC: 0.791 (0.742-0.839) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 105 (1.1%) (from 10000 individuals)
 Excluded 0 prevalent cases for Colorectal_Cancer.
 
 Evaluating Breast_Cancer (Dynamic 10-Year Risk, Rolling)...
 Filtering for female: Found 5409 individuals in cohort
-AUC: 0.767 (0.727-0.803) (calculated on 5409 individuals)
+AUC: 0.767 (0.731-0.807) (calculated on 5409 individuals)
 Events (10-Year in Eval Cohort): 214 (4.0%) (from 5409 individuals)
 Excluded 0 prevalent cases for Breast_Cancer.
 
 Evaluating Prostate_Cancer (Dynamic 10-Year Risk, Rolling)...
 Filtering for male: Found 4591 individuals in cohort
-AUC: 0.786 (0.750-0.827) (calculated on 4547 individuals)
+AUC: 0.786 (0.752-0.829) (calculated on 4547 individuals)
 Events (10-Year in Eval Cohort): 204 (4.5%) (from 4547 individuals)
 Excluded 44 prevalent cases for Prostate_Cancer.
 
 Evaluating Lung_Cancer (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.741 (0.674-0.799) (calculated on 9992 individuals)
+AUC: 0.741 (0.684-0.805) (calculated on 9992 individuals)
 Events (10-Year in Eval Cohort): 75 (0.8%) (from 9992 individuals)
 Excluded 8 prevalent cases for Lung_Cancer.
 
 Evaluating Bladder_Cancer (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.850 (0.787-0.901) (calculated on 9976 individuals)
+AUC: 0.850 (0.774-0.898) (calculated on 9976 individuals)
 Events (10-Year in Eval Cohort): 49 (0.5%) (from 9976 individuals)
 Excluded 24 prevalent cases for Bladder_Cancer.
 
 Evaluating Secondary_Cancer (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.664 (0.627-0.704) (calculated on 10000 individuals)
+AUC: 0.664 (0.624-0.700) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 276 (2.8%) (from 10000 individuals)
 Excluded 0 prevalent cases for Secondary_Cancer.
 
 Evaluating Depression (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.546 (0.520-0.570) (calculated on 9912 individuals)
+AUC: 0.546 (0.511-0.582) (calculated on 9912 individuals)
 Events (10-Year in Eval Cohort): 405 (4.1%) (from 9912 individuals)
 Excluded 88 prevalent cases for Depression.
 
 Evaluating Anxiety (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.573 (0.542-0.608) (calculated on 9975 individuals)
+AUC: 0.573 (0.541-0.613) (calculated on 9975 individuals)
 Events (10-Year in Eval Cohort): 241 (2.4%) (from 9975 individuals)
 Excluded 25 prevalent cases for Anxiety.
 
 Evaluating Bipolar_Disorder (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.624 (0.530-0.725) (calculated on 9984 individuals)
+AUC: 0.624 (0.520-0.745) (calculated on 9984 individuals)
 Events (10-Year in Eval Cohort): 34 (0.3%) (from 9984 individuals)
 Excluded 16 prevalent cases for Bipolar_Disorder.
 
 Evaluating Rheumatoid_Arthritis (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.707 (0.658-0.754) (calculated on 9963 individuals)
+AUC: 0.707 (0.656-0.751) (calculated on 9963 individuals)
 Events (10-Year in Eval Cohort): 123 (1.2%) (from 9963 individuals)
 Excluded 37 prevalent cases for Rheumatoid_Arthritis.
 
 Evaluating Psoriasis (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.508 (0.425-0.596) (calculated on 9981 individuals)
+AUC: 0.508 (0.413-0.599) (calculated on 9981 individuals)
 Events (10-Year in Eval Cohort): 40 (0.4%) (from 9981 individuals)
 Excluded 19 prevalent cases for Psoriasis.
 
 Evaluating Ulcerative_Colitis (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.793 (0.715-0.861) (calculated on 9947 individuals)
+AUC: 0.793 (0.724-0.868) (calculated on 9947 individuals)
 Events (10-Year in Eval Cohort): 50 (0.5%) (from 9947 individuals)
 Excluded 53 prevalent cases for Ulcerative_Colitis.
 
 Evaluating Crohns_Disease (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.737 (0.648-0.824) (calculated on 9967 individuals)
+AUC: 0.737 (0.646-0.821) (calculated on 9967 individuals)
 Events (10-Year in Eval Cohort): 31 (0.3%) (from 9967 individuals)
 Excluded 33 prevalent cases for Crohns_Disease.
 
 Evaluating Asthma (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.612 (0.592-0.630) (calculated on 9687 individuals)
+AUC: 0.612 (0.589-0.638) (calculated on 9687 individuals)
 Events (10-Year in Eval Cohort): 606 (6.3%) (from 9687 individuals)
 Excluded 313 prevalent cases for Asthma.
 
 Evaluating Parkinsons (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.787 (0.730-0.856) (calculated on 9997 individuals)
+AUC: 0.787 (0.749-0.844) (calculated on 9997 individuals)
 Events (10-Year in Eval Cohort): 46 (0.5%) (from 9997 individuals)
 Excluded 3 prevalent cases for Parkinsons.
 
 Evaluating Multiple_Sclerosis (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.690 (0.583-0.794) (calculated on 9979 individuals)
+AUC: 0.690 (0.588-0.779) (calculated on 9979 individuals)
 Events (10-Year in Eval Cohort): 21 (0.2%) (from 9979 individuals)
 Excluded 21 prevalent cases for Multiple_Sclerosis.
 
 Evaluating Thyroid_Disorders (Dynamic 10-Year Risk, Rolling)...
-AUC: 0.637 (0.618-0.661) (calculated on 10000 individuals)
+AUC: 0.637 (0.608-0.660) (calculated on 10000 individuals)
 Events (10-Year in Eval Cohort): 479 (4.8%) (from 10000 individuals)
 Excluded 0 prevalent cases for Thyroid_Disorders.
 
@@ -7787,34 +7900,34 @@ Summary of Results (Dynamic 10-Year Risk, Rolling, Censored at First Event, Sex-
 --------------------------------------------------------------------------------
 Disease Group        AUC                       Events     Rate (%)  
 --------------------------------------------------------------------------------
-ASCVD                0.836 (0.824-0.851)       831        8.3
-Diabetes             0.725 (0.703-0.750)       581        5.8
-Atrial_Fib           0.781 (0.758-0.811)       376        3.8
-CKD                  0.737 (0.705-0.774)       207        2.1
-All_Cancers          0.735 (0.712-0.754)       480        4.8
-Stroke               0.663 (0.605-0.710)       129        1.3
-Heart_Failure        0.779 (0.740-0.804)       205        2.1
-Pneumonia            0.740 (0.710-0.766)       335        3.4
-COPD                 0.715 (0.688-0.744)       394        3.9
-Osteoporosis         0.707 (0.668-0.735)       219        2.2
-Anemia               0.658 (0.632-0.681)       523        5.2
-Colorectal_Cancer    0.791 (0.741-0.840)       105        1.1
-Breast_Cancer        0.767 (0.727-0.803)       214        4.0
-Prostate_Cancer      0.786 (0.750-0.827)       204        4.5
-Lung_Cancer          0.741 (0.674-0.799)       75         0.8
-Bladder_Cancer       0.850 (0.787-0.901)       49         0.5
-Secondary_Cancer     0.664 (0.627-0.704)       276        2.8
-Depression           0.546 (0.520-0.570)       405        4.1
-Anxiety              0.573 (0.542-0.608)       241        2.4
-Bipolar_Disorder     0.624 (0.530-0.725)       34         0.3
-Rheumatoid_Arthritis 0.707 (0.658-0.754)       123        1.2
-Psoriasis            0.508 (0.425-0.596)       40         0.4
-Ulcerative_Colitis   0.793 (0.715-0.861)       50         0.5
-Crohns_Disease       0.737 (0.648-0.824)       31         0.3
-Asthma               0.612 (0.592-0.630)       606        6.3
-Parkinsons           0.787 (0.730-0.856)       46         0.5
-Multiple_Sclerosis   0.690 (0.583-0.794)       21         0.2
-Thyroid_Disorders    0.637 (0.618-0.661)       479        4.8
+ASCVD                0.836 (0.819-0.853)       831        8.3
+Diabetes             0.725 (0.700-0.748)       581        5.8
+Atrial_Fib           0.781 (0.751-0.801)       376        3.8
+CKD                  0.737 (0.709-0.772)       207        2.1
+All_Cancers          0.735 (0.714-0.758)       480        4.8
+Stroke               0.663 (0.613-0.720)       129        1.3
+Heart_Failure        0.779 (0.740-0.816)       205        2.1
+Pneumonia            0.740 (0.705-0.770)       335        3.4
+COPD                 0.715 (0.689-0.737)       394        3.9
+Osteoporosis         0.707 (0.674-0.738)       219        2.2
+Anemia               0.658 (0.628-0.684)       523        5.2
+Colorectal_Cancer    0.791 (0.742-0.839)       105        1.1
+Breast_Cancer        0.767 (0.731-0.807)       214        4.0
+Prostate_Cancer      0.786 (0.752-0.829)       204        4.5
+Lung_Cancer          0.741 (0.684-0.805)       75         0.8
+Bladder_Cancer       0.850 (0.774-0.898)       49         0.5
+Secondary_Cancer     0.664 (0.624-0.700)       276        2.8
+Depression           0.546 (0.511-0.582)       405        4.1
+Anxiety              0.573 (0.541-0.613)       241        2.4
+Bipolar_Disorder     0.624 (0.520-0.745)       34         0.3
+Rheumatoid_Arthritis 0.707 (0.656-0.751)       123        1.2
+Psoriasis            0.508 (0.413-0.599)       40         0.4
+Ulcerative_Colitis   0.793 (0.724-0.868)       50         0.5
+Crohns_Disease       0.737 (0.646-0.821)       31         0.3
+Asthma               0.612 (0.589-0.638)       606        6.3
+Parkinsons           0.787 (0.749-0.844)       46         0.5
+Multiple_Sclerosis   0.690 (0.588-0.779)       21         0.2
+Thyroid_Disorders    0.637 (0.608-0.660)       479        4.8
 --------------------------------------------------------------------------------
 
 ================================================================================
@@ -7860,8 +7973,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.849987</td>
 <td>49.0</td>
 <td>0.491179</td>
-<td>0.786715</td>
-<td>0.900978</td>
+<td>0.773960</td>
+<td>0.897610</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7870,8 +7983,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.836231</td>
 <td>831.0</td>
 <td>8.310000</td>
-<td>0.824218</td>
-<td>0.850648</td>
+<td>0.818668</td>
+<td>0.853217</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7880,8 +7993,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.792808</td>
 <td>50.0</td>
 <td>0.502664</td>
-<td>0.715133</td>
-<td>0.861366</td>
+<td>0.724410</td>
+<td>0.867977</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7890,8 +8003,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.791086</td>
 <td>105.0</td>
 <td>1.050000</td>
-<td>0.741108</td>
-<td>0.839678</td>
+<td>0.742472</td>
+<td>0.839225</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7900,8 +8013,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.787061</td>
 <td>46.0</td>
 <td>0.460138</td>
-<td>0.729837</td>
-<td>0.856421</td>
+<td>0.748522</td>
+<td>0.843659</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7910,8 +8023,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.786137</td>
 <td>204.0</td>
 <td>4.486475</td>
-<td>0.750088</td>
-<td>0.826766</td>
+<td>0.752175</td>
+<td>0.828734</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7920,8 +8033,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.780589</td>
 <td>376.0</td>
 <td>3.811841</td>
-<td>0.757581</td>
-<td>0.811259</td>
+<td>0.750986</td>
+<td>0.801275</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7930,8 +8043,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.779379</td>
 <td>205.0</td>
 <td>2.050000</td>
-<td>0.739694</td>
-<td>0.803560</td>
+<td>0.739546</td>
+<td>0.815789</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7940,8 +8053,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.767345</td>
 <td>214.0</td>
 <td>3.956369</td>
-<td>0.727314</td>
-<td>0.803230</td>
+<td>0.730752</td>
+<td>0.806573</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7950,8 +8063,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.740649</td>
 <td>75.0</td>
 <td>0.750600</td>
-<td>0.674423</td>
-<td>0.799214</td>
+<td>0.683690</td>
+<td>0.804938</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7960,8 +8073,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.739727</td>
 <td>335.0</td>
 <td>3.350000</td>
-<td>0.709645</td>
-<td>0.765787</td>
+<td>0.704932</td>
+<td>0.770261</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7970,8 +8083,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.736679</td>
 <td>31.0</td>
 <td>0.311026</td>
-<td>0.647811</td>
-<td>0.823708</td>
+<td>0.645644</td>
+<td>0.820627</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7980,8 +8093,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.736542</td>
 <td>207.0</td>
 <td>2.070000</td>
-<td>0.704598</td>
-<td>0.774216</td>
+<td>0.709452</td>
+<td>0.772115</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -7990,8 +8103,8 @@ DYNAMIC ROLLING RESULTS
 <td>0.734764</td>
 <td>480.0</td>
 <td>4.800000</td>
-<td>0.712067</td>
-<td>0.754108</td>
+<td>0.714175</td>
+<td>0.758102</td>
 <td>Dynamic_Rolling</td>
 </tr>
 <tr>
@@ -8000,13 +8113,23 @@ DYNAMIC ROLLING RESULTS
 <td>0.725429</td>
 <td>581.0</td>
 <td>5.810000</td>
-<td>0.702689</td>
-<td>0.749520</td>
+<td>0.700372</td>
+<td>0.747537</td>
 <td>Dynamic_Rolling</td>
 </tr>
 </tbody>
 </table>
 </div>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>
+✓ Full results saved to CSV: /Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/dynamic_rolling_10yr_results.csv
+  Total diseases: 28
+  Columns: Disease, auc, n_events, event_rate, ci_lower, ci_upper, Method
+</pre>
 </div>
 </div>
 </div>
@@ -8312,7 +8435,7 @@ Key Observations:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">evaluatetdccode</span> <span class="kn">import</span> <span class="n">evaluate_major_diseases_wsex_with_bootstrap_dynamic</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">evaluatetdccode</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_major_diseases_wsex_with_bootstrap_dynamic</span>
 
 <span class="c1"># For static prediction, we need to create a model-like object or use the from_pi version</span>
 <span class="c1"># Actually, let's use the static 10-year results if available, or compute from offset 0 only</span>

@@ -180,8 +180,8 @@ if external_scores_file.exists():
         print(f"  N events:     {int(row['N_events'])}")
     
     # Create comprehensive visualizations
-    fig = plt.figure(figsize=(20, 12))
-    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+    fig = plt.figure(figsize=(18, 6))
+    gs = fig.add_gridspec(1, 2, hspace=0.3, wspace=0.3)
     
     fig.suptitle('Aladynoulli vs Established Clinical Risk Scores', 
                  fontsize=18, fontweight='bold', y=0.98)
@@ -241,118 +241,142 @@ if external_scores_file.exists():
                         f'{auc:.3f}',
                         ha='center', va='bottom', fontsize=10, fontweight='bold')
     
-    # 2. Breast Cancer 10-year: Aladynoulli (women only) vs GAIL (women only)
+    # 2. Combined Breast Cancer: 10-year and 1-year in one panel
     ax2 = fig.add_subplot(gs[0, 1])
-    if 'Breast_Cancer_10yr' in df.index:
-        row = df.loc['Breast_Cancer_10yr']
-        models = []
-        aucs = []
-        ci_lowers = []
-        ci_uppers = []
-        
-        # Use women-only AUC if available, otherwise fall back to full population
-        if breast_cancer_women_only_auc is not None:
-            models.append('Aladynoulli\n(Women Only)')
-            aucs.append(breast_cancer_women_only_auc)
-            ci_lowers.append(breast_cancer_women_only_ci_lower)
-            ci_uppers.append(breast_cancer_women_only_ci_upper)
-        elif pd.notna(row.get('Aladynoulli_AUC')):
-            models.append('Aladynoulli\n(Full Population)')
-            aucs.append(row['Aladynoulli_AUC'])
-            ci_lowers.append(row['Aladynoulli_CI_lower'])
-            ci_uppers.append(row['Aladynoulli_CI_upper'])
-        
-        if pd.notna(row.get('Gail_AUC')):
-            models.append('GAIL\n(Women Only)')
-            aucs.append(row['Gail_AUC'])
-            ci_lowers.append(row['Gail_CI_lower'])
-            ci_uppers.append(row['Gail_CI_upper'])
-        
-        if models:
-            x_pos = np.arange(len(models))
-            colors = ['#2c7fb8' if 'Aladynoulli' in m else '#9b59b6' for m in models]
-            bars = ax2.bar(x_pos, aucs, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
-            
-            errors_lower = [aucs[i] - ci_lowers[i] for i in range(len(models))]
-            errors_upper = [ci_uppers[i] - aucs[i] for i in range(len(models))]
-            ax2.errorbar(x_pos, aucs, yerr=[errors_lower, errors_upper], 
-                       fmt='none', color='black', capsize=5, capthick=2)
-            
-            ax2.set_xticks(x_pos)
-            ax2.set_xticklabels(models, fontsize=10)
-            ax2.set_ylabel('AUC', fontsize=12, fontweight='bold')
-            ax2.set_title('Breast Cancer 10-Year (Women Only)', fontsize=13, fontweight='bold')
-            ax2.set_ylim(0.50, max(aucs) * 1.05)
-            ax2.grid(axis='y', alpha=0.3)
-            
-            for i, (bar, auc) in enumerate(zip(bars, aucs)):
-                ax2.text(bar.get_x() + bar.get_width()/2., auc + errors_upper[i] + 0.003,
-                        f'{auc:.3f}',
-                        ha='center', va='bottom', fontsize=10, fontweight='bold')
-            
-            if len(models) == 2:
-                diff = aucs[0] - aucs[1]
-                if breast_cancer_women_only_auc is not None:
-                    note_text = 'Difference: {diff:+.3f}\n(Both models use women only)'
-                else:
-                    note_text = 'Difference: {diff:+.3f}\n(Aladynoulli uses full population)'
-                ax2.text(0.5, 0.05, note_text.format(diff=diff), 
-                       transform=ax2.transAxes, ha='center',
-                       bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5),
-                       fontsize=9, fontweight='bold')
     
-    # 3. Breast Cancer 1-year: Aladynoulli vs GAIL
-    ax3 = fig.add_subplot(gs[1, :])
+    # Prepare data for both 10-year and 1-year
+    breast_10yr_data = None
+    breast_1yr_data = None
+    
+    # Get 10-year data
+    if 'Breast_Cancer_10yr' in df.index:
+        row_10yr = df.loc['Breast_Cancer_10yr']
+        if breast_cancer_women_only_auc is not None:
+            breast_10yr_data = {
+                'Aladynoulli': (breast_cancer_women_only_auc, 
+                              breast_cancer_women_only_ci_lower, 
+                              breast_cancer_women_only_ci_upper),
+                'GAIL': (row_10yr['Gail_AUC'], 
+                        row_10yr['Gail_CI_lower'], 
+                        row_10yr['Gail_CI_upper']) if pd.notna(row_10yr.get('Gail_AUC')) else None
+            }
+        elif pd.notna(row_10yr.get('Aladynoulli_AUC')):
+            breast_10yr_data = {
+                'Aladynoulli': (row_10yr['Aladynoulli_AUC'], 
+                              row_10yr['Aladynoulli_CI_lower'], 
+                              row_10yr['Aladynoulli_CI_upper']),
+                'GAIL': (row_10yr['Gail_AUC'], 
+                        row_10yr['Gail_CI_lower'], 
+                        row_10yr['Gail_CI_upper']) if pd.notna(row_10yr.get('Gail_AUC')) else None
+            }
+    
+    # Get 1-year data
     if 'Breast_Cancer_1yr' in df.index:
-        row = df.loc['Breast_Cancer_1yr']
-        models = []
-        aucs = []
-        ci_lowers = []
-        ci_uppers = []
+        row_1yr = df.loc['Breast_Cancer_1yr']
+        if pd.notna(row_1yr.get('Aladynoulli_AUC')) and pd.notna(row_1yr.get('Gail_AUC')):
+            breast_1yr_data = {
+                'Aladynoulli': (row_1yr['Aladynoulli_AUC'], 
+                              row_1yr['Aladynoulli_CI_lower'], 
+                              row_1yr['Aladynoulli_CI_upper']),
+                'GAIL': (row_1yr['Gail_AUC'], 
+                        row_1yr['Gail_CI_lower'], 
+                        row_1yr['Gail_CI_upper'])
+            }
+    
+    # Create grouped bar chart
+    if breast_10yr_data or breast_1yr_data:
+        x_groups = []
+        aladynoulli_aucs = []
+        aladynoulli_ci_lowers = []
+        aladynoulli_ci_uppers = []
+        gail_aucs = []
+        gail_ci_lowers = []
+        gail_ci_uppers = []
         
-        if pd.notna(row.get('Aladynoulli_AUC')):
-            models.append('Aladynoulli\n(washout 0yr, women only)')
-            aucs.append(row['Aladynoulli_AUC'])
-            ci_lowers.append(row['Aladynoulli_CI_lower'])
-            ci_uppers.append(row['Aladynoulli_CI_upper'])
+        if breast_10yr_data:
+            x_groups.append('10-Year')
+            aladynoulli_aucs.append(breast_10yr_data['Aladynoulli'][0])
+            aladynoulli_ci_lowers.append(breast_10yr_data['Aladynoulli'][1])
+            aladynoulli_ci_uppers.append(breast_10yr_data['Aladynoulli'][2])
+            if breast_10yr_data['GAIL']:
+                gail_aucs.append(breast_10yr_data['GAIL'][0])
+                gail_ci_lowers.append(breast_10yr_data['GAIL'][1])
+                gail_ci_uppers.append(breast_10yr_data['GAIL'][2])
+            else:
+                gail_aucs.append(np.nan)
+                gail_ci_lowers.append(np.nan)
+                gail_ci_uppers.append(np.nan)
         
-        if pd.notna(row.get('Gail_AUC')):
-            models.append('GAIL\n(1-year, women only)')
-            aucs.append(row['Gail_AUC'])
-            ci_lowers.append(row['Gail_CI_lower'])
-            ci_uppers.append(row['Gail_CI_upper'])
+        if breast_1yr_data:
+            x_groups.append('1-Year')
+            aladynoulli_aucs.append(breast_1yr_data['Aladynoulli'][0])
+            aladynoulli_ci_lowers.append(breast_1yr_data['Aladynoulli'][1])
+            aladynoulli_ci_uppers.append(breast_1yr_data['Aladynoulli'][2])
+            gail_aucs.append(breast_1yr_data['GAIL'][0])
+            gail_ci_lowers.append(breast_1yr_data['GAIL'][1])
+            gail_ci_uppers.append(breast_1yr_data['GAIL'][2])
         
-        if models:
-            x_pos = np.arange(len(models))
-            colors = ['#2c7fb8' if 'Aladynoulli' in m else '#9b59b6' for m in models]
-            bars = ax3.bar(x_pos, aucs, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
-            
-            errors_lower = [aucs[i] - ci_lowers[i] for i in range(len(models))]
-            errors_upper = [ci_uppers[i] - aucs[i] for i in range(len(models))]
-            ax3.errorbar(x_pos, aucs, yerr=[errors_lower, errors_upper], 
-                       fmt='none', color='black', capsize=5, capthick=2)
-            
-            ax3.set_xticks(x_pos)
-            ax3.set_xticklabels(models, fontsize=11)
-            ax3.set_ylabel('AUC', fontsize=12, fontweight='bold')
-            ax3.set_title('Breast Cancer 1-Year Prediction (Women Only)', fontsize=13, fontweight='bold')
-            ax3.set_ylim(0.50, max(aucs) * 1.05)
-            ax3.grid(axis='y', alpha=0.3)
-            
-            for i, (bar, auc) in enumerate(zip(bars, aucs)):
-                ax3.text(bar.get_x() + bar.get_width()/2., auc + errors_upper[i] + 0.003,
-                        f'{auc:.3f}',
-                        ha='center', va='bottom', fontsize=11, fontweight='bold')
-            
-            if len(models) == 2:
-                diff = aucs[0] - aucs[1]
-                ax3.text(0.5, 0.05, f'Difference: {diff:+.3f}\n(Both models use women only)', 
-                       transform=ax3.transAxes, ha='center',
-                       bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.5),
-                       fontsize=10, fontweight='bold')
+        # Set up grouped bar positions
+        n_groups = len(x_groups)
+        x = np.arange(n_groups)
+        width = 0.35  # Width of bars
+        
+        # Plot bars
+        bars1 = ax2.bar(x - width/2, aladynoulli_aucs, width, 
+                        label='Aladynoulli', color='#2c7fb8', alpha=0.7, 
+                        edgecolor='black', linewidth=1.5)
+        bars2 = ax2.bar(x + width/2, gail_aucs, width, 
+                        label='GAIL', color='#9b59b6', alpha=0.7, 
+                        edgecolor='black', linewidth=1.5)
+        
+        # Add error bars
+        errors_lower_ala = [aladynoulli_aucs[i] - aladynoulli_ci_lowers[i] for i in range(len(aladynoulli_aucs))]
+        errors_upper_ala = [aladynoulli_ci_uppers[i] - aladynoulli_aucs[i] for i in range(len(aladynoulli_aucs))]
+        errors_lower_gail = [gail_aucs[i] - gail_ci_lowers[i] if not np.isnan(gail_aucs[i]) else 0 for i in range(len(gail_aucs))]
+        errors_upper_gail = [gail_ci_uppers[i] - gail_aucs[i] if not np.isnan(gail_aucs[i]) else 0 for i in range(len(gail_aucs))]
+        
+        ax2.errorbar(x - width/2, aladynoulli_aucs, 
+                    yerr=[errors_lower_ala, errors_upper_ala],
+                    fmt='none', color='black', capsize=5, capthick=2)
+        ax2.errorbar(x + width/2, gail_aucs, 
+                    yerr=[errors_lower_gail, errors_upper_gail],
+                    fmt='none', color='black', capsize=5, capthick=2)
+        
+        # Add value labels on bars
+        for i, (bar, auc) in enumerate(zip(bars1, aladynoulli_aucs)):
+            ax2.text(bar.get_x() + bar.get_width()/2., auc + errors_upper_ala[i] + 0.01,
+                    f'{auc:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+        
+        for i, (bar, auc) in enumerate(zip(bars2, gail_aucs)):
+            if not np.isnan(auc):
+                ax2.text(bar.get_x() + bar.get_width()/2., auc + errors_upper_gail[i] + 0.01,
+                        f'{auc:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+        
+        # Formatting
+        ax2.set_xlabel('Prediction Horizon', fontsize=12, fontweight='bold')
+        ax2.set_ylabel('AUC', fontsize=12, fontweight='bold')
+        ax2.set_title('Breast Cancer Prediction (Women Only)', fontsize=13, fontweight='bold')
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(x_groups, fontsize=11)
+        ax2.legend(loc='upper left', fontsize=10)
+        max_auc = max(max(aladynoulli_aucs), max([g for g in gail_aucs if not np.isnan(g)]))
+        ax2.set_ylim(0.50, max_auc * 1.1)
+        ax2.grid(axis='y', alpha=0.3)
     
     plt.tight_layout(rect=[0, 0, 1, 0.97])
-    plt.show()
+    
+    # Save figure
+    output_dir = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/comparisons/plots')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    output_file = output_dir / 'external_scores_comparison.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"✓ Saved plot to: {output_file}")
+    plt.close()
+    
+    # Optionally show (comment out if running in non-interactive mode)
+    # plt.show()
+
     
     # Key findings
     print("\n" + "="*80)

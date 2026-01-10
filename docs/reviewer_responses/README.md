@@ -137,11 +137,9 @@ See [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/ma
 **Referee #3 (11 notebooks):**
 - Avoiding reverse causation (washout analysis): [`notebooks/R3/R3_AvoidingReverseCausation.html`](notebooks/R3/R3_AvoidingReverseCausation.html)
 - Competing risks: [`notebooks/R3/R3_Competing_Risks.html`](notebooks/R3/R3_Competing_Risks.html)
-- Heterogeneity: [`notebooks/R3/R3_Q8_Heterogeneity.html`](notebooks/R3/R3_Q8_Heterogeneity.html)
 - Heterogeneity analysis (main paper method): [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html)
 - Heterogeneity analysis (continued): [`notebooks/R3/R3_Q8_Heterogeneity_Continued.html`](notebooks/R3/R3_Q8_Heterogeneity_Continued.html)
 - Population stratification: [`notebooks/R3/R3_Population_Stratification_Ancestry.html`](notebooks/R3/R3_Population_Stratification_Ancestry.html)
-- FullE vs ReducedE comparison: [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html)
 - Linear vs Nonlinear mixing: [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html)
 - Cross-cohort similarity: [`notebooks/R3/R3_Cross_Cohort_Similarity.html`](notebooks/R3/R3_Cross_Cohort_Similarity.html)
 - Verify corrected data: [`notebooks/R3/R3_Verify_Corrected_Data.html`](notebooks/R3/R3_Verify_Corrected_Data.html)
