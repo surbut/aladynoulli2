@@ -1863,17 +1863,17 @@ def main():
                     st.pyplot(fig_timeline)
                     plt.close(fig_timeline)
                 else:
-                    fig = plot_predictions(
-                        st.session_state['pi'],
-                        st.session_state['theta'],
-                        st.session_state['Y_current'],
-                        disease_names,
-                        age_offset=age_offset,
+                fig = plot_predictions(
+                    st.session_state['pi'],
+                    st.session_state['theta'],
+                    st.session_state['Y_current'],
+                    disease_names,
+                    age_offset=age_offset,
                         cluster_assignments=cluster_assignments,
                         max_diseases_to_show=max_diseases_show,
                         min_prob_threshold=min_prob_threshold
-                    )
-                    st.pyplot(fig)
+                )
+                st.pyplot(fig)
                     plt.close(fig)
                 
                 # Loss curve
@@ -2219,13 +2219,13 @@ def main():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            if st.button("Generate Random Genetic Data"):
-                G_custom = np.random.randn(47)
-                st.session_state['G_custom'] = G_custom
+        if st.button("Generate Random Genetic Data"):
+            G_custom = np.random.randn(47)
+            st.session_state['G_custom'] = G_custom
         with col2:
             if st.button("Generate High PRS (2x std)"):
                 # Generate high PRS: mean=0, std=2 for PRS components
-                G_custom = np.zeros(47)
+            G_custom = np.zeros(47)
                 G_custom[:36] = np.random.randn(36) * 2.0  # High PRS
                 st.session_state['G_custom'] = G_custom
         with col3:
@@ -2233,7 +2233,7 @@ def main():
                 # Generate low PRS: mean=0, std=-2 for PRS components
                 G_custom = np.zeros(47)
                 G_custom[:36] = np.random.randn(36) * -2.0  # Low PRS
-                st.session_state['G_custom'] = G_custom
+            st.session_state['G_custom'] = G_custom
         
         if 'G_custom' not in st.session_state:
             # Default: high PRS patient (set seed for reproducibility of default)
@@ -2433,18 +2433,18 @@ def main():
                     min_prob_custom = st.slider("Min Probability Threshold", 0.0, 0.01, 0.001, 0.0001,
                                                format="%.4f", key="min_prob_custom",
                                                help="Only show diseases above this threshold")
-                
-                fig = plot_predictions(
-                    st.session_state['pi_custom'],
-                    st.session_state['theta_custom'],
-                    st.session_state['Y_custom'],
-                    disease_names,
-                    age_offset=age_offset_custom_display,
+            
+            fig = plot_predictions(
+                st.session_state['pi_custom'],
+                st.session_state['theta_custom'],
+                st.session_state['Y_custom'],
+                disease_names,
+                age_offset=age_offset_custom_display,
                     cluster_assignments=cluster_assignments,
                     max_diseases_to_show=max_diseases_custom,
                     min_prob_threshold=min_prob_custom
-                )
-                st.pyplot(fig)
+            )
+            st.pyplot(fig)
                 plt.close(fig)
             
             if 'losses_custom' in st.session_state:
