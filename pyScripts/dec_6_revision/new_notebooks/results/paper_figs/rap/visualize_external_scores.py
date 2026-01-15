@@ -328,7 +328,7 @@ if external_scores_file.exists():
         bars2 = ax2.bar(x + width/2, gail_aucs, width, 
                         label='GAIL', color='#9b59b6', alpha=0.7, 
                         edgecolor='black', linewidth=1.5)
-        
+            
         # Add error bars
         errors_lower_ala = [aladynoulli_aucs[i] - aladynoulli_ci_lowers[i] for i in range(len(aladynoulli_aucs))]
         errors_upper_ala = [aladynoulli_ci_uppers[i] - aladynoulli_aucs[i] for i in range(len(aladynoulli_aucs))]
@@ -340,13 +340,13 @@ if external_scores_file.exists():
                     fmt='none', color='black', capsize=5, capthick=2)
         ax2.errorbar(x + width/2, gail_aucs, 
                     yerr=[errors_lower_gail, errors_upper_gail],
-                    fmt='none', color='black', capsize=5, capthick=2)
-        
+                       fmt='none', color='black', capsize=5, capthick=2)
+            
         # Add value labels on bars
         for i, (bar, auc) in enumerate(zip(bars1, aladynoulli_aucs)):
             ax2.text(bar.get_x() + bar.get_width()/2., auc + errors_upper_ala[i] + 0.01,
                     f'{auc:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
-        
+            
         for i, (bar, auc) in enumerate(zip(bars2, gail_aucs)):
             if not np.isnan(auc):
                 ax2.text(bar.get_x() + bar.get_width()/2., auc + errors_upper_gail[i] + 0.01,

@@ -456,6 +456,8 @@ def main():
     print("Loading data from all cohorts...")
     
     # Load UKB data
+    # UKB phi: Pooled from batches in censor_e_batchrun_vectorized (corrected E batches)
+    # Source: master_for_fitting_pooled_correctedE.pt contains pooled phi from 40 batches
     print("\n1. Loading UKB data...")
     master_checkpoint = torch.load('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/master_for_fitting_pooled_correctedE.pt', map_location='cpu')
     phi_ukb = master_checkpoint['model_state_dict']['phi'].numpy()
@@ -479,6 +481,8 @@ def main():
     print(f"  UKB: phi shape {phi_ukb.shape}, clusters shape {clusters_ukb.shape}, {len(disease_names_ukb)} diseases")
     
     # Load AOU data
+    # AoU phi: Pooled from batches in Dropbox/aou_batches (created by train_aou_batches.py with corrected E)
+    # Source: aou_model_master_correctedE.pt contains pooled phi from 25 batches
     print("\n2. Loading AOU data...")
     aou_checkpoint = torch.load('/Users/sarahurbut/aladynoulli2/aou_model_master_correctedE.pt', map_location='cpu')
     phi_aou = aou_checkpoint['model_state_dict']['phi']
@@ -514,6 +518,8 @@ def main():
     print(f"  AOU: phi shape {phi_aou.shape}, clusters shape {clusters_aou.shape}, {len(disease_names_aou)} diseases")
     
     # Load MGB data
+    # MGB phi: From mgb_model_initialized.pt (trained with corrected E, not from batches)
+    # Source: Single trained model with corrected E matrix
     print("\n3. Loading MGB data...")
     mgb_checkpoint = torch.load('/Users/sarahurbut/aladynoulli2/mgb_model_initialized.pt', map_location='cpu')
     phi_mgb = mgb_checkpoint['model_state_dict']['phi']

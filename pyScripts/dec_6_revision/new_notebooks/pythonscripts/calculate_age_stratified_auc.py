@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Calculate age-stratified AUC for 1-year, 10-year static, and 30-year predictions.
+Calculate age-stratified AUC for 1-year, 5-year, and 10-year static predictions.
+
+Note: 30-year age-stratified analysis is not shown in the paper because most patients
+don't have 30 years of follow-up. This script uses 1-year, 5-year, and 10-year 
+predictions which are valid for all age groups.
 
 This script:
 1. Loads predictions and enrollment ages
@@ -117,10 +121,14 @@ def main():
     ]
     
     # Define time horizons
+    # Note: Using 5-year instead of 30-year because:
+    # 1. Most patients don't have 30 years of follow-up
+    # 2. 30-year age-stratified analysis is not shown in the paper
+    # 3. 5-year predictions are valid for all age groups
     time_horizons = [
         ('1yr', 1, 'dynamic'),
-        ('10yr_static', 10, 'static'),
-        ('30yr', 30, 'dynamic')
+        ('5yr', 5, 'dynamic'),
+        ('10yr_static', 10, 'static')
     ]
     
     # Check if results already exist
@@ -188,7 +196,7 @@ def main():
                         patient_indices=patient_indices
                     )
                 else:
-                    # Dynamic predictions (30yr)
+                    # Dynamic predictions (5yr)
                     results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi(
                         pi=pi_full,
                         Y_100k=Y_full,

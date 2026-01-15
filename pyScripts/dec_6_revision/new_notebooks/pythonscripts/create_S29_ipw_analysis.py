@@ -28,24 +28,11 @@ print("="*80)
 data_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/')
 model_1218_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/batch_models_weighted_vec_censoredE_1218/')
 unweighted_model_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized/')
-weights_path = Path("/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/UKBWeights-main/UKBSelectionWeights.csv")
 
 # ============================================================================
-# PART 1: IPW Weights Distribution
+# PART 1: Load data for Phi/Pi/Prevalence comparison
 # ============================================================================
-print("\n1. Loading and plotting IPW weights distribution...")
-
-weights_df = pd.read_csv(weights_path, sep='\s+', engine='python')
-weights = weights_df['LassoWeight'].values
-
-print(f"   ✓ Loaded {len(weights):,} weights")
-print(f"   Mean: {weights.mean():.3f}, Std: {weights.std():.3f}")
-print(f"   Min: {weights.min():.3f}, Max: {weights.max():.3f}")
-
-# ============================================================================
-# PART 2: Load data for Phi/Pi/Prevalence comparison
-# ============================================================================
-print("\n2. Loading prevalences...")
+print("\n1. Loading prevalences...")
 weighted_prevalence_path = data_dir / 'prevalence_t_weighted_corrected.pt'
 unweighted_prevalence_path = data_dir / 'prevalence_t_corrected.pt'
 
@@ -59,8 +46,45 @@ if torch.is_tensor(prevalence_t_unweighted):
 
 print(f"   ✓ Loaded prevalences")
 
+# Load E_corrected for at-risk filtering of Pi
+print("\n1b. Loading E_corrected for at-risk filtering...")
+E_corrected_full = torch.load(str(data_dir / 'E_matrix_corrected.pt'), weights_only=False)
+if torch.is_tensor(E_corrected_full):
+    E_corrected_full = E_corrected_full.numpy()
+print(f"   ✓ Loaded E_corrected: {E_corrected_full.shape}")
+
+# Helper function to compute Pi with at-risk filtering
+def compute_pi_at_risk(pi_pred, E_corrected):
+    """
+    Compute average Pi filtering by at-risk status.
+    
+    Args:
+        pi_pred: Individual Pi predictions [N, D, T]
+        E_corrected: Corrected event times [N, D]
+    
+    Returns:
+        pi_avg: Average Pi [D, T], computed only over at-risk individuals
+    """
+    if torch.is_tensor(pi_pred):
+        pi_pred = pi_pred.numpy()
+    if torch.is_tensor(E_corrected):
+        E_corrected = E_corrected.numpy()
+    
+    N, D, T = pi_pred.shape
+    pi_avg = np.zeros((D, T))
+    
+    for d in range(D):
+        for t in range(T):
+            at_risk_mask = (E_corrected[:, d] >= t)
+            if at_risk_mask.sum() > 0:
+                pi_avg[d, t] = pi_pred[at_risk_mask, d, t].mean()
+            else:
+                pi_avg[d, t] = 0.0
+    
+    return pi_avg
+
 # Load models
-print("\n3. Loading models (weighted and unweighted)...")
+print("\n2. Loading models (weighted and unweighted)...")
 n_batches = 10
 
 phi_1218_list = []
@@ -112,12 +136,21 @@ for batch_idx in range(n_batches):
         lambda_1218_list.append(lambda_1218)
         lambda_unweighted_list.append(lambda_unweighted)
         
-        # Compute pi and average
-        pi_1218_batch = calculate_pi_pred(lambda_1218, phi_1218, kappa_1218)
-        pi_unweighted_batch = calculate_pi_pred(lambda_unweighted, phi_unweighted, kappa_unweighted)
+        # Compute individual pi predictions
+        pi_1218_batch = calculate_pi_pred(lambda_1218, phi_1218, kappa_1218)  # [N, D, T]
+        pi_unweighted_batch = calculate_pi_pred(lambda_unweighted, phi_unweighted, kappa_unweighted)  # [N, D, T]
         
-        pi_1218_list.append(pi_1218_batch.mean(dim=0))
-        pi_unweighted_list.append(pi_unweighted_batch.mean(dim=0))
+        # Get E_corrected for this batch
+        batch_start = batch_idx * 10000
+        batch_end = (batch_idx + 1) * 10000
+        E_batch = E_corrected_full[batch_start:batch_end]
+        
+        # Compute Pi with at-risk filtering
+        pi_1218_at_risk = compute_pi_at_risk(pi_1218_batch, E_batch)
+        pi_unweighted_at_risk = compute_pi_at_risk(pi_unweighted_batch, E_batch)
+        
+        pi_1218_list.append(torch.from_numpy(pi_1218_at_risk))
+        pi_unweighted_list.append(torch.from_numpy(pi_unweighted_at_risk))
 
 # Average across batches
 phi_1218_avg = torch.stack(phi_1218_list).mean(dim=0)  # [K, D, T]
@@ -135,45 +168,26 @@ lambda_unweighted_all = torch.cat(lambda_unweighted_list, dim=0)
 print(f"   ✓ Loaded and processed {n_batches} batches")
 
 # ============================================================================
-# PART 3: Create combined figure
+# PART 2: Create combined figure
 # ============================================================================
-print("\n4. Creating combined S29 figure...")
+print("\n3. Creating combined S29 figure...")
 
 # Create figure with multiple sections
 # Layout: 
-# - Top: Weights distribution (1 panel)
+# - Top: Column titles (1 row)
 # - Middle: Phi/Pi/Prevalence (4 diseases × 3 columns = 12 subplots)
 # - Bottom: Lambda comparison (2 rows × 3 columns = 6 panels)
 
-fig = plt.figure(figsize=(22, 30))
+fig = plt.figure(figsize=(22, 26))
 
 # Create gridspec for flexible layout
-# Total rows: 1 (weights) + 1 (column titles) + 4 (diseases) + 2 (lambda) = 8 rows
+# Total rows: 1 (column titles) + 4 (diseases) + 2 (lambda) = 7 rows
 from matplotlib.gridspec import GridSpec
-gs = GridSpec(8, 3, figure=fig, hspace=0.4, wspace=0.35, 
+gs = GridSpec(7, 3, figure=fig, hspace=0.4, wspace=0.35, 
               left=0.06, right=0.96, top=0.97, bottom=0.03,
-              height_ratios=[0.7, 0.25, 1.1, 1.1, 1.1, 1.1, 1.3, 1.3])
+              height_ratios=[0.25, 1.1, 1.1, 1.1, 1.1, 1.3, 1.3])
 
-# ===== SECTION 1: IPW Weights Distribution =====
-ax_weights = fig.add_subplot(gs[0, :])
-ax_weights.hist(weights, bins=100, alpha=0.75, edgecolor='black', linewidth=0.5, color='#4A90E2')
-ax_weights.axvline(weights.mean(), color='#E74C3C', linestyle='--', linewidth=2.5, 
-                   label=f'Mean: {weights.mean():.3f}')
-ax_weights.axvline(1.0, color='gray', linestyle=':', linewidth=1.5, alpha=0.7, label='Unweighted (1.0)')
-ax_weights.set_xlabel('IPW Weight', fontsize=13, fontweight='bold')
-ax_weights.set_ylabel('Frequency', fontsize=13, fontweight='bold')
-ax_weights.set_title('IPW Weights Distribution', fontsize=15, fontweight='bold', pad=10)
-ax_weights.legend(fontsize=11, framealpha=0.9, loc='upper right')
-ax_weights.grid(True, alpha=0.3, linestyle='--')
-ax_weights.tick_params(labelsize=11)
-ax_weights.text(0.98, 0.98, 
-               f'N = {len(weights):,}\nMean = {weights.mean():.3f}\nStd = {weights.std():.3f}\n'
-               f'Min = {weights.min():.3f}\nMax = {weights.max():.3f}',
-               transform=ax_weights.transAxes, verticalalignment='top', horizontalalignment='right',
-               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.85, edgecolor='darkorange', linewidth=2), 
-               fontsize=11, fontweight='bold')
-
-# ===== SECTION 2: Phi/Pi/Prevalence Comparison =====
+# ===== SECTION 1: Phi/Pi/Prevalence Comparison =====
 DISEASES_TO_PLOT = [
     (112, "Myocardial Infarction"),  # MI
     (47, "Type 2 diabetes"),  # DM
@@ -200,22 +214,22 @@ pi_correlation = np.corrcoef(pi_1218_avg.numpy().flatten(),
 prev_correlation = np.corrcoef(prevalence_t_weighted.flatten(), 
                                prevalence_t_unweighted.flatten())[0, 1]
 
-# Add column titles (row 1, after weights)
-ax_phi_title = fig.add_subplot(gs[1, 0])
+# Add column titles
+ax_phi_title = fig.add_subplot(gs[0, 0])
 ax_phi_title.axis('off')
 ax_phi_title.text(0.5, 0.5, 'Phi: Weighted vs Unweighted\n(Same Init, Averaged over All Signatures)', 
                  transform=ax_phi_title.transAxes, ha='center', va='center',
                  fontsize=13, fontweight='bold',
                  bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.3, edgecolor='darkgreen', linewidth=2))
 
-ax_pi_title = fig.add_subplot(gs[1, 1])
+ax_pi_title = fig.add_subplot(gs[0, 1])
 ax_pi_title.axis('off')
 ax_pi_title.text(0.5, 0.5, 'Pi: Weighted vs Unweighted\n(Same Init, Lambda Adapts)', 
                  transform=ax_pi_title.transAxes, ha='center', va='center',
                  fontsize=13, fontweight='bold',
                  bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3, edgecolor='darkorange', linewidth=2))
 
-ax_prev_title = fig.add_subplot(gs[1, 2])
+ax_prev_title = fig.add_subplot(gs[0, 2])
 ax_prev_title.axis('off')
 ax_prev_title.text(0.5, 0.5, 'Prevalence: Weighted vs Unweighted\n(All 400K, Population Demographics)', 
                  transform=ax_prev_title.transAxes, ha='center', va='center',
@@ -227,7 +241,7 @@ for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
         continue
     
     display_name = disease_names_dict.get(disease_idx, disease_name)
-    row_idx = idx + 2  # Row 0 is weights, row 1 is column titles, rows 2-5 are diseases
+    row_idx = idx + 1  # Row 0 is column titles, rows 1-4 are diseases
     
     # Column 1: Phi
     ax1 = fig.add_subplot(gs[row_idx, 0])
@@ -310,15 +324,15 @@ for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
     ax3.grid(True, alpha=0.3, linestyle='--')
     ax3.tick_params(labelsize=10)
 
-# Add overall correlation text (positioned after weights section)
-fig.text(0.5, 0.965, 
+# Add overall correlation text
+fig.text(0.5, 0.975, 
         f'Overall Correlations:  Phi = {phi_correlation:.4f} (STABLE)  |  '
         f'Pi = {pi_correlation:.4f} (CAN CHANGE)  |  '
         f'Prevalence = {prev_correlation:.4f} (CAN CHANGE)',
         ha='center', fontsize=12, fontweight='bold',
         bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor='black', linewidth=1.5))
 
-# ===== SECTION 3: Lambda Comparison =====
+# ===== SECTION 2: Lambda Comparison =====
 # Compute statistics
 weighted_lambda_flat = lambda_1218_all.numpy().flatten()
 unweighted_lambda_flat = lambda_unweighted_all.numpy().flatten()
@@ -336,7 +350,7 @@ unweighted_lambda_var = lambda_unweighted_all.var(dim=0)
 lambda_var_diff = weighted_lambda_var - unweighted_lambda_var
 
 # Panel 1: Scatter plot
-ax_l1 = fig.add_subplot(gs[6, 0])
+ax_l1 = fig.add_subplot(gs[5, 0])
 n_sample = min(50000, len(weighted_lambda_flat))
 sample_idx = np.random.choice(len(weighted_lambda_flat), n_sample, replace=False)
 ax_l1.scatter(unweighted_lambda_flat[sample_idx], weighted_lambda_flat[sample_idx], 
@@ -353,7 +367,7 @@ ax_l1.tick_params(labelsize=10)
 ax_l1.legend(fontsize=9, framealpha=0.9)
 
 # Panel 2: Distribution of differences
-ax_l2 = fig.add_subplot(gs[6, 1])
+ax_l2 = fig.add_subplot(gs[5, 1])
 diff_flat = weighted_lambda_flat - unweighted_lambda_flat
 ax_l2.hist(diff_flat, bins=100, alpha=0.75, edgecolor='black', linewidth=0.5, color='#4A90E2')
 ax_l2.axvline(0, color='#E74C3C', linestyle='--', linewidth=2.5, label='No difference')
@@ -367,7 +381,7 @@ ax_l2.grid(True, alpha=0.3, linestyle='--')
 ax_l2.tick_params(labelsize=10)
 
 # Panel 3: Mean difference heatmap
-ax_l3 = fig.add_subplot(gs[6, 2])
+ax_l3 = fig.add_subplot(gs[5, 2])
 im3 = ax_l3.imshow(lambda_diff_avg.numpy(), aspect='auto', cmap='RdBu_r', 
                   vmin=-lambda_diff_avg.abs().max().item(), 
                   vmax=lambda_diff_avg.abs().max().item())
@@ -380,7 +394,7 @@ cbar3.ax.tick_params(labelsize=9)
 ax_l3.tick_params(labelsize=10)
 
 # Panel 4: Variance difference heatmap
-ax_l4 = fig.add_subplot(gs[7, 0])
+ax_l4 = fig.add_subplot(gs[6, 0])
 im4 = ax_l4.imshow(lambda_var_diff.numpy(), aspect='auto', cmap='RdBu_r',
                   vmin=-lambda_var_diff.abs().max().item(),
                   vmax=lambda_var_diff.abs().max().item())
@@ -393,7 +407,7 @@ cbar4.ax.tick_params(labelsize=9)
 ax_l4.tick_params(labelsize=10)
 
 # Panel 5: Sample signature trajectories
-ax_l5 = fig.add_subplot(gs[7, 1])
+ax_l5 = fig.add_subplot(gs[6, 1])
 sample_sigs = [0, 5, 10, 15]
 colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D']
 for i, sig_idx in enumerate(sample_sigs):
@@ -421,7 +435,7 @@ ax_l5.grid(True, alpha=0.3, linestyle='--')
 ax_l5.tick_params(labelsize=10)
 
 # Panel 6: Correlation by signature
-ax_l6 = fig.add_subplot(gs[7, 2])
+ax_l6 = fig.add_subplot(gs[6, 2])
 sig_correlations = []
 for sig_idx in range(lambda_1218_all.shape[1]):
     sig_weighted = lambda_1218_all[:, sig_idx, :].numpy().flatten()
@@ -443,7 +457,7 @@ ax_l6.tick_params(labelsize=10)
 ax_l6.set_ylim([0, 1.05])
 
 # Overall title
-fig.suptitle('S29: IPW Analysis - Weights, Phi Stability, Lambda/Pi Adaptability, and Prevalence Changes', 
+fig.suptitle('S29: IPW Analysis - Phi Stability, Lambda/Pi Adaptability, and Prevalence Changes', 
             fontsize=17, fontweight='bold', y=0.998)
 
 # Save
@@ -457,11 +471,9 @@ plt.show()
 print(f"\n{'='*80}")
 print("S29 COMPLETE")
 print("="*80)
-print(f"✓ IPW weights distribution")
 print(f"✓ Phi/Pi/Prevalence comparison (phi stable, pi/prevalence can change)")
 print(f"✓ Lambda comparison (6 panels showing individual differences)")
-print(f"\nThis figure demonstrates the full IPW story:")
-print(f"  - Weights distribution shows the reweighting scheme")
+print(f"\nThis figure demonstrates the IPW effects:")
 print(f"  - Phi remains stable (signature structure preserved)")
 print(f"  - Lambda/Pi adapts (model adjusts to reweighted population)")
 print(f"  - Prevalence changes (population demographics shift)")

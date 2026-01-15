@@ -185,8 +185,20 @@ def plot_patient_timeline(patient_idx,
     fig = plt.figure(figsize=figsize)
     gs = plt.GridSpec(3, 1, height_ratios=[2.5, 1.5, 2], hspace=0.6)
 
+    # Use tab20 for first 20, then tab20b for signature 20 (21st signature) to ensure unique colors
+    # Note: Signature 5 (cardiovascular) swapped to red for biological interpretability
+    if K_total <= 20:
     colors = sns.color_palette("tab20", K_total)
-    sig_colors = sns.color_palette("tab20", K_total)
+    else:
+        colors_20 = sns.color_palette("tab20", 20)
+        colors_b = sns.color_palette("tab20b", 20)
+        colors = list(colors_20) + [colors_b[0]]  # First color from tab20b for signature 20
+    
+    # Swap signature 5 and 6: Sig 5 (cardiovascular) gets red, Sig 6 gets light green
+    if K_total > 5:
+        colors[5], colors[6] = colors[6], colors[5]
+    
+    sig_colors = colors
 
     # Panel 1: Signature loadings (θ) vs Age
     ax1 = fig.add_subplot(gs[0])

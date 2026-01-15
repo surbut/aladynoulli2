@@ -164,8 +164,19 @@ def plot_patient_timeline(patient_idx,
                       height_ratios=[2, 2.8, 2], 
                       hspace=0.35, wspace=0.25)
 
-    # Use distinct colors for signatures
+    # Use distinct colors for signatures - tab20 for first 20, then tab20b for signature 20 (21st signature)
+    # Note: Signature 5 (cardiovascular) swapped to red for biological interpretability
+    if K_total <= 20:
     colors = sns.color_palette("tab20", K_total)
+    else:
+        colors_20 = sns.color_palette("tab20", 20)
+        colors_b = sns.color_palette("tab20b", 20)
+        colors = list(colors_20) + [colors_b[0]]  # First color from tab20b for signature 20
+    
+    # Swap signature 5 and 6: Sig 5 (cardiovascular) gets red, Sig 6 gets light green
+    if K_total > 5:
+        colors[5], colors[6] = colors[6], colors[5]
+    
     sig_colors = colors
 
     # ============================================================================

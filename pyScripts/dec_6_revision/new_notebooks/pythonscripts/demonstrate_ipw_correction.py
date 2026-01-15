@@ -27,7 +27,7 @@ print("="*80)
 
 # Data directory
 data_dir = Path('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/')
-output_dir = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results')
+output_dir = Path('/Users/sarahurbut/aladynoulli2/pyScripts/dec_6_revision/new_notebooks/results/ipwbatchrun113')
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Load data
@@ -304,7 +304,7 @@ print("="*80)
 sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts_forPublish')
 from weighted_aladyn_vec import AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest_weighted
 sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts')
-from utils import calculate_pi_pred
+from utils import calculate_pi_pred, softmax_by_k
 
 # Load additional data needed for training
 print("\n9. Loading additional data for model training...")
@@ -370,6 +370,9 @@ phi_biased_ipw_list = []
 lambda_full_list = []
 lambda_biased_list = []
 lambda_biased_ipw_list = []
+theta_full_list = []  # Averaged theta (softmax(lambda) averaged over individuals)
+theta_biased_list = []
+theta_biased_ipw_list = []
 pi_full_list = []
 pi_biased_list = []
 pi_biased_ipw_list = []
@@ -551,6 +554,15 @@ for batch_idx in range(N_batches):
     lambda_biased_batch = model_biased.lambda_.detach().numpy().mean(axis=0)
     lambda_biased_ipw_batch = model_biased_ipw.lambda_.detach().numpy().mean(axis=0)
     
+    # Compute averaged theta: softmax(lambda) averaged over individuals
+    lambda_full_tensor = model_full.lambda_.detach()  # [N, K, T]
+    lambda_biased_tensor = model_biased.lambda_.detach()  # [N_biased, K, T]
+    lambda_biased_ipw_tensor = model_biased_ipw.lambda_.detach()  # [N_biased, K, T]
+    
+    theta_full_batch = softmax_by_k(lambda_full_tensor).mean(dim=0).numpy()  # [K, T]
+    theta_biased_batch = softmax_by_k(lambda_biased_tensor).mean(dim=0).numpy()  # [K, T]
+    theta_biased_ipw_batch = softmax_by_k(lambda_biased_ipw_tensor).mean(dim=0).numpy()  # [K, T]
+    
     kappa_full = model_full.kappa.item() if torch.is_tensor(model_full.kappa) and model_full.kappa.numel() == 1 else model_full.kappa.mean().item()
     kappa_biased = model_biased.kappa.item() if torch.is_tensor(model_biased.kappa) and model_biased.kappa.numel() == 1 else model_biased.kappa.mean().item()
     kappa_biased_ipw = model_biased_ipw.kappa.item() if torch.is_tensor(model_biased_ipw.kappa) and model_biased_ipw.kappa.numel() == 1 else model_biased_ipw.kappa.mean().item()
@@ -566,6 +578,9 @@ for batch_idx in range(N_batches):
     lambda_full_list.append(lambda_full_batch)
     lambda_biased_list.append(lambda_biased_batch)
     lambda_biased_ipw_list.append(lambda_biased_ipw_batch)
+    theta_full_list.append(theta_full_batch)
+    theta_biased_list.append(theta_biased_batch)
+    theta_biased_ipw_list.append(theta_biased_ipw_batch)
     pi_full_list.append(pi_full_batch)
     pi_biased_list.append(pi_biased_batch)
     pi_biased_ipw_list.append(pi_biased_ipw_batch)
@@ -628,6 +643,10 @@ phi_biased_ipw = np.mean(phi_biased_ipw_list, axis=0)
 lambda_full = np.mean(lambda_full_list, axis=0)
 lambda_biased = np.mean(lambda_biased_list, axis=0)
 lambda_biased_ipw = np.mean(lambda_biased_ipw_list, axis=0)
+
+theta_full = np.mean(theta_full_list, axis=0)  # [K, T]
+theta_biased = np.mean(theta_biased_list, axis=0)
+theta_biased_ipw = np.mean(theta_biased_ipw_list, axis=0)
 
 pi_full = np.mean(pi_full_list, axis=0)
 pi_biased = np.mean(pi_biased_list, axis=0)
@@ -719,27 +738,33 @@ for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
     phi_biased_disease = phi_biased[:, disease_idx, :].mean(axis=0)
     phi_biased_ipw_disease = phi_biased_ipw[:, disease_idx, :].mean(axis=0)
     
-    ax1.plot(time_points, phi_full_disease, label='Full Population', linewidth=2, color='black')
-    ax1.plot(time_points, phi_biased_disease, label='Biased (no IPW)', linewidth=2, linestyle='--', color='red')
-    ax1.plot(time_points, phi_biased_ipw_disease, label='Biased (with IPW)', linewidth=2, linestyle=':', color='blue')
+    ax1.plot(time_points, phi_full_disease, label='Full Population', linewidth=2, color='black', linestyle='-')
+    ax1.plot(time_points, phi_biased_disease, label='Biased (no IPW)', linewidth=2, linestyle='-', color='blue')
+    ax1.plot(time_points, phi_biased_ipw_disease, label='Biased (with IPW)', linewidth=2, linestyle='--', color='red')
     ax1.set_xlabel('Age', fontsize=11)
     ax1.set_ylabel('Average Phi', fontsize=11)
     ax1.set_title(f'{display_name}\nPhi Comparison', fontsize=12, fontweight='bold')
     ax1.legend(fontsize=9)
     ax1.grid(True, alpha=0.3)
     
-    # Column 2: Lambda comparison (average over signatures)
-    ax2 = axes_params[idx, 1]
-    lambda_full_disease = lambda_full.mean(axis=0)  # Average over signatures
-    lambda_biased_disease = lambda_biased.mean(axis=0)
-    lambda_biased_ipw_disease = lambda_biased_ipw.mean(axis=0)
+    # Column 2: Lambda comparison (for top signature for this disease)
+    # Find the signature with highest average phi for this disease (using full population phi)
+    phi_full_disease_all_sigs = phi_full[:, disease_idx, :]  # [K, T]
+    top_sig_idx = np.argmax(phi_full_disease_all_sigs.mean(axis=1))  # Average over time, then argmax over signatures
     
-    ax2.plot(time_points, lambda_full_disease, label='Full Population', linewidth=2, color='black')
-    ax2.plot(time_points, lambda_biased_disease, label='Biased (no IPW)', linewidth=2, linestyle='--', color='red')
-    ax2.plot(time_points, lambda_biased_ipw_disease, label='Biased (with IPW)', linewidth=2, linestyle=':', color='blue')
+    # Extract lambda for the top signature (lambda is already [K, T] after averaging over individuals)
+    lambda_full_disease = lambda_full[top_sig_idx, :]  # [T] - lambda for top signature
+    lambda_biased_disease = lambda_biased[top_sig_idx, :]
+    lambda_biased_ipw_disease = lambda_biased_ipw[top_sig_idx, :]
+    
+    ax2 = axes_params[idx, 1]
+    
+    ax2.plot(time_points, lambda_full_disease, label='Full Population', linewidth=2, color='black', linestyle='-')
+    ax2.plot(time_points, lambda_biased_disease, label='Biased (no IPW)', linewidth=2, linestyle='-', color='blue')
+    ax2.plot(time_points, lambda_biased_ipw_disease, label='Biased (with IPW)', linewidth=2, linestyle='--', color='red')
     ax2.set_xlabel('Age', fontsize=11)
-    ax2.set_ylabel('Average Lambda', fontsize=11)
-    ax2.set_title(f'{display_name}\nLambda Comparison', fontsize=12, fontweight='bold')
+    ax2.set_ylabel(f'Lambda (Sig {top_sig_idx})', fontsize=11)
+    ax2.set_title(f'{display_name}\nLambda Comparison (Top Signature)', fontsize=12, fontweight='bold')
     ax2.legend(fontsize=9)
     ax2.grid(True, alpha=0.3)
     
@@ -749,9 +774,9 @@ for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
     pi_biased_disease = pi_biased[disease_idx, :]
     pi_biased_ipw_disease = pi_biased_ipw[disease_idx, :]
     
-    ax3.plot(time_points, pi_full_disease, label='Full Population', linewidth=2, color='black')
-    ax3.plot(time_points, pi_biased_disease, label='Biased (no IPW)', linewidth=2, linestyle='--', color='red')
-    ax3.plot(time_points, pi_biased_ipw_disease, label='Biased (with IPW)', linewidth=2, linestyle=':', color='blue')
+    ax3.plot(time_points, pi_full_disease, label='Full Population', linewidth=2, color='black', linestyle='-')
+    ax3.plot(time_points, pi_biased_disease, label='Biased (no IPW)', linewidth=2, linestyle='-', color='blue')
+    ax3.plot(time_points, pi_biased_ipw_disease, label='Biased (with IPW)', linewidth=2, linestyle='--', color='red')
     ax3.set_xlabel('Age', fontsize=11)
     ax3.set_ylabel('Average Pi', fontsize=11)
     ax3.set_title(f'{display_name}\nPi Comparison', fontsize=12, fontweight='bold')
@@ -768,6 +793,51 @@ params_plot_path = output_dir / 'ipw_correction_model_parameters.pdf'
 plt.savefig(params_plot_path, dpi=300, bbox_inches='tight')
 plt.close()  # Close figure to free memory
 print(f"\n✓ Saved model parameter comparison plot to: {params_plot_path}")
+
+# ============================================================================
+# PLOT AVERAGED THETA (SOFTMAX(LAMBDA)) FOR ALL SIGNATURES
+# ============================================================================
+print("\n13b. Creating averaged theta comparison plots (all signatures)...")
+print(f"   Starting at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+# Plot averaged theta for all signatures
+K = theta_full.shape[0]  # Number of signatures
+n_cols = 4
+n_rows = int(np.ceil(K / n_cols))
+fig_theta, axes_theta = plt.subplots(n_rows, n_cols, figsize=(20, 5*n_rows))
+if n_rows == 1:
+    axes_theta = axes_theta.reshape(1, -1)
+axes_theta = axes_theta.flatten()
+
+time_points = np.arange(theta_full.shape[1]) + 30
+
+for k in range(K):
+    ax = axes_theta[k]
+    
+    ax.plot(time_points, theta_full[k, :], label='Full Population', linewidth=2, color='black', linestyle='-')
+    ax.plot(time_points, theta_biased[k, :], label='Biased (no IPW)', linewidth=2, linestyle='-', color='blue')
+    ax.plot(time_points, theta_biased_ipw[k, :], label='Biased (with IPW)', linewidth=2, linestyle='--', color='red')
+    
+    ax.set_xlabel('Age', fontsize=10)
+    ax.set_ylabel('Avg Theta', fontsize=10)
+    ax.set_title(f'Signature {k}\nAveraged Theta', fontsize=11, fontweight='bold')
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim([0, 1])  # Theta is probability, so bounded [0,1]
+
+# Hide unused subplots
+for k in range(K, len(axes_theta)):
+    axes_theta[k].axis('off')
+
+plt.suptitle('Averaged Theta (softmax(lambda) averaged over individuals) for All Signatures\nFull Population vs Biased Sample (with/without IPW)', 
+            fontsize=14, fontweight='bold')
+plt.tight_layout()
+
+# Save theta comparison plot
+theta_plot_path = output_dir / 'ipw_correction_averaged_theta_all_signatures.pdf'
+plt.savefig(theta_plot_path, dpi=300, bbox_inches='tight')
+plt.close()
+print(f"\n✓ Saved averaged theta comparison plot to: {theta_plot_path}")
 
 # ============================================================================
 # PLOT PREVALENCE COMPARISON
@@ -801,9 +871,9 @@ for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
     ax.plot(time_points, full_traj, label='Full Population (Baseline)', 
            linewidth=3, alpha=0.9, color='black', linestyle='-')
     ax.plot(time_points, no_adj_traj, label='90% Women Dropped (No Adjustment)', 
-           linewidth=2, alpha=0.8, color='red', linestyle='--')
+           linewidth=2, alpha=0.8, color='blue', linestyle='-')
     ax.plot(time_points, ipw_traj, label='90% Women Dropped (With IPW Reweighting)', 
-           linewidth=2, alpha=0.8, color='blue', linestyle=':')
+           linewidth=2, alpha=0.8, color='red', linestyle='--')
     
     ax.set_xlabel('Age', fontsize=12)
     ax.set_ylabel('Prevalence', fontsize=12)
