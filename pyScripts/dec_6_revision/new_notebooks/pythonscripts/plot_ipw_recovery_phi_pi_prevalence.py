@@ -6,7 +6,7 @@ This script creates the IPW recovery plot showing:
 - Pi: Full Population vs 90% female-reduced (no IPW) vs 90% female-reduced (with IPW)  
 - Prevalence: Full Population vs 90% female-reduced (no IPW) vs 90% female-reduced (with IPW)
 
-Note: Uses linear scale (no log scale) for Pi and Prevalence columns.
+Note: Pi is plotted as log(pi) on linear y-axis. Prevalence can use log or linear scale.
 """
 
 import torch
@@ -399,91 +399,126 @@ prevalence_biased_ipw = compute_smoothed_prevalence_at_risk(
 
 print(f"✓ Recomputed prevalence from full 400K dataset")
 
-# Create 3-column plot
+# Create 3-column plot - generate both log and linear versions
 print("\n3. Creating 3-column plot (Phi, Pi, Prevalence)...")
 time_points = np.arange(phi_full_avg.shape[1]) + 30
 
-fig, axes = plt.subplots(len(DISEASES_TO_PLOT), 3, figsize=(18, 5*len(DISEASES_TO_PLOT)))
-if len(DISEASES_TO_PLOT) == 1:
-    axes = axes.reshape(1, -1)
+# Function to create plot with specified scale
+def create_plot(use_log_scale=True):
+    """Create the IPW recovery plot.
+    
+    Pi is always plotted as log(pi) on linear y-axis.
+    Prevalence uses log scale transformation if use_log_scale=True, linear otherwise.
+    """
+    fig, axes = plt.subplots(len(DISEASES_TO_PLOT), 3, figsize=(18, 5*len(DISEASES_TO_PLOT)))
+    if len(DISEASES_TO_PLOT) == 1:
+        axes = axes.reshape(1, -1)
+    
+    for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
+        if disease_idx >= phi_full_avg.shape[0]:
+            continue
+        
+        display_name = disease_names_dict.get(disease_idx, disease_name) if disease_names_dict else disease_name
+        
+        # Column 1: Phi comparison
+        ax1 = axes[idx, 0]
+        phi_full_traj = phi_full_avg[disease_idx, :]
+        phi_biased_traj = phi_biased_avg[disease_idx, :]
+        phi_biased_ipw_traj = phi_biased_ipw_avg[disease_idx, :]
+        
+        ax1.plot(time_points, phi_full_traj, label='Full Population', 
+                linewidth=2, color='black', linestyle='-')
+        ax1.plot(time_points, phi_biased_traj, label='90% female-reduced', 
+                linewidth=2, color='blue', linestyle='--')
+        ax1.plot(time_points, phi_biased_ipw_traj, label='90% female-reduced + IPW', 
+                linewidth=2, color='red', linestyle=':')
+        ax1.set_xlabel('Age', fontsize=11)
+        ax1.set_ylabel('Average Phi (across signatures)', fontsize=11)
+        ax1.set_title(f'{display_name}\nPhi: Stable with Same Init', 
+                     fontsize=12, fontweight='bold')
+        ax1.legend(fontsize=9)
+        ax1.grid(True, alpha=0.3)
+        
+        # Column 2: Pi comparison (log of average Pi on y-axis)
+        ax2 = axes[idx, 1]
+        pi_full_traj = pi_full[disease_idx, :]
+        pi_biased_traj = pi_biased[disease_idx, :]
+        pi_biased_ipw_traj = pi_biased_ipw[disease_idx, :]
+        
+        # Compute log(pi) with clipping to avoid log(0)
+        epsilon = 1e-10
+        log_pi_full = np.log(np.clip(pi_full_traj, epsilon, None))
+        log_pi_biased = np.log(np.clip(pi_biased_traj, epsilon, None))
+        log_pi_biased_ipw = np.log(np.clip(pi_biased_ipw_traj, epsilon, None))
+        
+        ax2.plot(time_points, log_pi_full, label='Full Population', 
+                linewidth=2, color='black', linestyle='-')
+        ax2.plot(time_points, log_pi_biased, label='90% female-reduced', 
+                linewidth=2, color='blue', linestyle='--')
+        ax2.plot(time_points, log_pi_biased_ipw, label='90% female-reduced + IPW', 
+                linewidth=2, color='red', linestyle=':')
+        ax2.set_xlabel('Age', fontsize=11)
+        ax2.set_ylabel('log(Average Pi)', fontsize=11)
+        ax2.set_title(f'{display_name}\nPi: IPW Recovers', 
+                     fontsize=12, fontweight='bold')
+        ax2.legend(fontsize=9)
+        ax2.grid(True, alpha=0.3)
+        
+        # Column 3: Prevalence comparison (from full 400K)
+        ax3 = axes[idx, 2]
+        prev_full_traj = prevalence_full[disease_idx, :]
+        prev_biased_traj = prevalence_biased[disease_idx, :]
+        prev_biased_ipw_traj = prevalence_biased_ipw[disease_idx, :]
+        
+        ax3.plot(time_points, prev_full_traj, label='Full Population', 
+                linewidth=2, color='black', linestyle='-')
+        ax3.plot(time_points, prev_biased_traj, label='90% female-reduced', 
+                linewidth=2, color='blue', linestyle='--')
+        ax3.plot(time_points, prev_biased_ipw_traj, label='90% female-reduced + IPW', 
+                linewidth=2, color='red', linestyle=':')
+        ax3.set_xlabel('Age', fontsize=11)
+        ax3.set_ylabel('Prevalence', fontsize=11)
+        ax3.set_title(f'{display_name}\nEmpirical Incidence: IPW Recovers', 
+                     fontsize=12, fontweight='bold')
+        ax3.legend(fontsize=9)
+        ax3.grid(True, alpha=0.3)
+        if use_log_scale:
+            ax3.set_yscale('log')  # Log scale to match Phi and better visualize changes
+    
+    scale_label = "Log Scale" if use_log_scale else "Linear Scale"
+    plt.suptitle(f'IPW Recovery: Full Population vs 90% Female-Reduced Sample (with/without IPW) [{scale_label}]\n'
+                f'Phi/Pi: Pooled across 5 batches (20K each) | Prevalence: Full 400K dataset\n'
+                f'Pi plotted as log(pi) on linear y-axis | Prevalence uses {scale_label.lower()}\n'
+                'All values computed with at-risk filtering: Pi and Prevalence only include individuals still at risk at each age', 
+                fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    
+    return fig
 
-for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
-    if disease_idx >= phi_full_avg.shape[0]:
-        continue
-    
-    display_name = disease_names_dict.get(disease_idx, disease_name) if disease_names_dict else disease_name
-    
-    # Column 1: Phi comparison
-    ax1 = axes[idx, 0]
-    phi_full_traj = phi_full_avg[disease_idx, :]
-    phi_biased_traj = phi_biased_avg[disease_idx, :]
-    phi_biased_ipw_traj = phi_biased_ipw_avg[disease_idx, :]
-    
-    ax1.plot(time_points, phi_full_traj, label='Full Population', 
-            linewidth=2, color='black', linestyle='-')
-    ax1.plot(time_points, phi_biased_traj, label='90% female-reduced', 
-            linewidth=2, color='blue', linestyle='--')
-    ax1.plot(time_points, phi_biased_ipw_traj, label='90% female-reduced + IPW', 
-            linewidth=2, color='red', linestyle=':')
-    ax1.set_xlabel('Age', fontsize=11)
-    ax1.set_ylabel('Average Phi (across signatures)', fontsize=11)
-    ax1.set_title(f'{display_name}\nPhi: Stable with Same Init', 
-                 fontsize=12, fontweight='bold')
-    ax1.legend(fontsize=9)
-    ax1.grid(True, alpha=0.3)
-    
-    # Column 2: Pi comparison
-    ax2 = axes[idx, 1]
-    pi_full_traj = pi_full[disease_idx, :]
-    pi_biased_traj = pi_biased[disease_idx, :]
-    pi_biased_ipw_traj = pi_biased_ipw[disease_idx, :]
-    
-    ax2.plot(time_points, pi_full_traj, label='Full Population', 
-            linewidth=2, color='black', linestyle='-')
-    ax2.plot(time_points, pi_biased_traj, label='90% female-reduced', 
-            linewidth=2, color='blue', linestyle='--')
-    ax2.plot(time_points, pi_biased_ipw_traj, label='90% female-reduced + IPW', 
-            linewidth=2, color='red', linestyle=':')
-    ax2.set_xlabel('Age', fontsize=11)
-    ax2.set_ylabel('Average Pi (Disease Hazard)', fontsize=11)
-    ax2.set_title(f'{display_name}\nPi: IPW Recovers', 
-                 fontsize=12, fontweight='bold')
-    ax2.legend(fontsize=9)
-    ax2.grid(True, alpha=0.3)
-    ax2.set_yscale('log')  # Log scale to match Phi and better visualize changes
-    
-    # Column 3: Prevalence comparison (from full 400K)
-    ax3 = axes[idx, 2]
-    prev_full_traj = prevalence_full[disease_idx, :]
-    prev_biased_traj = prevalence_biased[disease_idx, :]
-    prev_biased_ipw_traj = prevalence_biased_ipw[disease_idx, :]
-    
-    ax3.plot(time_points, prev_full_traj, label='Full Population', 
-            linewidth=2, color='black', linestyle='-')
-    ax3.plot(time_points, prev_biased_traj, label='90% female-reduced', 
-            linewidth=2, color='blue', linestyle='--')
-    ax3.plot(time_points, prev_biased_ipw_traj, label='90% female-reduced + IPW', 
-            linewidth=2, color='red', linestyle=':')
-    ax3.set_xlabel('Age', fontsize=11)
-    ax3.set_ylabel('Prevalence', fontsize=11)
-    ax3.set_title(f'{display_name}\nEmpirical Incidence: IPW Recovers', 
-                 fontsize=12, fontweight='bold')
-    ax3.legend(fontsize=9)
-    ax3.grid(True, alpha=0.3)
-    ax3.set_yscale('log')  # Log scale to match Phi and better visualize changes
+# Generate and save log scale version
+print("\n   Creating log scale version...")
+fig_log = create_plot(use_log_scale=True)
+output_path_log = results_dir / 'ipw_recovery_phi_pi_prevalence_log.pdf'
+plt.savefig(output_path_log, dpi=300, bbox_inches='tight')
+plt.close(fig_log)
+print(f"   ✓ Saved log scale plot to: {output_path_log}")
 
-plt.suptitle('IPW Recovery: Full Population vs 90% Female-Reduced Sample (with/without IPW)\n'
-            'Phi/Pi: Pooled across 5 batches (20K each) | Prevalence: Full 400K dataset', 
-            fontsize=14, fontweight='bold')
-plt.tight_layout()
-
-# Save plot
-output_path = results_dir / 'ipw_recovery_phi_pi_prevalence.pdf'
-plt.savefig(output_path, dpi=300, bbox_inches='tight')
-print(f"\n✓ Saved plot to: {output_path}")
-plt.show()
+# Generate and save linear scale version
+print("\n   Creating linear scale version...")
+fig_linear = create_plot(use_log_scale=False)
+output_path_linear = results_dir / 'ipw_recovery_phi_pi_prevalence_linear.pdf'
+plt.savefig(output_path_linear, dpi=300, bbox_inches='tight')
+plt.close(fig_linear)
+print(f"   ✓ Saved linear scale plot to: {output_path_linear}")
 
 print(f"\n{'='*80}")
 print("IPW RECOVERY PLOT COMPLETE")
 print("="*80)
+print(f"✓ Generated both versions:")
+print(f"  - Log scale (Prevalence): {output_path_log}")
+print(f"  - Linear scale (Prevalence): {output_path_linear}")
+print("\nNote: Pi is always plotted as log(pi) on linear y-axis")
+print("      Both Pi and Prevalence are computed with at-risk filtering")
+print("      (only including individuals still at risk at each age) for all three populations:")
+print("      Full Population, 90% female-reduced (unweighted), and 90% female-reduced + IPW (weighted)")
 

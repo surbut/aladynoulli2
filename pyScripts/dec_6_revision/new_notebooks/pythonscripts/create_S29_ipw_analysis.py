@@ -175,24 +175,24 @@ print("\n3. Creating combined S29 figure...")
 # Create figure with multiple sections
 # Layout: 
 # - Top: Column titles (1 row)
-# - Middle: Phi/Pi/Prevalence (4 diseases × 3 columns = 12 subplots)
+# - Middle: Phi/Pi/Prevalence (3 diseases × 3 columns = 9 subplots)
 # - Bottom: Lambda comparison (2 rows × 3 columns = 6 panels)
 
-fig = plt.figure(figsize=(22, 26))
+fig = plt.figure(figsize=(22, 24))
 
 # Create gridspec for flexible layout
-# Total rows: 1 (column titles) + 4 (diseases) + 2 (lambda) = 7 rows
+# Total rows: 1 (column titles) + 3 (diseases) + 2 (lambda) = 6 rows
 from matplotlib.gridspec import GridSpec
-gs = GridSpec(7, 3, figure=fig, hspace=0.4, wspace=0.35, 
+gs = GridSpec(6, 3, figure=fig, hspace=0.15, wspace=0.15, 
               left=0.06, right=0.96, top=0.97, bottom=0.03,
-              height_ratios=[0.25, 1.1, 1.1, 1.1, 1.1, 1.3, 1.3])
+              height_ratios=[0.25, 1.1, 1.1, 1.1, 1.3, 1.3])
 
 # ===== SECTION 1: Phi/Pi/Prevalence Comparison =====
 DISEASES_TO_PLOT = [
     (112, "Myocardial Infarction"),  # MI
     (47, "Type 2 diabetes"),  # DM
-    (16, "Breast cancer [female]"),  # BC
-    (127, "Atrial fibrillation"),  # AFib
+    (16, "Breast cancer [female]")# BC
+    #(127, "Atrial fibrillation"),  # AFib
 ]
 
 disease_names_dict = {}
@@ -241,7 +241,7 @@ for idx, (disease_idx, disease_name) in enumerate(DISEASES_TO_PLOT):
         continue
     
     display_name = disease_names_dict.get(disease_idx, disease_name)
-    row_idx = idx + 1  # Row 0 is column titles, rows 1-4 are diseases
+    row_idx = idx + 1  # Row 0 is column titles, rows 1-3 are diseases
     
     # Column 1: Phi
     ax1 = fig.add_subplot(gs[row_idx, 0])
@@ -350,7 +350,7 @@ unweighted_lambda_var = lambda_unweighted_all.var(dim=0)
 lambda_var_diff = weighted_lambda_var - unweighted_lambda_var
 
 # Panel 1: Scatter plot
-ax_l1 = fig.add_subplot(gs[5, 0])
+ax_l1 = fig.add_subplot(gs[4, 0])
 n_sample = min(50000, len(weighted_lambda_flat))
 sample_idx = np.random.choice(len(weighted_lambda_flat), n_sample, replace=False)
 ax_l1.scatter(unweighted_lambda_flat[sample_idx], weighted_lambda_flat[sample_idx], 
@@ -367,7 +367,7 @@ ax_l1.tick_params(labelsize=10)
 ax_l1.legend(fontsize=9, framealpha=0.9)
 
 # Panel 2: Distribution of differences
-ax_l2 = fig.add_subplot(gs[5, 1])
+ax_l2 = fig.add_subplot(gs[4, 1])
 diff_flat = weighted_lambda_flat - unweighted_lambda_flat
 ax_l2.hist(diff_flat, bins=100, alpha=0.75, edgecolor='black', linewidth=0.5, color='#4A90E2')
 ax_l2.axvline(0, color='#E74C3C', linestyle='--', linewidth=2.5, label='No difference')
@@ -381,7 +381,7 @@ ax_l2.grid(True, alpha=0.3, linestyle='--')
 ax_l2.tick_params(labelsize=10)
 
 # Panel 3: Mean difference heatmap
-ax_l3 = fig.add_subplot(gs[5, 2])
+ax_l3 = fig.add_subplot(gs[4, 2])
 im3 = ax_l3.imshow(lambda_diff_avg.numpy(), aspect='auto', cmap='RdBu_r', 
                   vmin=-lambda_diff_avg.abs().max().item(), 
                   vmax=lambda_diff_avg.abs().max().item())
@@ -394,7 +394,7 @@ cbar3.ax.tick_params(labelsize=9)
 ax_l3.tick_params(labelsize=10)
 
 # Panel 4: Variance difference heatmap
-ax_l4 = fig.add_subplot(gs[6, 0])
+ax_l4 = fig.add_subplot(gs[5, 0])
 im4 = ax_l4.imshow(lambda_var_diff.numpy(), aspect='auto', cmap='RdBu_r',
                   vmin=-lambda_var_diff.abs().max().item(),
                   vmax=lambda_var_diff.abs().max().item())
@@ -407,7 +407,7 @@ cbar4.ax.tick_params(labelsize=9)
 ax_l4.tick_params(labelsize=10)
 
 # Panel 5: Sample signature trajectories
-ax_l5 = fig.add_subplot(gs[6, 1])
+ax_l5 = fig.add_subplot(gs[5, 1])
 sample_sigs = [0, 5, 10, 15]
 colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D']
 for i, sig_idx in enumerate(sample_sigs):
@@ -435,7 +435,7 @@ ax_l5.grid(True, alpha=0.3, linestyle='--')
 ax_l5.tick_params(labelsize=10)
 
 # Panel 6: Correlation by signature
-ax_l6 = fig.add_subplot(gs[6, 2])
+ax_l6 = fig.add_subplot(gs[5, 2])
 sig_correlations = []
 for sig_idx in range(lambda_1218_all.shape[1]):
     sig_weighted = lambda_1218_all[:, sig_idx, :].numpy().flatten()

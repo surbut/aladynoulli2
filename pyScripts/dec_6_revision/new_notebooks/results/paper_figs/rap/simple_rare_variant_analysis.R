@@ -1,5 +1,6 @@
 # Simple Rare Variant Burden - Disease Association
 # One analysis per gene, associations with all diseases
+# UPDATED: Now computes p-values for correlations
 library(data.table)
 
 # Load data
@@ -44,14 +45,65 @@ for (geno_file in genotype_files) {
   
   cat(sprintf("  Matched %d patients\n", length(common)))
   
-  # Correlate burden with ALL diseases
-  corrs <- cor(burden[geno_idx], Y_ten[Y_idx, ], use = "pairwise.complete.obs")
+  # Correlate burden with ALL diseases and compute p-values
+  # Also compute log OR via logistic regression (to match psi scale)
+  corrs <- numeric(length(dxnames))
+  p_values <- numeric(length(dxnames))
+  log_ors <- numeric(length(dxnames))
+  log_or_p_values <- numeric(length(dxnames))
+  
+  # Compute correlation, p-value, and log OR for each disease
+  for (j in seq_along(dxnames)) {
+    # Get non-missing pairs
+    burden_vec <- burden[geno_idx]
+    disease_vec <- Y_ten[Y_idx, j]
+    complete_cases <- !is.na(burden_vec) & !is.na(disease_vec)
+    
+    if (sum(complete_cases) < 10) {
+      corrs[j] <- NA
+      p_values[j] <- NA
+      log_ors[j] <- NA
+      log_or_p_values[j] <- NA
+      next
+    }
+    
+    # Compute correlation test
+    test_result <- cor.test(burden_vec[complete_cases], 
+                           disease_vec[complete_cases])
+    corrs[j] <- test_result$estimate
+    p_values[j] <- test_result$p.value
+    
+    # Compute log OR via logistic regression
+    # Check for sufficient cases (need both cases and controls)
+    n_cases <- sum(disease_vec[complete_cases] == 1)
+    n_controls <- sum(disease_vec[complete_cases] == 0)
+    
+    if (n_cases < 5 || n_controls < 5) {
+      # Too few cases or controls for reliable logistic regression
+      log_ors[j] <- NA
+      log_or_p_values[j] <- NA
+    } else {
+      # Fit logistic regression: disease ~ burden
+      tryCatch({
+        glm_fit <- glm(disease_vec[complete_cases] ~ burden_vec[complete_cases], 
+                      family = binomial(link = "logit"))
+        log_ors[j] <- coef(glm_fit)[2]  # Coefficient for burden (log OR)
+        log_or_p_values[j] <- summary(glm_fit)$coefficients[2, 4]  # p-value
+      }, error = function(e) {
+        log_ors[j] <<- NA
+        log_or_p_values[j] <<- NA
+      })
+    }
+  }
   
   # Store results
   gene_results <- data.table(
     gene = gene,
     disease = dxnames,
-    correlation = as.numeric(corrs)
+    correlation = corrs,
+    p_value = p_values,
+    log_or = log_ors,
+    log_or_p_value = log_or_p_values
   )
   all_results <- rbind(all_results, gene_results)
 }
@@ -62,6 +114,9 @@ cat(sprintf("\n✓ Saved %d associations (%d genes × %d diseases)\n",
             nrow(all_results), length(unique(all_results$gene)), length(unique(all_results$disease))))
 
 # Show top associations
-cat("\nTop 10 associations:\n")
+cat("\nTop 10 associations by absolute correlation:\n")
 print(all_results[order(abs(correlation), decreasing = TRUE)][1:10])
 
+# Show top associations by significance
+cat("\nTop 10 associations by significance (lowest p-value):\n")
+print(all_results[order(p_value, decreasing = FALSE)][1:10])

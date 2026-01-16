@@ -78,8 +78,8 @@ def load_csv_data(csv_file):
     """Load data from CSV file."""
     data = {}
     with open(csv_file, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
+    reader = csv.DictReader(f)
+    for row in reader:
             age = row['Age_Group']
             disease = row['Disease']
             horizon = row['Time_Horizon']
@@ -108,10 +108,10 @@ def compare_values():
     
     print("Parsing LaTeX table...")
     latex_table = parse_latex_table(latex_file)
-    
-    print("\n" + "="*80)
+
+print("\n" + "="*80)
     print("COMPARISON RESULTS")
-    print("="*80)
+print("="*80)
     
     all_match = True
     
