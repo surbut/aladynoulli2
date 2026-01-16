@@ -1626,11 +1626,8 @@ def main():
     else:
         cluster_assignments = st.session_state['cluster_assignments']
     
-    # Main tabs
-    tab1, tab2 = st.tabs(["📊 Sample Patient", "✏️ Custom Patient"])
-    
-    with tab1:
-        st.header("Load Sample Patient")
+    # Sample patient visualization interface
+    st.header("Load Sample Patient")
         
         # Load sample patients
         col1, col2 = st.columns(2)
@@ -1863,17 +1860,17 @@ def main():
                     st.pyplot(fig_timeline)
                     plt.close(fig_timeline)
                 else:
-                fig = plot_predictions(
-                    st.session_state['pi'],
-                    st.session_state['theta'],
-                    st.session_state['Y_current'],
-                    disease_names,
-                    age_offset=age_offset,
+                    fig = plot_predictions(
+                        st.session_state['pi'],
+                        st.session_state['theta'],
+                        st.session_state['Y_current'],
+                        disease_names,
+                        age_offset=age_offset,
                         cluster_assignments=cluster_assignments,
                         max_diseases_to_show=max_diseases_show,
                         min_prob_threshold=min_prob_threshold
-                )
-                st.pyplot(fig)
+                    )
+                    st.pyplot(fig)
                     plt.close(fig)
                 
                 # Loss curve
@@ -2208,253 +2205,6 @@ def main():
                                     })
                 else:
                     st.info("👆 Please fit the model first to see advanced visualizations.")
-    
-    with tab2:
-        st.header("Create Custom Patient")
-        st.markdown("**Manually create a patient with custom genetic data and disease history**")
-        
-        # Genetic data input
-        st.subheader("🧬 Genetic Data")
-        st.markdown("**Enter PRS values (36 PRS + 1 sex + 10 PCs = 47 values):**")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-        if st.button("Generate Random Genetic Data"):
-            G_custom = np.random.randn(47)
-            st.session_state['G_custom'] = G_custom
-        with col2:
-            if st.button("Generate High PRS (2x std)"):
-                # Generate high PRS: mean=0, std=2 for PRS components
-            G_custom = np.zeros(47)
-                G_custom[:36] = np.random.randn(36) * 2.0  # High PRS
-                st.session_state['G_custom'] = G_custom
-        with col3:
-            if st.button("Generate Low PRS (-2x std)"):
-                # Generate low PRS: mean=0, std=-2 for PRS components
-                G_custom = np.zeros(47)
-                G_custom[:36] = np.random.randn(36) * -2.0  # Low PRS
-            st.session_state['G_custom'] = G_custom
-        
-        if 'G_custom' not in st.session_state:
-            # Default: high PRS patient (set seed for reproducibility of default)
-            np.random.seed(42)
-            G_custom = np.zeros(47)
-            G_custom[:36] = np.random.randn(36) * 2.0  # High PRS by default (2x std)
-            # Add sex (component 36) - random
-            G_custom[36] = np.random.choice([0, 1])  # Sex: 0=Female, 1=Male
-            # Add PCs (components 37-46) - small random values
-            G_custom[37:47] = np.random.randn(10) * 0.5
-            st.session_state['G_custom'] = G_custom
-            st.info("💡 **Default:** High PRS patient (PRS ~2x std) - genetic effects should be more visible in counterfactuals!")
-        
-        # Show PRS summary for custom patient
-        if 'G_custom' in st.session_state:
-            prs_custom = st.session_state['G_custom'][:36]
-            prs_magnitude = np.linalg.norm(prs_custom)
-            prs_mean_abs = np.mean(np.abs(prs_custom))
-            prs_max_abs = np.max(np.abs(prs_custom))
-            
-            if prs_magnitude > 3.0:
-                prs_status = "🔥 **Very High PRS**"
-            elif prs_magnitude > 2.0:
-                prs_status = "⭐ **High PRS**"
-            elif prs_magnitude > 1.0:
-                prs_status = "📊 **Moderate PRS**"
-            else:
-                prs_status = "📉 **Low PRS**"
-            
-            st.caption(f"{prs_status} | Magnitude: {prs_magnitude:.2f} | Mean |PRS|: {prs_mean_abs:.3f} | Max |PRS|: {prs_max_abs:.3f}")
-        
-        G_df = pd.DataFrame({
-            'Value': st.session_state['G_custom']
-        }, index=[f'Feature {i}' for i in range(47)])
-        
-        edited_G = st.data_editor(G_df, use_container_width=True, num_rows="fixed")
-        st.session_state['G_custom'] = edited_G['Value'].values
-        
-        # Custom disease history
-        st.subheader("📋 Disease History")
-        st.markdown("**Create custom disease timeline:**")
-        st.info("💡 **Note:** When a disease appears, it only contributes to the loss at the **first occurrence** (event time). Times after the event don't contribute to the loss - the patient is censored after the event occurs.")
-        
-        if 'Y_custom' not in st.session_state:
-            st.session_state['Y_custom'] = np.zeros((D, T))
-        
-        age_offset_custom_input = st.number_input("Patient Age at Baseline", min_value=0, max_value=100, value=30, 
-                                                  key="age_custom_input", help="Age at time 0 (baseline)")
-        progression_text_custom_display = get_diagnosis_progression(
-            st.session_state['Y_custom'], disease_names, age_offset=age_offset_custom_input
-        )
-        st.markdown("**📖 Current Diagnosis Progression:**")
-        st.markdown(progression_text_custom_display)
-        
-        selected_disease = st.selectbox(
-            "Select Disease to Add/Edit",
-            range(D),
-            format_func=lambda x: disease_names[x] if x < len(disease_names) else f'Disease {x}'
-        )
-        
-        if cluster_assignments is not None and selected_disease < len(cluster_assignments):
-            sig = int(cluster_assignments[selected_disease])
-            st.caption(f"📌 This disease belongs to **Signature {sig}** (will be colored accordingly in plots)")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            start_time = st.slider("Start Time (Event Time)", 0, T-1, 0, key="start", 
-                                   help="First time point where disease appears (this becomes the event time)")
-        with col2:
-            end_time = st.slider("End Time (Visualization)", start_time, T-1, min(20, T-1), key="end",
-                                help="Last time point for visualization (only start_time contributes to loss)")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("➕ Add Diagnosis", key="add"):
-                st.session_state['Y_custom'][selected_disease, start_time:end_time+1] = 1.0
-                st.success(f"Added {disease_names[selected_disease]} at times {start_time}-{end_time} (event time: {start_time})")
-        with col2:
-            if st.button("➖ Remove Diagnosis", key="remove"):
-                st.session_state['Y_custom'][selected_disease, start_time:end_time+1] = 0.0
-                st.success(f"Removed {disease_names[selected_disease]} at times {start_time}-{end_time}")
-        
-        st.markdown("**Current Disease Matrix (first 20 diseases × first 20 time points):**")
-        Y_display = st.session_state['Y_custom'][:min(20, D), :min(20, T)]
-        
-        display_df = pd.DataFrame(
-            Y_display,
-            index=[disease_names[i] if i < len(disease_names) else f'Disease {i}' 
-                   for i in range(min(20, D))],
-            columns=[f't={t}' for t in range(min(20, T))]
-        )
-        
-        if cluster_assignments is not None:
-            K = fixed_components['phi'].shape[0] if 'phi' in fixed_components else 20
-            sig_colors = sns.color_palette("tab20", K)
-            
-            def highlight_row(row):
-                row_name = row.name
-                disease_idx = None
-                for i in range(min(20, D)):
-                    disease_name = disease_names[i] if i < len(disease_names) else f'Disease {i}'
-                    if disease_name == row_name:
-                        disease_idx = i
-                        break
-                
-                if disease_idx is not None and disease_idx < len(cluster_assignments):
-                    sig = int(cluster_assignments[disease_idx])
-                    if 0 <= sig < len(sig_colors):
-                        color = sig_colors[sig]
-                        hex_color = '#%02x%02x%02x' % tuple(int(c * 255) for c in color)
-                        return [f'background-color: {hex_color}30' for _ in row]
-                return [''] * len(row)
-            
-            styled_df = display_df.style.apply(highlight_row, axis=1)
-            st.dataframe(styled_df, use_container_width=True)
-            st.caption("💡 Row colors indicate the primary signature for each disease (matching plot colors)")
-        else:
-            st.dataframe(display_df, use_container_width=True)
-        
-        st.subheader("⚙️ Training Parameters")
-        col1, col2 = st.columns(2)
-        with col1:
-            num_epochs_custom = st.slider("Number of Epochs", 10, 100, 30, key="epochs_custom")
-        with col2:
-            learning_rate_custom = st.slider("Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lr_custom")
-        
-        if st.button("🔄 Fit Custom Patient Model", type="primary"):
-            with st.spinner("Fitting model for custom patient..."):
-                E_custom = create_event_times_from_Y(st.session_state['Y_custom'])
-                
-                pi, theta, model, losses = fit_patient_model(
-                    st.session_state['G_custom'],
-                    st.session_state['Y_custom'],
-                    E_custom,
-                    fixed_components,
-                    num_epochs_custom,
-                    learning_rate_custom
-                )
-                
-                st.session_state['pi_custom'] = pi
-                st.session_state['theta_custom'] = theta
-                st.session_state['losses_custom'] = losses
-                
-                st.success("✓ Custom patient model fitted!")
-        
-        if 'pi_custom' in st.session_state:
-            st.subheader("📈 Custom Patient Predictions")
-            
-            age_offset_custom_display = st.number_input("Patient Age at Baseline for Plot", min_value=0, max_value=100, value=30, 
-                                                        key="age_custom_display", help="Age at time 0 (baseline)")
-            
-            progression_text_custom = get_diagnosis_progression(
-                st.session_state['Y_custom'], disease_names, age_offset=age_offset_custom_display
-            )
-            st.markdown("**📖 Diagnosis Progression:**")
-            st.markdown(progression_text_custom)
-            
-            E_custom_display = create_event_times_from_Y(st.session_state['Y_custom'])
-            event_info = []
-            for d in range(D):
-                if E_custom_display[d] < T - 1:
-                    event_info.append({
-                        'Disease': disease_names[d] if d < len(disease_names) else f'Disease {d}',
-                        'Event Time': int(E_custom_display[d]),
-                        'Age at Event': age_offset_custom_display + int(E_custom_display[d])
-                    })
-            
-            if event_info:
-                st.markdown("**⏱️ Event Times (used in loss calculation):**")
-                st.caption("Only the first occurrence of each disease contributes to the loss. Times after the event are censored.")
-                st.dataframe(pd.DataFrame(event_info), use_container_width=True)
-            
-            # Show timeline visualization option
-            show_timeline = st.checkbox("Show Comprehensive Timeline View", value=False, key="show_timeline_custom")
-            
-            if show_timeline:
-                st.subheader("📈 Comprehensive Disease Timeline")
-                fig_timeline = plot_patient_timeline_comprehensive(
-                    st.session_state['pi_custom'],
-                    st.session_state['theta_custom'],
-                    st.session_state['Y_custom'],
-                    disease_names,
-                    age_offset=age_offset_custom_display,
-                    cluster_assignments=cluster_assignments,
-                    figsize=(20, 14)
-                )
-                st.pyplot(fig_timeline)
-                plt.close(fig_timeline)
-            else:
-                # Disease filtering for custom patient too
-                col1, col2 = st.columns(2)
-                with col1:
-                    max_diseases_custom = st.slider("Max Diseases to Show", 5, 30, 15, 
-                                                    key="max_diseases_custom",
-                                                    help="Limit number of diseases shown")
-                with col2:
-                    min_prob_custom = st.slider("Min Probability Threshold", 0.0, 0.01, 0.001, 0.0001,
-                                               format="%.4f", key="min_prob_custom",
-                                               help="Only show diseases above this threshold")
-            
-            fig = plot_predictions(
-                st.session_state['pi_custom'],
-                st.session_state['theta_custom'],
-                st.session_state['Y_custom'],
-                disease_names,
-                age_offset=age_offset_custom_display,
-                    cluster_assignments=cluster_assignments,
-                    max_diseases_to_show=max_diseases_custom,
-                    min_prob_threshold=min_prob_custom
-            )
-            st.pyplot(fig)
-                plt.close(fig)
-            
-            if 'losses_custom' in st.session_state:
-                fig_loss, ax = plt.subplots(figsize=(10, 4))
-                ax.plot(st.session_state['losses_custom'])
-                ax.set_title('Training Loss (Custom Patient)')
-                ax.set_xlabel('Epoch')
-                ax.set_ylabel('Loss')
-                ax.grid(True, alpha=0.3)
-                st.pyplot(fig_loss)
 
 if __name__ == "__main__":
     main()
