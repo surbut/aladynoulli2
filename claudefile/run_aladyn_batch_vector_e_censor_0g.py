@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """
-Batch script to run Aladyn model on sample batches
-Converted from aladynoulli_fit_for_understanding_and_discovery.ipynb
+Batch script to run Aladyn model WITHOUT genetic effects (genetic_scale=0)
+This generates theta/theta_noG for mediation analysis.
 
 Usage:
-    Local:  python run_aladyn_batch.py --start_index 0 --end_index 10000
-    AWS:    python run_aladyn_batch.py --start_index 0 --end_index 10000 --data_dir /data --output_dir /results
+    Local:  python run_aladyn_batch_vector_e_censor_0g.py --start_index 0 --end_index 10000
+    AWS:    python run_aladyn_batch_vector_e_censor_0g.py --start_index 0 --end_index 10000 --data_dir /data --output_dir /results
 
-    This was run on the full dataset (400k samples) and saved in the Dropbox/enrollment_retrospective_full directory.
+    Output models will be saved with "_nog" suffix to distinguish from models with G.
+    Models are trained with genetic_scale=0, so signature loadings do NOT include genetic effects.
 """
 
 import numpy as np
@@ -87,8 +88,8 @@ def main():
                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/',
                        help='Directory containing input data (use /data for AWS)')
     parser.add_argument('--output_dir', type=str,
-                       default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_11726',
-                       help='Output directory for saved models (use /results for AWS)')
+                       default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_noG',
+                       help='Output directory for saved models WITHOUT G (default: adds _noG suffix)')
     parser.add_argument('--covariates_path', type=str,
                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/baselinagefamh_withpcs.csv',
                        help='Path to covariates CSV file')
@@ -105,8 +106,11 @@ def main():
     torch.backends.cudnn.benchmark = False
 
     print(f"\n{'='*60}")
-    print(f"Running Aladyn batch (VECTORIZED): samples {args.start_index} to {args.end_index}")
+    print(f"Running Aladyn batch WITHOUT genetic effects (genetic_scale=0)")
+    print(f"Samples {args.start_index} to {args.end_index}")
     print(f"{'='*60}\n")
+
+
 
     # Load data
     Y, E, G, essentials = load_model_essentials(args.data_dir)
@@ -131,7 +135,7 @@ def main():
         'f.22009.0.6', 'f.22009.0.7', 'f.22009.0.8', 'f.22009.0.9', 'f.22009.0.10']
         pcs = fh_processed.iloc[args.start_index:args.end_index][pc_columns].values
         G_with_sex = np.column_stack([G_batch, sex_batch, pcs])
-    print(f"G_with_sex shape: {G_with_sex.shape}")
+    print(f"G_with_sex shape: {G_with_sex.shape} (NOTE: genetic_scale=0, so G effects will be zero)")
     print(f"Covariates loaded: {fh_processed.shape[0]} total samples")
 
     # Load reference trajectories
@@ -141,7 +145,8 @@ def main():
     prevalence_t = torch.load(args.data_dir + 'prevalence_t_corrected.pt', weights_only=False)
  
     # Initialize model
-    print(f"\nInitializing model with K={args.K} clusters (VECTORIZED)...")
+    print(f"\nInitializing model with K={args.K} clusters (VECTORIZED, NO GENETIC EFFECTS)...")
+    print(f"⚠️  NOTE: genetic_scale=0, so signature loadings will NOT include genetic effects")
     model = AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(
         N=Y_batch.shape[0],
         D=Y_batch.shape[1],
@@ -151,7 +156,7 @@ def main():
         init_sd_scaler=1e-1,
         G=G_with_sex,
         Y=Y_batch,
-        genetic_scale=1,
+        genetic_scale=0,  # CRITICAL: Set to 0 to remove all genetic effects
         W=args.W,
         R=0,
         prevalence_t=prevalence_t,
@@ -177,8 +182,9 @@ def main():
     print(f"Clusters match exactly: {clusters_match}")
 
     # Train the model
-    print(f"\nTraining model for {args.num_epochs} epochs (VECTORIZED)...")
+    print(f"\nTraining model for {args.num_epochs} epochs (VECTORIZED, NO GENETIC EFFECTS)...")
     print(f"Learning rate: {args.learning_rate}, Lambda: {args.lambda_reg}")
+    print(f"⚠️  NOTE: genetic_scale=0, so signature loadings will NOT include genetic effects")
 
     history = model.fit(E_batch,
                        num_epochs=args.num_epochs,
@@ -190,8 +196,8 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    output_path = output_dir / f'enrollment_model_VECTORIZED_W{args.W}_batch_{args.start_index}_{args.end_index}.pt'
-    print(f"\nSaving model to {output_path}...")
+    output_path = output_dir / f'enrollment_model_VECTORIZED_W{args.W}_nog_batch_{args.start_index}_{args.end_index}.pt'
+    print(f"\nSaving model (NO G, genetic_scale=0) to {output_path}...")
 
     torch.save({
         'model_state_dict': model.state_dict(),
@@ -204,7 +210,8 @@ def main():
         'args': vars(args),
         'indices': indices,
         'clusters': initial_clusters,  # Save initial_clusters directly to ensure it's saved
-        'version': 'VECTORIZED',  # Mark this as the vectorized version
+        'version': 'VECTORIZED_NOG',  # Mark this as the no-G version
+        'genetic_scale': 0,  # Explicitly save that this was trained with genetic_scale=0
     }, output_path)
 
     print(f"\n{'='*60}")
