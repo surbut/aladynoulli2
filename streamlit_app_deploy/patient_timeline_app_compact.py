@@ -30,7 +30,7 @@ def load_model():
     """Load the model and return necessary components"""
     st.cache_data.clear()
     #model = torch.load('/Users/sarahurbut/Library/Cloudstorage/Dropbox-Personal/resultshighamp/results/output_0_10000/model.pt')
-    model = torch.load('app_patients_compact_nolr.pt')
+    model = torch.load('app_patients_compact_nolr.pt', map_location=torch.device('cpu'))
     return {
         'model_state_dict': model['model_state_dict'],
         'clusters': np.array(model['clusters']),
