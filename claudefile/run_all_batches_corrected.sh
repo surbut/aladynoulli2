@@ -1,15 +1,17 @@
 #!/bin/bash
-# Run all 40 batches (0-400k) with corrected E matrix and prevalence
-# Outputs to censor_e_batchrun_vectorized/
+# Run all 40 batches (0-400k) WITH genetic effects (genetic_scale default)
+# Outputs to censor_e_batchrun_vectorized_11726/
 
 BATCH_SIZE=10000
 TOTAL_SAMPLES=400000
 NUM_BATCHES=$((TOTAL_SAMPLES / BATCH_SIZE))
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT="$SCRIPT_DIR/run_aladyn_batch_vector_e_censor.py"
 
-OUTPUT_DIR="/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized"
+#SCRIPT="$SCRIPT_DIR/run_aladyn_batch_vector_e_censor_0g.py"
+SCRIPT="$SCRIPT_DIR/run_aladyn_batch_vector_e_censor.py"
+OUTPUT_DIR="/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_11726"
+#OUTPUT_DIR="/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_noG"
 LOG_DIR="$OUTPUT_DIR/logs"
 
 # Create output and log directories
