@@ -1723,6 +1723,28 @@ def main():
     st.set_page_config(layout="wide")
     st.title("Patient Timeline Analysis")
     
+    # Author/Institution information at the top
+    st.markdown("""
+    <div style='background-color: #f0f2f6; padding: 15px; border-radius: 5px; margin-bottom: 15px;'>
+    <p style='margin: 0 0 10px 0; font-size: 1.0em; font-weight: bold; color: #000;'>
+    <strong>Preprint:</strong> <a href='https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v3' target='_blank' style='color: #1f77b4; font-weight: bold;'>medRxiv 2024.09.29.24314557v3</a>
+    </p>
+    <p style='margin: 5px 0 15px 0; font-size: 0.95em; color: #000; font-weight: 500;'>
+    <strong>Authors:</strong> Sarah M. Urbut, Yi Ding, Tetsushi Nakao, Satoshi Koyama, Achyutha Harish, Xilin Jiang, Leslie Gaffney, Whitney Hornsby, Jordan W. Smoller, Alexander Gusev, Pradeep Natarajan, Giovanni Parmigiani
+    </p>
+    <p style='margin: 15px 0 5px 0; font-size: 0.85em; color: #666; border-top: 1px solid #ccc; padding-top: 10px;'><strong>Developed by:</strong> Sarah M. Urbut, M.D., Ph.D.</p>
+    <p style='margin: 0 0 10px 0; font-size: 0.85em; color: #666;'>
+    <strong>Affiliations:</strong> Massachusetts General Hospital, Harvard Medical School, Broad Institute of Harvard and MIT<br>
+    <strong>Email:</strong> <a href='mailto:surbut@mgh.harvard.edu' style='color: #1f77b4;'>surbut@mgh.harvard.edu</a> | 
+    <strong>Project:</strong> Aladynoulli Research
+    </p>
+    <p style='margin: 10px 0 0 0; font-size: 0.85em; font-style: italic; color: #555; border-top: 1px solid #ccc; padding-top: 10px;'>
+    This work was funded in part by the Burroughs Wellcome Fund and by the American Heart Association.<br>
+    For questions or feedback, please contact: <a href='mailto:surbut@mgh.harvard.edu' style='color: #1f77b4;'>surbut@mgh.harvard.edu</a>
+    </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Disclaimer about sample patients
     st.info("""
     **Sample Patient Visualization:** This app displays pre-selected sample patients for visualization purposes only. 

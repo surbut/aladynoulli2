@@ -9,6 +9,22 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 import matplotlib.ticker as mticker
 from pathlib import Path
+from scipy import stats
+from scipy.interpolate import interp1d
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    HAS_NETWORKX = False
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+import io
+from datetime import datetime
 
 def load_model():
     """Load the model and return necessary components"""
@@ -1006,6 +1022,633 @@ class PatientTimelineVisualizer:
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         return fig
 
+    # ===== NEW FEATURE METHODS =====
+    
+    def plot_patient_comparison(self, person_idx1, person_idx2, time_window=None):
+        """Side-by-side comparison of two patients."""
+        if time_window is None:
+            time_window = range(self.T)
+        
+        fig, axes = plt.subplots(3, 2, figsize=(18, 12))
+        
+        for i, (pidx, label) in enumerate([(person_idx1, "Patient 1"), (person_idx2, "Patient 2")]):
+            # Signature trajectories
+            ax = axes[0, i]
+            for k in range(self.K):
+                color = 'red' if k == 5 else sns.color_palette("tab20", self.K)[k]
+                ax.plot(time_window, self.theta[pidx, k, time_window], 
+                       label=f'Sig {k}', linewidth=2, color=color, alpha=0.7)
+            ax.set_title(f'{label}: Signature Trajectories', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Proportion')
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+            ax.grid(True, alpha=0.3)
+            
+            # Diagnosis timeline
+            ax = axes[1, i]
+            diagnosis_times = self.get_diagnosis_times(pidx)
+            diag_order = sorted([(d, times[0]) for d, times in diagnosis_times.items() if len(times) > 0],
+                               key=lambda x: x[1])
+            for j, (d, t_diag) in enumerate(diag_order[:15]):
+                sig_idx = np.argmax(self.psi[:, d])
+                color = 'red' if sig_idx == 5 else sns.color_palette("tab20", self.K)[sig_idx]
+                ax.hlines(j, time_window[0], t_diag, colors=color, linewidth=2, alpha=0.6)
+                ax.scatter(t_diag, j, color=color, s=50, edgecolors='black', zorder=5)
+            ax.set_yticks(range(min(15, len(diag_order))))
+            ax.set_yticklabels([f"Sig {np.argmax(self.psi[:, d])} | {self.disease_names[d][:20]}" 
+                               for d, _ in diag_order[:15]], fontsize=7)
+            ax.set_title(f'{label}: Disease Timeline', fontsize=12, fontweight='bold')
+            ax.set_xlabel('Time')
+            ax.invert_yaxis()
+            ax.grid(True, alpha=0.3)
+            
+            # Top disease risks
+            ax = axes[2, i]
+            pi_t = self.compute_disease_probabilities(pidx)
+            top_diseases = np.argsort(np.max(pi_t, axis=0))[-5:][::-1]
+            for d in top_diseases:
+                ax.plot(time_window, pi_t[time_window, d], label=self.disease_names[d], linewidth=2)
+            ax.set_title(f'{label}: Top 5 Disease Risks', fontsize=12, fontweight='bold')
+            ax.set_xlabel('Time')
+            ax.set_ylabel('Probability')
+            ax.legend(fontsize=8)
+            ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+    
+    def forecast_disease_risks(self, person_idx, forecast_years=10, age_offset=30):
+        """Forecast future disease probabilities using recent trajectory."""
+        pi_t = self.compute_disease_probabilities(person_idx)
+        T, D = pi_t.shape
+        
+        # Use last 5 years for trend
+        recent_window = max(3, min(10, T // 5))
+        forecast_steps = forecast_years
+        
+        ages_observed = np.arange(age_offset, age_offset + T)
+        ages_forecast = np.arange(age_offset + T, age_offset + T + forecast_steps)
+        ages_all = np.concatenate([ages_observed, ages_forecast])
+        
+        fig, ax = plt.subplots(figsize=(14, 8))
+        
+        # Get top 10 diseases by current risk
+        top_diseases = np.argsort(pi_t[-1, :])[-10:][::-1]
+        colors = sns.color_palette("tab10", len(top_diseases))
+        
+        for i, d in enumerate(top_diseases):
+            # Extrapolate using linear extrapolation of recent trend
+            recent_pi = pi_t[-recent_window:, d]
+            recent_ages = ages_observed[-recent_window:]
+            
+            # Fit linear trend
+            if len(recent_pi) > 2 and np.std(recent_pi) > 1e-6:
+                trend = np.polyfit(recent_ages, recent_pi, 1)
+                forecast_pi = np.polyval(trend, ages_forecast)
+                # Clip to [0, 1]
+                forecast_pi = np.clip(forecast_pi, 0, 1)
+            else:
+                # Flat line if no trend
+                forecast_pi = np.full(forecast_steps, pi_t[-1, d])
+            
+            # Plot observed (solid) and forecast (dashed)
+            ax.plot(ages_observed, pi_t[:, d], color=colors[i], linewidth=2, 
+                   label=self.disease_names[d], alpha=0.8)
+            ax.plot(ages_forecast, forecast_pi, color=colors[i], linewidth=2, 
+                   linestyle='--', alpha=0.6)
+            ax.axvline(x=age_offset + T, color='gray', linestyle=':', linewidth=2, 
+                      label='Forecast Start' if i == 0 else '')
+        
+        ax.set_title(f'Disease Risk Forecast ({forecast_years} years ahead)', 
+                    fontsize=14, fontweight='bold')
+        ax.set_xlabel('Age (years)', fontsize=12)
+        ax.set_ylabel('Disease Probability', fontsize=12)
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=9)
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim([ages_observed[0], ages_forecast[-1]])
+        
+        plt.tight_layout()
+        return fig
+    
+    def plot_signature_transition_heatmap(self, person_idx, time_window=None):
+        """Heatmap showing signature-to-signature transitions."""
+        if time_window is None:
+            time_window = range(self.T - 1)  # Need transitions
+        
+        theta = self.theta[person_idx]
+        transitions = np.zeros((self.K, self.K))
+        
+        for t in time_window:
+            if t + 1 >= self.T:
+                continue
+            # Find dominant signature at t and t+1
+            sig_t = np.argmax(theta[:, t])
+            sig_t1 = np.argmax(theta[:, t + 1])
+            transitions[sig_t, sig_t1] += 1
+        
+        # Normalize rows (probabilities of transitioning FROM each signature)
+        row_sums = transitions.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0] = 1
+        transition_probs = transitions / row_sums
+        
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(transition_probs, annot=True, fmt='.2f', cmap='YlOrRd', 
+                   xticklabels=[f'Sig {k}' for k in range(self.K)],
+                   yticklabels=[f'Sig {k}' for k in range(self.K)],
+                   ax=ax, cbar_kws={'label': 'Transition Probability'})
+        ax.set_title(f'Signature Transition Probabilities\n(Patient {person_idx})', 
+                    fontsize=14, fontweight='bold')
+        ax.set_xlabel('To Signature', fontsize=12)
+        ax.set_ylabel('From Signature', fontsize=12)
+        
+        plt.tight_layout()
+        return fig
+    
+    def plot_disease_cooccurrence_network(self, person_idx, max_diseases=20):
+        """Network graph of disease co-occurrence."""
+        if not HAS_NETWORKX:
+            return None
+        
+        diagnosis_times = self.get_diagnosis_times(person_idx)
+        if len(diagnosis_times) == 0:
+            return None
+        
+        # Build graph
+        G = nx.Graph()
+        diseases = list(diagnosis_times.keys())
+        
+        if len(diseases) > max_diseases:
+            # Keep diseases with earliest diagnosis times
+            diseases = sorted(diseases, key=lambda d: min(diagnosis_times[d]))[:max_diseases]
+        
+        # Add nodes
+        for d in diseases:
+            sig_idx = np.argmax(self.psi[:, d])
+            G.add_node(d, name=self.disease_names[d], signature=sig_idx)
+        
+        # Add edges based on time proximity
+        for i, d1 in enumerate(diseases):
+            for d2 in diseases[i+1:]:
+                t1 = min(diagnosis_times[d1])
+                t2 = min(diagnosis_times[d2])
+                time_gap = abs(t1 - t2)
+                # Weight inversely proportional to time gap
+                if time_gap <= 10:  # Within 10 timepoints
+                    weight = 1.0 / (1.0 + time_gap)
+                    G.add_edge(d1, d2, weight=weight, time_gap=time_gap)
+        
+        if len(G.nodes()) == 0:
+            return None
+        
+        # Layout
+        pos = nx.spring_layout(G, k=2, iterations=50)
+        
+        fig, ax = plt.subplots(figsize=(14, 10))
+        
+        # Draw edges
+        edges = G.edges()
+        weights = [G[u][v]['weight'] for u, v in edges]
+        nx.draw_networkx_edges(G, pos, ax=ax, alpha=0.3, width=[w*3 for w in weights],
+                              edge_color='gray')
+        
+        # Draw nodes colored by signature
+        node_colors = []
+        for d in G.nodes():
+            sig = G.nodes[d]['signature']
+            color = 'red' if sig == 5 else sns.color_palette("tab20", self.K)[sig]
+            node_colors.append(color)
+        
+        nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors, 
+                              node_size=1500, alpha=0.8, edgecolors='black', linewidths=2)
+        
+        # Labels
+        labels = {d: G.nodes[d]['name'][:15] for d in G.nodes()}
+        nx.draw_networkx_labels(G, pos, labels, ax=ax, font_size=8, font_weight='bold')
+        
+        ax.set_title(f'Disease Co-occurrence Network\n(Patient {person_idx})', 
+                    fontsize=14, fontweight='bold')
+        ax.axis('off')
+        
+        plt.tight_layout()
+        return fig
+    
+    def compute_population_percentiles(self, person_idx, age_offset=30):
+        """Compare patient to population distribution."""
+        if self.Y is None:
+            return None
+        
+        # Compute population statistics
+        pop_theta = np.mean(self.theta, axis=(0, 2))  # [K] - average across patients and time
+        pop_pi = np.zeros(self.D)
+        for t in range(self.T):
+            for n in range(self.N):
+                theta_t = self.theta[n, :, t]
+                eta_t = expit(self.phi[:, :, t])
+                pop_pi += np.dot(theta_t, eta_t)
+        pop_pi /= (self.N * self.T)
+        
+        # Patient statistics
+        patient_theta = np.mean(self.theta[person_idx], axis=1)  # [K]
+        patient_pi = np.mean(self.compute_disease_probabilities(person_idx), axis=0)  # [D]
+        
+        # Compute percentiles
+        theta_percentiles = []
+        pi_percentiles = []
+        
+        for k in range(self.K):
+            pop_dist = self.theta[:, k, :].flatten()
+            patient_val = patient_theta[k]
+            percentile = stats.percentileofscore(pop_dist, patient_val)
+            theta_percentiles.append(percentile)
+        
+        for d in range(self.D):
+            pop_dist = []
+            for t in range(self.T):
+                for n in range(self.N):
+                    theta_t = self.theta[n, :, t]
+                    eta_t = expit(self.phi[:, d, t])
+                    pop_dist.append(np.dot(theta_t, eta_t))
+            pop_dist = np.array(pop_dist)
+            patient_val = patient_pi[d]
+            percentile = stats.percentileofscore(pop_dist, patient_val) if len(pop_dist) > 0 else 50
+            pi_percentiles.append(percentile)
+        
+        # Create comparison plots
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+        
+        # Signature percentiles
+        sig_colors = ['red' if k == 5 else sns.color_palette("tab20", self.K)[k] 
+                     for k in range(self.K)]
+        bars1 = ax1.barh(range(self.K), theta_percentiles, color=sig_colors, alpha=0.7)
+        ax1.axvline(x=50, color='gray', linestyle='--', linewidth=2, label='50th percentile')
+        ax1.set_yticks(range(self.K))
+        ax1.set_yticklabels([f'Sig {k}' for k in range(self.K)])
+        ax1.set_xlabel('Population Percentile', fontsize=12)
+        ax1.set_title('Signature Loadings: Patient vs Population', fontsize=13, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3, axis='x')
+        
+        # Disease risk percentiles (top 20)
+        top_diseases = np.argsort(pi_percentiles)[-20:][::-1]
+        disease_labels = [self.disease_names[d][:25] for d in top_diseases]
+        bars2 = ax2.barh(range(len(top_diseases)), [pi_percentiles[d] for d in top_diseases], 
+                        alpha=0.7, color='steelblue')
+        ax2.axvline(x=50, color='gray', linestyle='--', linewidth=2, label='50th percentile')
+        ax2.set_yticks(range(len(top_diseases)))
+        ax2.set_yticklabels(disease_labels, fontsize=9)
+        ax2.set_xlabel('Population Percentile', fontsize=12)
+        ax2.set_title('Disease Risks: Patient vs Population (Top 20)', fontsize=13, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3, axis='x')
+        
+        plt.tight_layout()
+        return fig, {'theta_percentiles': theta_percentiles, 'pi_percentiles': pi_percentiles}
+    
+    def compute_signature_stability(self, person_idx):
+        """Compute temporal stability metrics for signatures."""
+        theta = self.theta[person_idx]  # [K, T]
+        K, T = theta.shape
+        
+        # Compute entropy over time (higher entropy = more unstable)
+        entropies = np.zeros(T)
+        for t in range(T):
+            probs = theta[:, t]
+            probs = probs[probs > 1e-10]  # Avoid log(0)
+            entropies[t] = -np.sum(probs * np.log(probs))
+        
+        # Compute variance for each signature over time
+        variances = np.var(theta, axis=1)  # [K]
+        
+        # Find transition points (when dominant signature changes)
+        dominant_sigs = np.argmax(theta, axis=0)  # [T]
+        transitions = []
+        for t in range(1, T):
+            if dominant_sigs[t] != dominant_sigs[t-1]:
+                transitions.append(t)
+        
+        fig, axes = plt.subplots(2, 1, figsize=(14, 8))
+        
+        # Plot 1: Entropy over time (stability measure)
+        axes[0].plot(entropies, linewidth=2, color='steelblue')
+        axes[0].axhline(y=np.log(K), color='red', linestyle='--', 
+                       label=f'Maximum entropy (log({K})={np.log(K):.2f})')
+        for t in transitions:
+            axes[0].axvline(x=t, color='orange', linestyle=':', alpha=0.5)
+        axes[0].set_xlabel('Time', fontsize=12)
+        axes[0].set_ylabel('Entropy (bits)', fontsize=12)
+        axes[0].set_title('Signature Stability Over Time\n(Lower entropy = more stable)', 
+                         fontsize=13, fontweight='bold')
+        axes[0].legend()
+        axes[0].grid(True, alpha=0.3)
+        
+        # Plot 2: Variance by signature
+        sig_colors = ['red' if k == 5 else sns.color_palette("tab20", K)[k] 
+                     for k in range(K)]
+        bars = axes[1].bar(range(K), variances, color=sig_colors, alpha=0.7)
+        axes[1].set_xlabel('Signature', fontsize=12)
+        axes[1].set_ylabel('Temporal Variance', fontsize=12)
+        axes[1].set_title('Signature Variability\n(Higher variance = more variable over time)', 
+                         fontsize=13, fontweight='bold')
+        axes[1].set_xticks(range(K))
+        axes[1].set_xticklabels([f'Sig {k}' for k in range(K)])
+        axes[1].grid(True, alpha=0.3, axis='y')
+        
+        plt.tight_layout()
+        return fig, {'entropies': entropies, 'variances': variances, 'transitions': transitions}
+    
+    def what_if_scenario(self, person_idx, prs_adjustments, time_window=None):
+        """What-if scenario: adjust PRS values and see impact."""
+        if self.G is None or self.gamma is None:
+            return None
+        
+        if time_window is None:
+            time_window = range(self.T)
+        
+        time_window = list(time_window)
+        T_window = len(time_window)
+        
+        # Original trajectory (need to handle indexing correctly)
+        theta_orig = np.zeros((self.K, T_window))
+        for i, t in enumerate(time_window):
+            theta_orig[:, i] = self.theta[person_idx, :, t]
+        
+        # Modified G (adjust PRS)
+        G_modified = self.G[person_idx].copy()
+        for prs_idx, adjustment in prs_adjustments.items():
+            if 0 <= prs_idx < len(G_modified):
+                G_modified[prs_idx] *= (1 + adjustment)  # e.g., 0.2 = 20% increase
+        
+        # Compute modified lambda
+        lambda_orig = np.zeros((self.K, T_window))
+        for i, t in enumerate(time_window):
+            lambda_orig[:, i] = self.lambda_[person_idx, :, t]
+        
+        genetic_effect_orig = np.dot(self.G[person_idx], self.gamma)  # [K]
+        genetic_effect_mod = np.dot(G_modified, self.gamma)  # [K]
+        
+        lambda_modified = lambda_orig.copy()
+        for k in range(self.K):
+            delta = genetic_effect_mod[k] - genetic_effect_orig[k]
+            lambda_modified[k, :] += delta
+        
+        # Compute modified theta
+        theta_modified = np.zeros_like(theta_orig)
+        for t_idx in range(T_window):
+            theta_modified[:, t_idx] = softmax(lambda_modified[:, t_idx])
+        
+        # Compare
+        fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+        
+        # Original vs modified signatures
+        ax = axes[0, 0]
+        for k in range(min(5, self.K)):  # Show top 5 signatures
+            color = 'red' if k == 5 else sns.color_palette("tab20", self.K)[k]
+            ax.plot(time_window, theta_orig[k, :], color=color, linewidth=2, 
+                   linestyle='-', alpha=0.7, label=f'Sig {k} (original)')
+            ax.plot(time_window, theta_modified[k, :], color=color, linewidth=2, 
+                   linestyle='--', alpha=0.9, label=f'Sig {k} (modified)')
+        ax.set_title('Signature Trajectories: Original vs Modified', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Proportion')
+        ax.legend(fontsize=8, ncol=2)
+        ax.grid(True, alpha=0.3)
+        
+        # Change in signatures
+        ax = axes[0, 1]
+        delta_theta = theta_modified - theta_orig
+        for k in range(min(5, self.K)):
+            color = 'red' if k == 5 else sns.color_palette("tab20", self.K)[k]
+            ax.plot(time_window, delta_theta[k, :], color=color, linewidth=2, label=f'Sig {k}')
+        ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        ax.set_title('Change in Signature Loadings', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Delta (modified - original)')
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        
+        # Original vs modified disease risks (only for time window)
+        pi_orig_window = np.zeros((T_window, self.D))
+        pi_modified_window = np.zeros((T_window, self.D))
+        
+        for i, t in enumerate(time_window):
+            # Original
+            theta_t_orig = self.theta[person_idx, :, t]
+            eta_t = expit(self.phi[:, :, t])
+            pi_orig_window[i] = np.dot(theta_t_orig, eta_t)
+            
+            # Modified
+            theta_t_mod = theta_modified[:, i]
+            pi_modified_window[i] = np.dot(theta_t_mod, eta_t)
+        
+        ax = axes[1, 0]
+        top_diseases = np.argsort(pi_orig_window.max(axis=0))[-5:][::-1]
+        colors = sns.color_palette("tab10", len(top_diseases))
+        for i, d in enumerate(top_diseases):
+            ax.plot(time_window, pi_orig_window[:, d], color=colors[i], 
+                   linewidth=2, linestyle='-', label=f'{self.disease_names[d]} (orig)')
+            ax.plot(time_window, pi_modified_window[:, d], color=colors[i], 
+                   linewidth=2, linestyle='--', label=f'{self.disease_names[d]} (mod)')
+        ax.set_title('Disease Risks: Original vs Modified', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Probability')
+        ax.legend(fontsize=7, ncol=2)
+        ax.grid(True, alpha=0.3)
+        
+        # Change in disease risks
+        ax = axes[1, 1]
+        delta_pi = pi_modified_window - pi_orig_window
+        for i, d in enumerate(top_diseases):
+            ax.plot(time_window, delta_pi[:, d], color=colors[i], 
+                   linewidth=2, label=self.disease_names[d])
+        ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        ax.set_title('Change in Disease Risks', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Delta (modified - original)')
+        ax.legend(fontsize=7)
+        ax.grid(True, alpha=0.3)
+        
+        # Add adjustment info to title
+        fig.suptitle('What-If Scenario: Genetic PRS Adjustments', 
+                    fontsize=14, fontweight='bold')
+        
+        plt.tight_layout()
+        return fig
+    
+    def plot_risk_radar_chart(self, person_idx, age_selected=None, age_offset=30):
+        """Radar/spider chart of top disease risks at selected age."""
+        if age_selected is None:
+            age_selected = age_offset + self.T // 2
+        
+        t_idx = max(0, min(self.T - 1, age_selected - age_offset))
+        pi_t = self.compute_disease_probabilities(person_idx)
+        
+        # Get top 8 diseases at this age
+        top_diseases = np.argsort(pi_t[t_idx, :])[-8:][::-1]
+        risks = pi_t[t_idx, top_diseases]
+        labels = [self.disease_names[d][:20] for d in top_diseases]
+        
+        # Create radar chart
+        angles = np.linspace(0, 2 * np.pi, len(top_diseases), endpoint=False).tolist()
+        risks = risks.tolist()
+        
+        # Complete the circle
+        angles += angles[:1]
+        risks += risks[:1]
+        
+        fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'))
+        ax.plot(angles, risks, 'o-', linewidth=2, color='steelblue', label=f'Age {age_selected}')
+        ax.fill(angles, risks, alpha=0.25, color='steelblue')
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(labels, fontsize=10)
+        ax.set_ylim([0, max(risks) * 1.2])
+        ax.set_title(f'Disease Risk Profile at Age {age_selected}\n(Patient {person_idx})', 
+                    fontsize=14, fontweight='bold', pad=20)
+        ax.grid(True)
+        
+        plt.tight_layout()
+        return fig
+    
+    def plot_signature_disease_sankey(self, person_idx, top_n_diseases=15):
+        """Sankey diagram: signature loadings → disease probabilities."""
+        pi_t = self.compute_disease_probabilities(person_idx)
+        theta = self.theta[person_idx]
+        
+        # Average over time
+        avg_theta = np.mean(theta, axis=1)  # [K]
+        avg_pi = np.mean(pi_t, axis=0)  # [D]
+        
+        # Get top diseases
+        top_diseases = np.argsort(avg_pi)[-top_n_diseases:][::-1]
+        
+        # Compute signature contributions to each disease
+        contributions = np.zeros((self.K, len(top_diseases)))
+        for i, d in enumerate(top_diseases):
+            for k in range(self.K):
+                contributions[k, i] = np.mean(theta[k, :] * expit(self.phi[k, d, :]))
+        
+        # Normalize contributions to sum to disease risk
+        for i, d in enumerate(top_diseases):
+            total = contributions[:, i].sum()
+            if total > 0:
+                contributions[:, i] = contributions[:, i] / total * avg_pi[d]
+        
+        # Create plotly Sankey (if plotly available, otherwise use matplotlib)
+        if HAS_PLOTLY:
+            
+            # Prepare data for Sankey
+            source = []
+            target = []
+            value = []
+            label = []
+            
+            # Signatures as sources
+            for k in range(self.K):
+                label.append(f'Sig {k}')
+            
+            # Diseases as targets
+            for i, d in enumerate(top_diseases):
+                label.append(self.disease_names[d][:25])
+            
+            # Add flows
+            for k in range(self.K):
+                for i, d in enumerate(top_diseases):
+                    if contributions[k, i] > 1e-6:
+                        source.append(k)
+                        target.append(self.K + i)
+                        value.append(contributions[k, i] * 100)  # Scale for visibility
+            
+            fig = go.Figure(data=[go.Sankey(
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color="black", width=0.5),
+                    label=label,
+                    color=["red" if i == 5 else f"hsl({i*360//self.K}, 70%, 50%)" 
+                          for i in range(len(label))]
+                ),
+                link=dict(
+                    source=source,
+                    target=target,
+                    value=value,
+                    color=[f"rgba({255 if s==5 else 100}, {100}, {255}, 0.4)" for s in source]
+                )
+            )])
+            
+            fig.update_layout(title_text=f"Signature → Disease Flow (Patient {person_idx})", 
+                            font_size=12, height=800)
+            return fig
+        except ImportError:
+            # Fallback to matplotlib heatmap
+            fig, ax = plt.subplots(figsize=(12, 8))
+            sns.heatmap(contributions, 
+                       xticklabels=[self.disease_names[d][:20] for d in top_diseases],
+                       yticklabels=[f'Sig {k}' for k in range(self.K)],
+                       annot=True, fmt='.3f', cmap='YlOrRd', ax=ax)
+            ax.set_title(f'Signature Contributions to Disease Risks\n(Patient {person_idx})',
+                        fontsize=14, fontweight='bold')
+            ax.set_xlabel('Disease', fontsize=12)
+            ax.set_ylabel('Signature', fontsize=12)
+            plt.tight_layout()
+            return fig
+    
+    def export_patient_data(self, person_idx, age_offset=30):
+        """Export patient data as CSV."""
+        pi_t = self.compute_disease_probabilities(person_idx)
+        theta = self.theta[person_idx]
+        
+        ages = np.arange(age_offset, age_offset + self.T)
+        
+        data = {
+            'Age': ages,
+        }
+        
+        # Add signature loadings
+        for k in range(self.K):
+            data[f'Signature_{k}'] = theta[k, :]
+        
+        # Add disease probabilities (top 20)
+        top_diseases = np.argsort(pi_t.max(axis=0))[-20:][::-1]
+        for d in top_diseases:
+            data[f'Risk_{self.disease_names[d]}'] = pi_t[:, d]
+        
+        # Add diagnosis indicators
+        if self.Y is not None:
+            for d in top_diseases:
+                data[f'Diagnosed_{self.disease_names[d]}'] = self.Y[person_idx, d, :]
+        
+        df = pd.DataFrame(data)
+        return df
+    
+    def find_similar_patients(self, person_idx, n_similar=5, metric='signature'):
+        """Find patients with similar trajectories."""
+        if metric == 'signature':
+            # Compare signature trajectories using correlation
+            target_theta = self.theta[person_idx].flatten()
+            similarities = []
+            for n in range(self.N):
+                if n == person_idx:
+                    continue
+                other_theta = self.theta[n].flatten()
+                corr = np.corrcoef(target_theta, other_theta)[0, 1]
+                if not np.isnan(corr):
+                    similarities.append((corr, n))
+        else:  # disease
+            # Compare disease patterns
+            if self.Y is None:
+                return []
+            target_diseases = set(np.where(self.Y[person_idx].sum(axis=1) > 0)[0])
+            similarities = []
+            for n in range(self.N):
+                if n == person_idx:
+                    continue
+                other_diseases = set(np.where(self.Y[n].sum(axis=1) > 0)[0])
+                # Jaccard similarity
+                intersection = len(target_diseases & other_diseases)
+                union = len(target_diseases | other_diseases)
+                if union > 0:
+                    jaccard = intersection / union
+                    similarities.append((jaccard, n))
+        
+        similarities.sort(reverse=True)
+        return [n for _, n in similarities[:n_similar]]
+
 def name_has(term, name):
     if isinstance(name, str):
         return term in name.lower()
@@ -1168,10 +1811,43 @@ def main():
     # Sidebar controls
     st.sidebar.header("Sample Patient Selection")
     st.sidebar.caption("Select from pre-selected sample patients (no identifying information)")
+    
+    # Patient search/filter
+    search_term = st.sidebar.text_input("🔍 Search by disease name", "", key="patient_search")
+    filtered_patients = good_patients
+    
+    if search_term and visualizer.Y is not None:
+        # Find patients with diseases matching search term
+        search_lower = search_term.lower()
+        matching_diseases = [i for i, name in enumerate(visualizer.disease_names) 
+                           if search_lower in str(name).lower()]
+        if matching_diseases:
+            # Find patients with these diseases
+            matching_patients = []
+            for pidx in good_patients:
+                if any(np.any(visualizer.Y[pidx, d, :] > 0.5) for d in matching_diseases):
+                    matching_patients.append(pidx)
+            if matching_patients:
+                filtered_patients = matching_patients
+                st.sidebar.success(f"Found {len(matching_patients)} patients with matching diseases")
+            else:
+                st.sidebar.warning("No patients found with matching diseases")
+        else:
+            st.sidebar.warning("No diseases match search term")
+    
+    # Similar patients quick access
+    show_similar = st.sidebar.checkbox("Show similar patients", key="show_similar_sidebar")
+    if show_similar and visualizer.Y is not None:
+        similar_pids = visualizer.find_similar_patients(default_person_idx, 3, 'signature')
+        if similar_pids:
+            st.sidebar.write("**Similar patients:**")
+            for pidx in similar_pids:
+                st.sidebar.write(f"- Sample Patient {pidx}")
+    
     person_idx = st.sidebar.selectbox(
         "Select Sample Patient",
-        options=good_patients,
-        index=good_patients.index(default_person_idx) if default_person_idx in good_patients else 0,
+        options=filtered_patients,
+        index=filtered_patients.index(default_person_idx) if default_person_idx in filtered_patients else 0,
         format_func=lambda x: f"Sample Patient {x}"
     )
     
@@ -1181,9 +1857,11 @@ def main():
     time_end = st.sidebar.slider("End Time", time_start, visualizer.T-1, visualizer.T-1)
     time_window = range(time_start, time_end + 1)
     
-    # Add a new tab for tables
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "Plots", "Tables", "Genetics", "Risk Summary & Event Analysis"
+    # Add tabs for all features
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+        "Plots", "Tables", "Genetics", "Risk Summary", 
+        "Compare Patients", "Forecast", "Network Analysis", 
+        "Advanced", "Export"
     ])
     with tab1:
         col1, col2 = st.columns(2)
@@ -1200,17 +1878,13 @@ def main():
             """)
         with col2:
             st.markdown("### Disease Probabilities and Signature Contributions")
-            # Use the most common disease as default for highlighting if not in Risk Summary tab
-            if 'disease_idx' in locals():
-                disease_fig = visualizer.plot_disease_probabilities(person_idx, time_window, disease_idx, use_log=False)
+            # Use the most common disease as default for highlighting
+            if visualizer.Y is not None:
+                disease_prevalence = np.sum(visualizer.Y.sum(axis=2) > 0, axis=0)
+                most_common_disease_idx = int(np.argmax(disease_prevalence))
             else:
-                # Use the most common disease
-                if visualizer.Y is not None:
-                    disease_prevalence = np.sum(visualizer.Y.sum(axis=2) > 0, axis=0)
-                    most_common_disease_idx = int(np.argmax(disease_prevalence))
-                else:
-                    most_common_disease_idx = 0
-                disease_fig = visualizer.plot_disease_probabilities(person_idx, time_window, most_common_disease_idx, use_log=False)
+                most_common_disease_idx = 0
+            disease_fig = visualizer.plot_disease_probabilities(person_idx, time_window, most_common_disease_idx, use_log=False)
             st.pyplot(disease_fig)
             st.markdown("""
             **How to interpret:**
@@ -1299,6 +1973,229 @@ def main():
         if fig_comprehensive:
             st.pyplot(fig_comprehensive)
             plt.close(fig_comprehensive)
+
+    # Tab 5: Patient Comparison
+    with tab5:
+        st.header("Compare Two Patients")
+        col1, col2 = st.columns(2)
+        with col1:
+            person_idx1 = st.selectbox("Patient 1", good_patients, 
+                                       index=good_patients.index(person_idx),
+                                       format_func=lambda x: f"Sample Patient {x}",
+                                       key="compare_p1")
+        with col2:
+            person_idx2 = st.selectbox("Patient 2", good_patients,
+                                       index=0 if person_idx == 0 else good_patients.index(person_idx) - 1,
+                                       format_func=lambda x: f"Sample Patient {x}",
+                                       key="compare_p2")
+        
+        if st.button("Compare Patients", key="compare_btn"):
+            compare_fig = visualizer.plot_patient_comparison(person_idx1, person_idx2, time_window)
+            st.pyplot(compare_fig)
+            plt.close(compare_fig)
+
+    # Tab 6: Forecast
+    with tab6:
+        st.header("Disease Risk Forecasting")
+        age_offset_forecast = st.sidebar.number_input("Age at Baseline", 
+                                                      min_value=0, max_value=100, 
+                                                      value=30, key="age_forecast")
+        forecast_years = st.slider("Forecast Years Ahead", 1, 20, 10, key="forecast_years")
+        
+        if st.button("Generate Forecast", key="forecast_btn"):
+            forecast_fig = visualizer.forecast_disease_risks(person_idx, forecast_years, age_offset_forecast)
+            st.pyplot(forecast_fig)
+            plt.close(forecast_fig)
+            st.info("⚠️ Forecasts are extrapolations based on recent trends and should not be used for clinical decision-making.")
+
+    # Tab 7: Network Analysis
+    with tab7:
+        st.header("Disease Co-occurrence Network")
+        if visualizer.Y is not None:
+            max_diseases = st.slider("Max Diseases in Network", 5, 30, 20, key="max_diseases_net")
+            if st.button("Generate Network", key="network_btn"):
+                network_fig = visualizer.plot_disease_cooccurrence_network(person_idx, max_diseases)
+                if network_fig:
+                    st.pyplot(network_fig)
+                    plt.close(network_fig)
+                else:
+                    st.warning("No diseases found for this patient.")
+        else:
+            st.warning("Disease data (Y) not available for network analysis.")
+        
+        st.markdown("---")
+        
+        st.header("Signature Transition Heatmap")
+        if st.button("Generate Transition Heatmap", key="transition_btn"):
+            transition_fig = visualizer.plot_signature_transition_heatmap(person_idx, time_window)
+            st.pyplot(transition_fig)
+            plt.close(transition_fig)
+        
+        st.markdown("---")
+        
+        st.header("Signature Stability Metrics")
+        if st.button("Compute Stability", key="stability_btn"):
+            stability_fig, stability_data = visualizer.compute_signature_stability(person_idx)
+            st.pyplot(stability_fig)
+            plt.close(stability_fig)
+            
+            with st.expander("Stability Metrics Details"):
+                st.write(f"**Transitions detected:** {len(stability_data['transitions'])}")
+                st.write(f"**Average entropy:** {np.mean(stability_data['entropies']):.3f}")
+                st.write(f"**Most variable signature:** Sig {np.argmax(stability_data['variances'])}")
+                st.write(f"**Most stable signature:** Sig {np.argmin(stability_data['variances'])}")
+
+    # Tab 8: Advanced Features
+    with tab8:
+        st.header("Advanced Analysis Features")
+        
+        # Population Comparison
+        st.subheader("Population Percentiles Comparison")
+        age_offset_percentiles = st.sidebar.number_input("Age at Baseline (for percentiles)", 
+                                                         min_value=0, max_value=100, 
+                                                         value=30, key="age_percentiles")
+        if st.button("Compare to Population", key="percentile_btn"):
+            percentile_fig, percentile_data = visualizer.compute_population_percentiles(
+                person_idx, age_offset_percentiles)
+            st.pyplot(percentile_fig)
+            plt.close(percentile_fig)
+            
+            with st.expander("Percentile Details"):
+                st.write("**Signature Percentiles:**")
+                for k in range(visualizer.K):
+                    pct = percentile_data['theta_percentiles'][k]
+                    st.write(f"  Sig {k}: {pct:.1f}th percentile")
+                
+                st.write("\n**Top Disease Risk Percentiles:**")
+                top_diseases = np.argsort(percentile_data['pi_percentiles'])[-10:][::-1]
+                for d in top_diseases:
+                    pct = percentile_data['pi_percentiles'][d]
+                    st.write(f"  {visualizer.disease_names[d][:40]}: {pct:.1f}th percentile")
+        
+        st.markdown("---")
+        
+        # What-If Scenarios
+        st.subheader("What-If Scenario: Genetic PRS Adjustments")
+        st.markdown("Adjust PRS values and see predicted impact on signatures and disease risks.")
+        
+        if visualizer.prs_names and visualizer.G is not None and visualizer.gamma is not None:
+            num_adjustments = st.number_input("Number of PRS to adjust", 1, 5, 1, key="num_adj")
+            prs_adjustments = {}
+            
+            for i in range(num_adjustments):
+                col1, col2 = st.columns(2)
+                with col1:
+                    prs_idx = st.selectbox(f"PRS Feature {i+1}", 
+                                          range(min(len(visualizer.prs_names), visualizer.G.shape[1])),
+                                          format_func=lambda x: visualizer.prs_names[x] if x < len(visualizer.prs_names) else f"Feature {x}",
+                                          key=f"prs_select_{i}")
+                with col2:
+                    adjustment = st.slider(f"Adjustment %", -50, 50, 0, 
+                                          format="%d%%", key=f"prs_adj_{i}")
+                    prs_adjustments[prs_idx] = adjustment / 100.0  # Convert to fraction
+            
+            if st.button("Run What-If Scenario", key="whatif_btn"):
+                whatif_fig = visualizer.what_if_scenario(person_idx, prs_adjustments, time_window)
+                if whatif_fig:
+                    st.pyplot(whatif_fig)
+                    plt.close(whatif_fig)
+        else:
+            st.warning("PRS data or genetic effects not available for what-if scenarios.")
+        
+        st.markdown("---")
+        
+        # Risk Radar Chart
+        st.subheader("Disease Risk Radar Chart")
+        age_offset_radar = st.sidebar.number_input("Age at Baseline (for radar)", 
+                                                   min_value=0, max_value=100, 
+                                                   value=30, key="age_radar")
+        age_selected = st.slider("Select Age for Risk Profile", 
+                                age_offset_radar, age_offset_radar + visualizer.T - 1,
+                                age_offset_radar + visualizer.T // 2, key="age_radar_select")
+        
+        if st.button("Generate Radar Chart", key="radar_btn"):
+            radar_fig = visualizer.plot_risk_radar_chart(person_idx, age_selected, age_offset_radar)
+            st.pyplot(radar_fig)
+            plt.close(radar_fig)
+        
+        st.markdown("---")
+        
+        # Signature-Disease Sankey
+        st.subheader("Signature → Disease Flow (Sankey Diagram)")
+        top_n_sankey = st.slider("Top N Diseases", 5, 20, 15, key="top_n_sankey")
+        if st.button("Generate Sankey Diagram", key="sankey_btn"):
+            try:
+                sankey_fig = visualizer.plot_signature_disease_sankey(person_idx, top_n_sankey)
+                # Check if it's a plotly figure or matplotlib figure
+                if hasattr(sankey_fig, 'show'):
+                    st.plotly_chart(sankey_fig, use_container_width=True)
+                else:
+                    st.pyplot(sankey_fig)
+                    plt.close(sankey_fig)
+            except Exception as e:
+                st.error(f"Error generating Sankey diagram: {e}")
+                st.info("Falling back to heatmap visualization.")
+                sankey_fig = visualizer.plot_signature_disease_sankey(person_idx, top_n_sankey)
+                if hasattr(sankey_fig, 'show'):
+                    st.plotly_chart(sankey_fig, use_container_width=True)
+                else:
+                    st.pyplot(sankey_fig)
+                    plt.close(sankey_fig)
+        
+        st.markdown("---")
+        
+        # Find Similar Patients
+        st.subheader("Find Similar Patients")
+        similarity_metric = st.radio("Similarity Metric", ["Signature trajectories", "Disease patterns"], key="sim_metric")
+        n_similar = st.slider("Number of Similar Patients", 1, 10, 5, key="n_similar")
+        
+        if st.button("Find Similar Patients", key="similar_btn"):
+            metric = 'signature' if similarity_metric == "Signature trajectories" else 'disease'
+            similar_patients = visualizer.find_similar_patients(person_idx, n_similar, metric)
+            
+            if similar_patients:
+                st.write(f"**Most similar patients to Patient {person_idx}:**")
+                for i, pidx in enumerate(similar_patients):
+                    st.write(f"{i+1}. Sample Patient {pidx}")
+                    
+                    # Quick comparison
+                    if st.checkbox(f"Show comparison with Patient {pidx}", key=f"compare_sim_{pidx}"):
+                        compare_fig = visualizer.plot_patient_comparison(person_idx, pidx, time_window)
+                        st.pyplot(compare_fig)
+                        plt.close(compare_fig)
+            else:
+                st.warning("No similar patients found.")
+
+    # Tab 9: Export
+    with tab9:
+        st.header("Export Patient Data")
+        
+        export_format = st.radio("Export Format", ["CSV", "PDF Report (coming soon)"], key="export_format")
+        
+        if export_format == "CSV":
+            age_offset_export = st.sidebar.number_input("Age at Baseline (for export)", 
+                                                        min_value=0, max_value=100, 
+                                                        value=30, key="age_export")
+            
+            if st.button("Export to CSV", key="export_csv_btn"):
+                df = visualizer.export_patient_data(person_idx, age_offset_export)
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name=f"patient_{person_idx}_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    key="download_csv"
+                )
+                
+                st.success("Data prepared! Click 'Download CSV' to save.")
+                st.dataframe(df.head(20))
+        
+        st.markdown("---")
+        
+        st.header("Export Current Plot")
+        st.markdown("Right-click on any plot above and select 'Save image as...' to export.")
+        st.info("📊 For high-resolution exports, we recommend using the PDF export (coming soon) or taking screenshots at full resolution.")
 
 if __name__ == "__main__":
     main() 
