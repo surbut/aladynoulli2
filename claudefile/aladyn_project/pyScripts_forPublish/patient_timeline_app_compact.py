@@ -105,7 +105,7 @@ class PatientTimelineVisualizer:
             except Exception as e:
                 print(f"⚠️ Could not load from CSV: {e}, falling back to model data")
                 # Fallback to model data if CSV fails
-                self.disease_names = model_data['disease_names']
+        self.disease_names = model_data['disease_names']
                 if hasattr(self.disease_names, 'columns') and 'x' in self.disease_names.columns:
                     self.disease_names = self.disease_names['x'].dropna().astype(str).tolist()
                 elif isinstance(self.disease_names, (list, tuple, np.ndarray)):
@@ -130,7 +130,7 @@ class PatientTimelineVisualizer:
         print(f"Final disease_names: {len(self.disease_names)} names loaded")
         if len(self.disease_names) > 0:
             print(f"First disease: '{self.disease_names[0]}'")
-        else:
+            else:
             print("⚠️ WARNING: No disease names loaded!")
         
         # Get dimensions
@@ -1790,7 +1790,7 @@ def main():
     # Strategy: Prefer a patient with MI and high signature 5 loading at diagnosis time
     # Otherwise, default to first patient (index 0)
     good_patients = list(range(visualizer.N))  # All patients are available
-    
+
     # Default to first patient (index 0)
     default_person_idx = 0
     
@@ -1879,12 +1879,12 @@ def main():
         with col2:
             st.markdown("### Disease Probabilities and Signature Contributions")
             # Use the most common disease as default for highlighting
-            if visualizer.Y is not None:
-                disease_prevalence = np.sum(visualizer.Y.sum(axis=2) > 0, axis=0)
-                most_common_disease_idx = int(np.argmax(disease_prevalence))
-            else:
-                most_common_disease_idx = 0
-            disease_fig = visualizer.plot_disease_probabilities(person_idx, time_window, most_common_disease_idx, use_log=False)
+                if visualizer.Y is not None:
+                    disease_prevalence = np.sum(visualizer.Y.sum(axis=2) > 0, axis=0)
+                    most_common_disease_idx = int(np.argmax(disease_prevalence))
+                else:
+                    most_common_disease_idx = 0
+                disease_fig = visualizer.plot_disease_probabilities(person_idx, time_window, most_common_disease_idx, use_log=False)
             st.pyplot(disease_fig)
             st.markdown("""
             **How to interpret:**
@@ -2011,16 +2011,16 @@ def main():
     # Tab 7: Network Analysis
     with tab7:
         st.header("Disease Co-occurrence Network")
-        if visualizer.Y is not None:
+            if visualizer.Y is not None:
             max_diseases = st.slider("Max Diseases in Network", 5, 30, 20, key="max_diseases_net")
             if st.button("Generate Network", key="network_btn"):
                 network_fig = visualizer.plot_disease_cooccurrence_network(person_idx, max_diseases)
                 if network_fig:
                     st.pyplot(network_fig)
                     plt.close(network_fig)
-                else:
+            else:
                     st.warning("No diseases found for this patient.")
-        else:
+            else:
             st.warning("Disease data (Y) not available for network analysis.")
         
         st.markdown("---")
@@ -2099,7 +2099,7 @@ def main():
                 if whatif_fig:
                     st.pyplot(whatif_fig)
                     plt.close(whatif_fig)
-        else:
+                else:
             st.warning("PRS data or genetic effects not available for what-if scenarios.")
         
         st.markdown("---")
@@ -2129,7 +2129,7 @@ def main():
                 # Check if it's a plotly figure or matplotlib figure
                 if hasattr(sankey_fig, 'show'):
                     st.plotly_chart(sankey_fig, use_container_width=True)
-                else:
+            else:
                     st.pyplot(sankey_fig)
                     plt.close(sankey_fig)
             except Exception as e:

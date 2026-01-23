@@ -269,21 +269,21 @@ def load_phi_max_and_disease_names():
             # Load from single checkpoint
             print(f"  Loading phi from checkpoint: {phi_path}")
             ckpt = torch.load(phi_path, map_location='cpu', weights_only=False)
-            
+    
             # Load phi
-            if 'model_state_dict' in ckpt and 'phi' in ckpt['model_state_dict']:
-                phi = ckpt['model_state_dict']['phi']
-            elif 'phi' in ckpt:
-                phi = ckpt['phi']
-            else:
+    if 'model_state_dict' in ckpt and 'phi' in ckpt['model_state_dict']:
+        phi = ckpt['model_state_dict']['phi']
+    elif 'phi' in ckpt:
+        phi = ckpt['phi']
+    else:
                 raise ValueError(f"No phi found in {phi_path}")
-            
-            if torch.is_tensor(phi):
-                phi = phi.detach().cpu().numpy()
-            
-            K, D, T = phi.shape
-            print(f"  Phi shape: {phi.shape} (K={K}, D={D}, T={T})")
-            # Take max phi over time (peak association)
+    
+    if torch.is_tensor(phi):
+        phi = phi.detach().cpu().numpy()
+    
+    K, D, T = phi.shape
+    print(f"  Phi shape: {phi.shape} (K={K}, D={D}, T={T})")
+    # Take max phi over time (peak association)
             phi_max_mean = np.max(phi, axis=2)  # (K, D)
             print(f"  Taking max over time dimension: {phi_max_mean.shape}")
         else:
@@ -458,7 +458,7 @@ def load_gene_disease_correlations(csv_path):
         disease = str(row[disease_col]).strip()
         corr = float(row[corr_col])
         correlations[(gene, disease)] = corr
-        
+    
         if pval_col and pval_col in df.columns:
             pval = row[pval_col]
             if pd.notna(pval):
