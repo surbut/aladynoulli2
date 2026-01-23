@@ -1627,7 +1627,7 @@ def main():
         cluster_assignments = st.session_state['cluster_assignments']
     
     # Sample patient visualization interface
-    st.header("Load Sample Patient")
+        st.header("Load Sample Patient")
         
         # Load sample patients
         col1, col2 = st.columns(2)
