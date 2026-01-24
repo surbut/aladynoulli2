@@ -172,7 +172,7 @@ The Aladynoulli workflow consists of **4 main steps**:
 | **Preprocessing** | [preprocessing_utils.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
 | **Batch Training** | [run_aladyn_batch_vector_e_censor.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor.py) | Batch model training with corrected E |
 | **Master Checkpoint** | [create_master_checkpoints.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py) | Create pooled checkpoints |
-| **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE_fullEtest.py) | Run predictions with corrected E |
+| **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE.py) | Run enrollment-based predictions using enrollment E matrix (E_enrollment_full.pt) with master checkpoint from corrected E training
 
 ---
 
