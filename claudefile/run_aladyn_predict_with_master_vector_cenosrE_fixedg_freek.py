@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Prediction script for Aladyn model using enrollment data with fixed phi/psi, fixed gamma, and fixed kappa
-USES MASTER CHECKPOINT FILES (pooled phi + initial_psi) + POOLED GAMMA + POOLED KAPPA
+Prediction script for Aladyn model using enrollment data with fixed phi/psi and fixed gamma (kappa free)
+USES MASTER CHECKPOINT FILES (pooled phi + initial_psi) + POOLED GAMMA
 
 This script:
 - Uses FIXED phi from pooled batches (master checkpoint) and initial_psi
 - Uses FIXED gamma from pooled training batches
-- Uses FIXED kappa from pooled training batches
-- Only estimates lambda (genetic effects) per batch
+- LEARNS kappa per batch (free)
+- Only estimates lambda and kappa per batch
 - Processes data in batches (default 10k samples)
 - Saves predictions (pi) for each batch
 - Concatenates all batches at the end
@@ -15,13 +15,13 @@ This script:
 Master checkpoints should be created using create_master_checkpoints.py:
 - master_for_fitting_pooled_correctedE.pt (pooled phi)
 
-Pooled gamma and kappa should be created using pool_kappa_and_gamma_from_batches.py:
-- pooled_kappa_gamma.pt (pooled kappa and gamma)
+Pooled gamma should be created using pool_kappa_and_gamma_from_batches.py:
+- pooled_kappa_gamma.pt (pooled gamma)
 
 Usage:
-    python run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py \
+    python run_aladyn_predict_with_master_vector_cenosrE_fixedg_freek.py \
         --trained_model_path /path/to/master.pt \
-        --pooled_gamma_kappa_path /path/to/pooled_kappa_gamma.pt
+        --pooled_gamma_path /path/to/pooled_kappa_gamma.pt
 """
 
 import numpy as np
@@ -37,10 +37,10 @@ from pstats import SortKey
 from pathlib import Path
 import time
 
-# Add AWS directory to path to use the fixed gamma/kappa model
+# Add AWS directory to path to use the fixed gamma model
 sys.path.insert(0, str(Path(__file__).parent / 'aws_offsetmaster'))
 
-from clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa import *
+from clust_huge_amp_fixedPhi_vectorized_fixed_gamma import *
 import pandas as pd
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn.utils.extmath")
@@ -91,27 +91,26 @@ def generate_batches(total_size, batch_size=10000):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run Aladyn predictions with fixed phi/psi, fixed gamma, and fixed kappa')
+    parser = argparse.ArgumentParser(description='Run Aladyn predictions with fixed phi/psi and fixed gamma (kappa free)')
     parser.add_argument('--trained_model_path', type=str, required=True,
                        help='Path to trained model with phi and psi')
-    parser.add_argument('--pooled_gamma_kappa_path', type=str, required=True,
-                       help='Path to pooled gamma and kappa file (from pool_kappa_and_gamma_from_batches.py)')
+    parser.add_argument('--pooled_gamma_path', type=str, required=True,
+                       help='Path to pooled gamma file (from pool_kappa_and_gamma_from_batches.py)')
     parser.add_argument('--batch_size', type=int, default=10000,
                        help='Batch size for processing')
     parser.add_argument('--num_epochs', type=int, default=200,
                        help='Number of training epochs per batch')
     parser.add_argument('--learning_rate', type=float, default=1e-1,
                        help='Learning rate')
-    # Note: lambda_reg parameter is accepted but not used in the model (leftover from earlier version)
     parser.add_argument('--lambda_reg', type=float, default=1e-2,
-                       help='Regularization parameter (NOT USED - kept for compatibility)')
+                       help='Regularization parameter')
 
     # Path configuration
     parser.add_argument('--data_dir', type=str,
                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/',
                        help='Directory containing input data')
     parser.add_argument('--output_dir', type=str,
-                       default='/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_fixedgk_vectorized/',
+                       default='/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_fixedg_freek_vectorized/',
                        help='Output directory for predictions')
     parser.add_argument('--covariates_path', type=str,
                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/baselinagefamh_withpcs.csv',
@@ -130,10 +129,10 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     print(f"\n{'='*80}")
-    print(f"Aladyn Prediction Script - Fixed Phi/Psi/Gamma/Kappa Mode")
+    print(f"Aladyn Prediction Script - Fixed Phi/Psi/Gamma Mode (Kappa Free)")
     print(f"{'='*80}")
     print(f"Trained model: {args.trained_model_path}")
-    print(f"Pooled gamma/kappa: {args.pooled_gamma_kappa_path}")
+    print(f"Pooled gamma: {args.pooled_gamma_path}")
     print(f"Output directory: {args.output_dir}")
     print(f"Batch size: {args.batch_size}")
     print(f"{'='*80}\n")
@@ -187,30 +186,20 @@ def main():
     print(f"Loaded pooled phi shape: {phi_total.shape}")
     print(f"Loaded psi_total shape: {psi_total.shape}")
     
-    # Load pooled gamma and kappa
-    print(f"Loading pooled gamma and kappa from {args.pooled_gamma_kappa_path}...")
-    pooled_gk = torch.load(args.pooled_gamma_kappa_path, map_location='cpu', weights_only=False)
+    # Load pooled gamma
+    print(f"Loading pooled gamma from {args.pooled_gamma_path}...")
+    pooled_gk = torch.load(args.pooled_gamma_path, map_location='cpu', weights_only=False)
     
     if 'gamma' in pooled_gk:
         gamma_pooled = pooled_gk['gamma']
     else:
-        raise ValueError(f"gamma not found in {args.pooled_gamma_kappa_path}")
-    
-    if 'kappa' in pooled_gk:
-        kappa_pooled = pooled_gk['kappa']
-    else:
-        raise ValueError(f"kappa not found in {args.pooled_gamma_kappa_path}")
+        raise ValueError(f"gamma not found in {args.pooled_gamma_path}")
     
     # Convert to numpy if tensor
     if torch.is_tensor(gamma_pooled):
         gamma_pooled = gamma_pooled.cpu().numpy()
-    if torch.is_tensor(kappa_pooled):
-        kappa_pooled = kappa_pooled.item() if kappa_pooled.numel() == 1 else float(kappa_pooled)
-    else:
-        kappa_pooled = float(kappa_pooled)
     
     print(f"Loaded pooled gamma shape: {gamma_pooled.shape}")
-    print(f"Loaded pooled kappa: {kappa_pooled:.6f}")
     
     # Free memory
     del pooled_gk
@@ -241,25 +230,11 @@ def main():
 
     # Process each batch
     successful_batches = []
-    skipped_batches = []
-    processed_batches = []
 
     for batch_idx, (start, stop) in enumerate(batches):
         print(f"\n{'='*80}")
         print(f"BATCH {batch_idx+1}/{len(batches)}: Processing samples {start} to {stop}")
         print(f"{'='*80}")
-        
-        # Check if batch output already exists
-        pi_filename = os.path.join(args.output_dir, f"pi_enroll_fixedphi_sex_{start}_{stop}.pt")
-        model_filename = os.path.join(args.output_dir, f"model_enroll_fixedphi_sex_{start}_{stop}.pt")
-        
-        if os.path.exists(pi_filename) and os.path.exists(model_filename):
-            print(f"✓ Batch output already exists, skipping...")
-            print(f"  Found: {pi_filename}")
-            print(f"  Found: {model_filename}")
-            successful_batches.append((start, stop))
-            skipped_batches.append((start, stop))
-            continue
         
         batch_start_time = time.time()
 
@@ -295,9 +270,9 @@ def main():
                 print(f"   This might be okay if gamma was pooled from a different G configuration")
                 print(f"   Will proceed, but predictions may be incorrect if shapes don't match")
 
-            # Initialize model with FIXED phi, psi, gamma, and kappa
-            print(f"Initializing model with fixed phi/psi/gamma/kappa...")
-            model = AladynSurvivalFixedPhiFixedGammaFixedKappa(
+            # Initialize model with FIXED phi, psi, and gamma (kappa is free)
+            print(f"Initializing model with fixed phi/psi/gamma (kappa free)...")
+            model = AladynSurvivalFixedPhiFixedGamma(
                 N=Y_batch.shape[0],
                 D=Y_batch.shape[1],
                 T=Y_batch.shape[2],
@@ -313,13 +288,12 @@ def main():
                 pretrained_phi=phi_total,
                 pretrained_psi=psi_total,
                 pretrained_gamma=gamma_pooled,
-                pretrained_kappa=kappa_pooled,
                 signature_references=signature_refs,
                 healthy_reference=True,
                 disease_names=essentials['disease_names']
             )
 
-            # Verify phi, psi, gamma, and kappa are fixed
+            # Verify phi, psi, and gamma are fixed
             if np.allclose(model.phi.cpu().numpy(), phi_total):
                 print("✓ phi matches phi_total!")
             else:
@@ -335,13 +309,10 @@ def main():
             else:
                 print("✗ WARNING: gamma does NOT match gamma_pooled!")
             
-            if abs(model.kappa.item() - kappa_pooled) < 1e-6:
-                print(f"✓ kappa matches kappa_pooled! ({model.kappa.item():.6f})")
-            else:
-                print(f"✗ WARNING: kappa does NOT match kappa_pooled! (model: {model.kappa.item():.6f}, pooled: {kappa_pooled:.6f})")
+            print(f"✓ kappa is free (will be learned per batch), initial value: {model.kappa.item():.6f}")
 
-            # Train model (only lambda is being estimated)
-            print(f"Training model (estimating lambda only, gamma and kappa are fixed)...")
+            # Train model (lambda and kappa are being estimated, gamma is fixed)
+            print(f"Training model (estimating lambda and kappa, gamma is fixed)...")
             
             # Only profile if explicitly requested (adds overhead)
             if args.profile:
@@ -352,7 +323,7 @@ def main():
                 E_batch,
                 num_epochs=args.num_epochs,
                 learning_rate=args.learning_rate,
-                lambda_reg=args.lambda_reg  # Parameter accepted but not used in loss computation
+                lambda_reg=args.lambda_reg
             )
 
             if args.profile:
@@ -365,11 +336,15 @@ def main():
             with torch.no_grad():
                 pi, _, _ = model.forward()
 
-                # Save predictions (filename already defined above)
+                # Save predictions
+                pi_filename = os.path.join(args.output_dir,
+                                          f"pi_enroll_fixedphi_sex_{start}_{stop}.pt")
                 torch.save(pi, pi_filename)
                 print(f"✓ Saved predictions to {pi_filename}")
 
-                # Save model state (filename already defined above)
+                # Save model state (includes learned kappa)
+                model_filename = os.path.join(args.output_dir,
+                                            f"model_enroll_fixedphi_sex_{start}_{stop}.pt")
                 torch.save({
                     'model_state_dict': model.state_dict(),
                     'E': E_batch,
@@ -377,11 +352,12 @@ def main():
                     'logit_prevalence_t': model.logit_prev_t,
                     'start_index': start,
                     'end_index': stop,
+                    'learned_kappa': model.kappa.item(),  # Save learned kappa per batch
                 }, model_filename)
                 print(f"✓ Saved model to {model_filename}")
+                print(f"  Learned kappa for this batch: {model.kappa.item():.6f}")
 
             successful_batches.append((start, stop))
-            processed_batches.append((start, stop))
 
             # Clean up memory
             print(f"Cleaning up memory...")
@@ -403,9 +379,6 @@ def main():
     print(f"\n{'='*80}")
     print(f"ALL BATCHES COMPLETE!")
     print(f"{'='*80}")
-    print(f"Processed: {len(processed_batches)} batches")
-    print(f"Skipped (already existed): {len(skipped_batches)} batches")
-    print(f"Total successful: {len(successful_batches)} batches")
 
     # Concatenate all predictions into one file
     print(f"\nConcatenating all predictions into single file...")
@@ -438,7 +411,7 @@ def main():
             'n_timepoints': pi_full.shape[2],
             'args': vars(args),
             'gamma_shape': gamma_pooled.shape,
-            'kappa_value': kappa_pooled,
+            'note': 'gamma fixed, kappa free (learned per batch)',
         }
         info_filename = os.path.join(args.output_dir, "batch_info.pt")
         torch.save(batch_info, info_filename)
@@ -447,10 +420,9 @@ def main():
         print("✗ No successful batches to concatenate!")
 
     print(f"\n{'='*80}")
-    print(f"DONE! Predictions use fixed gamma and kappa (only lambda was learned).")
+    print(f"DONE! Predictions use fixed gamma (kappa was learned per batch).")
     print(f"{'='*80}")
 
 
 if __name__ == '__main__':
     main()
-

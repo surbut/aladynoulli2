@@ -143,12 +143,13 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 
 ## 💻 Complete Workflow
 
-The Aladynoulli workflow consists of **4 main steps**:
+The Aladynoulli workflow consists of **5 main steps**:
 
 1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
 2. **Batch Training**: Train models on data batches with full E matrix
 3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
-4. **Prediction**: Run predictions using master checkpoint
+4. **Pool Gamma & Kappa**: Pool gamma (genetic effects) and kappa (calibration) from training batches
+5. **Prediction**: Run predictions using master checkpoint with fixed gamma and kappa (only lambda is learned)
 
 ### Essential Resources
 
@@ -163,7 +164,9 @@ The Aladynoulli workflow consists of **4 main steps**:
 | Component | File | Description |
 |-----------|------|-------------|
 | **Discovery Model** | [clust_huge_amp_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py) | Full model that learns phi and psi |
-| **Prediction Model** | [clust_huge_amp_fixedPhi_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) | Fixed-phi model for fast predictions |
+| **Prediction Model** | [clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py) | Fixed-phi, fixed-gamma, fixed-kappa model for fast predictions |
+
+**Note**: The prediction model uses fixed gamma (genetic effects) and kappa (calibration parameter) from pooled training batches. This ensures consistent, population-level values across prediction batches and prevents per-batch overfitting. Only lambda (individual-specific signature loadings) is learned during prediction.
 
 ### Workflow Scripts
 
@@ -171,8 +174,9 @@ The Aladynoulli workflow consists of **4 main steps**:
 |--------|----------|---------|
 | **Preprocessing** | [preprocessing_utils.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
 | **Batch Training** | [run_aladyn_batch_vector_e_censor.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor.py) | Batch model training with corrected E |
-| **Master Checkpoint** | [create_master_checkpoints.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py) | Create pooled checkpoints |
-| **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE.py) | Run enrollment-based predictions using enrollment E matrix (E_enrollment_full.pt) with master checkpoint from corrected E training
+| **Master Checkpoint** | [create_master_checkpoints.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py) | Create pooled checkpoints (phi and psi) |
+| **Pool Gamma & Kappa** | [pool_kappa_and_gamma_from_nolr_batches.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/pool_kappa_and_gamma_from_nolr_batches.py) | Pool gamma (genetic effects) and kappa (calibration) from training batch checkpoints |
+| **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py) | Run enrollment-based predictions using enrollment E matrix (E_enrollment_full.pt) with master checkpoint from corrected E training, using fixed gamma and kappa from pooled training batches (only lambda is learned per batch)
 
 ---
 

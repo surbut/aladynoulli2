@@ -669,8 +669,8 @@ def plot_full_heatmap(gamma_df, output_dir):
 def main():
     parser = argparse.ArgumentParser(description='Generate PRS-Signature association plots')
     parser.add_argument('--batch_dir', type=str,
-                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized/',
-                        help='Directory containing enrollment batch checkpoints (shrunken gamma from fit). Default: censor_e_batchrun_vectorized/')
+                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_nolr/',
+                        help='Directory containing enrollment batch checkpoints. Default: censor_e_batchrun_vectorized_nolr/ (unregularized). Use censor_e_batchrun_vectorized/ for regularized.')
     parser.add_argument('--prediction_batch_dir', type=str,
                         default=None,
                         help='Directory containing prediction batch checkpoints (unshrunken gamma). Set this to compare with prediction batches. Example: /Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_correctedE_vectorized/')
@@ -680,8 +680,8 @@ def main():
                         default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_noPCS/enrollment_model_VECTORIZED_W0.0001_batch_0_10000.pt',
                         help='Path to single gamma file (.pt or .npy)')
     parser.add_argument('--pattern', type=str,
-                        default='enrollment_model_W0.0001_batch_*_*.pt',
-                        help='Glob pattern for batch files (default for enrollment batches)')
+                        default='enrollment_model_VECTORIZED_W0.0001_nolr_batch_*_*.pt',
+                        help='Glob pattern for batch files. Default: enrollment_model_VECTORIZED_W0.0001_nolr_batch_*_*.pt (unregularized). Use enrollment_model_W0.0001_batch_*_*.pt for regularized.')
     parser.add_argument('--prediction_pattern', type=str,
                         default='model_enroll_fixedphi_sex_*_*.pt',
                         help='Glob pattern for prediction batch files (default: model_enroll_fixedphi_sex_*_*.pt)')
