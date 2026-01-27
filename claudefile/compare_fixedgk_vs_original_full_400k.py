@@ -167,6 +167,49 @@ def main():
     print(f"\n✓ Saved dynamic 1-year comparison to: {dynamic_output}")
     
     # ============================================================================
+    # WIDE FORMAT: DISEASE BY METHOD (28 x 4)
+    # ============================================================================
+    print("\n" + "="*80)
+    print("CREATING WIDE FORMAT TABLE")
+    print("="*80)
+    
+    # Prepare dataframes with just AUC columns for wide format
+    original_static_auc = original_static[['Disease', 'AUC']].copy()
+    original_static_auc.columns = ['disease', 'original_static_10yr']
+    
+    fixedgk_static_auc = fixedgk_static[['disease', 'auc']].copy()
+    fixedgk_static_auc.columns = ['disease', 'fixedgk_static_10yr']
+    
+    original_dynamic_auc = original_dynamic[['Disease', 'AUC']].copy()
+    original_dynamic_auc.columns = ['disease', 'original_dynamic_1yr']
+    
+    fixedgk_dynamic_auc = fixedgk_dynamic[['disease', 'auc']].copy()
+    fixedgk_dynamic_auc.columns = ['disease', 'fixedgk_dynamic_1yr']
+    
+    # Merge all four together
+    wide_format = original_static_auc.merge(
+        fixedgk_static_auc, on='disease', how='outer'
+    ).merge(
+        original_dynamic_auc, on='disease', how='outer'
+    ).merge(
+        fixedgk_dynamic_auc, on='disease', how='outer'
+    )
+    
+    # Sort by disease name for consistent ordering
+    wide_format = wide_format.sort_values('disease').reset_index(drop=True)
+    
+    # Reorder columns: disease, then static 10yr (original, fixedgk), then dynamic 1yr (original, fixedgk)
+    wide_format = wide_format[['disease', 'original_static_10yr', 'fixedgk_static_10yr', 
+                               'original_dynamic_1yr', 'fixedgk_dynamic_1yr']]
+    
+    # Save wide format
+    wide_output = os.path.join(args.output_dir, 'fixedgk_vs_original_wide_format.csv')
+    wide_format.to_csv(wide_output, index=False)
+    print(f"\n✓ Saved wide format table to: {wide_output}")
+    print(f"   Shape: {wide_format.shape[0]} diseases x {wide_format.shape[1]} columns")
+    print(f"   Columns: disease | original_static_10yr | fixedgk_static_10yr | original_dynamic_1yr | fixedgk_dynamic_1yr")
+    
+    # ============================================================================
     # FINAL SUMMARY
     # ============================================================================
     print("\n" + "="*80)
@@ -177,6 +220,7 @@ def main():
     print(f"\nResults saved to:")
     print(f"  - {static_output}")
     print(f"  - {dynamic_output}")
+    print(f"  - {wide_output} (wide format: disease x method)")
     print("="*80)
     print("COMPLETED")
     print("="*80)
