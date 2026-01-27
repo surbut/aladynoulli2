@@ -166,7 +166,7 @@ The Aladynoulli workflow consists of **5 main steps**:
 | **Discovery Model** | [clust_huge_amp_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py) | Full model that learns phi and psi |
 | **Prediction Model** | [clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py) | Fixed-phi, fixed-gamma, fixed-kappa model for fast predictions |
 
-**Note**: The prediction model uses fixed gamma (genetic effects) and kappa (calibration parameter) from pooled training batches. This ensures consistent, population-level values across prediction batches and prevents per-batch overfitting. Only lambda (individual-specific signature loadings) is learned during prediction.
+**Note**: The prediction model uses fixed gamma (genetic effects) and kappa (calibration parameter) from pooled training batches. This ensures complete separation between training and testing data in each validation fold. Only lambda (individual-specific signature loadings) is learned during prediction.
 
 ### Workflow Scripts
 
