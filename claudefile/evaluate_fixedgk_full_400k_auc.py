@@ -76,7 +76,7 @@ def main():
     pi_full = torch.load(args.pi_file, map_location='cpu', weights_only=False)
     print(f"Loaded pi: {pi_full.shape}")
     
-    # Subset to max_patients
+    # Subset to max_patients BEFORE creating copies (saves memory)
     N_pi = min(pi_full.shape[0], args.max_patients)
     N_data = min(Y_full.shape[0], args.max_patients)
     
@@ -88,10 +88,17 @@ def main():
     
     print(f"Using {N:,} patients for evaluation")
     
-    pi_eval = pi_full[:N]
-    Y_eval = Y_full[:N]
-    E_eval = E_full[:N]
+    # Subset immediately and free full tensors
+    pi_eval = pi_full[:N].clone()
+    Y_eval = Y_full[:N].clone()
+    E_eval = E_full[:N].clone()
     pce_df_eval = pce_df_full.iloc[:N].reset_index(drop=True)
+    
+    # Free memory from full tensors
+    del Y_full, E_full, pi_full, pce_df_full
+    import gc
+    gc.collect()
+    print("Freed memory from full tensors")
     
     # Ensure 'Sex' and 'sex' columns exist
     if 'Sex' not in pce_df_eval.columns:
@@ -117,6 +124,20 @@ def main():
     
     print(f"Data shapes: pi={pi_eval.shape}, Y={Y_eval.shape}, E={E_eval.shape}, pce_df={len(pce_df_eval)}")
     
+    # Check for NaN/Inf in predictions
+    pi_nan = torch.isnan(pi_eval).any().item()
+    pi_inf = torch.isinf(pi_eval).any().item()
+    if pi_nan or pi_inf:
+        print(f"⚠️  WARNING: pi contains NaN={pi_nan}, Inf={pi_inf}")
+        if pi_nan:
+            n_nan = torch.isnan(pi_eval).sum().item()
+            print(f"   Found {n_nan:,} NaN values")
+        if pi_inf:
+            n_inf = torch.isinf(pi_eval).sum().item()
+            print(f"   Found {n_inf:,} Inf values")
+    else:
+        print("✓ pi values are valid (no NaN/Inf)")
+    
     # ============================================================================
     # STATIC 10-YEAR AUC
     # ============================================================================
@@ -124,15 +145,26 @@ def main():
     print("EVALUATING STATIC 10-YEAR AUC")
     print("="*80)
     
-    results_static_10yr = evaluate_major_diseases_wsex_with_bootstrap_from_pi(
-        pi=pi_eval,
-        Y_100k=Y_eval,
-        E_100k=E_eval,
-        disease_names=disease_names,
-        pce_df=pce_df_eval,
-        n_bootstraps=args.n_bootstraps,
-        follow_up_duration_years=10
-    )
+    try:
+        results_static_10yr = evaluate_major_diseases_wsex_with_bootstrap_from_pi(
+            pi=pi_eval,
+            Y_100k=Y_eval,
+            E_100k=E_eval,
+            disease_names=disease_names,
+            pce_df=pce_df_eval,
+            n_bootstraps=args.n_bootstraps,
+            follow_up_duration_years=10
+        )
+    except Exception as e:
+        print(f"\n✗ ERROR during static evaluation: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+    
+    # Clean up memory after static evaluation
+    import gc
+    gc.collect()
+    print("\n✓ Static evaluation complete, memory cleaned")
     
     # Save static 10-year results
     static_results = []
@@ -161,16 +193,22 @@ def main():
     print("EVALUATING DYNAMIC 1-YEAR AUC (WASHOUT 0, FROM ENROLLMENT)")
     print("="*80)
     
-    results_1yr = evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex(
-        pi=pi_eval,
-        Y_100k=Y_eval,
-        E_100k=E_eval,
-        disease_names=disease_names,
-        pce_df=pce_df_eval,
-        n_bootstraps=args.n_bootstraps,
-        follow_up_duration_years=1,
-        start_offset=0  # From enrollment (washout 0)
-    )
+    try:
+        results_1yr = evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex(
+            pi=pi_eval,
+            Y_100k=Y_eval,
+            E_100k=E_eval,
+            disease_names=disease_names,
+            pce_df=pce_df_eval,
+            n_bootstraps=args.n_bootstraps,
+            follow_up_duration_years=1,
+            start_offset=0  # From enrollment (washout 0)
+        )
+    except Exception as e:
+        print(f"\n✗ ERROR during dynamic evaluation: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
     
     # Save 1-year dynamic results
     dynamic_results = []
