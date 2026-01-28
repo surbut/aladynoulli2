@@ -8,6 +8,24 @@
 \useinnertheme{rounded}
 \useoutertheme{infolines}
 
+% Fix frame numbering
+\setbeamertemplate{footline}
+{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor~~\beamer@ifempty{\insertshortinstitute}{}{(\insertshortinstitute)}
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}
+    \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+
 % Custom color scheme - deep blue and purple tones (scientific but vibrant)
 \definecolor{primaryblue}{RGB}{30,64,175}      % Deep scientific blue
 \definecolor{accentpurple}{RGB}{109,40,217}    % Vibrant purple accent
@@ -34,13 +52,23 @@
 \usepackage{bm}                    % Bold math
 \usepackage{mathtools}             % Enhanced math
 % \usepackage{physics}               % Physics-style notation (\qty, etc.) - not used
-\usepackage{siunitx}               % Units
+% \usepackage{siunitx}               % Units - not used
 \usepackage{graphicx}
 \usepackage{booktabs}              % Better tables
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{shapes,arrows,positioning,calc}
-\usepackage{fontawesome5}          % Icons
+% \usepackage{fontawesome5}          % Icons - not installed
+% Define simple replacements for icons
+\newcommand{\faDna}{$\otimes$}
+\newcommand{\faChartLine}{$\nearrow$}
+\newcommand{\faCode}{$\langle\rangle$}
+\newcommand{\faCheckCircle}{$\checkmark$}
+\newcommand{\faGlobe}{$\odot$}
+\newcommand{\faHeartbeat}{$\heartsuit$}
+\newcommand{\faFlask}{$\star$}
+\newcommand{\faEnvelope}{$\square$}
+\newcommand{\faGithub}{$\circ$}
 
 % Math shortcuts for the talk
 \newcommand{\aladyn}{\textsc{Aladynoulli}}
@@ -665,7 +693,7 @@
             \node[above] at (2,0.5) {\small Belief};
             \node[below] at (2,-0.5) {\small + Data};
             \node[right] at (9,0) {\small Becomes};
-            \node[left] at (-0.5,0) {\small Next};
+            \node[below] at (0,-1.5) {\small Next Prior};
         \end{tikzpicture}
     \end{center}
     
