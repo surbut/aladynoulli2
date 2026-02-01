@@ -149,6 +149,40 @@
 \end{frame}
 
 % ----------------------------------------------------------------------------
+% OPENING: SHAPE OF A STORY (Vonnegut)
+% ----------------------------------------------------------------------------
+\begin{frame}{The Shape of a Story}
+    \begin{center}
+        \textit{"Every person is a story... and disease trajectories follow narrative arcs"}
+
+        \vspace{2em}
+
+        \begin{tikzpicture}[scale=0.9]
+            % Timeline
+            \draw[thick, primaryblue] (0,0) -- (10,0);
+            \node[below] at (0,-0.3) {\small Beginning};
+            \node[below] at (10,-0.3) {\small End};
+
+            % Story arc 1: Rising then falling (like "Boy Meets Girl")
+            \draw[smooth, thick, accentpurple, domain=0:10, samples=100]
+                plot (\x, {0.5 + 2*sin(\x*36)});
+
+            % Story arc 2: Progressive rise (like "Cinderella")
+            \draw[smooth, thick, warmorange, domain=0:7, samples=100]
+                plot (\x+1, {-0.5 + 0.1*\x*\x});
+
+            \node[above, accentpurple] at (5,2.5) {Variable trajectories};
+            \node[above, warmorange] at (8,4) {Progressive disease};
+
+            \node[below] at (5,-1.5) {\textbf{When you ask matters!}};
+        \end{tikzpicture}
+
+        \vspace{1em}
+        \footnotesize Vonnegut, 1955
+    \end{center}
+\end{frame}
+
+% ----------------------------------------------------------------------------
 % SECTION: THE PROBLEM - WHY DO WE NEED THIS?
 % ----------------------------------------------------------------------------
 \section{Why This Matters}
@@ -186,45 +220,62 @@
 \begin{frame}{The Problem: Time Matters}
     \begin{columns}
         \column{0.5\textwidth}
-        \begin{block}{Traditional Models}
-            \textbf{Cox Proportional Hazards:}
+        \begin{block}{Cox Proportional Hazards}
             \beq{
                 h(t | \mathbf{X}) = h_0(t) \exp(\beta^T \mathbf{X})
             }
+            \textbf{Assumes:}
             \begin{itemize}
                 \item Relative risk is \alert{constant over time}
-                \item Doesn't capture life course dynamics
-                \item When you ask matters!
+                \item Hazards remain proportional
             \end{itemize}
         \end{block}
-        
+
         \column{0.5\textwidth}
-        \begin{block}{Why This Is a Problem}
+        \begin{block}{Reality: Non-Proportional}
             \begin{itemize}
                 \item Same individual, different ages → different risk
-                \item Genetic effects manifest differently across life course
-                \item Need dynamic, time-varying models
+                \item Risk factors change roles over lifetime
+                \item Early disease $\neq$ all disease early
             \end{itemize}
         \end{block}
     \end{columns}
-    
+
     \vspace{1em}
     \begin{center}
-        \begin{tikzpicture}[scale=0.85]
-            \draw[thick, primaryblue] (0,0) -- (10,0);
-            \foreach \x in {0,2,4,6,8,10} {
-                \draw[thick, primaryblue] (\x,0.1) -- (\x,-0.1);
-                \node[below] at (\x,-0.3) {\small \x0};
-            }
-            \draw[smooth, thick, accentpurple] 
-                plot[domain=0:10,samples=100] (\x,{0.5*exp(0.2*\x)});
-            \filldraw[accentpurple] (3,1) circle (3pt);
-            \node[above, accentpurple] at (3,1.2) {Ask at 40};
-            \filldraw[warmorange] (6,2.5) circle (3pt);
-            \node[above, warmorange] at (6,2.8) {Ask at 60};
-            \node[below] at (5,-1.5) 
-                {\small \textbf{Same individual, different answers}};
+        \begin{tikzpicture}[scale=0.75]
+            % Left panel: Proportional
+            \begin{scope}[xshift=0cm]
+                \draw[thick] (0,0) -- (4,0) -- (4,4) -- (0,4) -- cycle;
+                \node[above] at (2,4.2) {\small Proportional};
+                \draw[smooth, thick, accentpurple]
+                    plot[domain=0:4,samples=50] (\x, {0.5 + 0.5*\x});
+                \draw[smooth, thick, warmorange]
+                    plot[domain=0:4,samples=50] (\x, {0.3 + 0.5*\x});
+                \node[below] at (2,-0.3) {\tiny Early \quad Late};
+                \draw[blue, thick] (1.5,0) -- (1.5,4);
+            \end{scope}
+
+            % Right panel: Non-proportional
+            \begin{scope}[xshift=5.5cm]
+                \draw[thick] (0,0) -- (4,0) -- (4,4) -- (0,4) -- cycle;
+                \node[above] at (2,4.2) {\small Non-Proportional};
+                \draw[smooth, thick, accentpurple]
+                    plot[domain=0:4,samples=50] (\x, {0.3 + 0.15*\x*\x});
+                \draw[smooth, thick, warmorange]
+                    plot[domain=0:4,samples=50] (\x, {1.5 + 0.3*\x - 0.05*\x*\x});
+                \node[below] at (2,-0.3) {\tiny Early \quad Late};
+                \draw[blue, thick] (1.5,0) -- (1.5,4);
+
+                % Crossover annotation
+                \node[darkgray, font=\tiny] at (2,2.5) {Hazards cross!};
+            \end{scope}
         \end{tikzpicture}
+    \end{center}
+
+    \vspace{0.5em}
+    \begin{center}
+        \small \textcolor{accentpurple}{\textbf{When you ask the question determines the answer}}
     \end{center}
 \end{frame}
 
@@ -255,6 +306,48 @@
     \end{center}
 \end{frame}
 
+\begin{frame}{Using the EHR to Be Predictive, Not Responsive}
+    \begin{center}
+        \textbf{Patient Journey: MI at age 57}
+
+        \vspace{1em}
+
+        \begin{tikzpicture}[scale=0.85]
+            % Timeline with events
+            \draw[thick, primaryblue] (0,0) -- (10,0);
+            \foreach \x/\label in {0/1995, 2/2000, 4/2005, 6/2010, 8/2015} {
+                \draw[thick, primaryblue] (\x,0.1) -- (\x,-0.1);
+                \node[below] at (\x,-0.3) {\tiny \label};
+            }
+
+            % Event markers (diagnoses)
+            \foreach \x/\y in {1/0.2, 3/0.3, 5/0.4, 6.5/0.5, 7.5/0.6} {
+                \filldraw[accentpurple] (\x,\y) circle (2pt);
+            }
+
+            % LDL trajectory
+            \draw[smooth, thick, warmorange, domain=4:8, samples=50]
+                plot (\x, {3 + 0.3*(\x-6)*(\x-6) - (\x-7.5)*0.5});
+            \node[above, warmorange, font=\small] at (5,3.5) {LDL};
+
+            % MI event
+            \filldraw[red] (7.5,1) rectangle (7.7,2.5);
+            \node[above, red, font=\small] at (7.6,2.6) {MI};
+
+            \node[below] at (5,-1.5)
+                {\footnotesize \textbf{Can we predict before the event?}};
+        \end{tikzpicture}
+
+        \vspace{1.5em}
+
+        \begin{block}{}
+            \centering
+            Traditional models are \textbf{responsive} \\
+            We need models that are \textbf{predictive}
+        \end{block}
+    \end{center}
+\end{frame}
+
 \begin{frame}{When You Ask Matters}
     \begin{center}
         \begin{tikzpicture}[scale=0.9]
@@ -264,24 +357,24 @@
                 \draw[thick, primaryblue] (\x,0.1) -- (\x,-0.1);
                 \node[below] at (\x,-0.3) {\small Age \x0};
             }
-            
+
             % Risk curve
-            \draw[smooth, thick, accentpurple] 
+            \draw[smooth, thick, accentpurple]
                 plot[domain=0:10,samples=100] (\x,{0.5*exp(0.2*\x)});
             \node[above right, accentpurple] at (10,3.6) {Risk trajectory};
-            
+
             % Points where question is asked
             \filldraw[accentpurple] (3,1) circle (3pt);
             \node[above, accentpurple] at (3,1.2) {Ask at 40};
             \filldraw[warmorange] (6,2.5) circle (3pt);
             \node[above, warmorange] at (6,2.8) {Ask at 60};
-            
+
             % Labels
-            \node[below] at (5,-1.5) 
+            \node[below] at (5,-1.5)
                 {\small \textbf{Same individual, different answers}};
         \end{tikzpicture}
     \end{center}
-    
+
     \vspace{1em}
     \begin{center}
         \textcolor{darkgray}{\textit{The question changes as we move through life}}
@@ -293,19 +386,59 @@
 % ----------------------------------------------------------------------------
 \section{Building the Model}
 
+\begin{frame}{Everyone is a Bayesian}
+    \begin{columns}
+        \column{0.35\textwidth}
+        \begin{center}
+            \begin{tikzpicture}
+                % Simple representation of Thomas Bayes
+                \filldraw[darkgray!30] (0,0) circle (1.5cm);
+                \node[font=\Large] at (0,0) {\textbf{TB}};
+                \node[below, font=\footnotesize] at (0,-2) {Thomas Bayes\\(1701-1761)};
+            \end{tikzpicture}
+        \end{center}
+
+        \column{0.65\textwidth}
+        \begin{block}{Joint Consideration}
+            \textbf{Discovery} and \textbf{Prediction} together
+        \end{block}
+
+        \vspace{1em}
+
+        \begin{center}
+            \Large
+            $P(\Pi \mid \text{Diagnoses}) \propto$\\[0.5em]
+            $P(\text{Diagnoses} \mid \Pi) \cdot p(\Pi)$
+        \end{center}
+
+        \vspace{1em}
+
+        \begin{itemize}
+            \item[\textcolor{accentpurple}{$\bullet$}] \textbf{Continuously updated posteriors}
+            \item[\textcolor{primaryblue}{$\bullet$}] \textbf{Individual data likelihood} (EHR)
+            \item[\textcolor{warmorange}{$\bullet$}] \textbf{Population signatures} (prior)
+        \end{itemize}
+    \end{columns}
+
+    \vspace{1em}
+    \begin{center}
+        \footnotesize \textit{History of life insurance in its formative years\\American Conservation Co., 1936, Chicago}
+    \end{center}
+\end{frame}
+
 \begin{frame}{Why Bayesian? Natural Framework for This Problem}
     \begin{block}{The Bayesian Philosophy}
         \begin{center}
             \Large
             \[
-            \Prob(\text{Model} \mid \text{Data}) \propto 
+            \Prob(\text{Model} \mid \text{Data}) \propto
             \Prob(\text{Data} \mid \text{Model}) \cdot \Prob(\text{Model})
             \]
         \end{center}
     \end{block}
-    
+
     \vspace{1em}
-    
+
     \begin{columns}
         \column{0.33\textwidth}
         \begin{block}{\centering Prior}
@@ -318,7 +451,7 @@
                 \node at (1,0.75) {\small Patterns};
             \end{tikzpicture}
         \end{block}
-        
+
         \column{0.33\textwidth}
         \begin{block}{\centering Likelihood}
             \centering
@@ -330,7 +463,7 @@
                 \node at (1,0.75) {\small Diagnoses};
             \end{tikzpicture}
         \end{block}
-        
+
         \column{0.33\textwidth}
         \begin{block}{\centering Posterior}
             \centering
@@ -343,10 +476,10 @@
             \end{tikzpicture}
         \end{block}
     \end{columns}
-    
+
     \vspace{1em}
     \begin{center}
-        \textcolor{accentpurple}{\Large 
+        \textcolor{accentpurple}{\Large
         \textbf{Continuous updating as we walk through the lifetime}}
     \end{center}
 \end{frame}
@@ -809,14 +942,14 @@
                 \item[] \textcolor{accentpurple}{$\mathbf{+9.0\%}$ improvement}
             \end{itemize}
         \end{block}
-        
+
         \begin{block}{vs Delphi-2M}
             \begin{itemize}
                 \item Outperforms on 15/28 diseases
                 \item Largest gains: Parkinson's (+35\%), CKD (+33\%)
             \end{itemize}
         \end{block}
-        
+
         \column{0.5\textwidth}
         \begin{block}{vs Cox Baseline}
             \begin{itemize}
@@ -826,11 +959,59 @@
                 \item ASCVD: \textcolor{accentpurple}{+16.3\%}
             \end{itemize}
         \end{block}
-        
+
         \begin{exampleblock}{Dynamic Risk Assessment}
             Model updates predictions as patients age and develop conditions
         \end{exampleblock}
     \end{columns}
+\end{frame}
+
+\begin{frame}{Dynamic AUC: PREVENT vs Aladynoulli}
+    \begin{center}
+        \textbf{30-year ASCVD Risk Prediction}
+
+        \vspace{1em}
+
+        \begin{tikzpicture}[scale=0.9]
+            % Axes
+            \draw[thick, ->] (0,0) -- (10,0) node[right] {\small Age (yr)};
+            \draw[thick, ->] (0,0) -- (0,6) node[above] {\small Dynamic AUC};
+
+            % Y-axis labels
+            \foreach \y/\label in {0/0.5, 2/0.6, 4/0.7, 6/0.8} {
+                \draw[thick] (-0.1,\y) -- (0,\y);
+                \node[left] at (-0.2,\y) {\tiny \label};
+            }
+
+            % X-axis labels
+            \foreach \x/\label in {0/40, 2.5/50, 5/60, 7.5/70, 10/80} {
+                \draw[thick] (\x,-0.1) -- (\x,0);
+                \node[below] at (\x,-0.2) {\tiny \label};
+            }
+
+            % PREVENT curve (lower, flatter)
+            \draw[very thick, warmorange, domain=0:10, samples=100]
+                plot (\x, {2 + 0.5*sin(\x*36)});
+            \node[warmorange] at (9,2.5) {PREVENT};
+
+            % Aladynoulli curve (higher, more dynamic)
+            \draw[very thick, accentpurple, domain=0:10, samples=100]
+                plot (\x, {3 + 1.5*sin(\x*36) + 0.2*\x});
+            \node[accentpurple] at (9,5.5) {\textbf{Aladynoulli}};
+
+            % Median improvement annotation
+            \draw[dashed, darkgray] (5,2.5) -- (5,4.5);
+            \node[darkgray, font=\small] at (5,3.5) [right] {+9.0\%};
+        \end{tikzpicture}
+
+        \vspace{1em}
+
+        \begin{block}{}
+            \centering
+            Median dynamic AUC: \textbf{0.901} \\
+            \footnotesize (PREVENT: 0.650, PCE not applicable for 30-year)
+        \end{block}
+    \end{center}
 \end{frame}
 
 \begin{frame}{The Bayesian Update in Action: Example Patient}
@@ -920,6 +1101,64 @@
     \end{center}
 \end{frame}
 
+\begin{frame}{The Interpretability Challenge}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \begin{block}{High Performance}
+            \begin{itemize}
+                \item Highly precise predictions
+                \item Complex hierarchical structure
+                \item Multiple interacting components
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{accentpurple}{\textbf{Challenge:}} Difficult to communicate
+        \end{block}
+
+        \column{0.5\textwidth}
+        \begin{block}{High Interpretability}
+            \begin{itemize}
+                \item Simple, explainable models
+                \item Easy clinical communication
+                \item Transparent decision-making
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{warmorange}{\textbf{Challenge:}} Lower predictive power
+        \end{block}
+    \end{columns}
+
+    \vspace{1em}
+
+    \begin{center}
+        \begin{tikzpicture}[scale=0.8]
+            % Axes
+            \draw[thick, ->] (0,0) -- (8,0) node[right] {\small Performance};
+            \draw[thick, ->] (0,0) -- (0,5) node[above] {\small Interpretability};
+
+            % Curve showing tradeoff
+            \draw[very thick, accentpurple, domain=0.5:7.5, samples=100]
+                plot (\x, {4.5 - 0.5*\x});
+
+            % Point for Aladynoulli
+            \filldraw[warmorange] (6,2) circle (4pt);
+            \node[above right, warmorange] at (6,2) {\small \textbf{Aladynoulli}};
+
+            % Point for PCE/simple models
+            \filldraw[primaryblue] (2,3.5) circle (4pt);
+            \node[above left, primaryblue] at (2,3.5) {\small Simple models};
+
+            % Black box
+            \filldraw[darkgray] (7,0.5) circle (4pt);
+            \node[below, darkgray] at (7,0.5) {\small Black box};
+        \end{tikzpicture}
+    \end{center}
+
+    \vspace{1em}
+
+    \begin{alertblock}{Key Question}
+        Can we integrate into EHR "behind the scenes" while providing interpretable outputs?
+    \end{alertblock}
+\end{frame}
+
 \begin{frame}{Future Directions}
     \begin{columns}
         \column{0.5\textwidth}
@@ -928,21 +1167,31 @@
                 \item Imaging (CAC, CT-coronary)
                 \item AI-enhanced features (ECG, TTE)
                 \item Multi-omics data
+                \item Genomics + environment
             \end{itemize}
         \end{block}
-        
+
         \column{0.5\textwidth}
         \begin{block}{Applications}
             \begin{itemize}
                 \item Intervention modeling (digital twins)
                 \item Personalized screening
                 \item Drug repurposing
+                \item Therapeutic targeting
             \end{itemize}
         \end{block}
     \end{columns}
-    
-    \vspace{2em}
-    
+
+    \vspace{1.5em}
+
+    \begin{exampleblock}{Vision}
+        \centering
+        A model that combines genomics, opportunistic imaging, \\
+        and AI-processed signals for comprehensive risk assessment
+    \end{exampleblock}
+
+    \vspace{1em}
+
     \begin{center}
         \Huge \faHeartbeat \quad \faCode \quad \faFlask
     \end{center}

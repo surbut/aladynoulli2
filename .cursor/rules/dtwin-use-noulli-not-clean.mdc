@@ -1,0 +1,32 @@
+---
+description: Use dtwin_noulli (not dtwin_noulli_clean) for shared code, data, and outcome definitions
+alwaysApply: true
+---
+
+# dtwin: use dtwin_noulli, not dtwin_noulli_clean
+
+**Always use `dtwin_noulli`** as the source of truth for shared logic, data paths, and outcomes. **Do not use `dtwin_noulli_clean`** for those.
+
+## Use from dtwin_noulli
+
+- **Scripts**: `scripts/` (e.g. `make_covariate_dicts`, `alendronate_pipeline`, `observational_treatment_patterns`).
+- **Outcome definition**: `outcome_def_vectorized`, `event_indices` (e.g. ASCVD [112,113,114,115,116]).
+- **Feature/matching**: `build_feat_vectorized`, `build_features_vectorized_strict`, `test_statin_effects`, `run_key_configs_pce20`, `standalone_fixed_aspirin_analysis`.
+- **Data**: `processed_ids` from `.../notebook2/processed_patient_ids.npy`; thetas from NOLR/LR joint-estimation paths (e.g. `results_nolr_joint`, `censor_e_enrollment_vector`). No `thetas.npy` or outdated paths from clean.
+
+## sys.path / imports
+
+When code touches dtwin (e.g. aspirin, alendronate, statin matching):
+
+1. Prefer **dtwin_noulli** on `sys.path` over **dtwin_noulli_clean**.
+2. Insert paths so **dtwin_noulli** is first, e.g. `for p in (CLEAN, DTWIN_SCRIPTS, DTWIN): sys.path.insert(0, p)` → DTWIN ends up at index 0.
+3. `import` shared modules from **dtwin_noulli** (e.g. `test_statin_effects`, `scripts.make_covariate_dicts`), not from clean copies.
+
+## dtwin_noulli_clean only for
+
+- **Entry-point scripts** that live in clean but delegate to dtwin_noulli: e.g. `run_aspirin_matching_like_statins.py`, `run_alendronate_matching_frailty.py`, `aspirin_crc_notebook`, `alendronate_prescription_discovery_notebook`.
+- **Clean-specific config/csv** (e.g. `true_aspirin_patients.csv`) when explicitly required. Core data (Y, processed_ids, cov, gp_scripts, thetas) comes from dtwin_noulli / canonical paths.
+
+## Quick check
+
+Before adding imports or `sys.path` from `dtwin_noulli_clean` for shared logic or data: **don’t**. Use **dtwin_noulli** instead.

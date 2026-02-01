@@ -1732,15 +1732,8 @@ def main():
     <p style='margin: 5px 0 15px 0; font-size: 0.95em; color: #000; font-weight: 500;'>
     <strong>Authors:</strong> Sarah M. Urbut, Yi Ding, Tetsushi Nakao, Satoshi Koyama, Achyutha Harish, Xilin Jiang, Leslie Gaffney, Whitney Hornsby, Jordan W. Smoller, Alexander Gusev, Pradeep Natarajan, Giovanni Parmigiani
     </p>
-    <p style='margin: 15px 0 5px 0; font-size: 0.85em; color: #666; border-top: 1px solid #ccc; padding-top: 10px;'><strong>Developed by:</strong> Sarah M. Urbut, M.D., Ph.D.</p>
-    <p style='margin: 0 0 10px 0; font-size: 0.85em; color: #666;'>
-    <strong>Affiliations:</strong> Massachusetts General Hospital, Harvard Medical School, Broad Institute of Harvard and MIT<br>
-    <strong>Email:</strong> <a href='mailto:surbut@mgh.harvard.edu' style='color: #1f77b4;'>surbut@mgh.harvard.edu</a> | 
-    <strong>Project:</strong> Aladynoulli Research
-    </p>
     <p style='margin: 10px 0 0 0; font-size: 0.85em; font-style: italic; color: #555; border-top: 1px solid #ccc; padding-top: 10px;'>
-    This work was funded in part by the Burroughs Wellcome Fund and by the American Heart Association.<br>
-    For questions or feedback, please contact: <a href='mailto:surbut@mgh.harvard.edu' style='color: #1f77b4;'>surbut@mgh.harvard.edu</a>
+    This work was funded in part by the Burroughs Wellcome Fund, the NIH and by the American Heart Association.
     </p>
     </div>
     """, unsafe_allow_html=True)
@@ -1878,9 +1871,9 @@ def main():
     time_window = range(time_start, time_end + 1)
     
     # Add tabs for all features
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab7, tab8 = st.tabs([
         "Plots", "Tables", "Genetics", "Risk Summary", 
-        "Compare Patients", "Forecast", "Advanced", "Export"
+        "Compare Patients", "Advanced", "Export"
     ])
     with tab1:
         col1, col2 = st.columns(2)
@@ -2023,45 +2016,6 @@ def main():
                 st.error(f"Error generating comparison: {e}")
                 import traceback
                 st.code(traceback.format_exc())
-
-    # Tab 6: Forecast
-    with tab6:
-        st.header("Model-Generated Disease Probabilities")
-        st.markdown("""
-        **What this shows:**
-        - **Only model-generated probabilities** (π[t] for t ∈ [0, T-1]) - no extrapolation
-        - Shows **first-time disease risk** for diseases that have NOT yet been diagnosed
-        - All predictions are from the actual model (using theta, phi, psi relationships)
-        
-        **Important:**
-        - Only shows diseases that haven't occurred yet (already-diagnosed diseases are excluded)
-        - Once a disease has been diagnosed, we can't predict "first-time" risk for it anymore
-        - **Cannot forecast beyond observed time window** because:
-          - Would require future theta (signature trajectories)
-          - Model needs theta[t] to compute π[t] via phi/psi
-          - We don't have future theta trajectories for these sample patients
-        - This is for sample patients with pre-computed trajectories
-        
-        **Note:** True forecasting would require:
-        1. Predicting future theta (signature loadings)
-        2. Then computing π from those using phi/psi relationships
-        Currently we only show what the model has computed for the observed timepoints.
-        """)
-        
-        age_offset_forecast = st.number_input("Age at Baseline", 
-                                              min_value=0, max_value=100, 
-                                              value=30, key="age_forecast")
-        
-        # Show model predictions automatically
-        try:
-            forecast_fig = visualizer.forecast_disease_risks(person_idx, forecast_years=10, age_offset=age_offset_forecast)
-            st.pyplot(forecast_fig)
-            plt.close(forecast_fig)
-            st.info("ℹ️ **Note:** This shows only model-generated probabilities (π[t] for observed timepoints). We cannot forecast beyond the observed window because future predictions would require future theta (signature trajectories), which we don't have for these sample patients.")
-        except Exception as e:
-            st.error(f"Error generating plot: {e}")
-            import traceback
-            st.code(traceback.format_exc())
 
     # Tab 7: Advanced Features
     with tab7:

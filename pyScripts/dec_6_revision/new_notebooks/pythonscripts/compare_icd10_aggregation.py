@@ -368,6 +368,7 @@ def create_plots(results_df, output_dir):
 def main():
     # Use the same RDS file that the R2 notebook uses (which correctly finds all 6 ASCVD phenotypes)
     # This file contains all ICD-10 codes mapped to Phecodes with phenotype names
+    ## AgeTopicModels::phecode_icd10cm[AgeTopicModels::phecode_icd10cm$phecode%in%AgeTopicModels::UKB_349_disease$diag_icd10,]
     rds_path = Path("/Users/sarahurbut/aladynoulli2/noulli_mapped_phecode_icd10cm.rds")
     
     # Fallback to CSV files if RDS not available
