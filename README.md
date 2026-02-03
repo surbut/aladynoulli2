@@ -4,12 +4,11 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-1.9+-red.svg)](https://pytorch.org/)
 
-A comprehensive Bayesian survival model for predicting disease trajectories using genetic and clinical data. This repository contains the complete implementation of the Aladynoulli model as described in our preprint.
+A comprehensive Bayesian survival model for predicting disease trajectories using genetic and clinical data.
 
 **Preprint**: [medRxiv](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1)
 
-**Reviewer Response Analyses** (comprehensive validation and analysis):
-See [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md) for a complete guide to all interactive analyses addressing reviewer questions, including clinical utility, lifetime risk, AUC comparisons, model validity, and more.
+**Documentation & Reviewer Analyses**: [https://surbut.github.io/aladynoulli2/](https://surbut.github.io/aladynoulli2/)
 
 ## 🚀 Quick Start
 
@@ -111,137 +110,33 @@ For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md) a
 
 ### Complete Workflow
 
-The Aladynoulli workflow consists of 4 main steps: **Preprocessing → Batch Training → Master Checkpoint → Prediction**
+The Aladynoulli workflow consists of 5 main steps:
 
-For detailed step-by-step instructions, see [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
+1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
+2. **Batch Training**: Train models on data batches with full E matrix
+3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
+4. **Pool Gamma & Kappa**: Pool genetic effects and calibration from training batches
+5. **Prediction**: Run predictions using master checkpoint
 
-#### Step 1: Preprocessing
+**For detailed step-by-step instructions**, see the [Complete Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
 
-Create initialization files (prevalence, clusters, psi, reference trajectories):
+### Quick Start
 
 ```python
-# Option A: Use the interactive notebook
-jupyter notebook pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/create_preprocessing_files.ipynb
+# Discovery mode (learns phi)
+from pyScripts_forPublish.clust_huge_amp_vectorized import AladynSurvivalFixedKernelsAvgLoss
 
-# Option B: Use standalone functions
-from pyScripts.new_oct_revision.new_notebooks.reviewer_responses.preprocessing.preprocessing_utils import (
-    compute_smoothed_prevalence,
-    create_initial_clusters_and_psi,
-    create_reference_trajectories
+model = AladynSurvivalFixedKernelsAvgLoss(
+    N=Y.shape[0], D=Y.shape[1], T=Y.shape[2], K=20,
+    P=G.shape[1], G=G, Y=Y,
+    prevalence_t=prevalence_t,
+    signature_references=signature_refs
 )
-
-# Compute smoothed prevalence
-prevalence_t = compute_smoothed_prevalence(Y, window_size=5, smooth_on_logit=True)
-
-# Create initial clusters and psi
-clusters, psi = create_initial_clusters_and_psi(Y=Y, K=20, random_state=42)
-
-# Create reference trajectories
-signature_refs, healthy_ref = create_reference_trajectories(Y, clusters, K=20)
+history = model.fit(E, num_epochs=200)
+pi, theta, phi = model.forward()
 ```
-
-**Output files:**
-- `prevalence_t` - Smoothed disease prevalence (D × T)
-- `initial_clusters_400k.pt` - Disease-to-signature assignments
-- `initial_psi_400k.pt` - Initial signature-disease parameters (K × D)
-- `reference_trajectories.pt` - Signature reference trajectories
-
-#### Step 2: Batch Training
-
-Train the model on batches with full enrollment data:
-
-```bash
-python claudefile/run_aladyn_batch.py \
-    --data_dir /path/to/data \
-    --output_dir /path/to/batch_output \
-    --start_index 0 \
-    --end_index 10000 \
-    --num_epochs 200
-```
-
-**What it does:**
-- Trains model on batches using full enrollment E matrix
-- Uses [`pyScripts_forPublish/clust_huge_amp.py`](pyScripts_forPublish/clust_huge_amp.py) for discovery mode
-- Saves checkpoints: `enrollment_model_W0.0001_batch_*_*.pt`
-- Each checkpoint contains learned `phi` parameters (K × D × T)
-
-**Script location:** [`claudefile/run_aladyn_batch.py`](claudefile/run_aladyn_batch.py)
-
-#### Step 3: Create Master Checkpoint
-
-Pool phi from all batches and create master checkpoint:
-
-**Option A: Use the script** (recommended)
-```bash
-python claudefile/create_master_checkpoints.py \
-    --data_dir /path/to/data \
-    --retrospective_pattern "/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt" \
-    --enrollment_pattern "/path/to/batch_output/enrollment_model_W0.0001_batch_*_*.pt" \
-    --output_dir /path/to/data
-```
-
-**Option B: Use interactive notebook**
-```python
-import sys
-sys.path.append('/path/to/aladynoulli2/claudefile/')
-from create_master_checkpoints import pool_phi_from_batches, create_master_checkpoint
-import torch
-import numpy as np
-
-# Load initial_psi
-initial_psi = torch.load(data_dir + 'initial_psi_400k.pt', weights_only=False)
-if torch.is_tensor(initial_psi):
-    initial_psi = initial_psi.cpu().numpy()
-
-# Pool phi from batches
-phi_pooled = pool_phi_from_batches("/path/to/enrollment_model_W0.0001_batch_*_*.pt")
-
-# Create master checkpoint
-create_master_checkpoint(phi_pooled, initial_psi, output_path, description="...")
-```
-
-**What it does:**
-- Loads phi from all batch checkpoints
-- Pools phi (mean across batches) for stability
-- Combines with `initial_psi_400k.pt`
-- Creates master checkpoint: `master_for_fitting_pooled_all_data.pt`
-
-**Script location:** [`claudefile/create_master_checkpoints.py`](claudefile/create_master_checkpoints.py)  
-**Example notebook:** [`misc/evalmodel/lifetime.ipynb`](misc/evalmodel/lifetime.ipynb)
-
-#### Step 4: Predict with Master Checkpoint
-
-Run predictions using fixed phi from master checkpoint:
-
-```bash
-python claudefile/version_from_ec2/run_aladyn_predict_with_master.py \
-    --trained_model_path /path/to/master_for_fitting_pooled_all_data.pt \
-    --data_dir /path/to/data \
-    --output_dir /path/to/predictions \
-    --batch_size 10000 \
-    --num_epochs 200
-```
-
-**What it does:**
-- Loads master checkpoint (pooled phi + initial_psi)
-- Automatically loads `E_enrollment_full.pt` (full enrollment matrix)
-- Uses [`pyScripts_forPublish/clust_huge_amp_fixedPhi.py`](pyScripts_forPublish/clust_huge_amp_fixedPhi.py) for fixed-phi predictions
-- Only estimates lambda (genetic effects) per batch
-- Generates predictions (pi tensor) for all patients
-
-**Script location:** [`claudefile/version_from_ec2/run_aladyn_predict_with_master.py`](claudefile/version_from_ec2/run_aladyn_predict_with_master.py)
-
-**Required files in `--data_dir`:**
-- `Y_tensor.pt` - Disease outcomes (N × D × T)
-- `E_enrollment_full.pt` - Enrollment matrix (N × T) - **automatically loaded**
-- `G_matrix.pt` - Genetic variants (N × P)
-- `model_essentials.pt` - Model metadata
-- `reference_trajectories.pt` - Signature reference trajectories
-- `initial_psi_400k.pt` - Initial psi parameters
 
 ### Interactive Notebooks
-
-For interactive exploration and development:
 
 **Discovery Mode** (full model training):
 ```bash
@@ -255,117 +150,33 @@ jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb
 
 
 
-### Programmatic Usage
-
-Direct Python API:
-
-```python
-# Discovery mode (learns phi)
-from pyScripts_forPublish.clust_huge_amp import AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest
-
-model = AladynSurvivalFixedKernelsAvgLoss_clust_logitInit_psitest(
-    N=Y.shape[0], 
-    D=Y.shape[1], 
-    T=Y.shape[2], 
-    K=20,
-    P=G_with_sex.shape[1],
-    G=G_with_sex, 
-    Y=Y,
-    prevalence_t=prevalence_t,
-    signature_references=signature_refs,
-    healthy_reference=True,
-    disease_names=disease_names
-)
-
-# Train model
-history = model.fit(E, num_epochs=200)
-
-# Make predictions
-pi, theta, phi = model.forward()
-```
-
-```python
-# Prediction mode (fixed phi)
-from pyScripts_forPublish.clust_huge_amp_fixedPhi import AladynSurvivalFixedPhi
-
-model = AladynSurvivalFixedPhi(
-    N=Y.shape[0],
-    D=Y.shape[1],
-    T=Y.shape[2],
-    K=20,
-    P=G_with_sex.shape[1],
-    G=G_with_sex,
-    Y=Y,
-    pretrained_phi=phi_pooled,  # Fixed phi from master checkpoint
-    pretrained_psi=psi_pooled,  # Fixed psi from master checkpoint
-    signature_references=signature_refs,
-    healthy_reference=True,
-    disease_names=disease_names
-)
-
-
-# Train (only estimates lambda)
-history = model.fit(E, num_epochs=200)
-
-# Make predictions
-pi, theta, phi = model.forward()
-```
-
 ## 📚 Documentation
+
+**Full documentation available at**: [https://surbut.github.io/aladynoulli2/](https://surbut.github.io/aladynoulli2/)
 
 ### Core Model Files
 
-- **Discovery Model**: [`pyScripts_forPublish/clust_huge_amp.py`](pyScripts_forPublish/clust_huge_amp.py) - Full model that learns phi and psi
+- **Discovery Model**: [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](pyScripts_forPublish/clust_huge_amp_vectorized.py) - Full model that learns phi and psi
 - **Prediction Model**: [`pyScripts_forPublish/clust_huge_amp_fixedPhi.py`](pyScripts_forPublish/clust_huge_amp_fixedPhi.py) - Fixed-phi model for fast predictions
-- **Discovery Notebook**: [`pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb`](pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery.ipynb)
-- **Prediction Notebook**: [`pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb`](pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb)
 
-### Workflow Scripts
+### Key Resources
 
-- **Preprocessing**: [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py)
-- **Batch Training**: [`claudefile/run_aladyn_batch.py`](claudefile/run_aladyn_batch.py)
-- **Master Checkpoint**: [`claudefile/create_master_checkpoints.py`](claudefile/create_master_checkpoints.py)
-- **Prediction**: [`claudefile/version_from_ec2/run_aladyn_predict_with_master.py`](claudefile/version_from_ec2/run_aladyn_predict_with_master.py)
-
-### Workflow Documentation
-
-- **Complete Workflow Guide**: [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md)
-
-### Reviewer Response Analyses
-
-- **📊 Reviewer Response Navigation Hub**: [`pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md`](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/README.md) - Complete guide to all interactive analyses addressing reviewer questions, including:
-  - Clinical utility and dynamic risk updating
-  - Lifetime risk predictions
-  - AUC comparisons with established scores
-  - Model validity and learning analyses
-  - Biological plausibility studies
-  - Age-stratified performance
-  - And more...
-
-### Additional Tools
-
-- **Streamlit App**: [`pyScripts_forPublish/patient_timeline_app`](pyScripts_forPublish/patient_timeline_app)
-- **AWS Scripts**: [`pyScripts_forPublish/submit_script_aws_fixedph_40_70.py`](pyScripts_forPublish/submit_script_aws_fixedph_40_70.py)
-- **Demo Script**: [`pyScripts_forPublish/newsm_3_71.ipynb`](pyScripts_forPublish/newsm_3_71.ipynb)
+| Resource | Description |
+|----------|-------------|
+| [Framework Overview](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) | Discovery vs prediction framework |
+| [Reviewer Response Analyses](https://surbut.github.io/aladynoulli2/reviewer_responses/README.html) | Complete guide to all validation analyses |
+| [Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) | Step-by-step preprocessing → training → prediction |
 
 ### Data Requirements
 
 **Required input files** (created during preprocessing):
 - `Y_tensor.pt`: Disease outcome tensor (N × D × T)
-- `E_matrix.pt`: Censoring matrix (N × D) - for batch training
-- `E_enrollment_full.pt`: Full enrollment matrix (N × T) - for predictions
+- `E_matrix.pt`: Censoring matrix (N × D)
 - `G_matrix.pt`: Genetic data matrix (N × P)
 - `model_essentials.pt`: Model configuration (disease names, etc.)
-- `reference_trajectories.pt`: Signature reference trajectories (created in Step 1)
-- `initial_psi_400k.pt`: Initial psi parameters (created in Step 1)
-- `initial_clusters_400k.pt`: Initial cluster assignments (created in Step 1)
-
-**Generated during workflow:**
-- Batch checkpoints: `enrollment_model_W0.0001_batch_*_*.pt` (Step 2)
-- Master checkpoint: `master_for_fitting_pooled_all_data.pt` (Step 3)
-- Predictions: `pi_full_400k.pt` (Step 4)
-
-See [WORKFLOW.md](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) for detailed file descriptions.
+- `reference_trajectories.pt`: Signature reference trajectories
+- `initial_psi_400k.pt`: Initial psi parameters
+- `initial_clusters_400k.pt`: Initial cluster assignments
 
 ## ⏱️ Performance
 
@@ -381,14 +192,6 @@ See [WORKFLOW.md](pyScripts/new_oct_revision/new_notebooks/reviewer_responses/pr
 - **Diseases**: Tested 350
 - **Time Points**: Tested 52 (ages 30-81)
 - **Genetic Features**: Tested with 36 PRS and 10 PCs
-
-
-This will:
-1. Generate synthetic data
-2. Train a small model
-3. Generate predictions
-4. Create visualizations
-5. Report timing information
 
 ## 📊 Results
 
