@@ -156,7 +156,7 @@ The Aladynoulli workflow consists of **5 main steps**:
 | Resource | Description | Link |
 |----------|-------------|------|
 | **Framework Overview** | **Discovery vs prediction framework - Essential reading** | [Discovery_Prediction_Framework_Overview.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) |
-| **Complete Workflow Guide** | Detailed step-by-step instructions | [WORKFLOW.md](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) |
+| **Complete Workflow Guide** | Step-by-step preprocessing → training → prediction | [WORKFLOW.md](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) |
 | **Preprocessing Guide** | Preprocessing file creation guide | [create_preprocessing_files.html](https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html) |
 
 ### Core Model Files
