@@ -1,0 +1,278 @@
+# (PART) The Clinical Problem {-}
+
+# Everyone is Moving {#everyone-moving}
+
+## The Emergency Department at 3 AM
+
+The pager goes off. A 34-year-old man has arrived with crushing chest pain that started an hour ago. The ECG shows ST-segment elevations in leads V1-V4. His high-sensitivity troponin comes back at 870 ng/L—markedly elevated. The diagnosis seems clear: ST-elevation myocardial infarction (STEMI).
+
+But pause for a moment. What was this man's risk of MI yesterday? Last year? A decade ago? And what will it be tomorrow, next year, in the decades to come—assuming he survives?
+
+Traditional risk models struggle with these questions because they assume something that isn't quite true: that hazards are proportional.
+
+## The Proportional Hazards Assumption
+
+The Cox proportional hazards model, introduced in 1972, revolutionized survival analysis. It models the hazard rate—the instantaneous risk of an event—as:
+
+$$h(t|X) = h_0(t) \exp(\beta^T X)$$
+
+where $h_0(t)$ is the baseline hazard (which can vary with time) and $\exp(\beta^T X)$ captures the effect of covariates.
+
+The key assumption is **proportional hazards**: the ratio of hazards between any two individuals remains constant over time. If Alice has twice the hazard of Bob at age 40, she has twice the hazard at age 60, 70, and 80.
+
+```
+Hazard rate
+    ^
+    |       Alice (high risk)
+    |      /
+    |     /
+    |    /      Bob (low risk)
+    |   /      /
+    |  /      /
+    | /      /
+    |/______/____________> Time
+```
+
+This assumption is convenient—it allows us to estimate covariate effects without specifying the baseline hazard. But is it realistic?
+
+## When Proportionality Fails
+
+Consider two 40-year-olds:
+- **Alice** has a strong family history of early heart disease and carries multiple genetic risk variants
+- **Bob** has no family history and low genetic risk
+
+At age 40, Alice might have 5 times Bob's risk of MI. But what about at age 80? By then, both have accumulated decades of exposure to other risk factors—hypertension, diabetes, smoking, stress. The *relative* difference between them may shrink, even as their *absolute* risks converge.
+
+Conversely, consider genetic risk for breast cancer. BRCA1/2 carriers face dramatically elevated lifetime risk, but the *timing* of that risk varies. The hazard ratio isn't constant—it depends on age, parity, hormone exposure, and prior diagnoses.
+
+The proportional hazards assumption is a modeling convenience, not a biological truth.
+
+## Dynamic Hazard: Different Roles, Same End
+
+What if we could model how risk *evolves* over time? Not just static risk factors, but dynamic trajectories that adapt as new clinical information emerges?
+
+This is the central idea behind ALADYNOULLI: **risk is not a fixed quantity but a trajectory that unfolds over the lifespan**.
+
+The model captures this through:
+
+1. **Time-varying signatures**: Latent disease patterns that can strengthen or weaken over time
+2. **Gaussian process priors**: Smooth temporal dynamics that share information across ages
+3. **Bayesian updating**: Posterior risk that adapts as diagnoses accumulate
+
+The result is a risk profile that can answer not just "what is Alice's risk?" but "how has Alice's risk evolved, and how might it change in the future?"
+
+## A Preview
+
+The 34-year-old man in the ED survives his STEMI. He receives a stent, starts on medications, enters cardiac rehabilitation. His risk profile has changed dramatically.
+
+Traditional models would recalculate his static risk factors. ALADYNOULLI does more: it updates his entire trajectory, recognizing that this event reveals something about his underlying biology—his latent signature profile—that was present but hidden before.
+
+In the chapters that follow, we'll develop this framework mathematically, validate it across three biobanks and millions of patients, and show how it improves both biological discovery and clinical prediction.
+
+But first, we need to understand the data that makes this possible.
+
+
+# The Promise of Longitudinal Data {#longitudinal-data}
+
+## Electronic Health Records: A Window Into Disease Progression
+
+Modern healthcare generates vast amounts of data. Every diagnosis, medication, lab test, and procedure leaves a digital trace in the electronic health record (EHR). For researchers, this represents an unprecedented opportunity to study how diseases develop, interact, and progress over time.
+
+Consider a single patient in the UK Biobank:
+
+```
+Patient ID: 1002769
+Observation period: 1995-2015 (20 years)
+
+Diagnoses:
+  - Hypertension (age 52)
+  - Hyperlipidemia (age 54)  
+  - Type 2 diabetes (age 58)
+  - Angina (age 62)
+  - Myocardial infarction (age 65)
+
+Medications:
+  - Anti-hypertensive (started age 52)
+  - Statin (started age 54)
+  
+Biomarkers:
+  - LDL: 120 → 85 mg/dL (after statin)
+  - SBP: 155 → 130 mmHg (after treatment)
+```
+
+This timeline tells a story. We see the progression from risk factors (hypertension, hyperlipidemia) to diabetes to cardiovascular disease. We see the effect of treatments. We see, ultimately, that despite interventions, the MI occurred.
+
+Now multiply this by 500,000 patients in UK Biobank, 200,000 in Mass General Brigham, 400,000 in All of Us. The patterns that emerge from millions of such trajectories form the foundation for ALADYNOULLI.
+
+## Three Biobanks, Three Healthcare Systems
+
+Our analyses span three major biobanks:
+
+### UK Biobank (UKB)
+- **N**: ~500,000 participants
+- **Ages**: 40-69 at enrollment (2006-2010)
+- **Follow-up**: Up to 52 years (including retrospective linkage)
+- **Setting**: UK National Health Service
+- **Strengths**: Large, well-characterized, extensive genetic data
+- **Limitations**: Healthy volunteer bias, predominantly White British
+
+### Mass General Brigham Biobank (MGB)
+- **N**: ~200,000 participants  
+- **Ages**: All ages
+- **Follow-up**: Variable (real-world clinical data)
+- **Setting**: Academic medical center, Boston
+- **Strengths**: Dense clinical phenotyping, diverse patient mix
+- **Limitations**: Referral bias, complex care population
+
+### All of Us Research Program (AoU)
+- **N**: ~400,000 participants
+- **Ages**: All ages
+- **Follow-up**: Growing (launched 2018)
+- **Setting**: Multiple US healthcare systems
+- **Strengths**: Diversity by design, whole genome sequencing
+- **Limitations**: Shorter follow-up, evolving data
+
+These biobanks represent different healthcare systems, populations, and data collection methods. A model that works across all three demonstrates genuine generalizability.
+
+## The Challenge: 348 Diseases, Millions of Patients
+
+Analyzing this data is not straightforward. Consider the dimensions:
+
+- **Individuals**: 400,000+ per biobank
+- **Diseases**: 348 phecodes (phenotype codes)
+- **Time points**: 51 annual intervals (ages 30-80)
+- **Genetic variants**: Millions of SNPs
+
+A naive approach might model each disease separately. But diseases don't occur in isolation. Diabetes increases the risk of heart disease. Cancer treatments cause cardiotoxicity. Psychiatric conditions affect medication adherence. The interactions matter.
+
+ALADYNOULLI addresses this through **dimensionality reduction**: instead of modeling 348 diseases independently, we identify latent **signatures**—patterns of diseases that tend to co-occur. This reduces the problem from 348 diseases to ~20 signatures while preserving (and revealing) biologically meaningful structure.
+
+## From Reactive to Predictive Medicine
+
+The traditional use of EHR data is *reactive*: a patient develops symptoms, seeks care, receives a diagnosis. The record captures what has already happened.
+
+But the same data can be used *predictively*: given what has happened so far, what is likely to happen next? This is the shift from reactive to predictive medicine.
+
+```
+Traditional (Reactive):
+  Symptoms → Diagnosis → Treatment → Outcome
+
+Predictive:
+  History → Risk Model → Intervention → Better Outcome
+```
+
+The patient who will have an MI at age 57 already has data in their record—hypertension diagnoses, medication patterns, biomarker trajectories—that could have identified their elevated risk years earlier. The question is whether we can build models that recognize these patterns.
+
+## The Role of Time
+
+A critical insight is that **timing matters**. Two patients with identical diagnoses may have very different futures depending on *when* those diagnoses occurred:
+
+- Diabetes at age 40 vs. age 70
+- Breast cancer at age 35 vs. age 65  
+- Hypertension before vs. after other cardiovascular diagnoses
+
+ALADYNOULLI explicitly models time through:
+
+1. **Age-indexed observations**: Disease status at each year of age
+2. **Gaussian processes**: Smooth trajectories that capture temporal dynamics
+3. **Event times**: Explicit modeling of censoring and competing risks
+
+This temporal structure is what allows the model to capture *progression*—not just snapshots, but trajectories.
+
+
+# Genetics Matters {#genetics-matters}
+
+## Beyond Static Risk Factors
+
+Traditional risk models rely on risk factors measured at a single point in time: blood pressure, cholesterol, smoking status, family history. These factors are important, but they share a limitation: they change over time.
+
+Genetics is different. Your genome is fixed at conception and remains constant throughout life. A polygenic risk score (PRS) measured at age 30 gives the same result at age 70.
+
+This stability makes genetic information uniquely valuable for risk prediction:
+
+- **Early identification**: Genetic risk is present before clinical risk factors manifest
+- **Causal anchoring**: Mendelian randomization establishes causal relationships
+- **Lifetime trajectory**: Genetic effects can be modeled across the entire lifespan
+
+## Genetics Impacts Early Disease
+
+It's well established that high polygenic risk scores identify individuals at elevated risk for disease. What's less appreciated is that genetics affects not just *whether* disease occurs, but *when*.
+
+For coronary artery disease, high-PRS individuals develop disease earlier:
+
+```
+Age at CAD Diagnosis by PRS Quintile:
+  Q1 (lowest risk):  median age 68
+  Q2:                median age 65
+  Q3:                median age 63
+  Q4:                median age 60
+  Q5 (highest risk): median age 56
+```
+
+This 12-year difference between top and bottom quintiles represents a decade of earlier disease burden—and a decade of opportunity for intervention.
+
+## Genetics Impacts All Disease, Early
+
+The relationship between genetic risk and age has another dimension: high-PRS individuals are more likely to be diagnosed with disease *at any given age*, but the effect is strongest at younger ages.
+
+```
+Hazard Ratio by Age (CAD PRS top vs bottom quintile):
+  Age 40-50: HR = 4.2
+  Age 50-60: HR = 3.1
+  Age 60-70: HR = 2.3
+  Age 70-80: HR = 1.7
+```
+
+This attenuation of genetic effects with age reflects multiple factors:
+- Competing risks (other causes of death)
+- Environmental exposures accumulating
+- Selection effects (high-risk individuals already affected)
+
+For ALADYNOULLI, this means genetic effects should be modeled as **time-varying**, not constant. The parameter $\gamma$ captures the association between genetics and disease signatures, but this effect operates through the temporal dynamics of $\lambda$—stronger at younger ages, attenuating over time.
+
+## The γ Parameter: Genetics Meets Signatures
+
+In ALADYNOULLI, genetic effects enter through the parameter $\gamma$, which connects individual genetic profiles to latent signatures:
+
+$$\mathbb{E}[\lambda_{ik}] = r_k + g_i^T \gamma_k$$
+
+where:
+- $\lambda_{ik}$ is individual $i$'s affinity for signature $k$
+- $r_k$ is the population-average affinity for signature $k$
+- $g_i$ is individual $i$'s genetic profile (e.g., standardized PRSs)
+- $\gamma_k$ is the genetic effect on signature $k$
+
+This formulation has several advantages:
+
+1. **Dimensionality reduction**: Instead of modeling genetic effects on 348 diseases, we model effects on ~20 signatures
+2. **Information sharing**: Diseases within a signature share genetic signal
+3. **Biological interpretation**: Signatures correspond to biological pathways
+
+## When Do You Ask the Question?
+
+A key insight from our work is that the answer to "what is your disease risk?" depends on when you ask the question.
+
+At age 40, an individual with high cardiovascular PRS has dramatically elevated relative risk but modest absolute risk (events are rare at this age). At age 70, the same individual has lower relative risk but higher absolute risk (events are common at this age).
+
+This creates a clinical dilemma:
+- **Early intervention** (age 40): Large relative risk reduction possible, but few events prevented
+- **Late intervention** (age 70): Smaller relative risk reduction, but more events prevented
+
+ALADYNOULLI addresses this by providing **dynamic predictions** that update as individuals age and accumulate diagnoses. The model doesn't give a single risk estimate—it gives a trajectory that evolves over the lifespan.
+
+## The Joint Goal: Discovery and Prediction
+
+A crucial feature of ALADYNOULLI is that it simultaneously enables **genomic discovery** and **clinical prediction**:
+
+- **Discovery**: Identifying genetic variants associated with disease signatures
+- **Prediction**: Forecasting individual disease risk over time
+
+These goals are often treated separately, with discovery studies (GWAS) and prediction models developed independently. But they're fundamentally connected: the same genetic signal that improves prediction also reveals biology.
+
+In later chapters, we'll show how ALADYNOULLI:
+- Identifies 151 genome-wide significant loci across 21 signatures
+- Discovers cardiovascular associations not found in single-trait GWAS
+- Achieves heritability exceeding component diseases
+- Improves prediction over established clinical risk scores
+
+The joint consideration of discovery and prediction—not one or the other, but both—is what makes the Bayesian framework powerful.
