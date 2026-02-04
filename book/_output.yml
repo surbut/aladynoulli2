@@ -1,0 +1,21 @@
+bookdown::gitbook:
+  css: style.css
+  config:
+    toc:
+      before: |
+        <li><a href="./">ALADYNOULLI: Dynamic Disease Modeling</a></li>
+      after: |
+        <li><a href="https://github.com/surbut/aladynoulli2" target="blank">GitHub Repository</a></li>
+    download: ["pdf", "epub"]
+    edit: https://github.com/surbut/aladynoulli2/edit/main/book/%s
+    sharing:
+      github: yes
+      twitter: yes
+      facebook: no
+bookdown::pdf_book:
+  includes:
+    in_header: preamble.tex
+  latex_engine: xelatex
+  citation_package: natbib
+  keep_tex: yes
+bookdown::epub_book: default

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Chapter 20 Temporal Leakage and Washout | ALADYNOULLI: Dynamic Disease Modeling</title>
+  <meta name="description" content="A comprehensive guide to dynamic Bayesian modeling of disease trajectories using electronic health records and genetic data." />
+  <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Chapter 20 Temporal Leakage and Washout | ALADYNOULLI: Dynamic Disease Modeling" />
+  <meta property="og:type" content="book" />
+  
+  <meta property="og:description" content="A comprehensive guide to dynamic Bayesian modeling of disease trajectories using electronic health records and genetic data." />
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Chapter 20 Temporal Leakage and Washout | ALADYNOULLI: Dynamic Disease Modeling" />
+  
+  <meta name="twitter:description" content="A comprehensive guide to dynamic Bayesian modeling of disease trajectories using electronic health records and genetic data." />
+  
+
+<meta name="author" content="Sarah M. Urbut" />
+
+
+<meta name="date" content="2026-02-04" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="stratification.html"/>
+<link rel="next" href="diagnostics.html"/>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
+<link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+
+
+<style type="text/css">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+<style type="text/css">
+  
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">ALADYNOULLI: Dynamic Disease Modeling</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Preface</a>
+<ul>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#who-this-book-is-for"><i class="fa fa-check"></i>Who This Book Is For</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#how-this-book-is-organized"><i class="fa fa-check"></i>How This Book Is Organized</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#acknowledgments"><i class="fa fa-check"></i>Acknowledgments</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#code-and-data"><i class="fa fa-check"></i>Code and Data</a></li>
+</ul></li>
+<li class="part"><span><b>I The Clinical Problem</b></span></li>
+<li class="chapter" data-level="1" data-path="everyone-moving.html"><a href="everyone-moving.html"><i class="fa fa-check"></i><b>1</b> Everyone is Moving</a>
+<ul>
+<li class="chapter" data-level="1.1" data-path="everyone-moving.html"><a href="everyone-moving.html#the-emergency-department-at-3-am"><i class="fa fa-check"></i><b>1.1</b> The Emergency Department at 3 AM</a></li>
+<li class="chapter" data-level="1.2" data-path="everyone-moving.html"><a href="everyone-moving.html#the-proportional-hazards-assumption"><i class="fa fa-check"></i><b>1.2</b> The Proportional Hazards Assumption</a></li>
+<li class="chapter" data-level="1.3" data-path="everyone-moving.html"><a href="everyone-moving.html#when-proportionality-fails"><i class="fa fa-check"></i><b>1.3</b> When Proportionality Fails</a></li>
+<li class="chapter" data-level="1.4" data-path="everyone-moving.html"><a href="everyone-moving.html#dynamic-hazard-different-roles-same-end"><i class="fa fa-check"></i><b>1.4</b> Dynamic Hazard: Different Roles, Same End</a></li>
+<li class="chapter" data-level="1.5" data-path="everyone-moving.html"><a href="everyone-moving.html#a-preview"><i class="fa fa-check"></i><b>1.5</b> A Preview</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="longitudinal-data.html"><a href="longitudinal-data.html"><i class="fa fa-check"></i><b>2</b> The Promise of Longitudinal Data</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="longitudinal-data.html"><a href="longitudinal-data.html#electronic-health-records-a-window-into-disease-progression"><i class="fa fa-check"></i><b>2.1</b> Electronic Health Records: A Window Into Disease Progression</a></li>
+<li class="chapter" data-level="2.2" data-path="longitudinal-data.html"><a href="longitudinal-data.html#three-biobanks-three-healthcare-systems"><i class="fa fa-check"></i><b>2.2</b> Three Biobanks, Three Healthcare Systems</a>
+<ul>
+<li class="chapter" data-level="2.2.1" data-path="longitudinal-data.html"><a href="longitudinal-data.html#uk-biobank-ukb"><i class="fa fa-check"></i><b>2.2.1</b> UK Biobank (UKB)</a></li>
+<li class="chapter" data-level="2.2.2" data-path="longitudinal-data.html"><a href="longitudinal-data.html#mass-general-brigham-biobank-mgb"><i class="fa fa-check"></i><b>2.2.2</b> Mass General Brigham Biobank (MGB)</a></li>
+<li class="chapter" data-level="2.2.3" data-path="longitudinal-data.html"><a href="longitudinal-data.html#all-of-us-research-program-aou"><i class="fa fa-check"></i><b>2.2.3</b> All of Us Research Program (AoU)</a></li>
+</ul></li>
+<li class="chapter" data-level="2.3" data-path="longitudinal-data.html"><a href="longitudinal-data.html#the-challenge-348-diseases-millions-of-patients"><i class="fa fa-check"></i><b>2.3</b> The Challenge: 348 Diseases, Millions of Patients</a></li>
+<li class="chapter" data-level="2.4" data-path="longitudinal-data.html"><a href="longitudinal-data.html#from-reactive-to-predictive-medicine"><i class="fa fa-check"></i><b>2.4</b> From Reactive to Predictive Medicine</a></li>
+<li class="chapter" data-level="2.5" data-path="longitudinal-data.html"><a href="longitudinal-data.html#the-role-of-time"><i class="fa fa-check"></i><b>2.5</b> The Role of Time</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="genetics-matters.html"><a href="genetics-matters.html"><i class="fa fa-check"></i><b>3</b> Genetics Matters</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="genetics-matters.html"><a href="genetics-matters.html#beyond-static-risk-factors"><i class="fa fa-check"></i><b>3.1</b> Beyond Static Risk Factors</a></li>
+<li class="chapter" data-level="3.2" data-path="genetics-matters.html"><a href="genetics-matters.html#genetics-impacts-early-disease"><i class="fa fa-check"></i><b>3.2</b> Genetics Impacts Early Disease</a></li>
+<li class="chapter" data-level="3.3" data-path="genetics-matters.html"><a href="genetics-matters.html#genetics-impacts-all-disease-early"><i class="fa fa-check"></i><b>3.3</b> Genetics Impacts All Disease, Early</a></li>
+<li class="chapter" data-level="3.4" data-path="genetics-matters.html"><a href="genetics-matters.html#the-%CE%B3-parameter-genetics-meets-signatures"><i class="fa fa-check"></i><b>3.4</b> The γ Parameter: Genetics Meets Signatures</a></li>
+<li class="chapter" data-level="3.5" data-path="genetics-matters.html"><a href="genetics-matters.html#when-do-you-ask-the-question"><i class="fa fa-check"></i><b>3.5</b> When Do You Ask the Question?</a></li>
+<li class="chapter" data-level="3.6" data-path="genetics-matters.html"><a href="genetics-matters.html#the-joint-goal-discovery-and-prediction"><i class="fa fa-check"></i><b>3.6</b> The Joint Goal: Discovery and Prediction</a></li>
+</ul></li>
+<li class="part"><span><b>II The ALADYNOULLI Model</b></span></li>
+<li class="chapter" data-level="4" data-path="bayesian.html"><a href="bayesian.html"><i class="fa fa-check"></i><b>4</b> Everyone is a Bayesian</a>
+<ul>
+<li class="chapter" data-level="4.1" data-path="bayesian.html"><a href="bayesian.html#thomas-bayes-and-the-art-of-updating-beliefs"><i class="fa fa-check"></i><b>4.1</b> Thomas Bayes and the Art of Updating Beliefs</a></li>
+<li class="chapter" data-level="4.2" data-path="bayesian.html"><a href="bayesian.html#why-bayesian-the-case-for-updating"><i class="fa fa-check"></i><b>4.2</b> Why Bayesian? The Case for Updating</a></li>
+<li class="chapter" data-level="4.3" data-path="bayesian.html"><a href="bayesian.html#prior-knowledge-signatures-as-population-patterns"><i class="fa fa-check"></i><b>4.3</b> Prior Knowledge: Signatures as Population Patterns</a></li>
+<li class="chapter" data-level="4.4" data-path="bayesian.html"><a href="bayesian.html#individual-data-the-likelihood"><i class="fa fa-check"></i><b>4.4</b> Individual Data: The Likelihood</a></li>
+<li class="chapter" data-level="4.5" data-path="bayesian.html"><a href="bayesian.html#continuously-updated-posteriors"><i class="fa fa-check"></i><b>4.5</b> Continuously Updated Posteriors</a></li>
+<li class="chapter" data-level="4.6" data-path="bayesian.html"><a href="bayesian.html#joint-consideration-discovery-and-prediction"><i class="fa fa-check"></i><b>4.6</b> Joint Consideration: Discovery and Prediction</a></li>
+</ul></li>
+<li class="chapter" data-level="5" data-path="math-framework.html"><a href="math-framework.html"><i class="fa fa-check"></i><b>5</b> The Mathematical Framework</a>
+<ul>
+<li class="chapter" data-level="5.1" data-path="math-framework.html"><a href="math-framework.html#model-overview"><i class="fa fa-check"></i><b>5.1</b> Model Overview</a></li>
+<li class="chapter" data-level="5.2" data-path="math-framework.html"><a href="math-framework.html#the-%CE%BB-parameter-individual-signature-affinities"><i class="fa fa-check"></i><b>5.2</b> The λ Parameter: Individual Signature Affinities</a></li>
+<li class="chapter" data-level="5.3" data-path="math-framework.html"><a href="math-framework.html#the-%CF%86-parameter-signature-disease-associations"><i class="fa fa-check"></i><b>5.3</b> The φ Parameter: Signature-Disease Associations</a></li>
+<li class="chapter" data-level="5.4" data-path="math-framework.html"><a href="math-framework.html#the-likelihood-function"><i class="fa fa-check"></i><b>5.4</b> The Likelihood Function</a></li>
+<li class="chapter" data-level="5.5" data-path="math-framework.html"><a href="math-framework.html#the-complete-model"><i class="fa fa-check"></i><b>5.5</b> The Complete Model</a></li>
+<li class="chapter" data-level="5.6" data-path="math-framework.html"><a href="math-framework.html#identifiability-considerations"><i class="fa fa-check"></i><b>5.6</b> Identifiability Considerations</a></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="gaussian-processes.html"><a href="gaussian-processes.html"><i class="fa fa-check"></i><b>6</b> Gaussian Processes for Temporal Dynamics</a>
+<ul>
+<li class="chapter" data-level="6.1" data-path="gaussian-processes.html"><a href="gaussian-processes.html#why-gaussian-processes"><i class="fa fa-check"></i><b>6.1</b> Why Gaussian Processes?</a></li>
+<li class="chapter" data-level="6.2" data-path="gaussian-processes.html"><a href="gaussian-processes.html#the-squared-exponential-kernel"><i class="fa fa-check"></i><b>6.2</b> The Squared Exponential Kernel</a></li>
+<li class="chapter" data-level="6.3" data-path="gaussian-processes.html"><a href="gaussian-processes.html#gp-priors-as-soft-constraints"><i class="fa fa-check"></i><b>6.3</b> GP Priors as Soft Constraints</a></li>
+<li class="chapter" data-level="6.4" data-path="gaussian-processes.html"><a href="gaussian-processes.html#computational-considerations"><i class="fa fa-check"></i><b>6.4</b> Computational Considerations</a></li>
+</ul></li>
+<li class="chapter" data-level="7" data-path="genetic-effects.html"><a href="genetic-effects.html"><i class="fa fa-check"></i><b>7</b> Genetic Effects on Disease Trajectories</a>
+<ul>
+<li class="chapter" data-level="7.1" data-path="genetic-effects.html"><a href="genetic-effects.html#the-%CE%B3_level-parameter"><i class="fa fa-check"></i><b>7.1</b> The γ_level Parameter</a></li>
+<li class="chapter" data-level="7.2" data-path="genetic-effects.html"><a href="genetic-effects.html#initialization-from-linear-regression"><i class="fa fa-check"></i><b>7.2</b> Initialization from Linear Regression</a></li>
+<li class="chapter" data-level="7.3" data-path="genetic-effects.html"><a href="genetic-effects.html#relative-vs-absolute-effects"><i class="fa fa-check"></i><b>7.3</b> Relative vs Absolute Effects</a></li>
+<li class="chapter" data-level="7.4" data-path="genetic-effects.html"><a href="genetic-effects.html#validation-known-risk-populations"><i class="fa fa-check"></i><b>7.4</b> Validation: Known Risk Populations</a></li>
+</ul></li>
+<li class="chapter" data-level="8" data-path="implementation.html"><a href="implementation.html"><i class="fa fa-check"></i><b>8</b> Computational Implementation</a>
+<ul>
+<li class="chapter" data-level="8.1" data-path="implementation.html"><a href="implementation.html#the-vectorization-challenge"><i class="fa fa-check"></i><b>8.1</b> The Vectorization Challenge</a></li>
+<li class="chapter" data-level="8.2" data-path="implementation.html"><a href="implementation.html#vectorized-likelihood"><i class="fa fa-check"></i><b>8.2</b> Vectorized Likelihood</a></li>
+<li class="chapter" data-level="8.3" data-path="implementation.html"><a href="implementation.html#pytorch-and-automatic-differentiation"><i class="fa fa-check"></i><b>8.3</b> PyTorch and Automatic Differentiation</a></li>
+<li class="chapter" data-level="8.4" data-path="implementation.html"><a href="implementation.html#real-time-patient-refitting"><i class="fa fa-check"></i><b>8.4</b> Real-Time Patient Refitting</a></li>
+<li class="chapter" data-level="8.5" data-path="implementation.html"><a href="implementation.html#scalability"><i class="fa fa-check"></i><b>8.5</b> Scalability</a></li>
+</ul></li>
+<li class="part"><span><b>III Discovering Disease Signatures</b></span></li>
+<li class="chapter" data-level="9" data-path="latent-patterns.html"><a href="latent-patterns.html"><i class="fa fa-check"></i><b>9</b> Latent Patterns of Disease</a>
+<ul>
+<li class="chapter" data-level="9.1" data-path="latent-patterns.html"><a href="latent-patterns.html#what-is-a-signature"><i class="fa fa-check"></i><b>9.1</b> What is a Signature?</a></li>
+<li class="chapter" data-level="9.2" data-path="latent-patterns.html"><a href="latent-patterns.html#learning-signatures-from-data"><i class="fa fa-check"></i><b>9.2</b> Learning Signatures from Data</a></li>
+<li class="chapter" data-level="9.3" data-path="latent-patterns.html"><a href="latent-patterns.html#the-21-signatures"><i class="fa fa-check"></i><b>9.3</b> The 21 Signatures</a></li>
+<li class="chapter" data-level="9.4" data-path="latent-patterns.html"><a href="latent-patterns.html#visualizing-signatures"><i class="fa fa-check"></i><b>9.4</b> Visualizing Signatures</a></li>
+<li class="chapter" data-level="9.5" data-path="latent-patterns.html"><a href="latent-patterns.html#time-varying-patterns"><i class="fa fa-check"></i><b>9.5</b> Time-Varying Patterns</a></li>
+<li class="chapter" data-level="9.6" data-path="latent-patterns.html"><a href="latent-patterns.html#the-healthy-signature"><i class="fa fa-check"></i><b>9.6</b> The Healthy Signature</a></li>
+</ul></li>
+<li class="chapter" data-level="10" data-path="cross-cohort.html"><a href="cross-cohort.html"><i class="fa fa-check"></i><b>10</b> Consistency Across Populations</a>
+<ul>
+<li class="chapter" data-level="10.1" data-path="cross-cohort.html"><a href="cross-cohort.html#the-generalizability-challenge"><i class="fa fa-check"></i><b>10.1</b> The Generalizability Challenge</a></li>
+<li class="chapter" data-level="10.2" data-path="cross-cohort.html"><a href="cross-cohort.html#measuring-similarity"><i class="fa fa-check"></i><b>10.2</b> Measuring Similarity</a></li>
+<li class="chapter" data-level="10.3" data-path="cross-cohort.html"><a href="cross-cohort.html#results-remarkable-consistency"><i class="fa fa-check"></i><b>10.3</b> Results: Remarkable Consistency</a></li>
+<li class="chapter" data-level="10.4" data-path="cross-cohort.html"><a href="cross-cohort.html#what-stays-the-same"><i class="fa fa-check"></i><b>10.4</b> What Stays the Same</a></li>
+<li class="chapter" data-level="10.5" data-path="cross-cohort.html"><a href="cross-cohort.html#what-adapts"><i class="fa fa-check"></i><b>10.5</b> What Adapts</a></li>
+<li class="chapter" data-level="10.6" data-path="cross-cohort.html"><a href="cross-cohort.html#implications-for-clinical-use"><i class="fa fa-check"></i><b>10.6</b> Implications for Clinical Use</a></li>
+</ul></li>
+<li class="chapter" data-level="11" data-path="heterogeneity.html"><a href="heterogeneity.html"><i class="fa fa-check"></i><b>11</b> Heterogeneity Within Disease</a>
+<ul>
+<li class="chapter" data-level="11.1" data-path="heterogeneity.html"><a href="heterogeneity.html#beyond-diagnostic-categories"><i class="fa fa-check"></i><b>11.1</b> Beyond Diagnostic Categories</a></li>
+<li class="chapter" data-level="11.2" data-path="heterogeneity.html"><a href="heterogeneity.html#case-study-breast-cancer"><i class="fa fa-check"></i><b>11.2</b> Case Study: Breast Cancer</a></li>
+<li class="chapter" data-level="11.3" data-path="heterogeneity.html"><a href="heterogeneity.html#quantifying-heterogeneity"><i class="fa fa-check"></i><b>11.3</b> Quantifying Heterogeneity</a></li>
+<li class="chapter" data-level="11.4" data-path="heterogeneity.html"><a href="heterogeneity.html#case-study-major-depression"><i class="fa fa-check"></i><b>11.4</b> Case Study: Major Depression</a></li>
+<li class="chapter" data-level="11.5" data-path="heterogeneity.html"><a href="heterogeneity.html#case-study-myocardial-infarction"><i class="fa fa-check"></i><b>11.5</b> Case Study: Myocardial Infarction</a></li>
+<li class="chapter" data-level="11.6" data-path="heterogeneity.html"><a href="heterogeneity.html#clinical-implications"><i class="fa fa-check"></i><b>11.6</b> Clinical Implications</a></li>
+<li class="chapter" data-level="11.7" data-path="heterogeneity.html"><a href="heterogeneity.html#heterogeneity-matches-genotype"><i class="fa fa-check"></i><b>11.7</b> Heterogeneity Matches Genotype</a></li>
+</ul></li>
+<li class="part"><span><b>IV Genetic Validation</b></span></li>
+<li class="chapter" data-level="12" data-path="gwas.html"><a href="gwas.html"><i class="fa fa-check"></i><b>12</b> Common Variant Associations (GWAS)</a>
+<ul>
+<li class="chapter" data-level="12.1" data-path="gwas.html"><a href="gwas.html#signature-based-gwas"><i class="fa fa-check"></i><b>12.1</b> Signature-Based GWAS</a></li>
+<li class="chapter" data-level="12.2" data-path="gwas.html"><a href="gwas.html#results-151-genome-wide-significant-loci"><i class="fa fa-check"></i><b>12.2</b> Results: 151 Genome-Wide Significant Loci</a></li>
+<li class="chapter" data-level="12.3" data-path="gwas.html"><a href="gwas.html#novel-cardiovascular-associations"><i class="fa fa-check"></i><b>12.3</b> Novel Cardiovascular Associations</a></li>
+<li class="chapter" data-level="12.4" data-path="gwas.html"><a href="gwas.html#why-signatures-have-more-power"><i class="fa fa-check"></i><b>12.4</b> Why Signatures Have More Power</a></li>
+<li class="chapter" data-level="12.5" data-path="gwas.html"><a href="gwas.html#replication-of-known-biology"><i class="fa fa-check"></i><b>12.5</b> Replication of Known Biology</a></li>
+</ul></li>
+<li class="chapter" data-level="13" data-path="rvas.html"><a href="rvas.html"><i class="fa fa-check"></i><b>13</b> Rare Variant Associations (RVAS)</a>
+<ul>
+<li class="chapter" data-level="13.1" data-path="rvas.html"><a href="rvas.html#gene-based-testing"><i class="fa fa-check"></i><b>13.1</b> Gene-Based Testing</a></li>
+<li class="chapter" data-level="13.2" data-path="rvas.html"><a href="rvas.html#results-18-significant-genes"><i class="fa fa-check"></i><b>13.2</b> Results: 18 Significant Genes</a></li>
+<li class="chapter" data-level="13.3" data-path="rvas.html"><a href="rvas.html#pleiotropic-effects"><i class="fa fa-check"></i><b>13.3</b> Pleiotropic Effects</a></li>
+<li class="chapter" data-level="13.4" data-path="rvas.html"><a href="rvas.html#robust-across-masks"><i class="fa fa-check"></i><b>13.4</b> Robust Across Masks</a></li>
+<li class="chapter" data-level="13.5" data-path="rvas.html"><a href="rvas.html#the-defb1-signal"><i class="fa fa-check"></i><b>13.5</b> The DEFB1 Signal</a></li>
+</ul></li>
+<li class="chapter" data-level="14" data-path="heritability.html"><a href="heritability.html"><i class="fa fa-check"></i><b>14</b> Heritability and Biological Relevance</a>
+<ul>
+<li class="chapter" data-level="14.1" data-path="heritability.html"><a href="heritability.html#observed-scale-heritability"><i class="fa fa-check"></i><b>14.1</b> Observed-Scale Heritability</a></li>
+<li class="chapter" data-level="14.2" data-path="heritability.html"><a href="heritability.html#signatures-vs-component-diseases"><i class="fa fa-check"></i><b>14.2</b> Signatures vs Component Diseases</a></li>
+<li class="chapter" data-level="14.3" data-path="heritability.html"><a href="heritability.html#why-aggregation-helps"><i class="fa fa-check"></i><b>14.3</b> Why Aggregation Helps</a></li>
+<li class="chapter" data-level="14.4" data-path="heritability.html"><a href="heritability.html#familial-hypercholesterolemia-validation"><i class="fa fa-check"></i><b>14.4</b> Familial Hypercholesterolemia Validation</a></li>
+<li class="chapter" data-level="14.5" data-path="heritability.html"><a href="heritability.html#chip-carrier-validation"><i class="fa fa-check"></i><b>14.5</b> CHIP Carrier Validation</a></li>
+<li class="chapter" data-level="14.6" data-path="heritability.html"><a href="heritability.html#genetic-correlation-structure"><i class="fa fa-check"></i><b>14.6</b> Genetic Correlation Structure</a></li>
+</ul></li>
+<li class="part"><span><b>V Clinical Prediction</b></span></li>
+<li class="chapter" data-level="15" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html"><i class="fa fa-check"></i><b>15</b> Outperforming Established Risk Scores</a>
+<ul>
+<li class="chapter" data-level="15.1" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#the-benchmark-challenge"><i class="fa fa-check"></i><b>15.1</b> The Benchmark Challenge</a></li>
+<li class="chapter" data-level="15.2" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#head-to-head-comparison"><i class="fa fa-check"></i><b>15.2</b> Head-to-Head Comparison</a>
+<ul>
+<li class="chapter" data-level="15.2.1" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#ascvd-prediction-10-year"><i class="fa fa-check"></i><b>15.2.1</b> ASCVD Prediction (10-year)</a></li>
+<li class="chapter" data-level="15.2.2" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#breast-cancer-prediction"><i class="fa fa-check"></i><b>15.2.2</b> Breast Cancer Prediction</a></li>
+<li class="chapter" data-level="15.2.3" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#across-28-conditions"><i class="fa fa-check"></i><b>15.2.3</b> Across 28 Conditions</a></li>
+</ul></li>
+<li class="chapter" data-level="15.3" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#why-aladynoulli-performs-better"><i class="fa fa-check"></i><b>15.3</b> Why ALADYNOULLI Performs Better</a>
+<ul>
+<li class="chapter" data-level="15.3.1" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#information-from-disease-history"><i class="fa fa-check"></i><b>15.3.1</b> 1. Information from Disease History</a></li>
+<li class="chapter" data-level="15.3.2" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#temporal-dynamics"><i class="fa fa-check"></i><b>15.3.2</b> 2. Temporal Dynamics</a></li>
+<li class="chapter" data-level="15.3.3" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#disease-interactions"><i class="fa fa-check"></i><b>15.3.3</b> 3. Disease Interactions</a></li>
+<li class="chapter" data-level="15.3.4" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#genetic-information"><i class="fa fa-check"></i><b>15.3.4</b> 4. Genetic Information</a></li>
+</ul></li>
+<li class="chapter" data-level="15.4" data-path="vs-risk-scores.html"><a href="vs-risk-scores.html#calibration-predictions-match-outcomes"><i class="fa fa-check"></i><b>15.4</b> Calibration: Predictions Match Outcomes</a></li>
+</ul></li>
+<li class="chapter" data-level="16" data-path="dynamic-updating.html"><a href="dynamic-updating.html"><i class="fa fa-check"></i><b>16</b> Dynamic Risk Updating</a>
+<ul>
+<li class="chapter" data-level="16.1" data-path="dynamic-updating.html"><a href="dynamic-updating.html#the-value-of-updating"><i class="fa fa-check"></i><b>16.1</b> The Value of Updating</a></li>
+<li class="chapter" data-level="16.2" data-path="dynamic-updating.html"><a href="dynamic-updating.html#annual-prediction-updates"><i class="fa fa-check"></i><b>16.2</b> Annual Prediction Updates</a></li>
+<li class="chapter" data-level="16.3" data-path="dynamic-updating.html"><a href="dynamic-updating.html#walking-the-timeline"><i class="fa fa-check"></i><b>16.3</b> Walking the Timeline</a></li>
+<li class="chapter" data-level="16.4" data-path="dynamic-updating.html"><a href="dynamic-updating.html#from-past-to-future"><i class="fa fa-check"></i><b>16.4</b> From Past to Future</a></li>
+<li class="chapter" data-level="16.5" data-path="dynamic-updating.html"><a href="dynamic-updating.html#the-competing-risk-advantage"><i class="fa fa-check"></i><b>16.5</b> The Competing Risk Advantage</a></li>
+</ul></li>
+<li class="chapter" data-level="17" data-path="web-app.html"><a href="web-app.html"><i class="fa fa-check"></i><b>17</b> The ALADYNOULLI Web Application</a>
+<ul>
+<li class="chapter" data-level="17.1" data-path="web-app.html"><a href="web-app.html#from-research-to-clinical-tool"><i class="fa fa-check"></i><b>17.1</b> From Research to Clinical Tool</a></li>
+<li class="chapter" data-level="17.2" data-path="web-app.html"><a href="web-app.html#user-interface"><i class="fa fa-check"></i><b>17.2</b> User Interface</a></li>
+<li class="chapter" data-level="17.3" data-path="web-app.html"><a href="web-app.html#technical-architecture"><i class="fa fa-check"></i><b>17.3</b> Technical Architecture</a></li>
+<li class="chapter" data-level="17.4" data-path="web-app.html"><a href="web-app.html#clinical-use-cases"><i class="fa fa-check"></i><b>17.4</b> Clinical Use Cases</a>
+<ul>
+<li class="chapter" data-level="17.4.1" data-path="web-app.html"><a href="web-app.html#primary-care"><i class="fa fa-check"></i><b>17.4.1</b> Primary Care</a></li>
+<li class="chapter" data-level="17.4.2" data-path="web-app.html"><a href="web-app.html#cardiology"><i class="fa fa-check"></i><b>17.4.2</b> Cardiology</a></li>
+<li class="chapter" data-level="17.4.3" data-path="web-app.html"><a href="web-app.html#oncology"><i class="fa fa-check"></i><b>17.4.3</b> Oncology</a></li>
+</ul></li>
+<li class="chapter" data-level="17.5" data-path="web-app.html"><a href="web-app.html#limitations-and-appropriate-use"><i class="fa fa-check"></i><b>17.5</b> Limitations and Appropriate Use</a></li>
+<li class="chapter" data-level="17.6" data-path="web-app.html"><a href="web-app.html#future-development"><i class="fa fa-check"></i><b>17.6</b> Future Development</a></li>
+</ul></li>
+<li class="part"><span><b>VI Robustness and Validation</b></span></li>
+<li class="chapter" data-level="18" data-path="ipw.html"><a href="ipw.html"><i class="fa fa-check"></i><b>18</b> Selection Bias and Inverse Probability Weighting</a>
+<ul>
+<li class="chapter" data-level="18.1" data-path="ipw.html"><a href="ipw.html#the-healthy-volunteer-problem"><i class="fa fa-check"></i><b>18.1</b> The Healthy Volunteer Problem</a></li>
+<li class="chapter" data-level="18.2" data-path="ipw.html"><a href="ipw.html#inverse-probability-weighting"><i class="fa fa-check"></i><b>18.2</b> Inverse Probability Weighting</a></li>
+<li class="chapter" data-level="18.3" data-path="ipw.html"><a href="ipw.html#implementing-ipw-in-aladynoulli"><i class="fa fa-check"></i><b>18.3</b> Implementing IPW in ALADYNOULLI</a></li>
+<li class="chapter" data-level="18.4" data-path="ipw.html"><a href="ipw.html#validation-through-simulation"><i class="fa fa-check"></i><b>18.4</b> Validation Through Simulation</a></li>
+<li class="chapter" data-level="18.5" data-path="ipw.html"><a href="ipw.html#preservation-of-biological-signal"><i class="fa fa-check"></i><b>18.5</b> Preservation of Biological Signal</a></li>
+<li class="chapter" data-level="18.6" data-path="ipw.html"><a href="ipw.html#weight-distribution"><i class="fa fa-check"></i><b>18.6</b> Weight Distribution</a></li>
+</ul></li>
+<li class="chapter" data-level="19" data-path="stratification.html"><a href="stratification.html"><i class="fa fa-check"></i><b>19</b> Population Stratification</a>
+<ul>
+<li class="chapter" data-level="19.1" data-path="stratification.html"><a href="stratification.html#ancestry-and-disease-risk"><i class="fa fa-check"></i><b>19.1</b> Ancestry and Disease Risk</a></li>
+<li class="chapter" data-level="19.2" data-path="stratification.html"><a href="stratification.html#principal-component-adjustment"><i class="fa fa-check"></i><b>19.2</b> Principal Component Adjustment</a></li>
+<li class="chapter" data-level="19.3" data-path="stratification.html"><a href="stratification.html#cross-ancestry-stability"><i class="fa fa-check"></i><b>19.3</b> Cross-Ancestry Stability</a></li>
+<li class="chapter" data-level="19.4" data-path="stratification.html"><a href="stratification.html#what-differs"><i class="fa fa-check"></i><b>19.4</b> What Differs</a></li>
+</ul></li>
+<li class="chapter" data-level="20" data-path="temporal.html"><a href="temporal.html"><i class="fa fa-check"></i><b>20</b> Temporal Leakage and Washout</a>
+<ul>
+<li class="chapter" data-level="20.1" data-path="temporal.html"><a href="temporal.html#the-reverse-causation-concern"><i class="fa fa-check"></i><b>20.1</b> The Reverse Causation Concern</a></li>
+<li class="chapter" data-level="20.2" data-path="temporal.html"><a href="temporal.html#washout-analysis"><i class="fa fa-check"></i><b>20.2</b> Washout Analysis</a></li>
+<li class="chapter" data-level="20.3" data-path="temporal.html"><a href="temporal.html#temporal-leakage-analysis"><i class="fa fa-check"></i><b>20.3</b> Temporal Leakage Analysis</a></li>
+<li class="chapter" data-level="20.4" data-path="temporal.html"><a href="temporal.html#multiple-prediction-horizons"><i class="fa fa-check"></i><b>20.4</b> Multiple Prediction Horizons</a></li>
+</ul></li>
+<li class="chapter" data-level="21" data-path="diagnostics.html"><a href="diagnostics.html"><i class="fa fa-check"></i><b>21</b> Model Diagnostics</a>
+<ul>
+<li class="chapter" data-level="21.1" data-path="diagnostics.html"><a href="diagnostics.html#calibration-assessment"><i class="fa fa-check"></i><b>21.1</b> Calibration Assessment</a></li>
+<li class="chapter" data-level="21.2" data-path="diagnostics.html"><a href="diagnostics.html#convergence-diagnostics"><i class="fa fa-check"></i><b>21.2</b> Convergence Diagnostics</a></li>
+<li class="chapter" data-level="21.3" data-path="diagnostics.html"><a href="diagnostics.html#sensitivity-analysis"><i class="fa fa-check"></i><b>21.3</b> Sensitivity Analysis</a></li>
+<li class="chapter" data-level="21.4" data-path="diagnostics.html"><a href="diagnostics.html#leave-one-out-validation"><i class="fa fa-check"></i><b>21.4</b> Leave-One-Out Validation</a></li>
+</ul></li>
+<li class="part"><span><b>VII Advanced Topics</b></span></li>
+<li class="chapter" data-level="22" data-path="competing-risks.html"><a href="competing-risks.html"><i class="fa fa-check"></i><b>22</b> Competing Risks and Multi-State Models</a>
+<ul>
+<li class="chapter" data-level="22.1" data-path="competing-risks.html"><a href="competing-risks.html#why-competing-risks-matter"><i class="fa fa-check"></i><b>22.1</b> Why Competing Risks Matter</a></li>
+<li class="chapter" data-level="22.2" data-path="competing-risks.html"><a href="competing-risks.html#how-aladynoulli-handles-competition"><i class="fa fa-check"></i><b>22.2</b> How ALADYNOULLI Handles Competition</a></li>
+<li class="chapter" data-level="22.3" data-path="competing-risks.html"><a href="competing-risks.html#comparison-to-multi-state-models"><i class="fa fa-check"></i><b>22.3</b> Comparison to Multi-State Models</a></li>
+<li class="chapter" data-level="22.4" data-path="competing-risks.html"><a href="competing-risks.html#empirical-comparison"><i class="fa fa-check"></i><b>22.4</b> Empirical Comparison</a></li>
+</ul></li>
+<li class="chapter" data-level="23" data-path="linear-mixing.html"><a href="linear-mixing.html"><i class="fa fa-check"></i><b>23</b> Linear vs Nonlinear Mixing</a>
+<ul>
+<li class="chapter" data-level="23.1" data-path="linear-mixing.html"><a href="linear-mixing.html#the-softmax-choice"><i class="fa fa-check"></i><b>23.1</b> The Softmax Choice</a></li>
+<li class="chapter" data-level="23.2" data-path="linear-mixing.html"><a href="linear-mixing.html#alternative-architectures"><i class="fa fa-check"></i><b>23.2</b> Alternative Architectures</a></li>
+<li class="chapter" data-level="23.3" data-path="linear-mixing.html"><a href="linear-mixing.html#why-softmax-works"><i class="fa fa-check"></i><b>23.3</b> Why Softmax Works</a></li>
+<li class="chapter" data-level="23.4" data-path="linear-mixing.html"><a href="linear-mixing.html#the-identifiability-trade-off"><i class="fa fa-check"></i><b>23.4</b> The Identifiability Trade-off</a></li>
+</ul></li>
+<li class="chapter" data-level="24" data-path="other-methods.html"><a href="other-methods.html"><i class="fa fa-check"></i><b>24</b> Connections to Other Methods</a>
+<ul>
+<li class="chapter" data-level="24.1" data-path="other-methods.html"><a href="other-methods.html#transformer-based-models"><i class="fa fa-check"></i><b>24.1</b> Transformer-Based Models</a></li>
+<li class="chapter" data-level="24.2" data-path="other-methods.html"><a href="other-methods.html#topic-models"><i class="fa fa-check"></i><b>24.2</b> Topic Models</a></li>
+<li class="chapter" data-level="24.3" data-path="other-methods.html"><a href="other-methods.html#latent-factor-analysis"><i class="fa fa-check"></i><b>24.3</b> Latent Factor Analysis</a></li>
+<li class="chapter" data-level="24.4" data-path="other-methods.html"><a href="other-methods.html#deep-survival-models"><i class="fa fa-check"></i><b>24.4</b> Deep Survival Models</a></li>
+</ul></li>
+<li class="chapter" data-level="25" data-path="future.html"><a href="future.html"><i class="fa fa-check"></i><b>25</b> Future Directions</a>
+<ul>
+<li class="chapter" data-level="25.1" data-path="future.html"><a href="future.html#genetic-effects-on-progression-speed"><i class="fa fa-check"></i><b>25.1</b> Genetic Effects on Progression Speed</a></li>
+<li class="chapter" data-level="25.2" data-path="future.html"><a href="future.html#treatment-effect-estimation"><i class="fa fa-check"></i><b>25.2</b> Treatment Effect Estimation</a></li>
+<li class="chapter" data-level="25.3" data-path="future.html"><a href="future.html#multi-modal-integration"><i class="fa fa-check"></i><b>25.3</b> Multi-Modal Integration</a></li>
+<li class="chapter" data-level="25.4" data-path="future.html"><a href="future.html#real-time-learning"><i class="fa fa-check"></i><b>25.4</b> Real-Time Learning</a></li>
+<li class="chapter" data-level="25.5" data-path="future.html"><a href="future.html#validation-in-clinical-trials"><i class="fa fa-check"></i><b>25.5</b> Validation in Clinical Trials</a></li>
+</ul></li>
+<li class="divider"></li>
+<li><a href="https://github.com/surbut/aladynoulli2" target="blank">GitHub Repository</a></li>
+
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">ALADYNOULLI: Dynamic Disease Modeling</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="temporal" class="section level1 hasAnchor" number="20">
+<h1><span class="header-section-number">Chapter 20</span> Temporal Leakage and Washout<a href="temporal.html#temporal" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<div id="the-reverse-causation-concern" class="section level2 hasAnchor" number="20.1">
+<h2><span class="header-section-number">20.1</span> The Reverse Causation Concern<a href="temporal.html#the-reverse-causation-concern" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>A critical concern: could early disease symptoms cause behaviors that appear as “risk factors”?</p>
+<p>Example: Undiagnosed cancer causes fatigue → patient stops exercising → appears as low physical activity “predicting” cancer</p>
+<p>This <strong>reverse causation</strong> could artificially inflate prediction performance.</p>
+</div>
+<div id="washout-analysis" class="section level2 hasAnchor" number="20.2">
+<h2><span class="header-section-number">20.2</span> Washout Analysis<a href="temporal.html#washout-analysis" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>We tested model robustness through <strong>washout periods</strong>—excluding diagnoses near the prediction time:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Washout Period</th>
+<th>AUC (CV prediction)</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>None</td>
+<td>0.730</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td>1 month</td>
+<td>0.728</td>
+<td>-0.3%</td>
+</tr>
+<tr class="odd">
+<td>3 months</td>
+<td>0.724</td>
+<td>-0.8%</td>
+</tr>
+<tr class="even">
+<td>6 months</td>
+<td>0.718</td>
+<td>-1.6%</td>
+</tr>
+</tbody>
+</table>
+<p>Performance remains robust even with 6-month washout, indicating predictions aren’t driven by reverse causation.</p>
+</div>
+<div id="temporal-leakage-analysis" class="section level2 hasAnchor" number="20.3">
+<h2><span class="header-section-number">20.3</span> Temporal Leakage Analysis<a href="temporal.html#temporal-leakage-analysis" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>We also tested for “temporal leakage”—using information that wouldn’t be available at prediction time:</p>
+<p><strong>Experiment:</strong>
+- Predict disease at time <span class="math inline">\(T\)</span>
+- Use only data up to time <span class="math inline">\(T-k\)</span> for prediction
+- Vary <span class="math inline">\(k\)</span> from 0 to 2 years</p>
+<p><strong>Results:</strong>
+- Performance degrades gradually with longer lag
+- Even 2-year lag maintains clinically useful discrimination
+- Confirms predictions use genuinely prospective information</p>
+</div>
+<div id="multiple-prediction-horizons" class="section level2 hasAnchor" number="20.4">
+<h2><span class="header-section-number">20.4</span> Multiple Prediction Horizons<a href="temporal.html#multiple-prediction-horizons" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>We evaluated predictions at multiple horizons after enrollment:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Horizon</th>
+<th>Mean AUC</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 year</td>
+<td>0.68</td>
+<td>[0.66, 0.70]</td>
+</tr>
+<tr class="even">
+<td>3 years</td>
+<td>0.71</td>
+<td>[0.69, 0.73]</td>
+</tr>
+<tr class="odd">
+<td>5 years</td>
+<td>0.73</td>
+<td>[0.71, 0.75]</td>
+</tr>
+<tr class="even">
+<td>10 years</td>
+<td>0.72</td>
+<td>[0.70, 0.74]</td>
+</tr>
+</tbody>
+</table>
+<p>Performance is consistent across horizons, with slight peak at medium-term predictions.</p>
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="stratification.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="diagnostics.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+  "sharing": {
+    "github": true,
+    "facebook": false,
+    "twitter": true,
+    "linkedin": false,
+    "weibo": false,
+    "instapaper": false,
+    "vk": false,
+    "whatsapp": false,
+    "all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+  },
+  "fontsettings": {
+    "theme": "white",
+    "family": "sans",
+    "size": 2
+  },
+  "edit": {
+    "link": "https://github.com/surbut/aladynoulli2/edit/main/book/chapters/06-robustness.Rmd",
+    "text": "Edit"
+  },
+  "history": {
+    "link": null,
+    "text": null
+  },
+  "view": {
+    "link": null,
+    "text": null
+  },
+  "download": ["aladynoulli-book.pdf", "aladynoulli-book.epub"],
+  "search": {
+    "engine": "fuse",
+    "options": null
+  },
+  "toc": {
+    "collapse": "subsection"
+  }
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/latest.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>

@@ -1,0 +1,252 @@
+# (PART) Clinical Prediction {-}
+
+# Outperforming Established Risk Scores {#vs-risk-scores}
+
+## The Benchmark Challenge
+
+Clinical risk scores have been developed and validated over decades:
+
+- **PCE (Pooled Cohort Equations)**: 10-year ASCVD risk, ACC/AHA recommended
+- **QRISK3**: 10-year CVD risk, UK standard
+- **PREVENT**: Updated ASCVD equations (2023)
+- **GAIL**: 5-year and lifetime breast cancer risk
+
+These scores use carefully selected predictors: age, sex, blood pressure, cholesterol, smoking, diabetes status. They've been validated in large populations and form the basis for clinical guidelines.
+
+Can ALADYNOULLI improve on these established benchmarks?
+
+## Head-to-Head Comparison
+
+We compared ALADYNOULLI to established risk scores on held-out test data using the same individuals and outcomes.
+
+### ASCVD Prediction (10-year)
+
+| Model | AUC | Improvement vs PCE |
+|-------|-----|-------------------|
+| PCE | 0.680 | — |
+| QRISK3 | 0.695 | +2.2% |
+| PREVENT | 0.657 | -3.4% |
+| ALADYNOULLI | 0.730 | **+7.3%** |
+
+Absolute AUC improvement: +0.050 over PCE
+
+### Breast Cancer Prediction
+
+| Model | Horizon | AUC | Improvement |
+|-------|---------|-----|-------------|
+| GAIL | 10-year | 0.548 | — |
+| ALADYNOULLI | 10-year | 0.575 | **+5.0%** |
+| GAIL | 1-year | 0.549 | — |
+| ALADYNOULLI | 1-year | 0.782 | **+42.4%** |
+
+The short-horizon improvement is striking: ALADYNOULLI captures information in recent diagnoses that GAIL cannot.
+
+### Across 28 Conditions
+
+Systematic comparison across 28 conditions with established or commonly-used risk models:
+
+- ALADYNOULLI better: **22/28** conditions
+- Comparable: 4/28 conditions
+- Worse: 2/28 conditions
+
+Mean AUC improvement: +0.062 (9.1% relative)
+
+## Why ALADYNOULLI Performs Better
+
+Several factors contribute to improved prediction:
+
+### 1. Information from Disease History
+Traditional scores use demographics and labs. ALADYNOULLI uses the **entire diagnosis history**—hundreds of binary variables encoding disease patterns.
+
+### 2. Temporal Dynamics
+ALADYNOULLI models how risk evolves over time. A recent diagnosis signals current elevated risk; an old diagnosis may be less relevant.
+
+### 3. Disease Interactions
+The signature framework captures how diseases predict each other. Diabetes predicts CVD not just through shared risk factors but through shared signature loading.
+
+### 4. Genetic Information
+When available, polygenic risk scores provide additional predictive signal.
+
+## Calibration: Predictions Match Outcomes
+
+Good discrimination (AUC) isn't enough—predictions must also be **calibrated**.
+
+We assessed calibration across the full range of predicted risks:
+- MSE = 4.67 × 10⁻⁷
+- Mean predicted rate: 5.55 × 10⁻⁴
+- Mean observed rate: 5.45 × 10⁻⁴
+- N observations: 722 million patient-years
+
+The calibration curve shows predicted risks closely matching observed rates across all risk deciles.
+
+
+# Dynamic Risk Updating {#dynamic-updating}
+
+## The Value of Updating
+
+Traditional risk scores give a single snapshot: "Your 10-year ASCVD risk is 15%." But what happens when:
+- You're diagnosed with hypertension?
+- You have an abnormal stress test?
+- 5 years pass without incident?
+
+ALADYNOULLI updates predictions as new information arrives.
+
+## Annual Prediction Updates
+
+We evaluated prediction improvement from annual updates:
+
+**Setup:**
+- Predict 10-year disease risk at enrollment
+- Repeat prediction 1 year later with updated diagnosis history
+- Repeat at years 2, 3, 4, 5
+- Compare discrimination
+
+**Results:**
+| Update Time | Mean AUC | Improvement vs Enrollment |
+|-------------|----------|--------------------------|
+| Enrollment | 0.698 | — |
+| +1 year | 0.742 | +6.3% |
+| +2 years | 0.771 | +10.5% |
+| +3 years | 0.793 | +13.6% |
+| +5 years | 0.821 | +17.6% |
+
+Predictions improve substantially as more data accumulates.
+
+## Walking the Timeline
+
+Consider a hypothetical patient:
+
+**Age 45 (enrollment):**
+- No diagnoses
+- High PRS for CVD
+- Predicted: θ_CV = 0.15, 10-year MI risk = 3%
+
+**Age 50 (diagnosed with hypertension):**
+- Model updates: θ_CV increases
+- Predicted: θ_CV = 0.25, 10-year MI risk = 7%
+
+**Age 55 (diagnosed with diabetes):**
+- Model updates: θ_CV and θ_Metabolic increase
+- Predicted: θ_CV = 0.40, 10-year MI risk = 15%
+
+**Age 60 (no new diagnoses):**
+- Model updates: some normalization
+- Predicted: θ_CV = 0.35, 10-year MI risk = 12%
+
+The trajectory responds to new information while maintaining biological plausibility through GP smoothness.
+
+## From Past to Future
+
+A key visualization: the signature trajectory over time.
+
+```
+θ (Cardiovascular)
+    ^
+0.5 |                     ● (MI occurs)
+    |                   /
+0.4 |                 /
+    |               /
+0.3 |         ____/
+    |        /  (Diabetes diagnosed)
+0.2 |      /
+    |    /  (Hypertension diagnosed)
+0.1 |__/
+    |
+    +-------------------------> Age
+    45   50   55   60   65   70
+```
+
+The model learns from the past (left of "now") to predict the future (right of "now").
+
+## The Competing Risk Advantage
+
+An important feature: ALADYNOULLI naturally handles **competing risks**.
+
+If a patient develops cancer, their cardiovascular signature trajectory is affected:
+- Directly: Cancer treatment may cause cardiotoxicity
+- Indirectly: Competing mortality risk changes interpretation
+
+Traditional models either ignore competing risks or require complex multi-state specifications. ALADYNOULLI captures these interactions through the signature structure.
+
+
+# The ALADYNOULLI Web Application {#web-app}
+
+## From Research to Clinical Tool
+
+The computational advances enabling real-time patient refitting make clinical deployment possible.
+
+The web application at https://aladynoulli.hms.harvard.edu provides:
+- Interactive risk visualization
+- Dynamic prediction updates
+- Signature trajectory displays
+- Comparison to clinical benchmarks
+
+## User Interface
+
+The application flow:
+
+1. **Input patient data:**
+   - Demographics (age, sex)
+   - Diagnosis history (ICD/phecode)
+   - Optional: Genetic data (PRS)
+
+2. **View predictions:**
+   - Disease-specific risk trajectories
+   - Signature evolution over time
+   - Comparison to population average
+
+3. **Update with new information:**
+   - Add new diagnoses
+   - See how predictions change
+   - Explore "what if" scenarios
+
+## Technical Architecture
+
+**Backend:**
+- Pre-trained population parameters ($\phi$, $\gamma$, $\psi$)
+- PyTorch inference engine
+- REST API for predictions
+
+**Frontend:**
+- Interactive visualizations (D3.js/Plotly)
+- Patient input forms
+- Results display
+
+**Performance:**
+- Prediction latency: <2 seconds
+- Handles concurrent users
+- HIPAA-compliant infrastructure
+
+## Clinical Use Cases
+
+### Primary Care
+- Annual wellness visit risk assessment
+- Identifying patients for screening
+- Treatment decision support
+
+### Cardiology
+- Comprehensive CV risk profiling
+- Response to risk factor modification
+- Post-event risk stratification
+
+### Oncology
+- Comorbidity assessment
+- Survivorship care planning
+- Multi-cancer risk evaluation
+
+## Limitations and Appropriate Use
+
+The application is a **decision support tool**, not a replacement for clinical judgment:
+
+- Predictions are probabilistic, not deterministic
+- Model was trained on specific populations
+- Should be used alongside, not instead of, clinical assessment
+- Not validated for all subpopulations
+
+## Future Development
+
+Planned enhancements:
+- Integration with EHR systems (FHIR)
+- Expanded disease coverage
+- Treatment effect estimation
+- Mobile application
