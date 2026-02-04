@@ -1,0 +1,211 @@
+# (PART) Genetic Validation {-}
+
+# Common Variant Associations (GWAS) {#gwas}
+
+## Signature-Based GWAS
+
+Traditional GWAS tests association between genetic variants and binary disease outcomes. ALADYNOULLI enables a different approach: GWAS on **continuous signature values**.
+
+For each individual, we compute their signature exposure:
+
+$$\text{Exposure}_k = \sum_{t} \theta_{ikt}$$
+
+This cumulative signature exposure captures lifetime disease burden in that signature. We then test:
+
+$$\text{Exposure}_k \sim \beta_0 + \beta_1 \cdot \text{SNP} + \text{covariates}$$
+
+## Results: 151 Genome-Wide Significant Loci
+
+Across 21 signatures, we identify **151 genome-wide significant loci** (p < 5×10⁻⁸):
+
+| Signature | Loci | Top Genes |
+|-----------|------|-----------|
+| SIG5 (Cardiovascular) | 42 | LPA, APOB, LDLR, IL6R, PCSK9 |
+| SIG7 (Metabolic) | 28 | FTO, MC4R, TMEM18, TCF7L2 |
+| SIG11 (Cancer) | 23 | TERT, ATM, TP53, BRCA2 |
+| SIG6 (Psychiatric) | 18 | CACNA1C, DRD2, BDNF |
+| Other signatures | 40 | Various |
+
+## Novel Cardiovascular Associations
+
+A key finding: signature-based GWAS identifies loci not detected in single-trait GWAS of component diseases.
+
+For SIG5 (cardiovascular signature), we identified **23 lead variants** annotated to genes including:
+- IL6R (inflammation)
+- SMAD3 (TGF-β signaling)
+- ZPR1/ZNF259 (lipid metabolism)
+- SCARB1 (HDL receptor)
+- CFDP1 (complement)
+- PDGFD (vascular biology)
+
+These did not reach genome-wide significance as lead loci in our single-trait GWAS of angina, MI, coronary atherosclerosis, or hypercholesterolemia conducted on the same UK Biobank data.
+
+## Why Signatures Have More Power
+
+Signatures aggregate related diseases, increasing statistical power through:
+
+1. **Larger effective sample size**: More "cases" when combining related conditions
+2. **Reduced noise**: Common genetic signal amplified, disease-specific noise averaged out
+3. **Biological coherence**: Variants affecting shared pathways detected
+
+The heritability analysis (next chapter) confirms this quantitatively.
+
+## Replication of Known Biology
+
+Many identified loci replicate established biology:
+
+**LPA (Lipoprotein(a))**
+- Known causal risk factor for CAD
+- Strong signal in SIG5
+
+**PCSK9**
+- Target of cholesterol-lowering drugs
+- Strong signal in SIG5
+
+**FTO**
+- Established obesity gene
+- Strong signal in SIG7 (Metabolic)
+
+**TERT**
+- Telomere maintenance, cancer susceptibility
+- Strong signal in SIG11 (Cancer)
+
+This replication validates the biological relevance of signatures.
+
+
+# Rare Variant Associations (RVAS) {#rvas}
+
+## Gene-Based Testing
+
+While GWAS focuses on common variants, **rare variant association studies (RVAS)** test whether rare, potentially damaging variants in a gene collectively associate with phenotype.
+
+We used REGENIE to perform gene-based RVAS with multiple variant masks:
+- Mask 1: Loss-of-function (LoF) only
+- Mask 2: LoF + predicted deleterious missense
+- Mask 3: LoF + all missense
+- Masks 4-6: Progressively inclusive categories
+
+## Results: 18 Significant Genes
+
+We identified **18 unique genes** with genome-wide significant associations across 21 signatures:
+
+| Gene | Signature(s) | Known Biology |
+|------|--------------|---------------|
+| LDLR | SIG5 (CV) | LDL receptor, FH |
+| LPA | SIG5 (CV) | Lipoprotein(a) |
+| APOB | SIG5, SIG7 | Apolipoprotein B |
+| TTN | SIG5, Multiple | Cardiomyopathy |
+| BRCA2 | SIG11, SIG12 | DNA repair, cancer |
+| TET2 | SIG5, SIG10 | CHIP, clonal hematopoiesis |
+| PKD1 | Multiple | Polycystic kidney |
+| MSH2 | Multiple | Lynch syndrome |
+| DEFB1 | SIG20 | Defensin, immunity |
+
+## Pleiotropic Effects
+
+Several genes show associations across multiple signatures, indicating **pleiotropy**:
+
+**BRCA2:**
+- SIG11 (Cancer-general)
+- SIG12 (Breast/GYN)
+- Consistent with known breast/ovarian cancer risk
+
+**PKD1:**
+- SIG9 (Genitourinary)
+- SIG5 (Cardiovascular)
+- Consistent with kidney-cardiovascular axis
+
+**TET2:**
+- SIG5 (Cardiovascular)
+- SIG10 (Hematologic)
+- Consistent with CHIP biology
+
+## Robust Across Masks
+
+Seven genes were significant across all 6 variant masks:
+- LDLR, LPA, APOB (lipid metabolism)
+- CDH26 (cadherin)
+- TTN (muscle structure)
+- RAD52 (DNA repair)
+- PKD1 (polycystic kidney)
+
+This robustness to mask definition increases confidence in the associations.
+
+## The DEFB1 Signal
+
+An intriguing finding: DEFB1 (defensin beta 1) associated with the **healthy signature** (SIG20).
+
+Defensins are antimicrobial peptides involved in innate immunity. The association with the healthy signature suggests a potential role in maintaining health/resisting disease.
+
+This illustrates how ALADYNOULLI can identify biologically plausible relationships that wouldn't be found in traditional disease-focused GWAS.
+
+
+# Heritability and Biological Relevance {#heritability}
+
+## Observed-Scale Heritability
+
+Heritability ($h^2$) measures the proportion of phenotypic variance explained by genetics. For binary diseases, two scales are used:
+
+- **Liability scale**: Assumes an underlying continuous liability
+- **Observed scale**: Based on the binary phenotype directly
+
+Signatures are continuous phenotypes, so their heritability is inherently on the observed scale. To compare fairly with diseases, we compute disease heritability on the same observed scale.
+
+## Signatures vs Component Diseases
+
+A key finding: **signature heritability often exceeds component disease heritability**.
+
+| Signature | h² (sig) | Top Disease | h² (disease) |
+|-----------|----------|-------------|--------------|
+| SIG5 (CV) | 0.18 | CAD | 0.12 |
+| SIG7 (Metabolic) | 0.22 | T2D | 0.15 |
+| SIG11 (Cancer) | 0.14 | Breast Ca | 0.10 |
+| SIG6 (Psychiatric) | 0.16 | Depression | 0.09 |
+
+This makes sense: signatures aggregate genetic signal across related diseases, while disease-specific noise is averaged out.
+
+## Why Aggregation Helps
+
+Consider the genetic architecture:
+- Variant A affects CAD (effect size β₁)
+- Variant A also affects hyperlipidemia (effect size β₂)
+- In single-disease GWAS: detected with power from one phenotype
+- In signature GWAS: detected with combined power from both phenotypes
+
+This is essentially a form of multi-trait analysis that increases effective sample size for shared genetic effects.
+
+## Familial Hypercholesterolemia Validation
+
+We validated that signatures capture genetic biology through enrichment analyses.
+
+**FH carrier analysis:**
+- Identified carriers of known FH-causing variants (LDLR, APOB, PCSK9)
+- Compared signature values to non-carriers with similar LDL levels
+- FH carriers had **higher SIG5 (cardiovascular) values**
+
+This demonstrates that signatures capture genetic predisposition beyond what's visible in standard clinical measures.
+
+## CHIP Carrier Validation
+
+Similar validation with clonal hematopoiesis (CHIP):
+
+- Identified carriers of CHIP-associated mutations (DNMT3A, TET2, ASXL1)
+- CHIP carriers had elevated SIG5 (cardiovascular) and SIG10 (hematologic) values
+- Consistent with known CHIP biology linking hematopoiesis to cardiovascular risk
+
+## Genetic Correlation Structure
+
+Signatures show interpretable genetic correlations:
+
+```
+Genetic Correlation Matrix (partial)
+           SIG5   SIG6   SIG7   SIG11
+SIG5 (CV)  1.00   0.25   0.45   0.15
+SIG6 (Psy) 0.25   1.00   0.20   0.10
+SIG7 (Met) 0.45   0.20   1.00   0.18
+SIG11 (Ca) 0.15   0.10   0.18   1.00
+```
+
+- SIG5 and SIG7 show substantial correlation (cardiometabolic axis)
+- SIG6 correlates with both (mental health-cardiovascular link)
+- These correlations reflect known biology

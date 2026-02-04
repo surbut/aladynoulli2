@@ -1,0 +1,218 @@
+# (PART) Robustness and Validation {-}
+
+# Selection Bias and Inverse Probability Weighting {#ipw}
+
+## The Healthy Volunteer Problem
+
+UK Biobank participants are not a random sample of the UK population. They're healthier, wealthier, and more educated than average—the "healthy volunteer" effect.
+
+This creates potential problems:
+- Disease prevalence underestimated
+- Risk factor associations biased
+- Predictions may not generalize
+
+## Inverse Probability Weighting
+
+**Inverse probability weighting (IPW)** addresses selection bias by weighting each participant inversely by their probability of participation:
+
+$$w_i = \frac{1}{P(\text{participate} | X_i)}$$
+
+Participants who are less likely to participate (underrepresented groups) receive higher weights; over-represented participants receive lower weights.
+
+## Implementing IPW in ALADYNOULLI
+
+We modified the likelihood function to incorporate IPW weights:
+
+$$\mathcal{L}_{\text{weighted}} = -\frac{1}{N}\sum_{i=1}^{N} w_i \sum_{d,t} \ell_{idt}$$
+
+where $w_i$ is derived from the Schoeler et al. participation model, which predicts UK Biobank participation based on demographics and socioeconomic factors.
+
+## Validation Through Simulation
+
+We validated IPW through controlled simulation:
+
+1. **Create biased cohort**: Drop 90% of women from training data
+2. **Train without IPW**: Parameters biased toward male patterns
+3. **Train with IPW**: Weights recover full-population patterns
+
+Results:
+- Without IPW: Breast cancer prevalence underestimated by 85%
+- With IPW: Prevalence estimates recovered (within 5% of truth)
+
+## Preservation of Biological Signal
+
+A key finding: IPW adjustment preserves biological signal while correcting bias.
+
+- Signature-disease associations ($\phi$): Correlation 0.9999 with/without IPW
+- Individual trajectories ($\lambda$, $\pi$): Adapt to weighted population
+- Population parameters remain interpretable
+
+This structural separation—$\phi$ captures biology, $\lambda$ captures individuals—enables principled bias correction.
+
+## Weight Distribution
+
+IPW weights show expected patterns:
+- Higher weights for older participants (underrepresented)
+- Higher weights for non-White British (underrepresented)
+- Higher weights for lower SES (underrepresented)
+- Higher weights for less healthy (underrepresented)
+
+This confirms the weights are correcting in the expected directions.
+
+
+# Population Stratification {#stratification}
+
+## Ancestry and Disease Risk
+
+Genetic ancestry affects disease risk through:
+- Population-specific genetic variants
+- Gene-environment interactions
+- Healthcare access and utilization
+- Social determinants of health
+
+Failing to account for ancestry can confound genetic associations.
+
+## Principal Component Adjustment
+
+ALADYNOULLI incorporates ancestry through principal components (PCs) of the genetic data:
+
+$$\lambda_{ik}(t) \sim \mathcal{GP}(r_k + g_i^T \gamma_k + \text{PC}_i^T \delta_k, \Omega_\lambda)$$
+
+where $\delta_k$ captures PC effects on signature $k$.
+
+This is standard practice in genetic epidemiology and addresses population stratification at the individual level.
+
+## Cross-Ancestry Stability
+
+We assessed signature stability across ancestry groups in UK Biobank:
+
+| Comparison | $\phi$ Correlation | $\psi$ Correlation |
+|------------|-------------------|-------------------|
+| White British vs South Asian | 0.98 | 0.97 |
+| White British vs Black | 0.97 | 0.96 |
+| White British vs Mixed | 0.99 | 0.98 |
+
+Signature-disease associations are remarkably stable across ancestry groups, supporting biological (rather than confounded) interpretation.
+
+## What Differs
+
+While $\phi$ is stable, prevalence and trajectory parameters differ:
+- Higher cardiovascular signature values in South Asian participants
+- Different age-of-onset patterns across groups
+- Reflects real biological and environmental differences
+
+This is appropriate: the model captures ancestry-related variation in $\lambda$ while preserving shared disease structure in $\phi$.
+
+
+# Temporal Leakage and Washout {#temporal}
+
+## The Reverse Causation Concern
+
+A critical concern: could early disease symptoms cause behaviors that appear as "risk factors"?
+
+Example: Undiagnosed cancer causes fatigue → patient stops exercising → appears as low physical activity "predicting" cancer
+
+This **reverse causation** could artificially inflate prediction performance.
+
+## Washout Analysis
+
+We tested model robustness through **washout periods**—excluding diagnoses near the prediction time:
+
+| Washout Period | AUC (CV prediction) | Change |
+|----------------|---------------------|--------|
+| None | 0.730 | — |
+| 1 month | 0.728 | -0.3% |
+| 3 months | 0.724 | -0.8% |
+| 6 months | 0.718 | -1.6% |
+
+Performance remains robust even with 6-month washout, indicating predictions aren't driven by reverse causation.
+
+## Temporal Leakage Analysis
+
+We also tested for "temporal leakage"—using information that wouldn't be available at prediction time:
+
+**Experiment:**
+- Predict disease at time $T$
+- Use only data up to time $T-k$ for prediction
+- Vary $k$ from 0 to 2 years
+
+**Results:**
+- Performance degrades gradually with longer lag
+- Even 2-year lag maintains clinically useful discrimination
+- Confirms predictions use genuinely prospective information
+
+## Multiple Prediction Horizons
+
+We evaluated predictions at multiple horizons after enrollment:
+
+| Horizon | Mean AUC | 95% CI |
+|---------|----------|--------|
+| 1 year | 0.68 | [0.66, 0.70] |
+| 3 years | 0.71 | [0.69, 0.73] |
+| 5 years | 0.73 | [0.71, 0.75] |
+| 10 years | 0.72 | [0.70, 0.74] |
+
+Performance is consistent across horizons, with slight peak at medium-term predictions.
+
+
+# Model Diagnostics {#diagnostics}
+
+## Calibration Assessment
+
+Calibration measures whether predicted probabilities match observed frequencies.
+
+**Full-dataset calibration:**
+- 722 million patient-disease-time observations
+- Mean predicted: 5.55 × 10⁻⁴
+- Mean observed: 5.45 × 10⁻⁴
+- MSE: 4.67 × 10⁻⁷
+
+**By risk decile:**
+All deciles show predicted closely matching observed rates, with no systematic over- or under-prediction.
+
+## Convergence Diagnostics
+
+Training convergence assessed through:
+
+**Loss trajectory:**
+- Monotonic decrease over epochs
+- Stable plateau reached
+- No signs of instability
+
+**Gradient norms:**
+- Decrease over training
+- Final gradients near zero
+- No exploding/vanishing gradients
+
+**Parameter stability:**
+- Final parameters stable to initialization
+- Multiple random seeds give similar results
+
+## Sensitivity Analysis
+
+Model robustness to hyperparameters:
+
+| Hyperparameter | Range Tested | Sensitivity |
+|----------------|--------------|-------------|
+| GP length scale | T/6 to T/2 | Low |
+| GP amplitude | 0.1 to 0.5 | Low |
+| Learning rate | 0.001 to 0.05 | Moderate |
+| Number of signatures | 15 to 25 | Low |
+
+Results are robust to reasonable hyperparameter choices.
+
+## Leave-One-Out Validation
+
+For cross-cohort validation, we performed leave-one-out (LOO) analysis:
+
+1. Train on 2 biobanks
+2. Test on held-out biobank
+3. Repeat for all combinations
+
+| Training | Test | AUC |
+|----------|------|-----|
+| MGB + AoU | UKB | 0.71 |
+| UKB + AoU | MGB | 0.69 |
+| UKB + MGB | AoU | 0.70 |
+
+Performance is maintained when predicting in completely held-out populations.

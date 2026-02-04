@@ -8,9 +8,33 @@ This extends clust_huge_amp_vectorized.py to include genetic effects on slope:
 Key changes from original:
 1. Added gamma_slope parameter (P x K)
 2. Modified lambda mean to include time-varying genetic effect
-3. Updated initialization for gamma_slope
+3. Updated initialization for gamma_slope (two-stage: fit level first, then extract slope)
 4. Updated GP prior loss
 5. Added gamma_slope to optimizer with same regularization as gamma_level
+
+IMPORTANT - Interpretation of gamma_slope:
+============================================
+Due to softmax normalization (theta = softmax(lambda)), gamma_slope captures
+RELATIVE acceleration effects, not absolute slopes.
+
+Example:
+  - TRUE absolute slopes: [0.05, 0.03, 0.02] (all positive)
+  - Identifiable RELATIVE slopes: [+0.017, -0.003, -0.013] (differences from mean)
+
+What this means clinically:
+  - gamma_slope[p, 0] > gamma_slope[p, 1] means genetic variant p accelerates
+    signature 0 RELATIVE TO signature 1
+  - This is the meaningful quantity: "high PRS shifts disease profile toward
+    cardiovascular cluster over time"
+
+What we CAN identify:
+  ✓ Which signatures are MOST affected by genetics
+  ✓ RELATIVE rate differences between signatures  
+  ✓ Correct RANKING of genetic effects on progression
+
+What we CANNOT identify (fundamental property of softmax):
+  ✗ ABSOLUTE slope magnitudes
+  ✗ Whether all slopes are positive or negative (only relative differences)
 
 Author: Extended from original clust_huge_amp_vectorized.py
 """
@@ -190,15 +214,39 @@ class AladynWithGeneticSlope(nn.Module):
             gamma_level_init[:, k] = torch.linalg.lstsq(self.G, base_value_centered.unsqueeze(1)).solution.squeeze()
             print(f"Gamma_level init for k={k} (first 5): {gamma_level_init[:5, k]}")
 
-            # Initialize gamma_slope (NEW!)
+            # Initialize gamma_slope (NEW!) - using regression on rate of change
             if true_gamma_slope is not None:
                 # Use true values if provided (for simulation)
                 gamma_slope_init[:, k] = torch.tensor(true_gamma_slope[:, k], dtype=torch.float32)
                 print(f"Using true gamma_slope for k={k} (first 5): {gamma_slope_init[:5, k]}")
             else:
-                # Initialize small random values
-                gamma_slope_init[:, k] = 0.001 * torch.randn(self.P)
-                print(f"Gamma_slope init for k={k} (small random): {gamma_slope_init[:5, k]}")
+                # Compute each person's slope of disease accumulation over time
+                # Y is (N, D, T), cluster_diseases is (D,) boolean
+                if true_psi is None:
+                    Y_cluster = self.Y[:, cluster_diseases, :]  # (N, D_cluster, T)
+                else:
+                    Y_cluster = self.Y[:, strong_diseases > 0, :]  # (N, D_cluster, T)
+                
+                # Average across diseases in cluster: (N, T)
+                Y_cluster_mean = Y_cluster.mean(dim=1)
+                
+                # Fit linear regression for each person: Y(t) = a + b*t
+                # We want the slope b for each person
+                t_vals = torch.arange(self.T, dtype=torch.float32)
+                t_centered_fit = t_vals - t_vals.mean()
+                t_var = (t_centered_fit ** 2).sum()
+                
+                # Slope for each person: b_i = sum((t - t_mean) * (Y_i - Y_i_mean)) / sum((t - t_mean)^2)
+                Y_centered = Y_cluster_mean - Y_cluster_mean.mean(dim=1, keepdim=True)
+                slopes = (Y_centered * t_centered_fit.unsqueeze(0)).sum(dim=1) / t_var  # (N,)
+                slopes_centered = slopes - slopes.mean()
+                
+                # Regress slopes on genetics: slopes ~ G @ gamma_slope
+                gamma_slope_init[:, k] = torch.linalg.lstsq(self.G, slopes_centered.unsqueeze(1)).solution.squeeze()
+                print(f"Gamma_slope init for k={k} (from regression on slopes):")
+                print(f"  First 5 values: {gamma_slope_init[:5, k]}")
+                print(f"  Mean individual slope: {slopes.mean():.6f}")
+                print(f"  Slope range: [{slopes.min():.6f}, {slopes.max():.6f}]")
 
             # Initialize lambda with both level and slope effects (NEW!)
             level_effect = self.genetic_scale * (self.G @ gamma_level_init[:, k])  # (N,)
@@ -402,6 +450,168 @@ class AladynWithGeneticSlope(nn.Module):
                     print(f"  Gamma_slope grad norm: {self.gamma_slope.grad.norm().item():.4f}")
 
         return losses, gradient_history
+
+    def estimate_slope_from_lambda(self, reinitialize=True):
+        """
+        Two-stage estimation of gamma_slope from current λ parameters.
+        
+        This method extracts genetic slope effects by:
+        1. Computing each person's λ slope over time (for each signature)
+        2. Regressing those slopes on genetics
+        
+        Call this after an initial fit (with learn_slope=False) to get
+        a good initialization for gamma_slope before learning it.
+        
+        Args:
+            reinitialize: If True, update gamma_slope parameter with estimates
+            
+        Returns:
+            Estimated gamma_slope (P x K)
+        """
+        print("\n" + "="*60)
+        print("TWO-STAGE GAMMA_SLOPE ESTIMATION FROM λ")
+        print("="*60)
+        
+        with torch.no_grad():
+            lambda_np = self.lambda_.detach().numpy()  # (N, K, T)
+            G_np = self.G.detach().numpy()  # (N, P)
+            
+            # Time values for regression
+            t_vals = np.arange(self.T, dtype=float)
+            t_mean = t_vals.mean()
+            t_var = ((t_vals - t_mean)**2).sum()
+            
+            gamma_slope_est = np.zeros((self.P, self.K))
+            
+            for k in range(self.K):
+                # Get current level effect
+                level_effect = G_np @ self.gamma_level[:, k].detach().numpy()  # (N,)
+                
+                # Compute individual slopes (residual after removing level)
+                slopes_k = np.zeros(self.N)
+                for i in range(self.N):
+                    # Remove baseline and level effect
+                    lambda_residual = lambda_np[i, k, :] - (self.signature_refs[k].item() + level_effect[i])
+                    # Fit slope: residual ≈ b * (t - t_mean) + const
+                    slopes_k[i] = ((t_vals - t_mean) * lambda_residual).sum() / t_var
+                
+                # Center slopes
+                slopes_centered = slopes_k - slopes_k.mean()
+                
+                # Regress on genetics: slopes ~ G @ gamma_slope
+                gamma_slope_est[:, k] = np.linalg.lstsq(G_np, slopes_centered, rcond=None)[0]
+                
+                print(f"\nSignature {k}:")
+                print(f"  Individual slope range: [{slopes_k.min():.4f}, {slopes_k.max():.4f}]")
+                print(f"  Mean slope: {slopes_k.mean():.4f}")
+                print(f"  Estimated gamma_slope[0,{k}]: {gamma_slope_est[0, k]:.4f}")
+            
+            if reinitialize:
+                # Update gamma_slope parameter
+                gamma_slope_tensor = torch.tensor(gamma_slope_est, dtype=torch.float32)
+                if self.healthy_ref is not None:
+                    # Pad with zeros for healthy state
+                    full_gamma_slope = torch.zeros((self.P, self.K_total))
+                    full_gamma_slope[:, :self.K] = gamma_slope_tensor
+                    self.gamma_slope.data = full_gamma_slope
+                else:
+                    self.gamma_slope.data = gamma_slope_tensor
+                print("\n✓ Updated gamma_slope parameter")
+            
+            return gamma_slope_est
+
+    def fit_with_slope_warmstart(self, event_times, num_epochs_stage1=100, num_epochs_stage2=100,
+                                  learning_rate=0.01, lambda_reg=0.01):
+        """
+        Two-stage fitting procedure for better slope identification:
+        
+        Stage 1: Fit model WITHOUT learning slope (learn_slope=False equivalent)
+        Stage 2: Estimate gamma_slope from λ, then continue fitting with slopes
+        
+        This mirrors how gamma_level is initialized from linear regression.
+        """
+        print("\n" + "="*60)
+        print("STAGE 1: FIT WITHOUT SLOPE")
+        print("="*60)
+        
+        # Temporarily disable slope learning
+        original_learn_slope = self.learn_slope
+        self.learn_slope = False
+        
+        # Stage 1 fit
+        losses1, _ = self.fit(event_times, num_epochs=num_epochs_stage1, 
+                              learning_rate=learning_rate, lambda_reg=lambda_reg)
+        
+        print("\n" + "="*60)
+        print("STAGE 2: ESTIMATE SLOPE FROM λ, THEN CONTINUE")
+        print("="*60)
+        
+        # Estimate slope from λ
+        self.estimate_slope_from_lambda(reinitialize=True)
+        
+        # Re-enable slope learning
+        self.learn_slope = original_learn_slope
+        
+        # Stage 2 fit
+        losses2, grad_hist = self.fit(event_times, num_epochs=num_epochs_stage2,
+                                       learning_rate=learning_rate, lambda_reg=lambda_reg)
+        
+        return losses1 + losses2, grad_hist
+
+    def report_relative_slopes(self, snp_names=None, signature_names=None):
+        """
+        Report genetic slope effects in interpretable RELATIVE terms.
+        
+        Since softmax normalization means we can only identify relative slopes,
+        this method reports which signatures are accelerated RELATIVE to others.
+        
+        Args:
+            snp_names: Optional list of SNP/genetic feature names
+            signature_names: Optional list of signature names
+        
+        Returns:
+            DataFrame with relative slope effects and rankings
+        """
+        print("\n" + "="*70)
+        print("GENETIC SLOPE EFFECTS (RELATIVE INTERPRETATION)")
+        print("="*70)
+        print("\nNote: Due to softmax(λ)→θ, slopes are RELATIVE to the mean.")
+        print("Positive = accelerates THIS signature relative to others")
+        print("Negative = decelerates THIS signature relative to others\n")
+        
+        with torch.no_grad():
+            gamma_slope = self.gamma_slope.numpy()[:, :self.K]
+            
+            # For each genetic feature, report relative effects
+            for p in range(min(5, self.P)):  # Show first 5 SNPs
+                snp_name = snp_names[p] if snp_names else f"SNP_{p}"
+                slopes_p = gamma_slope[p, :]
+                mean_slope = slopes_p.mean()
+                relative_slopes = slopes_p - mean_slope
+                
+                print(f"\n{snp_name}:")
+                print(f"  Raw slopes:      {slopes_p.round(4)}")
+                print(f"  Mean:            {mean_slope:.4f}")
+                print(f"  Relative slopes: {relative_slopes.round(4)}")
+                
+                # Rank signatures
+                ranking = np.argsort(relative_slopes)[::-1]
+                print(f"  Ranking (fastest → slowest): ", end="")
+                for i, k in enumerate(ranking):
+                    sig_name = signature_names[k] if signature_names else f"Sig{k}"
+                    print(f"{sig_name}", end="")
+                    if i < len(ranking) - 1:
+                        print(" > ", end="")
+                print()
+        
+        print("\n" + "-"*70)
+        print("CLINICAL INTERPRETATION:")
+        print("-"*70)
+        print("Example: If SNP_0 has relative slopes [+0.02, -0.01, -0.01]")
+        print("  → High-risk individuals shift TOWARD Signature 0 over time")
+        print("  → This represents accelerated progression to that disease cluster")
+        
+        return gamma_slope
 
     def analyze_genetic_slopes(self):
         """NEW! Analyze learned genetic slope parameters"""
