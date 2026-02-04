@@ -6,12 +6,13 @@ This document describes the complete workflow for running the Aladynoulli model 
 
 ## Overview
 
-The workflow consists of 4 main steps:
+The workflow consists of 5 main steps:
 
 1. **Preprocessing** - Create initialization files (prevalence, clusters, psi, reference trajectories)
 2. **Batch Training** - Train model on batches with FULL E matrix
 3. **Create Master Checkpoint** - Pool phi from batches and create master checkpoint
-4. **Predict** - Run predictions using master checkpoint
+4. **Pool Gamma & Kappa** - Pool genetic effects (gamma) and calibration (kappa) from training batches
+5. **Predict** - Run predictions using master checkpoint with fixed phi, gamma, and kappa (only lambda is learned)
 
 ---
 
@@ -172,36 +173,68 @@ create_master_checkpoint(
 
 ---
 
-## Step 4: Predict with Master
+## Step 4: Pool Gamma & Kappa
 
-Run predictions using the master checkpoint (fixed phi) using data at prediction time only!
+Pool genetic effects (gamma) and calibration parameter (kappa) from training batch checkpoints. These will be fixed during prediction, ensuring complete separation between training and testing—only individual-specific lambda (signature loadings) is learned at prediction time.
 
 ### Script:
 ```bash
 # From repository root
-python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
+# For nolr (no LRT regularization) batches:
+python claudefile/pool_kappa_and_gamma_from_nolr_batches.py \
+    --batch_pattern "/path/to/enrollment_model_VECTORIZED_W0.0001_nolr_batch_*_*.pt" \
+    --output_dir /path/to/data
+
+# For standard batches:
+python claudefile/pool_kappa_and_gamma_from_batches.py \
+    --batch_pattern "/path/to/enrollment_model_W0.0001_batch_*_*.pt" \
+    --output_dir /path/to/data
+```
+
+**Script locations:**
+- [`claudefile/pool_kappa_and_gamma_from_nolr_batches.py`](../../../../claudefile/pool_kappa_and_gamma_from_nolr_batches.py) - For nolr (unregularized) training batches
+- [`claudefile/pool_kappa_and_gamma_from_batches.py`](../../../../claudefile/pool_kappa_and_gamma_from_batches.py) - For standard training batches
+
+### What it does:
+- Loads kappa and gamma from all batch checkpoints
+- Computes mean across batches (pooled estimates)
+- Saves to `pooled_kappa_gamma.pt` (or `pooled_kappa_gamma_nolr.pt` for nolr)
+
+### Output:
+- `pooled_kappa_gamma.pt` - Contains pooled kappa (scalar) and gamma (P × K matrix) for use in fixed-gamma/kappa prediction
+
+---
+
+## Step 5: Predict with Master (Fixed Phi, Gamma, Kappa)
+
+Run predictions using the master checkpoint with fixed phi, gamma, and kappa. Only lambda (individual-specific signature loadings) is learned per batch—ensuring no information leakage from test data into population parameters.
+
+### Script:
+```bash
+# From repository root
+python claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py \
     --trained_model_path /path/to/master_for_fitting_pooled_all_data.pt \
+    --pooled_gamma_kappa_path /path/to/data/pooled_kappa_gamma.pt \
     --data_dir /path/to/data \
     --output_dir /path/to/predictions \
     --max_batches 40 \
     --num_epochs 200
 ```
 
-**Script location:** [`claudefile/run_aladyn_predict_with_master_vector_cenosrE.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE.py)  
-**Model file:** [`claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py`](../../../../claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py)
-
+**Script location:** [`claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py)  
+**Model file:** [`claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py`](../../../../claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py)
 
 ### What it does:
 - Loads master checkpoint (pooled phi + initial_psi)
-- **Automatically loads E matrix** from `data_dir/E_enrollment_full.pt` (FULL E, enrollment data)
-- Also loads Y, G, and model_essentials from data_dir
-- Uses fixed phi for predictions (doesn't retrain phi)
+- Loads pooled gamma and kappa from Step 4
+- **Automatically loads E matrix** from `data_dir/E_enrollment_full.pt` (enrollment data for prediction)
+- Uses fixed phi, gamma, and kappa—only learns lambda per batch
 - Generates predictions for all patients
 - Saves prediction results
 
 ### Required files in `--data_dir`:
 - `Y_tensor.pt` - Disease outcomes
-- `E_enrollment_full.pt` - **Enrollment matrix (FULL E)** - automatically loaded
+- `E_enrollment_full.pt` - Enrollment matrix (automatically loaded)
 - `G_matrix.pt` - Genetic variants
 - `model_essentials.pt` - Model metadata
 - `reference_trajectories.pt` - Signature reference trajectories
@@ -223,12 +256,20 @@ python claudefile/run_aladyn_batch_vector_e_censor.py \
 
 # Step 3: Create master checkpoint
 python claudefile/create_master_checkpoints.py \
-    --retrospective_pattern "/path/to/output/enrollment_model_W0.0001_batch_*_*.pt" \
+    --retrospective_pattern "/path/to/output/enrollment_model_VECTORIZED_W0.0001_batch_*_*.pt" \
     --output_dir /path/to/data
 
-# Step 4: Predict
-python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
+# Step 4: Pool gamma and kappa from training batches
+# Use pool_kappa_and_gamma_from_batches.py for standard batches:
+python claudefile/pool_kappa_and_gamma_from_batches.py \
+    --batch_pattern "/path/to/output/enrollment_model_VECTORIZED_W0.0001_batch_*_*.pt" \
+    --output_dir /path/to/data
+# Or pool_kappa_and_gamma_from_nolr_batches.py for nolr (unregularized) batches
+
+# Step 5: Predict (fixed phi, gamma, kappa; only lambda learned)
+python claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py \
     --trained_model_path /path/to/data/master_for_fitting_pooled_all_data.pt \
+    --pooled_gamma_kappa_path /path/to/data/pooled_kappa_gamma.pt \
     --data_dir /path/to/data \
     --output_dir /path/to/predictions \
     --max_batches 40
@@ -246,13 +287,15 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
 ### Training Scripts (in `claudefile/`):
 - [`run_aladyn_batch_vector_e_censor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor.py) - Batch training script (vectorized, corrected E)
 - [`create_master_checkpoints.py`](../../../../claudefile/create_master_checkpoints.py) - Master checkpoint creation
+- [`pool_kappa_and_gamma_from_batches.py`](../../../../claudefile/pool_kappa_and_gamma_from_batches.py) - Pool gamma and kappa from standard training batches
+- [`pool_kappa_and_gamma_from_nolr_batches.py`](../../../../claudefile/pool_kappa_and_gamma_from_nolr_batches.py) - Pool gamma and kappa from nolr (unregularized) batches
 
 ### Prediction Scripts (in `claudefile/`):
-- [`run_aladyn_predict_with_master_vector_cenosrE.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE.py) - Predict with master checkpoint (vectorized, corrected E)
+- [`run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py`](../../../../claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py) - Predict with fixed phi, gamma, kappa (only lambda learned)
 
 ### Model Files:
-- [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py) - Discovery mode (learns phi, vectorized)
-- [`claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py`](../../../../claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized.py) - Prediction mode (fixed phi, vectorized)
+- [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py) - Discovery mode (learns phi, gamma, kappa, lambda)
+- [`claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py`](../../../../claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py) - Prediction mode (fixed phi, gamma, kappa; learns lambda only)
 
 ### Related Documentation:
 - [Reviewer Response Analyses](../README.md) - All analysis notebooks and preprocessing utilities
@@ -265,7 +308,7 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE.py \
 - **Preprocessing functions are standalone** - No model initialization needed
 - **Clusters are deterministic** - Same `random_state=42` produces identical clusters
 - **Master checkpoint pools phi** - Mean across all batches for stability
-- **Fixed phi predictions** - Faster than retraining phi for each prediction
+- **Fixed phi, gamma, kappa at prediction** - Population parameters (phi, gamma, kappa) are fixed; only lambda (individual signature loadings) is learned per batch. This ensures complete separation between training and test data and enables fast predictions.
 
 ## Related Analyses
 

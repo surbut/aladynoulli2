@@ -8,10 +8,10 @@ This directory contains all interactive analyses addressing reviewer questions a
 reviewer_responses/
 ├── README.md                      # This file - navigation hub
 ├── notebooks/
-│   ├── R1/                        # Referee #1 analyses (12 notebooks)
-│   ├── R2/                        # Referee #2 analyses (4 notebooks)
-│   ├── R3/                        # Referee #3 analyses (11 notebooks)
-│   ├── framework/                 # Framework overview (1 notebook)
+│   ├── R1/                        # Referee #1 analyses
+│   ├── R2/                        # Referee #2 analyses
+│   ├── R3/                        # Referee #3 analyses
+│   ├── framework/                 # Framework overview
 │   ├── archive/                   # Archived/removed notebooks
 │   └── results/                   # Reviewer-specific results
 ├── preprocessing/                 # Data preprocessing utilities
@@ -69,11 +69,9 @@ reviewer_responses/
 | **Q3**: Avoiding reverse causation (washout analysis) | [`notebooks/R3/R3_AvoidingReverseCausation.ipynb`](notebooks/R3/R3_AvoidingReverseCausation.ipynb) | ✅ Complete |
 | **Q4**: Competing risks | [`notebooks/R3/R3_Competing_Risks.ipynb`](notebooks/R3/R3_Competing_Risks.ipynb) | ✅ Complete |
 | **Q4**: Decreasing_Hazards | [`notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.ipynb`](notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.ipynb) | ✅ Complete |
-| **Q8**: Heterogeneity definition | [`notebooks/R3/R3_Q8_Heterogeneity.ipynb`](notebooks/R3/R3_Q8_Heterogeneity.ipynb) | ✅ Complete |
 | **Q8**: Heterogeneity analysis (main paper method) | [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb) | ✅ Complete |
 | **Q8**: Heterogeneity analysis (continued) | [`notebooks/R3/R3_Q8_Heterogeneity_Continued.ipynb`](notebooks/R3/R3_Q8_Heterogeneity_Continued.ipynb) | ✅ Complete |
 | **Population Stratification**: Continuous ancestry effects | [`notebooks/R3/R3_Population_Stratification_Ancestry.ipynb`](notebooks/R3/R3_Population_Stratification_Ancestry.ipynb) | ✅ Complete |
-| **Additional**: FullE vs ReducedE comparison | [`notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb`](notebooks/R3/R3_FullE_vs_ReducedE_Comparison.ipynb) | ✅ Complete |
 | **Additional**: Linear vs Nonlinear mixing | [`notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb`](notebooks/R3/R3_Linear_vs_NonLinear_Mixing.ipynb) | ✅ Complete |
 | **Additional**: Cross-cohort similarity | [`notebooks/R3/R3_Cross_Cohort_Similarity.ipynb`](notebooks/R3/R3_Cross_Cohort_Similarity.ipynb) | ✅ Complete |
 | **Additional**: Corrected_Data | [`notebooks/R3/R3_Verify_Corrected_Data.ipynb`](notebooks/R3/R3_Verify_Corrected_Data.ipynb) | ✅ Complete |
@@ -114,7 +112,7 @@ See [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/ma
 
 ### ✅ All Completed Analyses
 
-**Referee #1 (12 notebooks):**
+**Referee #1:**
 - Selection bias (IPW): [`notebooks/R1/R1_Q1_Selection_Bias.ipynb`](notebooks/R1/R1_Q1_Selection_Bias.ipynb)
 - Clinical meaning (FH): [`notebooks/R1/R1_Q3_Clinical_Meaning.ipynb`](notebooks/R1/R1_Q3_Clinical_Meaning.ipynb)
 - ICD vs PheCode aggregation: [`notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.ipynb`](notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.ipynb)
@@ -128,13 +126,13 @@ See [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/ma
 - Multi-disease patterns: [`notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.ipynb`](notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.ipynb)
 - Robustness (LOO validation): [`notebooks/R1/R1_Robustness_LOO_Validation.ipynb`](notebooks/R1/R1_Robustness_LOO_Validation.ipynb)
 
-**Referee #2 (4 notebooks):**
+**Referee #2:**
 - Temporal leakage: [`notebooks/R2/R2_Temporal_Leakage.ipynb`](notebooks/R2/R2_Temporal_Leakage.ipynb)
 - Model validity / learning: [`notebooks/R2/R2_R3_Model_Validity_Learning.ipynb`](notebooks/R2/R2_R3_Model_Validity_Learning.ipynb)
 - Washout approaches comparison: [`notebooks/R2/R2_Washout_Comparisons.ipynb`](notebooks/R2/R2_Washout_Comparisons.ipynb)
 - Delphi Phecode mapping comparison: [`notebooks/R2/R2_Delphi_Phecode_Mapping.ipynb`](notebooks/R2/R2_Delphi_Phecode_Mapping.ipynb)
 
-**Referee #3 (11 notebooks):**
+**Referee #3:**
 - Avoiding reverse causation (washout analysis): [`notebooks/R3/R3_AvoidingReverseCausation.ipynb`](notebooks/R3/R3_AvoidingReverseCausation.ipynb)
 - Competing risks: [`notebooks/R3/R3_Competing_Risks.ipynb`](notebooks/R3/R3_Competing_Risks.ipynb)
 - Heterogeneity analysis (main paper method): [`notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb`](notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.ipynb)
@@ -144,7 +142,7 @@ See [`preprocessing/WORKFLOW.md`](https://github.com/surbut/aladynoulli2/blob/ma
 - Cross-cohort similarity: [`notebooks/R3/R3_Cross_Cohort_Similarity.ipynb`](notebooks/R3/R3_Cross_Cohort_Similarity.ipynb)
 - Verify corrected data: [`notebooks/R3/R3_Verify_Corrected_Data.ipynb`](notebooks/R3/R3_Verify_Corrected_Data.ipynb)
 
-**Framework (1 notebook):**
+**Framework:**
 - Framework overview: [`notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb`](notebooks/framework/Discovery_Prediction_Framework_Overview.ipynb)
 
-**Total: 27 notebooks** ✅ All complete
+✅ All complete

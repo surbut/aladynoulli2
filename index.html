@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aladynoulli Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            color: #555;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="aladynoulli-documentation">Aladynoulli Documentation</h1>
+<div data-align="center">
+<p><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a> <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+" /></a> <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-1.9+-red.svg" alt="PyTorch" /></a></p>
+<p><strong>A Bayesian Survival Model for Disease Trajectory Prediction</strong></p>
+<p><a href="https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1">Preprint</a></p>
+</div>
+<hr />
+<h2 id="how-to-use-this-documentation">📋 How to Use This Documentation</h2>
+<p>This documentation is organized into <strong>four main sections</strong> for reviewers:</p>
+<ol type="1">
+<li><strong><a href="#model-architecture">Model Architecture</a></strong> - Understand how the model works: core components, mathematical framework, and key concepts</li>
+<li><strong><a href="#reviewer-response-analyses">Reviewer Response Analyses</a></strong> - Interactive analyses addressing all reviewer questions, organized by referee</li>
+<li><strong><a href="#complete-workflow">Complete Workflow</a></strong> - Step-by-step guide to running the model: preprocessing, training, and prediction</li>
+<li><strong><a href="#performance-scalability">Performance &amp; Scalability</a></strong> - Computational requirements and scaling characteristics</li>
+</ol>
+<p><strong>Note</strong>: Installation instructions are not required for reviewers. A pre-configured environment will be provided for running the code.</p>
+<hr />
+<h2 id="table-of-contents">📖 Table of Contents</h2>
+<ul>
+<li><a href="#how-to-use-this-documentation">How to Use This Documentation</a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#model-architecture">Model Architecture</a></li>
+<li><a href="#reviewer-response-analyses">Reviewer Response Analyses</a></li>
+<li><a href="#complete-workflow">Complete Workflow</a></li>
+<li><a href="#performance-scalability">Performance &amp; Scalability</a></li>
+<li><a href="#citation">Citation</a></li>
+</ul>
+<hr />
+<h2 id="overview">🔬 Overview</h2>
+<p><strong>Aladynoulli</strong> is a comprehensive Bayesian survival model that predicts disease trajectories by integrating genetic and clinical data. The model captures:</p>
+<ul>
+<li><strong>Disease Signatures</strong>: Latent disease states that capture shared patterns across diseases</li>
+<li><strong>Genetic Effects</strong>: Individual-specific genetic contributions to disease risk<br />
+</li>
+<li><strong>Temporal Dynamics</strong>: Time-varying disease probabilities using Gaussian processes</li>
+<li><strong>Censoring</strong>: Proper handling of incomplete follow-up data</li>
+</ul>
+<h3 id="key-features">Key Features</h3>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✅ <strong>Scalable</strong></td>
+<td>Handles large-scale genetic and clinical datasets (400K+ individuals)</td>
+</tr>
+<tr>
+<td>✅ <strong>Flexible</strong></td>
+<td>Supports both discovery and prediction modes</td>
+</tr>
+<tr>
+<td>✅ <strong>Robust</strong></td>
+<td>Proper Bayesian uncertainty quantification</td>
+</tr>
+<tr>
+<td>✅ <strong>Fast</strong></td>
+<td>GPU-accelerated training and inference</td>
+</tr>
+<tr>
+<td>✅ <strong>Reproducible</strong></td>
+<td>Complete code and data processing pipelines</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="model-architecture">🏗️ Model Architecture</h2>
+<h3 id="core-components">Core Components</h3>
+<ol type="1">
+<li><strong>Signature States (K)</strong>: Latent disease signatures that capture shared patterns</li>
+<li><strong>Genetic Effects (γ)</strong>: Individual-specific genetic contributions</li>
+<li><strong>Temporal Dynamics (λ)</strong>: Time-varying signature proportions using GPs</li>
+<li><strong>Disease Probabilities (φ)</strong>: Signature-specific disease probabilities</li>
+<li><strong>Censoring Matrix (E)</strong>: Event times and censoring information</li>
+</ol>
+<h3 id="mathematical-framework">Mathematical Framework</h3>
+<p>The model predicts disease probability at time <code>t</code> as:</p>
+<pre><code>π_i,d,t = κ × Σ_k θ_i,k,t × φ_k,d,t</code></pre>
+<p>Where: - <code>θ_i,k,t</code> = softmax(λ_i,k,t) (signature proportions) - <code>λ_i,k,t</code> ~ GP(μ_k + G_i γ_k, K_λ) (temporal dynamics) - <code>φ_k,d,t</code> = sigmoid(μ_d+ψ_k,d, K_φ) (disease probabilities)</p>
+<hr />
+<h2 id="reviewer-response-analyses">📊 Reviewer Response Analyses</h2>
+<p>Comprehensive interactive analyses addressing reviewer questions and model validation.</p>
+<h3 id="navigation-hub">📚 Navigation Hub</h3>
+<ul>
+<li><strong><a href="reviewer_responses/README.html">Reviewer Response README</a></strong> - Complete guide to all interactive analyses</li>
+<li><strong><a href="https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html">Framework Overview</a></strong> - Discovery vs prediction framework (essential reading)</li>
+</ul>
+<h3 id="analysis-categories">🔬 Analysis Categories</h3>
+<h4 id="referee-1-analyses"><strong>Referee #1 Analyses</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clinical Utility</strong></td>
+<td>Dynamic risk updating and clinical decision-making</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html">R1_Clinical_Utility_Dynamic_Risk_Updating.html</a></td>
+</tr>
+<tr>
+<td><strong>AUC Comparisons</strong></td>
+<td>Performance vs. established clinical risk scores</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q9_AUC_Comparisons.html">R1_Q9_AUC_Comparisons.html</a></td>
+</tr>
+<tr>
+<td><strong>Age-Stratified</strong></td>
+<td>Performance across different age groups</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html">R1_Q10_Age_Specific.html</a></td>
+</tr>
+<tr>
+<td><strong>Heritability</strong></td>
+<td>Genetic architecture and heritability estimates</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q7_Heritability.html">R1_Q7_Heritability.html</a></td>
+</tr>
+<tr>
+<td><strong>GWAS Validation</strong></td>
+<td>Genome-wide association studies on signatures; identifies 10 novel loci for Signature 5 not found in individual trait GWAS</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html">R1_Genetic_Validation_GWAS.html</a></td>
+</tr>
+<tr>
+<td><strong>Gene-Based RVAS</strong></td>
+<td>Rare variant association studies on signatures</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html">R1_Genetic_Validation_Gene_Based_RVAS.html</a></td>
+</tr>
+<tr>
+<td><strong>Biological Plausibility</strong></td>
+<td>CHIP analysis and biological validation</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html">R1_Biological_Plausibility_CHIP.html</a></td>
+</tr>
+<tr>
+<td><strong>LOO Validation</strong></td>
+<td>Leave-one-out cross-validation robustness</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html">R1_Robustness_LOO_Validation.html</a></td>
+</tr>
+<tr>
+<td><strong>Selection Bias</strong></td>
+<td>Assessment of selection bias and participation</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q1_Selection_Bias.html">R1_Q1_Selection_Bias.html</a></td>
+</tr>
+<tr>
+<td><strong>Clinical Meaning</strong></td>
+<td>Analysis of Familial hypercholesterolemia patients</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q3_Clinical_Meaning.html">R1_Q3_Clinical_Meaning.html</a></td>
+</tr>
+<tr>
+<td><strong>ICD vs PheCode</strong></td>
+<td>Detailed comparison of coding systems</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html">R1_Q3_ICD_vs_PheCode_Comparison.html</a></td>
+</tr>
+<tr>
+<td><strong>Competing Risks</strong></td>
+<td>Multi-disease patterns and competing risks</td>
+<td><a href="reviewer_responses/notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html">R1_Multi_Disease_Patterns_Competing_Risks.html</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referee-2-analyses"><strong>Referee #2 Analyses</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Temporal Leakage</strong></td>
+<td>Assessment of temporal leakage and prediction accuracy</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html">R2_Temporal_Leakage.html</a></td>
+</tr>
+<tr>
+<td><strong>Washout Comparisons</strong></td>
+<td>Multi-approach washout analysis (time horizon, floating prediction, fixed timepoint)</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_Washout_Comparisons.html">R2_Washout_Comparisons.html</a></td>
+</tr>
+<tr>
+<td><strong>Delphi Phecode Mapping</strong></td>
+<td>Principled Delphi comparison using Phecode-based ICD mapping</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_Delphi_Phecode_Mapping.html">R2_Delphi_Phecode_Mapping.html</a></td>
+</tr>
+<tr>
+<td><strong>Model Validity</strong></td>
+<td>Model learning and validity assessment</td>
+<td><a href="reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html">R2_R3_Model_Validity_Learning.html</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referee-3-analyses"><strong>Referee #3 Analyses</strong></h4>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avoiding Reverse Causation</strong></td>
+<td>Reverse causation assessment with 0, 1, 3, 6-month washout periods</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_AvoidingReverseCausation.html">R3_AvoidingReverseCausation.html</a></td>
+</tr>
+<tr>
+<td><strong>Competing Risks</strong></td>
+<td>Detailed competing risks analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Competing_Risks.html">R3_Competing_Risks.html</a></td>
+</tr>
+<tr>
+<td><strong>Decreasing Hazards (Censoring Bias)</strong></td>
+<td>Analysis of decreasing hazards at older ages due to censoring bias</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html">R3_Q4_Decreasing_Hazards_Censoring_Bias.html</a></td>
+</tr>
+<tr>
+<td><strong>Verify Corrected Data</strong></td>
+<td>Verification of corrected E matrix and prevalence calculations</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Verify_Corrected_Data.html">R3_Verify_Corrected_Data.html</a></td>
+</tr>
+<tr>
+<td><strong>Linear vs Nonlinear</strong></td>
+<td>Linear vs nonlinear mixing approaches</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html">R3_Linear_vs_NonLinear_Mixing.html</a></td>
+</tr>
+<tr>
+<td><strong>Population Stratification</strong></td>
+<td>Ancestry-stratified analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html">R3_Population_Stratification_Ancestry.html</a></td>
+</tr>
+<tr>
+<td><strong>Heterogeneity (Main Paper Method)</strong></td>
+<td>Main paper method with PRS validation (MI and breast cancer)</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html">R3_Q8_Heterogeneity_MainPaper_Method.html</a></td>
+</tr>
+<tr>
+<td><strong>Heterogeneity (Continued)</strong></td>
+<td>Complete pathway analysis demonstrating biological heterogeneity</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_Continued.html">R3_Q8_Heterogeneity_Continued.html</a></td>
+</tr>
+<tr>
+<td><strong>Cross-Cohort Similarity</strong></td>
+<td>Cross-cohort signature correspondence analysis</td>
+<td><a href="reviewer_responses/notebooks/R3/R3_Cross_Cohort_Similarity.html">R3_Cross_Cohort_Similarity.html</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="complete-workflow">💻 Complete Workflow</h2>
+<p>The Aladynoulli workflow consists of <strong>5 main steps</strong>:</p>
+<ol type="1">
+<li><strong>Preprocessing</strong>: Create smoothed prevalence, initial clusters, and reference trajectories</li>
+<li><strong>Batch Training</strong>: Train models on data batches with full E matrix</li>
+<li><strong>Master Checkpoint</strong>: Generate pooled checkpoint (phi and psi)</li>
+<li><strong>Pool Gamma &amp; Kappa</strong>: Pool gamma (genetic effects) and kappa (calibration) from training batches</li>
+<li><strong>Prediction</strong>: Run predictions using master checkpoint with fixed gamma and kappa (only lambda is learned)</li>
+</ol>
+<h3 id="essential-resources">Essential Resources</h3>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Framework Overview</strong></td>
+<td><strong>Discovery vs prediction framework - Essential reading</strong></td>
+<td><a href="https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html">Discovery_Prediction_Framework_Overview.html</a></td>
+</tr>
+<tr>
+<td><strong>Complete Workflow Guide</strong></td>
+<td>Step-by-step preprocessing → training → prediction</td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md">WORKFLOW.md</a></td>
+</tr>
+<tr>
+<td><strong>Preprocessing Guide</strong></td>
+<td>Preprocessing file creation guide</td>
+<td><a href="https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html">create_preprocessing_files.html</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="core-model-files">Core Model Files</h3>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 20%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discovery Model</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py">clust_huge_amp_vectorized.py</a></td>
+<td>Full model that learns phi and psi</td>
+</tr>
+<tr>
+<td><strong>Prediction Model</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py">clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py</a></td>
+<td>Fixed-phi, fixed-gamma, fixed-kappa model for fast predictions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: The prediction model uses fixed gamma (genetic effects) and kappa (calibration parameter) from pooled training batches. This ensures complete separation between training and testing data in each validation fold. Only lambda (individual-specific signature loadings) is learned during prediction.</p>
+<h3 id="workflow-scripts">Workflow Scripts</h3>
+<table>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 37%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Script</th>
+<th>Location</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Preprocessing</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py">preprocessing_utils.py</a></td>
+<td>Preprocessing utilities</td>
+</tr>
+<tr>
+<td><strong>Batch Training</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor.py">run_aladyn_batch_vector_e_censor.py</a></td>
+<td>Batch model training with corrected E</td>
+</tr>
+<tr>
+<td><strong>Master Checkpoint</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py">create_master_checkpoints.py</a></td>
+<td>Create pooled checkpoints (phi and psi)</td>
+</tr>
+<tr>
+<td><strong>Pool Gamma &amp; Kappa</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/pool_kappa_and_gamma_from_nolr_batches.py">pool_kappa_and_gamma_from_nolr_batches.py</a></td>
+<td>Pool gamma (genetic effects) and kappa (calibration) from training batch checkpoints</td>
+</tr>
+<tr>
+<td><strong>Prediction</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py">run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py</a></td>
+<td>Run enrollment-based predictions using enrollment E matrix (E_enrollment_full.pt) with master checkpoint from corrected E training, using fixed gamma and kappa from pooled training batches (only lambda is learned per batch)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="performance-scalability">📈 Performance &amp; Scalability</h2>
+<h3 id="computational-requirements">Computational Requirements</h3>
+<p><strong>For 10K individuals, 348 diseases, 52 timepoints:</strong> - <strong>Training Time</strong>: ~8-10 minutes per batch (converges after ~200 epochs) - <strong>Prediction Time</strong>: ~8 minutes per batch - <strong>Memory</strong>: ~8GB RAM (peak usage during training) - <strong>CPU</strong>: Multi-core recommended (4+ cores); PyTorch uses BLAS for parallel matrix operations</p>
+<p><strong>Scaling:</strong> - <strong>Full UK Biobank (400K individuals)</strong>: Processed in 39 batches of ~10K each - <strong>Total training time</strong>: ~5-7 hours for all batches (can be parallelized) - <strong>Memory scales linearly</strong>: ~8GB per 10K batch</p>
+<p><strong>Why it’s fast:</strong> - Vectorized PyTorch operations (batched matrix decompositions) - BLAS Level 3 operations for efficient linear algebra - ~100-fold speedup compared to loop-based implementation</p>
+<hr />
+<hr />
+<h2 id="citation">📝 Citation</h2>
+<p>If you use Aladynoulli in your research, please cite:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">aladynoulli2024</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>={Sur, P. and others},</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span>={medRxiv},</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>={2024},</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">doi</span>={10.1101/2024.09.29.24314557}</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="contact">📧 Contact</h2>
+<p>For questions or issues, please open an issue on <a href="https://github.com/surbut/aladynoulli2/issues">GitHub</a>.</p>
+<hr />
+<div data-align="center">
+<p><strong>Last Updated</strong>: December 2024</p>
+</div>
+
+    </div>
+</body>
+</html>

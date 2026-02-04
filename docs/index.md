@@ -132,10 +132,8 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | **Competing Risks** | Detailed competing risks analysis | [R3_Competing_Risks.html](reviewer_responses/notebooks/R3/R3_Competing_Risks.html) |
 | **Decreasing Hazards (Censoring Bias)** | Analysis of decreasing hazards at older ages due to censoring bias | [R3_Q4_Decreasing_Hazards_Censoring_Bias.html](reviewer_responses/notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html) |
 | **Verify Corrected Data** | Verification of corrected E matrix and prevalence calculations | [R3_Verify_Corrected_Data.html](reviewer_responses/notebooks/R3/R3_Verify_Corrected_Data.html) |
-| **FullE vs ReducedE** | Full vs reduced event matrix comparison | [R3_FullE_vs_ReducedE_Comparison.html](reviewer_responses/notebooks/R3/R3_FullE_vs_ReducedE_Comparison.html) |
 | **Linear vs Nonlinear** | Linear vs nonlinear mixing approaches | [R3_Linear_vs_NonLinear_Mixing.html](reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html) |
 | **Population Stratification** | Ancestry-stratified analysis | [R3_Population_Stratification_Ancestry.html](reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html) |
-| **Heterogeneity** | Patient heterogeneity analysis | [R3_Q8_Heterogeneity.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity.html) |
 | **Heterogeneity (Main Paper Method)** | Main paper method with PRS validation (MI and breast cancer) | [R3_Q8_Heterogeneity_MainPaper_Method.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html) |
 | **Heterogeneity (Continued)** | Complete pathway analysis demonstrating biological heterogeneity | [R3_Q8_Heterogeneity_Continued.html](reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_Continued.html) |
 | **Cross-Cohort Similarity** | Cross-cohort signature correspondence analysis | [R3_Cross_Cohort_Similarity.html](reviewer_responses/notebooks/R3/R3_Cross_Cohort_Similarity.html) |
