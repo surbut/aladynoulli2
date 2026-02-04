@@ -23,12 +23,15 @@ def get_template_styles():
         with open(index_html, 'r', encoding='utf-8') as f:
             html_content = f.read()
         
-        # Extract the style section
+        # Extract the style section (reject corrupted/placeholder content like "+b+")
         style_match = re.search(r'(<style>.*?</style>)', html_content, re.DOTALL)
         if style_match:
-            return style_match.group(1)
+            style_content = style_match.group(1)
+            if '+b+' not in style_content and len(style_content) > 100:
+                return style_content
+            print("  ⚠️  Corrupted or invalid style block detected, using default styling...")
     
-    # Use default styling if index.html doesn't exist
+    # Use default styling if index.html doesn't exist or styles are corrupted
     print("  ⚠️  index.html not found, using default styling...")
     return """<style>
         * {
