@@ -1,0 +1,18 @@
+\frametitle{Implementation: Simple Code Change}
+\textbf{Current code:}
+\begin{verbatim}
+# Compute lambda mean
+lambda_mean = r_k + G @ Gamma_k  # (N, K)
+\end{verbatim}
+\vspace{2em}
+\textbf{Extended code:}
+\begin{verbatim}
+# Compute lambda mean with time-varying genetic effect
+t_centered = ages - 30  # (T,)
+lambda_mean = (r_k +
+               G @ Gamma_k_level +
+               (G @ Gamma_k_slope)[:, :, None] *
+                   t_centered[None, None, :])
+\end{verbatim}
+\vspace{1em}
+\textbf{That's it!} ~5 lines of code.

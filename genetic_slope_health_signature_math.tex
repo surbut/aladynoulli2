@@ -1,0 +1,298 @@
+\documentclass[10pt,aspectratio=169]{beamer}
+\usetheme{Madrid}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{tikz}
+
+% ========================================================================
+% GENETIC PROGRESSION SPEED: WHY IT'S IDENTIFIABLE
+% + Health signature extension for absolute slopes
+% ========================================================================
+
+\title{Genetic Effects on Disease Progression Speed:\\Why It's Identifiable}
+\author{}
+\date{}
+
+\begin{document}
+
+\frame{\titlepage}
+
+% ========================================================================
+% Motivation: What the current model misses
+% ========================================================================
+\begin{frame}{Motivation: What the Current Model Misses}
+\textbf{Key idea:} Signatures are \textbf{fixed} (population archetypes). The \textbf{patient's loading} $\theta(t)$ on those signatures evolves over time.
+\vspace{1em}
+\textbf{Two mechanisms, same outcome:}
+\begin{itemize}
+\item \textbf{High baseline, slow progression:} Starts with high $\theta$ on CV signature; stays there. Early MI because already ``in'' the high-risk state.
+\item \textbf{Low baseline, fast progression:} Starts with low $\theta$; $\theta$ grows rapidly toward CV signature. Early MI because of \emph{rate} of accumulation.
+\end{itemize}
+\vspace{1em}
+\textbf{How the current model misses this:}
+\begin{itemize}
+\item Genetics enters only the \textbf{constant} part of the mean (baseline level).
+\item All change over time is $E_i(t)$ (GP noise), \textbf{independent of genetics}.
+\item Slope differences between people are treated as \alert{random variation}, not predictable from genetics.
+\item Cannot separate ``start high'' vs ``accumulate fast''---both get absorbed into noise.
+\end{itemize}
+\end{frame}
+
+% ========================================================================
+% PART 1: The question and extended model
+% ========================================================================
+\begin{frame}{The Question}
+\textbf{Can we distinguish between:}
+\vspace{1em}
+\begin{enumerate}
+\item \textbf{Heavy baseline loading} \\
+    \textit{Person has high cardiovascular signature from age 30 onwards}
+\vspace{1em}
+\item \textbf{Fast progression} \\
+    \textit{Person starts normal but accumulates cardiovascular risk quickly}
+\end{enumerate}
+\vspace{2em}
+\textbf{Both lead to early-onset MI!} \\
+\textbf{Can we identify which mechanism is operating?}
+\end{frame}
+
+\begin{frame}{Current Model: Only Baseline Effects}
+\textbf{Individual signature trajectories:}
+$$\lambda_{ik}(t) \mid \mathbf{g}_i = \underbrace{r_k + \mathbf{g}_i^{\top}\Gamma_k}_{\text{mean (constant over time)}} + \underbrace{E_i(t)}_{\text{GP noise}}$$
+where $E_i(t) \sim \mathcal{GP}(0, \Omega_{\lambda})$ and \textbf{$E_i$ is independent of $\mathbf{g}_i$}
+\vspace{1em}
+\textbf{What this captures:}
+\begin{itemize}
+\item Genetics $\rightarrow$ shifts baseline level ($\mathbf{g}_i^{\top}\Gamma_k$)
+\item High CVD PRS $\rightarrow$ higher $\lambda_{\text{CVD}}$ at all ages
+\end{itemize}
+\vspace{1em}
+\textbf{What this CANNOT capture:}
+\begin{itemize}
+\item Genetics $\rightarrow$ affects progression speed
+\item All temporal variation is random GP noise ($E_i(t)$)
+\item \alert{Steep trajectories are treated as random individual variation}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Key Principle: Mean and Variance are Independent}
+\textbf{General Gaussian Process formulation:}
+$$X \mid \mu = \mu + E, \quad E \sim \mathcal{N}(0, \Sigma)$$
+\textbf{Critical property:} $E$ is independent of $\mu$
+\vspace{2em}
+\textbf{For $\phi$:}
+$$\phi_{kd} \mid (\mu_d, \psi_{kd}) = \mu_d + \psi_{kd} + E, \quad E \sim \mathcal{N}(0, \Omega_{\phi})$$
+\begin{itemize}
+\item Variance $\Omega_{\phi}$ does NOT depend on mean ($\mu_d + \psi_{kd}$)
+\end{itemize}
+\vspace{1em}
+\textbf{For $\lambda$ (current):}
+$$\lambda_{ik} \mid \mathbf{g}_i = r_k + \mathbf{g}_i^{\top}\Gamma_k + E_i(t), \quad E_i(t) \sim \mathcal{GP}(0, \Omega_{\lambda})$$
+\begin{itemize}
+\item Variance $\Omega_{\lambda}$ does NOT depend on genetics ($\mathbf{g}_i$)
+\item \alert{Therefore: No systematic genetic effects on steepness!}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Extended Model: Add Genetic Slope to Mean}
+\textbf{Individual signature trajectories:}
+$$\lambda_{ik}(t) \mid (\mathbf{g}_i, t) = \underbrace{r_k + \mathbf{g}_i^{\top}\Gamma_k^{\text{level}} + t \cdot \mathbf{g}_i^{\top}\Gamma_k^{\text{slope}}}_{\text{mean (NOW time-varying)}} + \underbrace{E_i(t)}_{\text{GP noise}}$$
+where $E_i(t) \sim \mathcal{GP}(0, \Omega_{\lambda})$ and \textbf{$E_i$ is still independent of $\mathbf{g}_i$ and $t$}
+\vspace{1em}
+\textbf{What this captures:}
+\begin{itemize}
+\item $\Gamma_k^{\text{level}}$: Genetics $\rightarrow$ baseline level (as before)
+\item $\Gamma_k^{\text{slope}}$: Genetics $\rightarrow$ \alert{progression speed} (NEW!)
+\item High CVD PRS $\rightarrow$ higher baseline AND steeper trajectory
+\end{itemize}
+\vspace{1em}
+\textbf{Key insight:} Progression speed is now in the \textbf{mean function}, not in the variance!
+\end{frame}
+
+\begin{frame}{Why Genetic Slope IS Identifiable}
+\textbf{Separation of systematic vs.\ random variation:}
+\vspace{1em}
+\begin{tabular}{p{0.45\textwidth}p{0.45\textwidth}}
+\textbf{Systematic (Mean)} & \textbf{Random (Variance)} \\
+\hline
+$r_k$ (population baseline) & $\Omega_{\lambda}$ (GP covariance) \\
+$\mathbf{g}_i^{\top}\Gamma_k^{\text{level}}$ (genetic level) & Same for all individuals \\
+$\mathbf{g}_i^{\top}\Gamma_k^{\text{slope}}$ (genetic speed) \alert{NEW!} & Independent of genetics \\
+\end{tabular}
+\vspace{2em}
+\textbf{Why identifiable:}
+\begin{enumerate}
+\item Mean and variance are \textbf{independent parameters}
+\item If high-PRS individuals systematically progress faster: shows up in mean slope ($\Gamma_k^{\text{slope}}$)
+\item If progression speed is random: shows up in GP covariance ($\Omega_{\lambda}$), same for everyone
+\item These are \textbf{separate effects} $\rightarrow$ identifiable!
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Concrete Example}
+\textbf{Data pattern from 1000 individuals:}
+\vspace{1em}
+\begin{center}
+\begin{tabular}{lccc}
+\hline
+\textbf{Group} & \textbf{Age 40} & \textbf{Age 60} & \textbf{Slope} \\
+\hline
+High CVD PRS (n=500) & $\lambda = 0.4$ & $\lambda = 0.8$ & \alert{0.02/year} \\
+Low CVD PRS (n=500) & $\lambda = 0.3$ & $\lambda = 0.5$ & \alert{0.01/year} \\
+\hline
+\end{tabular}
+\end{center}
+\vspace{2em}
+\textbf{Current model:} Explains level via $\Gamma_k$; \alert{treats slope difference as random GP noise} \textcolor{red}{✗}
+\vspace{1em}
+\textbf{Extended model:} Explains level via $\Gamma_k^{\text{level}}$, slope via $\Gamma_k^{\text{slope}}$ \textcolor{green!50!black}{✓}
+\end{frame}
+
+\begin{frame}{Why NOT Warping $\phi$?}
+\textbf{Warping idea:} Each person experiences population template at different speed
+$$\pi_{idt} = \kappa \sum_k \theta_{ikt} \cdot \text{sigmoid}(\phi_{kd}(t^{\rho_i}))$$
+where $\rho_i = f(\mathbf{g}_i)$
+\vspace{1em}
+\textbf{Problem: Not identifiable!}
+\begin{itemize}
+\item \alert{Scenario A:} Person has $\rho_i = 1.5$ (fast), moderate $\theta_{ikt}$
+\item \alert{Scenario B:} Person has $\rho_i = 1$ (normal), steep $\theta_{ikt}$
+\end{itemize}
+These produce \textbf{identical $\pi_{idt}$}: $\phi_{kd}(t)$ and $\theta_{ikt}$ are flexible $\rightarrow$ can't separate warping from steep trajectory.
+\vspace{1em}
+\textbf{Genetic slope avoids this:} $\phi_{kd}(t)$ stays fixed; genetics affects trajectories via parametric slope $\rightarrow$ clearer separation.
+\end{frame}
+
+\begin{frame}{What We Gain: Distinguishing Two Mechanisms}
+\textbf{Person A: High baseline, slow progression}
+$$\mathbb{E}[\lambda_{i,\text{CVD}}(t)] = \underbrace{0.6}_{\text{high level}} + \underbrace{0.005 \cdot t}_{\text{slow slope}}$$
+\begin{itemize}
+\item High CVD signature from age 30; moderate increase; early MI due to consistently high risk
+\end{itemize}
+\vspace{1em}
+\textbf{Person B: Normal baseline, fast progression}
+$$\mathbb{E}[\lambda_{i,\text{CVD}}(t)] = \underbrace{0.3}_{\text{normal level}} + \underbrace{0.025 \cdot t}_{\text{fast slope}}$$
+\begin{itemize}
+\item Normal at 30; rapid increase (5× faster); early MI due to rapid accumulation
+\end{itemize}
+\vspace{1em}
+\alert{\textbf{Different biology $\rightarrow$ different interventions!}}
+\end{frame}
+
+\begin{frame}[fragile]{Implementation: Simple Code Change}
+\textbf{Current code:}
+\begin{verbatim}
+# Compute lambda mean
+lambda_mean = r_k + G @ Gamma_k  # (N, K)
+\end{verbatim}
+\vspace{2em}
+\textbf{Extended code:}
+\begin{verbatim}
+# Compute lambda mean with time-varying genetic effect
+t_centered = ages - 30  # (T,)
+lambda_mean = (r_k +
+               G @ Gamma_k_level +
+               (G @ Gamma_k_slope)[:, :, None] *
+                   t_centered[None, None, :])
+\end{verbatim}
+\vspace{1em}
+\textbf{That's it!} ~5 lines of code.
+\end{frame}
+
+% ========================================================================
+% TRANSITION: But only RELATIVE slopes (softmax)
+% ========================================================================
+\begin{frame}{So We Can Identify Genetic Slopes---But a Catch}
+The extended model identifies genetic effects on progression speed \textcolor{green!50!black}{✓}
+\vspace{2em}
+\textbf{However:} $\theta = \mathrm{softmax}(\lambda)$ sums to 1. \\
+$\Rightarrow$ Only \textbf{relative} slopes are identifiable (which signature grows faster than others).
+\vspace{2em}
+\textbf{Can we get \textit{absolute} slopes?} \\
+\alert{Yes---if we use the health signature as a calibration anchor.}
+\end{frame}
+
+% ========================================================================
+% PART 2: Health signature for absolute slopes
+% ========================================================================
+\begin{frame}{Standard Model: Only RELATIVE Slopes Identifiable}
+\begin{itemize}
+\item $\theta = \mathrm{softmax}(\lambda)$, so $\sum_k \theta_k = 1$.
+\item $\lambda_{ik}(t) = r_k + g_i^\top \gamma_{\mathrm{level},k} + t \cdot g_i^\top \gamma_{\mathrm{slope},k} + \epsilon_{ik}(t)$
+\item \textbf{Scale invariance:} for any constant $c$,
+  \[
+    \theta = \mathrm{softmax}(\lambda) = \mathrm{softmax}(\lambda + c \mathbf{1}_K).
+  \]
+\item Adding the same slope $c$ to all $\gamma_{\mathrm{slope}}$ leaves $\theta$ unchanged.
+\item $\Rightarrow$ Only \textbf{relative} slopes are identifiable.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Health Signature as Calibration Anchor}
+\textbf{Idea:} Use the health signature (e.g., Sig 20) with \textbf{person-specific initialization}.
+\vspace{0.5em}
+\textbf{Model with health:}
+\begin{align*}
+  \lambda_{i,k}(t) &=
+  \begin{cases}
+    \alpha_i + \beta_0 t + \epsilon_{i0}(t) & k = 0 \text{ (health)} \\[6pt]
+    r_k + g_i^\top \gamma_{\mathrm{level},k} + t \cdot g_i^\top \gamma_{\mathrm{slope},k} + \epsilon_{ik}(t) & k = 1,\ldots,K-1
+  \end{cases}
+\end{align*}
+\vspace{0.3em}
+\begin{itemize}
+\item $\alpha_i$: \textbf{person-specific} health baseline (from genetics, baseline phenotype, etc.).
+\item Health has its own slope $\beta_0$ (can grow or shrink).
+\item $\theta = \mathrm{softmax}(\lambda)$ still sums to 1.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Why This Breaks Scale Invariance}
+\begin{itemize}
+\item If we add a constant $c$ to all \textbf{disease} $\lambda$'s:
+  \[
+    \lambda'_{ik} = \lambda_{ik} + c \cdot \mathbf{1}_{k \neq 0}
+  \]
+\item Health $\lambda_{i0}$ is \textbf{unchanged}.
+\item So $\theta$ \textbf{changes}---the health vs.\ disease balance shifts.
+\item The person-specific $\alpha_i$ anchor the health baseline; we can no longer freely shift all $\lambda$'s.
+\item $\Rightarrow$ \textbf{Scale is pinned.} Absolute slopes become identifiable (relative to the health anchor).
+\end{itemize}
+\vspace{0.5em}
+\textbf{Bottom line:} Person-specific health initialization breaks the softmax scale invariance and allows identification of \textbf{absolute} progression speeds.
+\end{frame}
+
+\begin{frame}{Extension: Genetic Slopes on Health}
+Health can also have genetic effects:
+\begin{align*}
+  \lambda_{i0}(t) &= \alpha_i + g_i^\top \gamma_{\mathrm{level},0} + t \cdot g_i^\top \gamma_{\mathrm{slope},0} + \epsilon_{i0}(t)
+\end{align*}
+\begin{itemize}
+\item $\alpha_i$ still person-specific (fixed or strongly informed).
+\item $\gamma_{\mathrm{slope},0}$: genetic effect on \emph{health} progression speed.
+\item Disease slopes $\gamma_{\mathrm{slope},k}$ for $k \geq 1$ are identifiable on an absolute scale because $\alpha_i$ breaks the invariance.
+\end{itemize}
+\end{frame}
+
+% ========================================================================
+% Final summary
+% ========================================================================
+\begin{frame}{Summary}
+\textbf{Part 1---Genetic slopes are identifiable:}
+\begin{itemize}
+\item Add $\Gamma_k^{\text{slope}}$ to the mean of $\lambda$ (separate from GP noise)
+\item Distinguishes baseline vs.\ progression-speed mechanisms
+\item ~5 lines of code
+\end{itemize}
+\vspace{1em}
+\textbf{Part 2---From relative to absolute slopes:}
+\begin{itemize}
+\item Softmax $\Rightarrow$ only relative slopes identifiable
+\item Health signature with person-specific $\alpha_i$ $\Rightarrow$ breaks scale invariance
+\item $\Rightarrow$ Absolute progression speeds identifiable
+\end{itemize}
+\end{frame}
+
+\end{document}

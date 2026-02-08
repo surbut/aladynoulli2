@@ -737,8 +737,9 @@ We provide comprehensive Methods documentation and fix GitHub access:
 **Transformation to PheCodes**:
 1. Downloaded ICD-9 and ICD-10 to PheCode mapping from PheWAS Catalog
 2. Applied standard mapping rules (Bastarache et al. 2021)
-3. Excluded non-specific codes (e.g., "symptoms", "unspecified")
-4. Retained 348 PheCodes with ≥1000 cases in UKB
+3. Focus on ICD-10 chapters A–N (disease chapters), excluding injury (S, T), external causes (V–Y), factors influencing health (Z), and special purposes (U), following ATM (Jiang et al. Nat Genet 2023)
+4. Excluded non-specific codes (e.g., "symptoms", "unspecified")
+5. Retained PheCodes with ≥1000 cases in UKB
 
 **Temporal Encoding**:
 For each individual i and disease d:
@@ -791,12 +792,16 @@ We provide clear rationale for disease selection:
    - Insufficient data for stable GWAS and prediction
    - Following precedent from Jiang et al. (Nat Genet 2023)
 
-2. **ICD Code Quality**: Excluded non-specific codes
+2. **ICD-10 Chapter Restriction**: Focus on chapters A–N (disease chapters)
+   - Excluded injury (S, T), external causes (V–Y), factors influencing health (Z), special purposes (U)
+   - Following ATM (Jiang et al. Nat Genet 2023)
+
+3. **ICD Code Quality**: Excluded non-specific codes
    - "Symptoms not elsewhere classified"
    - "Unspecified" diagnoses
    - Following PheWAS best practices
 
-3. **Computational Feasibility**: 
+4. **Computational Feasibility**: 
    - 348 diseases × 52 time points × 427K individuals
    - Larger matrices exceed memory constraints
    - Selected diseases capture most common conditions
