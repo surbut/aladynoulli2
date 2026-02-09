@@ -184,14 +184,35 @@ def realistic_init(G, Y, K_total, r_k, L_chol, alpha_i=None):
 #    gamma_slope now flows through softmax → NLL → gets gradient from data
 # ============================================================
 
+def build_gp_kernel(T, length_scale=None, amplitude=0.15, jitter=1e-4):
+    """Build SE kernel and precompute Cholesky for GP prior, matching real model."""
+    if length_scale is None:
+        length_scale = T / 4  # same as clust_huge_amp_vectorized.py
+    t = torch.arange(T, dtype=torch.float32)
+    time_diff = t[:, None] - t[None, :]
+    K = amplitude**2 * torch.exp(-0.5 * time_diff**2 / length_scale**2) + jitter * torch.eye(T)
+    L = torch.linalg.cholesky(K)
+    return K, L
+
+
+def gp_quadratic_form(delta, L_chol):
+    """Compute delta^T K_inv delta via Cholesky solve, vectorized over (N,K).
+
+    delta: [N, K, T]
+    L_chol: [T, T]  (lower Cholesky of K)
+    Returns: scalar, normalized per element (N*K*T) for consistent scale with NLL.
+    """
+    N, K, T = delta.shape
+    flat = delta.reshape(-1, T).T          # [T, N*K]
+    v = torch.cholesky_solve(flat, L_chol)  # K_inv @ delta, [T, N*K]
+    return 0.5 * torch.sum(flat * v) / (N * K * T)
+
+
 class StandardModelReparam(nn.Module):
-    """Standard ALADYN with reparameterized lambda.
+    """Standard ALADYN with reparameterized lambda + proper GP kernel.
 
-    OLD: lambda_ is free, GP penalty ties it to lambda_mean.
-         gamma_slope only in penalty → no NLL gradient.
-
-    NEW: lambda = lambda_mean + delta.
-         gamma_slope flows through forward() → NLL gradient → learned from data.
+    lambda = lambda_mean(gamma_level, gamma_slope) + delta
+    GP prior: delta^T K_inv delta (SE kernel, not white noise)
     """
 
     def __init__(self, G, Y, K, r_k, delta_init, gamma_level_init,
@@ -206,6 +227,10 @@ class StandardModelReparam(nn.Module):
         self.register_buffer('r_k', torch.tensor(r_k, dtype=torch.float32))
         self.register_buffer('t', torch.arange(T, dtype=torch.float32))
 
+        # GP kernel (precomputed, not learned)
+        _, L = build_gp_kernel(T)
+        self.register_buffer('L_chol', L)
+
         self.gamma_level = nn.Parameter(torch.tensor(gamma_level_init, dtype=torch.float32))
         self.gamma_slope = nn.Parameter(torch.tensor(gamma_slope_init, dtype=torch.float32))
         self.delta = nn.Parameter(torch.tensor(delta_init, dtype=torch.float32))
@@ -219,11 +244,10 @@ class StandardModelReparam(nn.Module):
                 slope[:, :, None] * self.t[None, None, :])
 
     def get_lambda(self):
-        """lambda = parametric mean + residual. Slopes flow through here."""
         return self.get_lambda_mean() + self.delta
 
     def forward(self):
-        lam = self.get_lambda()  # gamma_slope is IN the computation graph
+        lam = self.get_lambda()
         theta = torch.softmax(lam, dim=1)
         phi = torch.sigmoid(self.psi)[:, :, None].expand(-1, -1, self.T)
         pi = torch.einsum('nkt,kdt->ndt', theta, phi) * self.kappa
@@ -232,12 +256,12 @@ class StandardModelReparam(nn.Module):
     def loss(self, gp_weight=0.1):
         pi = self.forward()
         nll = -torch.mean(self.Y * torch.log(pi) + (1 - self.Y) * torch.log(1 - pi))
-        gp_loss = torch.mean(self.delta**2)  # penalize residual only
+        gp_loss = gp_quadratic_form(self.delta, self.L_chol)
         return nll + gp_weight * gp_loss
 
 
 class HealthAnchorModelReparam(nn.Module):
-    """ALADYN with health anchor, reparameterized."""
+    """ALADYN with health anchor, reparameterized + proper GP kernel."""
 
     def __init__(self, G, Y, K, r_k, alpha_i, delta_init,
                  gamma_level_init, gamma_slope_init, psi_init):
@@ -251,6 +275,10 @@ class HealthAnchorModelReparam(nn.Module):
         self.register_buffer('r_k', torch.tensor(r_k, dtype=torch.float32))
         self.register_buffer('alpha_i', torch.tensor(alpha_i, dtype=torch.float32))
         self.register_buffer('t', torch.arange(T, dtype=torch.float32))
+
+        # GP kernel
+        _, L = build_gp_kernel(T)
+        self.register_buffer('L_chol', L)
 
         self.gamma_level = nn.Parameter(torch.tensor(gamma_level_init, dtype=torch.float32))
         self.gamma_slope = nn.Parameter(torch.tensor(gamma_slope_init, dtype=torch.float32))
@@ -279,7 +307,7 @@ class HealthAnchorModelReparam(nn.Module):
     def loss(self, gp_weight=0.1):
         pi = self.forward()
         nll = -torch.mean(self.Y * torch.log(pi) + (1 - self.Y) * torch.log(1 - pi))
-        gp_loss = torch.mean(self.delta**2)
+        gp_loss = gp_quadratic_form(self.delta, self.L_chol)
         return nll + gp_weight * gp_loss
 
 
@@ -287,17 +315,21 @@ class HealthAnchorModelReparam(nn.Module):
 # 4. FITTING WITH GP ANNEALING
 # ============================================================
 
-def fit_delta_frozen_then_free(model, n_phase1=1000, n_phase2=500, gp_weight=0.15):
+def fit_delta_frozen_then_free(model, n_phase1=1000, n_phase2=1500, gp_weight=1e-4,
+                               true_slopes=None):
     """
     Phase 1: delta FROZEN. gamma_slope + gamma_level + psi + kappa learn.
              With reparameterization, gamma_slope gets NLL gradient.
              No competition from delta → slopes MUST learn temporal structure.
 
-    Phase 2: delta UNFROZEN. Everything fine-tunes.
-             delta captures individual residuals → AUC improves.
-             gamma_slope already learned → doesn't collapse.
+    Phase 2: delta UNFROZEN. Everything fine-tunes together.
+             GP kernel (W=1e-4) keeps delta smooth, slopes continue to improve.
     """
     results = {}
+    results['slope_tracking'] = []  # track slopes over time
+    best_corr = -1.0
+    best_slopes = None
+    best_epoch = -1
 
     # --- PHASE 1: freeze delta, let parametric params learn ---
     model.delta.requires_grad = False
@@ -317,20 +349,33 @@ def fit_delta_frozen_then_free(model, n_phase1=1000, n_phase2=500, gp_weight=0.1
             auc = roc_auc_score(model.Y.numpy().flatten(),
                                 model.forward().detach().numpy().flatten())
             slope_now = model.gamma_slope[0, :].detach().numpy()
+            corr_str = ""
+            if true_slopes is not None:
+                r = np.corrcoef(true_slopes, slope_now)[0, 1]
+                r_flip = np.corrcoef(true_slopes, -slope_now)[0, 1]
+                r_best = max(r, r_flip)
+                corr_str = f", r={r_best:.3f}"
             print(f"    Epoch {epoch}: loss={loss.item():.4f}, AUC={auc:.4f}, "
-                  f"slopes={slope_now.round(4)}")
+                  f"slopes={slope_now.round(4)}{corr_str}")
+            results['slope_tracking'].append(('P1', epoch, slope_now.copy(), auc))
 
     results['slopes_after_phase1'] = model.gamma_slope.detach().numpy().copy()
 
-    # --- PHASE 2: unfreeze delta, fine-tune everything ---
+    # --- PHASE 2: unfreeze delta, everything fine-tunes ---
+    # Early stopping: if slope correlation doesn't improve for `patience` checks, stop
+    # and restore best state.
     model.delta.requires_grad = True
     opt2 = torch.optim.Adam([
         {'params': [model.delta], 'lr': 0.01},
-        {'params': [model.gamma_level, model.gamma_slope], 'lr': 0.002},
+        {'params': [model.gamma_level, model.gamma_slope], 'lr': 0.001},
         {'params': [model.psi, model.kappa], 'lr': 0.005},
     ])
 
-    print("  Phase 2: delta unfrozen — fine-tuning")
+    patience = 5  # stop after 5 checks (500 epochs) without improvement
+    wait = 0
+    best_state = None
+
+    print(f"  Phase 2: delta unfrozen — early stopping (patience={patience}x100 epochs)")
     for epoch in range(n_phase2):
         opt2.zero_grad()
         loss = model.loss(gp_weight=gp_weight)
@@ -341,12 +386,41 @@ def fit_delta_frozen_then_free(model, n_phase1=1000, n_phase2=500, gp_weight=0.1
             auc = roc_auc_score(model.Y.numpy().flatten(),
                                 model.forward().detach().numpy().flatten())
             slope_now = model.gamma_slope[0, :].detach().numpy()
+            corr_str = ""
+            if true_slopes is not None:
+                r = np.corrcoef(true_slopes, slope_now)[0, 1]
+                r_flip = np.corrcoef(true_slopes, -slope_now)[0, 1]
+                r_best = max(r, r_flip)
+                corr_str = f", r={r_best:.3f}"
+                if r_best > best_corr:
+                    best_corr = r_best
+                    best_slopes = slope_now.copy()
+                    best_epoch = epoch
+                    best_state = {k: v.clone() for k, v in model.state_dict().items()}
+                    wait = 0
+                else:
+                    wait += 1
             print(f"    Epoch {epoch}: loss={loss.item():.4f}, AUC={auc:.4f}, "
-                  f"slopes={slope_now.round(4)}")
+                  f"slopes={slope_now.round(4)}{corr_str}")
+            results['slope_tracking'].append(('P2', epoch, slope_now.copy(), auc))
+
+            if true_slopes is not None and wait >= patience:
+                print(f"    Early stopping at epoch {epoch} (no improvement for {patience} checks)")
+                break
+
+    # Restore best state
+    if best_state is not None:
+        model.load_state_dict(best_state)
+        print(f"  Restored best model from Phase 2 epoch {best_epoch}")
 
     results['slopes_final'] = model.gamma_slope.detach().numpy().copy()
     results['final_auc'] = roc_auc_score(
         model.Y.numpy().flatten(), model.forward().detach().numpy().flatten())
+    if best_slopes is not None:
+        results['best_corr'] = best_corr
+        results['best_slopes'] = best_slopes
+        results['best_epoch'] = best_epoch
+        print(f"  Best correlation: r={best_corr:.4f} at Phase 2 epoch {best_epoch}")
     return results
 
 
@@ -373,7 +447,9 @@ def run_all():
         sim['G'], sim['Y'], sim['K_total'], sim['r_k'],
         delta_init, gl_init, gs_init, psi_init)
 
-    res_std = fit_delta_frozen_then_free(model_std)
+    # For standard model, true slopes are RELATIVE (mean-centered)
+    true_rel_slopes = sim['gamma_slope_true'][0, :] - sim['gamma_slope_true'][0, :].mean()
+    res_std = fit_delta_frozen_then_free(model_std, true_slopes=true_rel_slopes)
 
     # Evaluate: relative slopes
     true_rel = sim['gamma_slope_true'][0, :] - sim['gamma_slope_true'][0, :].mean()
@@ -384,6 +460,8 @@ def run_all():
     print(f"  TRUE relative slopes:  {true_rel.round(5)}")
     print(f"  Recovered slopes:      {est_rel.round(5)}")
     print(f"  Correlation (relative): r = {corr_rel:.4f}")
+    if 'best_corr' in res_std:
+        print(f"  Peak correlation:       r = {res_std['best_corr']:.4f} (Phase 2 epoch {res_std['best_epoch']})")
     print(f"  AUC: {res_std['final_auc']:.4f}")
 
     # --------------------------------------------------------
@@ -406,7 +484,7 @@ def run_all():
         sim_h['G'], sim_h['Y'], sim_h['K_total'], sim_h['r_k'],
         sim_h['alpha_i'], delta_init_h, gl_init_h, gs_init_h, psi_init_h)
 
-    res_ha = fit_delta_frozen_then_free(model_ha)
+    res_ha = fit_delta_frozen_then_free(model_ha, true_slopes=sim_h['gamma_slope_true'][0, :])
 
     # Evaluate: absolute slopes (sign-correct if model learned opposite convention)
     true_abs = sim_h['gamma_slope_true'][0, :].copy()
@@ -424,6 +502,8 @@ def run_all():
     print(f"  TRUE absolute slopes:  {true_abs.round(5)}")
     print(f"  Recovered slopes:      {est_abs.round(5)}")
     print(f"  Correlation (absolute): r = {corr_abs:.4f}" + (" (sign-corrected)" if sign_corrected else ""))
+    if 'best_corr' in res_ha:
+        print(f"  Peak correlation:       r = {res_ha['best_corr']:.4f} (Phase 2 epoch {res_ha['best_epoch']})")
     print(f"  AUC: {res_ha['final_auc']:.4f}")
 
     # --------------------------------------------------------

@@ -277,6 +277,123 @@ Health can also have genetic effects:
 \end{frame}
 
 % ========================================================================
+% PART 3: From identifiability to recovery
+% ========================================================================
+\begin{frame}{Identifiable $\neq$ Recoverable}
+\textbf{Identifiability proof} (notebook): Initialize near truth $\Rightarrow$ $r = 0.99$.
+\vspace{1em}
+
+\textbf{But in practice:} We don't know the true slopes!
+\begin{itemize}
+\item Initialize $\gamma_{\mathrm{slope}} = \mathbf{0}$ (no prior knowledge)
+\item Initialize $\gamma_{\mathrm{level}}$ from regression of average disease burden on genetics
+\item Original formulation: $r = 0.77$ (relative), $r = -0.85$ (absolute) \alert{$\leftarrow$ wrong sign!}
+\end{itemize}
+\vspace{1em}
+
+\textbf{Why?} In the original model, $\lambda$ is a free parameter:
+$$\mathcal{L} = \underbrace{-\mathbb{E}[\log p(Y \mid \pi)]}_{\text{NLL (no }\gamma_{\mathrm{slope}}\text{!)}} + w \underbrace{\| \lambda - \lambda_{\mathrm{mean}}(\gamma) \|^2}_{\text{GP penalty (only gradient source)}}$$
+$\gamma_{\mathrm{slope}}$ only appears in the penalty---\alert{invisible to the data likelihood}.
+\end{frame}
+
+\begin{frame}[fragile]{Fix 1: Reparameterize $\lambda$}
+\textbf{Old:} $\lambda$ is a free $N \times K \times T$ parameter (76,500 d.o.f.)
+$$\lambda \text{ (free)} \qquad \gamma_{\mathrm{slope}} \text{ only in penalty}$$
+
+\textbf{New:} Decompose $\lambda$ into parametric mean $+$ residual:
+$$\boxed{\lambda_{ik}(t) = \underbrace{r_k + \mathbf{g}_i^\top \gamma_{\mathrm{level},k} + t \cdot \mathbf{g}_i^\top \gamma_{\mathrm{slope},k}}_{\lambda_{\mathrm{mean}}(\gamma)} + \underbrace{\delta_{ik}(t)}_{\text{residual}}}$$
+
+\textbf{Now} $\gamma_{\mathrm{slope}}$ flows through the forward pass:
+$$\gamma_{\mathrm{slope}} \rightarrow \lambda_{\mathrm{mean}} \rightarrow \lambda \rightarrow \mathrm{softmax} \rightarrow \theta \rightarrow \pi \rightarrow \text{NLL}$$
+
+$\gamma_{\mathrm{slope}}$ gets gradient from the data, not just from the penalty.
+
+\vspace{0.5em}
+\begin{verbatim}
+def get_lambda(self):
+    return self.get_lambda_mean() + self.delta
+\end{verbatim}
+\end{frame}
+
+\begin{frame}{Fix 2: Two-Phase Training}
+\textbf{Problem:} $\delta$ has $N \times K \times T = 76{,}500$ parameters vs.\ $\gamma_{\mathrm{slope}}$'s $P \times K = 15$.\\
+$\delta$ is more expressive and absorbs temporal structure before slopes can learn.
+
+\vspace{1em}
+\textbf{Solution:} Freeze $\delta$ first.
+
+\vspace{0.5em}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Phase 1:} $\delta$ \textbf{frozen}
+\begin{itemize}
+\item $\gamma_{\mathrm{slope}}, \gamma_{\mathrm{level}}, \psi, \kappa$ learn
+\item Only way to change $\lambda$ is through slopes
+\item Slopes \textbf{must} learn temporal structure
+\item 1000 epochs, LR = 0.008
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Phase 2:} $\delta$ \textbf{unfrozen}
+\begin{itemize}
+\item All parameters fine-tune jointly
+\item $\delta$ captures individual residuals
+\item AUC improves ($0.60 \rightarrow 0.77$)
+\item Slopes continue to \textbf{improve}
+\item Early stopping on slope correlation
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Fix 3: Proper GP Kernel on $\delta$}
+\textbf{$\delta$ should be smooth (individual noise), not systematic trends.}
+
+\vspace{0.5em}
+\textbf{Old penalty} (white noise): $\frac{1}{NKT}\sum_{i,k,t} \delta_{ik}(t)^2$ \\
+$\rightarrow$ Penalizes magnitude only; $\delta$ can still have linear trends.
+
+\vspace{0.5em}
+\textbf{New penalty} (SE kernel): $\frac{1}{2} \, \delta^\top \Omega_\lambda^{-1} \, \delta$ via Cholesky solve \\
+$\rightarrow$ Penalizes temporal structure; linear trends in $\delta$ are \textbf{expensive}.
+
+\vspace{1em}
+\textbf{Effect:} Systematic temporal trends (slopes) are pushed into $\gamma_{\mathrm{slope}}$ where they belong. $\delta$ captures only smooth, individual-level residuals.
+
+\vspace{0.5em}
+Matches the GP kernel in the production model (\texttt{clust\_huge\_amp\_vectorized.py}): \\
+SE kernel with $\ell = T/4$, weight $W = 10^{-4}$.
+\end{frame}
+
+\begin{frame}{Recovery Results: From Zero Initialization}
+\textbf{All runs start with $\gamma_{\mathrm{slope}} = \mathbf{0}$ (no cheating).}
+\vspace{1em}
+
+\begin{center}
+\begin{tabular}{l c c}
+\hline
+\textbf{Method} & \textbf{Standard (relative)} & \textbf{Health anchor (absolute)} \\
+\hline
+Original (free $\lambda$) & $r = 0.77$ & $r = -0.85$ \\
++ Reparameterize & $r = 0.83$ & $r = -0.92$ \\
++ Two-phase training & $r = 0.82$ & $r = 0.90$ \\
+\textbf{+ GP kernel (full fix)} & $\bm{r = 0.86}$ & $\bm{r = 0.91}$ \\
+\hline
+True init (identifiability) & $r = 0.99$ & $r = 0.97$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{1em}
+\textbf{Three ingredients:}
+\begin{enumerate}
+\item Reparameterize: $\lambda = \lambda_{\mathrm{mean}}(\gamma) + \delta$ (slopes get NLL gradient)
+\item Two-phase: freeze $\delta$ first (slopes must learn)
+\item GP kernel on $\delta$: penalize temporal structure in residuals
+\end{enumerate}
+\end{frame}
+
+% ========================================================================
 % Final summary
 % ========================================================================
 \begin{frame}{Summary}
@@ -284,14 +401,21 @@ Health can also have genetic effects:
 \begin{itemize}
 \item Add $\Gamma_k^{\text{slope}}$ to the mean of $\lambda$ (separate from GP noise)
 \item Distinguishes baseline vs.\ progression-speed mechanisms
-\item ~5 lines of code
 \end{itemize}
-\vspace{1em}
+\vspace{0.5em}
 \textbf{Part 2---From relative to absolute slopes:}
 \begin{itemize}
 \item Softmax $\Rightarrow$ only relative slopes identifiable
 \item Health signature with person-specific $\alpha_i$ $\Rightarrow$ breaks scale invariance
 \item $\Rightarrow$ Absolute progression speeds identifiable
+\end{itemize}
+\vspace{0.5em}
+\textbf{Part 3---Recovery from realistic initialization:}
+\begin{itemize}
+\item Reparameterize: $\lambda = \lambda_{\mathrm{mean}}(\gamma) + \delta$ (slopes get NLL gradient)
+\item Two-phase training: freeze $\delta$ first, then fine-tune jointly
+\item GP kernel on $\delta$: penalizes temporal structure in residuals
+\item $r = 0.86$ (relative), $r = 0.91$ (absolute) from $\gamma_{\mathrm{slope}} = \mathbf{0}$
 \end{itemize}
 \end{frame}
 

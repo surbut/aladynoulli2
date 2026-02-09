@@ -1,18 +1,17 @@
-\frametitle{Implementation: Simple Code Change}
-\textbf{Current code:}
+\frametitle{Fix 1: Reparameterize $\lambda $}
+\textbf{Old:} $\lambda$ is a free $N \times K \times T$ parameter (76,500 d.o.f.)
+$$\lambda \text{ (free)} \qquad \gamma_{\mathrm{slope}} \text{ only in penalty}$$
+
+\textbf{New:} Decompose $\lambda$ into parametric mean $+$ residual:
+$$\boxed{\lambda_{ik}(t) = \underbrace{r_k + \mathbf{g}_i^\top \gamma_{\mathrm{level},k} + t \cdot \mathbf{g}_i^\top \gamma_{\mathrm{slope},k}}_{\lambda_{\mathrm{mean}}(\gamma)} + \underbrace{\delta_{ik}(t)}_{\text{residual}}}$$
+
+\textbf{Now} $\gamma_{\mathrm{slope}}$ flows through the forward pass:
+$$\gamma_{\mathrm{slope}} \rightarrow \lambda_{\mathrm{mean}} \rightarrow \lambda \rightarrow \mathrm{softmax} \rightarrow \theta \rightarrow \pi \rightarrow \text{NLL}$$
+
+$\gamma_{\mathrm{slope}}$ gets gradient from the data, not just from the penalty.
+
+\vspace{0.5em}
 \begin{verbatim}
-# Compute lambda mean
-lambda_mean = r_k + G @ Gamma_k  # (N, K)
+def get_lambda(self):
+    return self.get_lambda_mean() + self.delta
 \end{verbatim}
-\vspace{2em}
-\textbf{Extended code:}
-\begin{verbatim}
-# Compute lambda mean with time-varying genetic effect
-t_centered = ages - 30  # (T,)
-lambda_mean = (r_k +
-               G @ Gamma_k_level +
-               (G @ Gamma_k_slope)[:, :, None] *
-                   t_centered[None, None, :])
-\end{verbatim}
-\vspace{1em}
-\textbf{That's it!} ~5 lines of code.
