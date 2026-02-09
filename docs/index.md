@@ -171,7 +171,7 @@ The Aladynoulli workflow consists of **5 main steps**:
 | Script | Location | Purpose |
 |--------|----------|---------|
 | **Preprocessing** | [preprocessing_utils.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
-| **Batch Training** | [run_aladyn_batch_vector_e_censor.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor.py) | Batch model training with corrected E |
+| **Batch Training** | [run_aladyn_batch_vector_e_censor_nolor.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor_nolor.py) | Batch model training with corrected E (no LR regularization on gamma) |
 | **Master Checkpoint** | [create_master_checkpoints.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py) | Create pooled checkpoints (phi and psi) |
 | **Pool Gamma & Kappa** | [pool_kappa_and_gamma_from_nolr_batches.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/pool_kappa_and_gamma_from_nolr_batches.py) | Pool gamma (genetic effects) and kappa (calibration) from training batch checkpoints |
 | **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py) | Run enrollment-based predictions using enrollment E matrix (E_enrollment_full.pt) with master checkpoint from corrected E training, using fixed gamma and kappa from pooled training batches (only lambda is learned per batch)

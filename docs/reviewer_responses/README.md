@@ -100,7 +100,7 @@ reviewer_responses/
 
 **Workflow Overview:**
 1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
-2. **Batch Training**: Run `run_aladyn_batch_vector_e_censor` with E matrix *using complete patient history*
+2. **Batch Training**: Run `run_aladyn_batch_vector_e_censor_nolor` with E matrix *using complete patient history* (no LR regularization on gamma)
 3. **Master Checkpoint**: Generate master checkpoint (phi and psi)
 4. **Prediction**: Run `run_aladyn_predict_with_master_vector_cenosrE` (automatically loads `E_enrollment_full.pt`) meaning it's trained with only enrollment data.
 

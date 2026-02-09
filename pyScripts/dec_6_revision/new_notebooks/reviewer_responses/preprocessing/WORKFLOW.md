@@ -88,7 +88,7 @@ Train the model on batches with matrix that has seen fully censored information.
 ### Script:
 ```bash
 # From repository root
-python claudefile/run_aladyn_batch_vector_e_censor.py \
+python claudefile/run_aladyn_batch_vector_e_censor_nolor.py \
     --data_dir /path/to/data \
     --output_dir /path/to/output \
     --start_index 0 \
@@ -96,7 +96,8 @@ python claudefile/run_aladyn_batch_vector_e_censor.py \
     --num_epochs 200
 ```
 
-**Script location:** [`claudefile/run_aladyn_batch_vector_e_censor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor.py)  
+**Script location:** [`claudefile/run_aladyn_batch_vector_e_censor_nolor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor_nolor.py)  
+**Note:** This script uses no LR (log-likelihood regularization) penalty on gamma, which is the version used for fixing gamma and kappa in the final workflow.  
 **Model file:** [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](../../../../pyScripts_forPublish/clust_huge_amp_vectorized.py)
 
 ### What it does:
@@ -247,8 +248,8 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py \
 # Step 1: Preprocessing (in notebook or script)
 # Creates: prevalence_t, initial_clusters_400k.pt, initial_psi_400k.pt, reference_trajectories.pt
 
-# Step 2: Batch training
-python claudefile/run_aladyn_batch_vector_e_censor.py \
+# Step 2: Batch training (no LR regularization on gamma)
+python claudefile/run_aladyn_batch_vector_e_censor_nolor.py \
     --start_index 0 \
     --end_index 10000 \
     --data_dir /path/to/data \
@@ -256,15 +257,13 @@ python claudefile/run_aladyn_batch_vector_e_censor.py \
 
 # Step 3: Create master checkpoint
 python claudefile/create_master_checkpoints.py \
-    --retrospective_pattern "/path/to/output/enrollment_model_VECTORIZED_W0.0001_batch_*_*.pt" \
+    --retrospective_pattern "/path/to/output/enrollment_model_VECTORIZED_W0.0001_nolr_batch_*_*.pt" \
     --output_dir /path/to/data
 
-# Step 4: Pool gamma and kappa from training batches
-# Use pool_kappa_and_gamma_from_batches.py for standard batches:
-python claudefile/pool_kappa_and_gamma_from_batches.py \
-    --batch_pattern "/path/to/output/enrollment_model_VECTORIZED_W0.0001_batch_*_*.pt" \
+# Step 4: Pool gamma and kappa from training batches (using nolr pooling script for nolr batches)
+python claudefile/pool_kappa_and_gamma_from_nolr_batches.py \
+    --batch_pattern "/path/to/output/enrollment_model_VECTORIZED_W0.0001_nolr_batch_*_*.pt" \
     --output_dir /path/to/data
-# Or pool_kappa_and_gamma_from_nolr_batches.py for nolr (unregularized) batches
 
 # Step 5: Predict (fixed phi, gamma, kappa; only lambda learned)
 python claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py \
@@ -285,7 +284,7 @@ python claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py \
 - [`SIMPLE_EXAMPLE.py`](./SIMPLE_EXAMPLE.py) - Simple usage example
 
 ### Training Scripts (in `claudefile/`):
-- [`run_aladyn_batch_vector_e_censor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor.py) - Batch training script (vectorized, corrected E)
+- [`run_aladyn_batch_vector_e_censor_nolor.py`](../../../../claudefile/run_aladyn_batch_vector_e_censor_nolor.py) - Batch training script (vectorized, corrected E, no LR regularization on gamma) - **Used for fixing gamma and kappa in final workflow**
 - [`create_master_checkpoints.py`](../../../../claudefile/create_master_checkpoints.py) - Master checkpoint creation
 - [`pool_kappa_and_gamma_from_batches.py`](../../../../claudefile/pool_kappa_and_gamma_from_batches.py) - Pool gamma and kappa from standard training batches
 - [`pool_kappa_and_gamma_from_nolr_batches.py`](../../../../claudefile/pool_kappa_and_gamma_from_nolr_batches.py) - Pool gamma and kappa from nolr (unregularized) batches
