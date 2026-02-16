@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Compare nolr vs reparam AUC on first 5 batches (50K patients).
-Evaluates static 10-year and dynamic 1-year AUC (matching paper metrics).
+Evaluate AUC for reparam v2 LOO predictions.
+3 metrics: static 10yr, dynamic 10yr, dynamic 1yr.
 
 Usage:
-    python compare_nolr_vs_reparam_5batches_auc.py --n_bootstraps 100
+    PYTHONUNBUFFERED=1 python claudefile/evaluate_v2_auc.py --n_bootstraps 100
 """
 
 import argparse
@@ -24,8 +24,7 @@ from evaluatetdccode import (
     evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex
 )
 
-NOLR_DIR = '/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_fixedgk_nolr_vectorized/'
-REPARAM_DIR = '/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_fixedgk_reparam_vectorized/'
+V2_LOO_DIR = '/Users/sarahurbut/Library/CloudStorage/Dropbox/enrollment_predictions_fixedphi_fixedgk_reparam_v2_loo/'
 
 
 def pool_batches(config_dir, batch_size=10000, n_batches=5):
@@ -68,31 +67,6 @@ def evaluate_and_collect(pi, Y, E, disease_names, pce_df, n_bootstraps, horizon)
     return pd.DataFrame(rows)
 
 
-def print_comparison(merged, horizon, nolr_col='nolr_auc', reparam_col='reparam_auc'):
-    print(f"\n{'='*95}")
-    print(f"{horizon.upper()} AUC COMPARISON")
-    print(f"{'='*95}")
-    print(f"{'DISEASE':<25} {'NOLR AUC (95% CI)':<30} {'REPARAM AUC (95% CI)':<30} {'DELTA':>8}")
-    print("-" * 95)
-    for _, row in merged.iterrows():
-        na = row.get(nolr_col, np.nan)
-        ra = row.get(reparam_col, np.nan)
-        nc = f"{na:.3f} ({row.get('nolr_ci_lower', np.nan):.3f}-{row.get('nolr_ci_upper', np.nan):.3f})"
-        rc = f"{ra:.3f} ({row.get('reparam_ci_lower', np.nan):.3f}-{row.get('reparam_ci_upper', np.nan):.3f})"
-        d = ra - na if not (np.isnan(na) or np.isnan(ra)) else np.nan
-        ds = f"{d:+.3f}" if not np.isnan(d) else "N/A"
-        print(f"{row['disease']:<25} {nc:<30} {rc:<30} {ds:>8}")
-
-    valid = merged.dropna(subset=[nolr_col, reparam_col])
-    if len(valid) > 0:
-        nm = valid[nolr_col].mean()
-        rm = valid[reparam_col].mean()
-        nw = (valid[nolr_col] > valid[reparam_col]).sum()
-        rw = (valid[reparam_col] > valid[nolr_col]).sum()
-        print(f"\nMean AUC -- nolr: {nm:.4f}, reparam: {rm:.4f}, delta: {rm-nm:+.4f}")
-        print(f"Nolr wins: {nw}, Reparam wins: {rw}, Tied: {len(valid)-nw-rw}")
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n_bootstraps', type=int, default=100)
@@ -104,11 +78,10 @@ def main():
     N_eval = args.batch_size * args.n_batches
 
     print("=" * 80)
-    print(f"NOLR vs REPARAM AUC COMPARISON - {N_eval//1000}K patients, {args.n_bootstraps} bootstraps")
+    print(f"REPARAM v2 AUC EVALUATION — {N_eval // 1000}K patients, {args.n_bootstraps} bootstraps")
     print("=" * 80)
 
     # Load data
-    print("\nLoading data...")
     data_dir = '/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/'
     Y = torch.load(data_dir + 'Y_tensor.pt', weights_only=False)[:N_eval]
     E = torch.load(data_dir + 'E_enrollment_full.pt', weights_only=False)[:N_eval]
@@ -117,7 +90,6 @@ def main():
     pce_df = pd.read_csv('/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/pce_prevent_full.csv')
     pce_df = pce_df.iloc[:N_eval].reset_index(drop=True)
 
-    # Ensure sex/age columns
     if 'Sex' not in pce_df.columns and 'sex' in pce_df.columns:
         pce_df['Sex'] = pce_df['sex'].map({0: 'Female', 1: 'Male'}).fillna('Unknown')
     if 'sex' not in pce_df.columns and 'Sex' in pce_df.columns:
@@ -127,44 +99,45 @@ def main():
 
     print(f"Y: {Y.shape}, E: {E.shape}, pce_df: {len(pce_df)}")
 
-    # Pool pi from batches
-    print("\nLoading nolr predictions...")
-    pi_nolr = pool_batches(NOLR_DIR, args.batch_size, args.n_batches)
-    print(f"Nolr pi: {pi_nolr.shape}")
-
-    print("\nLoading reparam predictions...")
-    pi_reparam = pool_batches(REPARAM_DIR, args.batch_size, args.n_batches)
-    print(f"Reparam pi: {pi_reparam.shape}")
+    # Load v2 LOO predictions
+    print("\nLoading v2 LOO predictions...")
+    pi_v2 = pool_batches(V2_LOO_DIR, args.batch_size, args.n_batches)
+    print(f"v2 pi: {pi_v2.shape}")
 
     all_results = []
 
-    # Static 10-year AUC
     for horizon in ['static_10yr', 'dynamic_10yr', 'dynamic_1yr']:
-        print(f"\n{'='*80}")
-        print(f"EVALUATING {horizon.upper()}: NOLR")
-        print(f"{'='*80}")
-        df_nolr = evaluate_and_collect(pi_nolr, Y, E, disease_names, pce_df, args.n_bootstraps, horizon)
+        print(f"\n{'=' * 80}")
+        print(f"EVALUATING {horizon.upper()}")
+        print(f"{'=' * 80}")
+        df = evaluate_and_collect(pi_v2, Y, E, disease_names, pce_df, args.n_bootstraps, horizon)
+        df['horizon'] = horizon
 
-        print(f"\n{'='*80}")
-        print(f"EVALUATING {horizon.upper()}: REPARAM")
-        print(f"{'='*80}")
-        df_reparam = evaluate_and_collect(pi_reparam, Y, E, disease_names, pce_df, args.n_bootstraps, horizon)
+        # Print results
+        print(f"\n{'DISEASE':<25} {'AUC (95% CI)':<30} {'N_EVENTS':>10}")
+        print("-" * 70)
+        for _, row in df.iterrows():
+            ci = f"{row['auc']:.3f} ({row['ci_lower']:.3f}-{row['ci_upper']:.3f})"
+            print(f"{row['disease']:<25} {ci:<30} {int(row['n_events']):>10}")
 
-        # Merge
-        df_nolr = df_nolr.rename(columns={c: f'nolr_{c}' for c in df_nolr.columns if c != 'disease'})
-        df_reparam = df_reparam.rename(columns={c: f'reparam_{c}' for c in df_reparam.columns if c != 'disease'})
-        merged = df_nolr.merge(df_reparam, on='disease', how='outer')
-        merged['horizon'] = horizon
+        valid = df.dropna(subset=['auc'])
+        print(f"\nMean AUC: {valid['auc'].mean():.4f} ({len(valid)} diseases)")
 
-        print_comparison(merged, horizon)
-        all_results.append(merged)
+        all_results.append(df)
 
     # Save
     combined = pd.concat(all_results, ignore_index=True)
-    os.makedirs(args.output_dir, exist_ok=True)
-    out_path = os.path.join(args.output_dir, 'nolr_vs_reparam_5batches_auc.csv')
+    out_path = os.path.join(args.output_dir, 'reparam_v2_auc_LOO.csv')
     combined.to_csv(out_path, index=False)
-    print(f"\nSaved to: {out_path}")
+    print(f"\nSaved results to: {out_path}")
+
+    # Summary
+    print(f"\n{'=' * 80}")
+    print("SUMMARY")
+    print(f"{'=' * 80}")
+    for horizon in ['static_10yr', 'dynamic_10yr', 'dynamic_1yr']:
+        h = combined[combined['horizon'] == horizon]
+        print(f"  {horizon:<15}: mean AUC = {h['auc'].mean():.4f}")
 
 
 if __name__ == '__main__':

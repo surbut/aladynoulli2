@@ -16,12 +16,13 @@
 
 ## 📋 How to Use This Documentation
 
-This documentation is organized into **four main sections** for reviewers:
+This documentation is organized into **five main sections** for reviewers:
 
 1. **[Model Architecture](#model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
 2. **[Reviewer Response Analyses](#reviewer-response-analyses)** - Interactive analyses addressing all reviewer questions, organized by referee
-3. **[Complete Workflow](#complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
-4. **[Performance & Scalability](#performance-scalability)** - Computational requirements and scaling characteristics
+3. **[Non-Centered Parameterization](#non-centered-parameterization-reparameterization)** - Reparameterization for identifiable genetic effects, with simulation evidence
+4. **[Complete Workflow](#complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
+5. **[Performance & Scalability](#performance-scalability)** - Computational requirements and scaling characteristics
 
 **Note**: Installation instructions are not required for reviewers. A pre-configured environment will be provided for running the code.
 
@@ -33,6 +34,7 @@ This documentation is organized into **four main sections** for reviewers:
 - [Overview](#overview)
 - [Model Architecture](#model-architecture)
 - [Reviewer Response Analyses](#reviewer-response-analyses)
+- [Non-Centered Parameterization](#non-centered-parameterization-reparameterization)
 - [Complete Workflow](#complete-workflow)
 - [Performance & Scalability](#performance-scalability)
 - [Citation](#citation)
@@ -139,6 +141,37 @@ Comprehensive interactive analyses addressing reviewer questions and model valid
 | **Cross-Cohort Similarity** | Cross-cohort signature correspondence analysis | [R3_Cross_Cohort_Similarity.html](reviewer_responses/notebooks/R3/R3_Cross_Cohort_Similarity.html) |
 
 
+## 🧬 Non-Centered Parameterization (Reparameterization)
+
+In the standard ("centered") formulation, genetic effects (γ) enter only through the GP prior mean for λ.
+Because λ is a free parameter that directly enters the likelihood, the optimizer fits the data by adjusting λ
+and γ receives weaker gradient signal (only the W = 10⁻⁴ scaled GP prior). This can limit the accuracy
+of γ recovery — the individual-specific genetic effects that are essential for biological interpretation
+and out-of-sample prediction.
+
+The **non-centered** formulation addresses this by decomposing λ into a genetic mean and a residual:
+
+```
+λ_i,k,t = μ_k + G_i γ_k + δ_i,k,t
+```
+
+where δ (not λ) carries the GP prior. Now γ flows through the forward pass into the NLL via the chain rule,
+receiving full gradient signal. Additionally, κ is fixed at 1 rather than learned, since κ and γ are not
+jointly identifiable (only κ·γ enters the likelihood).
+
+| Analysis | Description | Link |
+|----------|-------------|------|
+| **Parameter Recovery Simulation** | Synthetic data simulation (N=1000, D=50, K=5) comparing γ recovery: centered model (r ≈ 0.80) vs non-centered model (r ≈ 0.95). Uses the actual production model classes. | [parameter_recovery_simulation.ipynb](https://github.com/surbut/aladynoulli2/blob/main/claudefile/parameter_recovery_simulation.ipynb) |
+
+### Core Model Files (Non-Centered)
+
+| Component | File | Description |
+|-----------|------|-------------|
+| **Discovery Model (Reparam)** | [clust_huge_amp_vectorized_reparam.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized_reparam.py) | Non-centered model: λ = μ(γ) + δ, κ=1 fixed. γ and ψ receive NLL gradients directly. |
+| **Training Script** | [train_nokappa_v3.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/train_nokappa_v3.py) | Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping |
+
+---
+
 ## 💻 Complete Workflow
 
 The Aladynoulli workflow consists of **5 main steps**:
@@ -228,6 +261,6 @@ For questions or issues, please open an issue on [GitHub](https://github.com/sur
 
 <div align="center">
 
-**Last Updated**: December 2024
+**Last Updated**: February 2026
 
 </div>

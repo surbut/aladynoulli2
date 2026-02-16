@@ -113,12 +113,14 @@ def pool_phi_kappa_gamma(pattern, max_batches=None):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_type', type=str, choices=['nolr', 'reparam'], default='nolr')
+    parser.add_argument('--model_type', type=str, choices=['nolr', 'reparam', 'nokappa'], default='nolr')
     parser.add_argument('--max_batches', type=int, default=39)
     parser.add_argument('--nolr_dir', type=str,
                         default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_nolr')
     parser.add_argument('--reparam_dir', type=str,
                         default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_REPARAM')
+    parser.add_argument('--nokappa_dir', type=str,
+                        default='/Users/sarahurbut/Library/CloudStorage/Dropbox/censor_e_batchrun_vectorized_REPARAM_v2_nokappa')
     parser.add_argument('--output_dir', type=str,
                         default='/Users/sarahurbut/Library/CloudStorage/Dropbox-Personal/data_for_running/')
     parser.add_argument('--W', type=float, default=0.0001)
@@ -126,6 +128,8 @@ def main():
 
     if args.model_type == 'nolr':
         pattern = str(Path(args.nolr_dir) / f'enrollment_model_VECTORIZED_W{args.W}_nolr_batch_*_*.pt')
+    elif args.model_type == 'nokappa':
+        pattern = str(Path(args.nokappa_dir) / f'enrollment_model_REPARAM_NOKAPPA_W{args.W}_batch_*_*.pt')
     else:
         pattern = str(Path(args.reparam_dir) / f'enrollment_model_REPARAM_W{args.W}_batch_*_*.pt')
 

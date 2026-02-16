@@ -108,10 +108,11 @@
 </div>
 <hr />
 <h2 id="how-to-use-this-documentation">📋 How to Use This Documentation</h2>
-<p>This documentation is organized into <strong>four main sections</strong> for reviewers:</p>
+<p>This documentation is organized into <strong>five main sections</strong> for reviewers:</p>
 <ol type="1">
 <li><strong><a href="#model-architecture">Model Architecture</a></strong> - Understand how the model works: core components, mathematical framework, and key concepts</li>
 <li><strong><a href="#reviewer-response-analyses">Reviewer Response Analyses</a></strong> - Interactive analyses addressing all reviewer questions, organized by referee</li>
+<li><strong><a href="#non-centered-parameterization-reparameterization">Non-Centered Parameterization</a></strong> - Reparameterization for identifiable genetic effects, with simulation evidence</li>
 <li><strong><a href="#complete-workflow">Complete Workflow</a></strong> - Step-by-step guide to running the model: preprocessing, training, and prediction</li>
 <li><strong><a href="#performance-scalability">Performance &amp; Scalability</a></strong> - Computational requirements and scaling characteristics</li>
 </ol>
@@ -123,6 +124,7 @@
 <li><a href="#overview">Overview</a></li>
 <li><a href="#model-architecture">Model Architecture</a></li>
 <li><a href="#reviewer-response-analyses">Reviewer Response Analyses</a></li>
+<li><a href="#non-centered-parameterization-reparameterization">Non-Centered Parameterization</a></li>
 <li><a href="#complete-workflow">Complete Workflow</a></li>
 <li><a href="#performance-scalability">Performance &amp; Scalability</a></li>
 <li><a href="#citation">Citation</a></li>
@@ -371,6 +373,60 @@
 </tr>
 </tbody>
 </table>
+<h2 id="non-centered-parameterization-reparameterization">🧬 Non-Centered Parameterization (Reparameterization)</h2>
+<p>In the standard (“centered”) formulation, genetic effects (γ) enter only through the GP prior mean for λ. Because λ is a free parameter that directly enters the likelihood, the optimizer fits the data by adjusting λ and γ receives weaker gradient signal (only the W = 10⁻⁴ scaled GP prior). This can limit the accuracy of γ recovery — the individual-specific genetic effects that are essential for biological interpretation and out-of-sample prediction.</p>
+<p>The <strong>non-centered</strong> formulation addresses this by decomposing λ into a genetic mean and a residual:</p>
+<pre><code>λ_i,k,t = μ_k + G_i γ_k + δ_i,k,t</code></pre>
+<p>where δ (not λ) carries the GP prior. Now γ flows through the forward pass into the NLL via the chain rule, receiving full gradient signal. Additionally, κ is fixed at 1 rather than learned, since κ and γ are not jointly identifiable (only κ·γ enters the likelihood).</p>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 44%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Description</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parameter Recovery Simulation</strong></td>
+<td>Synthetic data simulation (N=1000, D=50, K=5) comparing γ recovery: centered model (r ≈ 0.80) vs non-centered model (r ≈ 0.95). Uses the actual production model classes.</td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/parameter_recovery_simulation.ipynb">parameter_recovery_simulation.ipynb</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="core-model-files-non-centered">Core Model Files (Non-Centered)</h3>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 20%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discovery Model (Reparam)</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized_reparam.py">clust_huge_amp_vectorized_reparam.py</a></td>
+<td>Non-centered model: λ = μ(γ) + δ, κ=1 fixed. γ and ψ receive NLL gradients directly.</td>
+</tr>
+<tr>
+<td><strong>Training Script</strong></td>
+<td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/train_nokappa_v3.py">train_nokappa_v3.py</a></td>
+<td>Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="complete-workflow">💻 Complete Workflow</h2>
 <p>The Aladynoulli workflow consists of <strong>5 main steps</strong>:</p>
 <ol type="1">
@@ -492,19 +548,19 @@
 <hr />
 <h2 id="citation">📝 Citation</h2>
 <p>If you use Aladynoulli in your research, please cite:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">aladynoulli2024</span>,</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>={Sur, P. and others},</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span>={medRxiv},</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>={2024},</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">doi</span>={10.1101/2024.09.29.24314557}</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">aladynoulli2024</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span>={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span>={Sur, P. and others},</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">journal</span>={medRxiv},</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span>={2024},</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">doi</span>={10.1101/2024.09.29.24314557}</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="contact">📧 Contact</h2>
 <p>For questions or issues, please open an issue on <a href="https://github.com/surbut/aladynoulli2/issues">GitHub</a>.</p>
 <hr />
 <div data-align="center">
-<p><strong>Last Updated</strong>: December 2024</p>
+<p><strong>Last Updated</strong>: February 2026</p>
 </div>
 
     </div>

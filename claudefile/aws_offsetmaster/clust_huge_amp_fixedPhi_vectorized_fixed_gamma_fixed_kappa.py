@@ -312,7 +312,7 @@ class AladynSurvivalFixedPhiFixedGammaFixedKappa(nn.Module):
     
     def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01):
         """Modified fit method that only updates lambda (gamma and kappa are fixed)"""
-        
+
         # Only lambda is trainable - gamma and kappa are fixed buffers
         optimizer = optim.Adam([
             {'params': [self.lambda_], 'lr': learning_rate},      # e.g. 1e-2
@@ -324,22 +324,22 @@ class AladynSurvivalFixedPhiFixedGammaFixedKappa(nn.Module):
             'lambda_grad': [],
         }
         losses = []
-        
+
         for epoch in range(num_epochs):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
             loss.backward()
-            
+
             gradient_history['lambda_grad'].append(self.lambda_.grad.clone().detach())
-        
+
             optimizer.step()
             losses.append(loss.item())
-            
+
             if epoch % 10 == 0:
                 print(f"\nEpoch {epoch}")
                 print(f"Loss: {loss.item():.4f}")
                 self.analyze_signature_responses()
-        
+
         return losses, gradient_history
     
     def analyze_signature_responses(self, top_n=5):
