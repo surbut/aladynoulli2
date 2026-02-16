@@ -16,7 +16,10 @@ import numpy as np
 from pathlib import Path
 
 sys.path.append('/Users/sarahurbut/aladynoulli2/pyScripts/')
-from fig5utils import evaluate_major_diseases_wsex_with_bootstrap_from_pi
+from fig5utils import (
+    evaluate_major_diseases_wsex_with_bootstrap_from_pi,
+    evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi,
+)
 from evaluatetdccode import (
     evaluate_major_diseases_wsex_with_bootstrap_dynamic_1year_different_start_end_numeric_sex
 )
@@ -43,6 +46,10 @@ def pool_batches(config_dir, batch_size=10000, n_batches=5):
 def evaluate_and_collect(pi, Y, E, disease_names, pce_df, n_bootstraps, horizon):
     if horizon == 'static_10yr':
         results = evaluate_major_diseases_wsex_with_bootstrap_from_pi(
+            pi=pi, Y_100k=Y, E_100k=E, disease_names=disease_names,
+            pce_df=pce_df, n_bootstraps=n_bootstraps, follow_up_duration_years=10)
+    elif horizon == 'dynamic_10yr':
+        results = evaluate_major_diseases_wsex_with_bootstrap_dynamic_from_pi(
             pi=pi, Y_100k=Y, E_100k=E, disease_names=disease_names,
             pce_df=pce_df, n_bootstraps=n_bootstraps, follow_up_duration_years=10)
     elif horizon == 'dynamic_1yr':
@@ -132,7 +139,7 @@ def main():
     all_results = []
 
     # Static 10-year AUC
-    for horizon in ['static_10yr', 'dynamic_1yr']:
+    for horizon in ['static_10yr', 'dynamic_10yr', 'dynamic_1yr']:
         print(f"\n{'='*80}")
         print(f"EVALUATING {horizon.upper()}: NOLR")
         print(f"{'='*80}")

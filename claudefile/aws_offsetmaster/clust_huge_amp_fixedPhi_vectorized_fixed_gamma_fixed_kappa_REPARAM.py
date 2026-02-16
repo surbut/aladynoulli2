@@ -59,7 +59,7 @@ class AladynSurvivalFixedPhiFixedGammaFixedKappaReparam(_BaseFixedGk):
         # Clamp lam to prevent softmax overflow (repram gamma can be large)
         lam = torch.clamp(lam, -50.0, 50.0)
         theta = torch.softmax(lam, dim=1)
-        epsilon = 1e-8
+        epsilon = 1e-6
         phi_prob = torch.sigmoid(self.phi)
         pi = torch.einsum('nkt,kdt->ndt', theta, phi_prob) * self.kappa
         pi = torch.clamp(pi, epsilon, 1 - epsilon)
@@ -78,7 +78,7 @@ class AladynSurvivalFixedPhiFixedGammaFixedKappaReparam(_BaseFixedGk):
     def compute_loss(self, event_times):
         """Same as base but uses get_lambda() for LRT (lambda_at_diagnosis)."""
         pi, theta, phi_prob = self.forward()
-        epsilon = 1e-8
+        epsilon = 1e-6
         pi = torch.clamp(pi, epsilon, 1 - epsilon)
         N, D, T = self.Y.shape
 
@@ -134,24 +134,46 @@ class AladynSurvivalFixedPhiFixedGammaFixedKappaReparam(_BaseFixedGk):
         total_loss = total_data_loss + self.gpweight * gp_loss + self.lrtpen * signature_update_loss / (self.N * self.T)
         return total_loss
 
-    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01, grad_clip=5.0):
-        """Fit delta only (gamma fixed). Gradient clipping to prevent nan from reparam gamma scale."""
+    def fit(self, event_times, num_epochs=100, learning_rate=0.01, lambda_reg=0.01, grad_clip=5.0,
+            patience=50, min_improvement=1e-4):
+        """Fit delta only (gamma fixed).
+
+        Includes cosine annealing LR schedule and early stopping.
+        """
         optimizer = optim.Adam([{'params': [self.delta], 'lr': learning_rate}])
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=learning_rate * 0.01)
         losses = []
+        best_loss = float('inf')
+        best_epoch = 0
         for epoch in range(num_epochs):
             optimizer.zero_grad()
             loss = self.compute_loss(event_times)
             if torch.isnan(loss):
-                print(f"Epoch {epoch} (REPARAM): Loss=nan (stopping)")
+                # Diagnose: check lambda, pi for NaN
+                with torch.no_grad():
+                    lam = self.get_lambda()
+                    pi, theta, _ = self.forward()
+                    nan_lam = torch.isnan(lam).any().item()
+                    nan_pi = torch.isnan(pi).any().item()
+                    print(f"Epoch {epoch} (REPARAM): Loss=nan (stopping) [nan in lambda={nan_lam}, pi={nan_pi}, kappa={self.kappa.item():.4f}]")
                 break
             loss.backward()
             torch.nn.utils.clip_grad_norm_([self.delta], max_norm=grad_clip)
             optimizer.step()
+            scheduler.step()
             with torch.no_grad():
                 self.delta.data.clamp_(-20.0, 20.0)
-            losses.append(loss.item())
+            cur_loss = loss.item()
+            losses.append(cur_loss)
+            if cur_loss < best_loss * (1 - min_improvement):
+                best_loss = cur_loss
+                best_epoch = epoch
             if epoch % 10 == 0:
-                print(f"Epoch {epoch} (REPARAM): Loss={loss.item():.4f}")
+                lr_now = scheduler.get_last_lr()[0]
+                print(f"Epoch {epoch} (REPARAM): Loss={cur_loss:.4f}, LR={lr_now:.1e}")
+            if epoch - best_epoch > patience and epoch > 50:
+                print(f"Epoch {epoch} (REPARAM): Early stop (no improvement for {patience} epochs, best={best_loss:.4f} at epoch {best_epoch})")
+                break
         return losses
 
     def predict(self, new_G=None, new_indices=None):
