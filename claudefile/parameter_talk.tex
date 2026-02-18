@@ -28,14 +28,15 @@
 
 \title{\textbf{\aladyn{}:\\A Bayesian Framework for Genomic Discovery\\ and Clinical Prediction}}
 \subtitle{Disease Signatures, Individual Trajectories, and Drug Discovery}
-\author{Sarah M.\ Urbut\textsuperscript{1,2,3,4} \and Pradeep Natarajan\textsuperscript{1,2,3,4}}
+\author{Sarah M.\ Urbut\textsuperscript{1,2,3}, Alexander Gusev\textsuperscript{3,4},\\[2pt] Pradeep Natarajan\textsuperscript{1,2,3}, Giovanni Parmigiani\textsuperscript{4,5}}
+
+
 \institute{
-\textsuperscript{1}Mass General Hospital \quad
-\textsuperscript{2}Cardiovascular Research Center \quad
-\textsuperscript{3}Harvard Medical School\\
-\textsuperscript{4}Broad Institute \quad
-\textsuperscript{5}Dana-Farber \quad
-\textsuperscript{10}Harvard T.H.\ Chan
+\textsuperscript{1}Massachusetts General Hospital \quad
+\textsuperscript{2}Harvard Medical School \quad
+\textsuperscript{3}Broad Institute\\
+\textsuperscript{4}Dana-Farber Cancer Institute \quad
+\textsuperscript{5}Harvard T.H.\ Chan School of Public Health
 }
 \date{}
 
@@ -55,10 +56,11 @@
 \begin{enumerate}
     \item \textbf{The problem}: Disease complexity across 348 conditions over a lifetime
     \item \textbf{The model}: \aladyn{} --- signatures, trajectories, genetics
+    \item \textbf{Identifiability}: Non-centered parameterization for genetic effects
     \item \textbf{Discovery}: Consistent signatures across 3 biobanks (700K+ patients)
     \item \textbf{Heterogeneity}: Different pathways to the same diagnosis
     \item \textbf{Genetics}: 151 GWAS loci, rare variants, heritability
-    \item \textbf{Prediction}: Outperforming PCE, PREVENT, GAIL across 28 diseases
+    \item \textbf{Prediction}: Rigorous LOO framework, outperforming established scores
     \item \textbf{Applications}: Patient stratification, trial design, drug targets
 \end{enumerate}
 \end{frame}
@@ -105,7 +107,7 @@
 \textbf{Core equation --- mixture of probabilities:}
 \vspace{-4pt}
 \[
-\pi_{idt} = \kappa \cdot \sum_{k=1}^{K} \underbrace{\theta_{ikt}}_{\substack{\text{individual}\\\text{loading}}} \cdot \underbrace{\text{sigmoid}(\phi_{kdt})}_{\substack{\text{signature-disease}\\\text{association}}}
+\pi_{idt} = \sum_{k=1}^{K} \underbrace{\theta_{ikt}}_{\substack{\text{individual}\\\text{loading}}} \cdot \underbrace{\text{sigmoid}(\phi_{kdt})}_{\substack{\text{signature-disease}\\\text{association}}}
 \]
 \vspace{-6pt}
 \begin{columns}
@@ -141,6 +143,58 @@
 \end{frame}
 
 % ============================================================
+% REPARAMETERIZATION: IDENTIFIABLE GENETIC EFFECTS
+% ============================================================
+\begin{frame}{Ensuring Identifiable Genetic Effects}
+\begin{columns}
+\begin{column}{0.48\textwidth}
+\textbf{The identifiability challenge:}
+\vspace{4pt}
+
+In the standard formulation, $\lambda_{ikt}$ is a free parameter that directly enters the likelihood.
+The optimizer fits data by adjusting $\lambda$ directly, so $\Gamma_k$ receives only weak gradient signal through the GP prior (scaled by $W = 10^{-4}$).
+
+\vspace{6pt}
+\textbf{Non-centered (reparameterized) formulation:}
+\vspace{-4pt}
+\[
+\lambda_{ikt} = \underbrace{r_k + \mathbf{g}_i^\top \Gamma_k}_{\text{genetic mean}} + \underbrace{\delta_{ikt}}_{\text{residual}}
+\]
+\vspace{-8pt}
+\begin{itemize}\setlength\itemsep{0pt}
+    \item $\delta$ (not $\lambda$) carries the GP prior
+    \item $\Gamma_k$ now flows through the NLL via chain rule
+    \item $\kappa$ fixed at 1 (not jointly identifiable with $\Gamma$)
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Simulation evidence} (N=1000, D=50, K=5):
+
+\vspace{6pt}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lcc}
+\toprule
+& \textbf{Centered} & \textbf{Non-centered} \\
+\midrule
+$\gamma$ recovery ($r$) & 0.80 & \textbf{0.95} \\
+$\gamma$ gradient norm & $\sim$0.01 & $\sim$0.5 \\
+$\kappa$ behavior & drifts & fixed = 1 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6pt}
+\textcolor{sigblue}{\textbf{Key insight:}} In the centered model, only $\kappa \cdot \Gamma$ enters the likelihood, so $\kappa$ and $\Gamma$ trade off.
+Fixing $\kappa = 1$ and reparameterizing resolves this.
+
+\vspace{4pt}
+\small Both models fit the data equally well (same NLL); the difference is in $\gamma$ recovery.
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
 % KEY DIFFERENCES
 % ============================================================
 \begin{frame}{\aladyn{} vs.\ Traditional Approaches}
@@ -163,6 +217,56 @@ Data required & Labs, biomarkers & \textbf{ICD codes only} \\
 \end{tabular}
 \end{center}
 
+\end{frame}
+
+% ============================================================
+% SIMULATION VALIDATION
+% ============================================================
+\begin{frame}{Simulation: Parameter Recovery}
+\begin{columns}
+\begin{column}{0.48\textwidth}
+\textbf{Synthetic data:}
+\begin{itemize}
+    \item $N=10{,}000$ individuals, $D=20$ diseases
+    \item $T=50$ time points (ages 30--79), $K=5$ signatures
+    \item $P=5$ genetic covariates
+    \item Ground truth $\Gamma_k$, $\phi_{kd}$, $\psi_{kd}$ known
+\end{itemize}
+
+\vspace{6pt}
+\textbf{Recovery results:}
+\begin{itemize}
+    \item Signature composition: \textbf{ARI = 0.843}, \textbf{NMI = 0.943}
+    \item Temporal trajectories accurately reconstructed
+    \item Genetic effects recovered
+\end{itemize}
+
+\vspace{6pt}
+\small \textcolor{sigblue}{\textbf{The model recovers ground truth structure from realistic synthetic data following the exact \aladyn{} generative process.}}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{What is learned vs.\ fixed at prediction:}
+
+\vspace{4pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Parameter} & \textbf{Discovery} & \textbf{Prediction} \\
+\midrule
+$\phi_{kdt}$ (signatures) & Learned & \textbf{Fixed} \\
+$\psi_{kd}$ (offsets) & Learned & \textbf{Fixed} \\
+$\Gamma_k$ (genetics) & Learned & \textbf{Fixed} \\
+$\kappa$ (calibration) & Fixed $=1$ & Fixed $=1$ \\
+$\delta_{ikt}$ (individual) & Learned & \textbf{Learned} \\
+\midrule
+\multicolumn{3}{l}{\small$\lambda_{ikt} = r_k + \mathbf{g}_i^\top\Gamma_k + \delta_{ikt}$} \\
+\bottomrule
+\end{tabular}
+
+\vspace{8pt}
+\small Only individual residuals ($\delta$) are fit at prediction time --- population biology is frozen from training.
+\end{column}
+\end{columns}
 \end{frame}
 
 % ============================================================
@@ -492,6 +596,51 @@ Type 2 diabetes & Sig 15 (Metabolic) & 0.154 & 58.3 \\
 \end{frame}
 
 % ============================================================
+% PREDICTION FRAMEWORK
+% ============================================================
+\begin{frame}{Rigorous Prospective Evaluation Framework}
+
+\begin{columns}
+\begin{column}{0.48\textwidth}
+\textbf{Leave-one-out cross-validation:}
+\begin{itemize}
+    \item 400K individuals in 40 batches of 10K
+    \item For each batch: pool $\phi$, $\psi$, $\Gamma$ from the other 39
+    \item Predict on the held-out batch
+    \item \textbf{No information leakage}: held-out batch never contributes to pooled parameters
+\end{itemize}
+
+\vspace{6pt}
+\textbf{Temporal censoring:}
+\begin{itemize}
+    \item At each prediction time $t$, only data up to $t$ is used
+    \item Individual $\delta$ re-estimated at each timepoint
+    \item Simulates real clinical deployment
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{LOO robustness (40 batches):}
+\begin{itemize}
+    \item LOO vs.\ full-pool predictions: $r = 0.995$
+    \item Mean AUC difference: $\leq 0.0001$
+    \item Maximum AUC difference: $\leq 0.0015$
+    \item 99.6--100\% within 0.01 AUC threshold
+\end{itemize}
+
+\vspace{6pt}
+\textbf{Evaluation at multiple horizons:}
+\begin{itemize}
+    \item \textbf{Dynamic 1-year}: predictions at enrollment + 0, 1, \ldots, 9 years
+    \item \textbf{Static 10-year}: single prediction at enrollment
+    \item Each score evaluated at its designed horizon
+\end{itemize}
+\vspace{4pt}
+\small\textcolor{sigblue}{\textbf{No single batch dominates --- generalizes across all 40 folds.}}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
 % PREDICTION HIGHLIGHTS
 % ============================================================
 \begin{frame}{Prediction: Outperforming Established Risk Scores}
@@ -511,30 +660,37 @@ Type 2 diabetes & Sig 15 (Metabolic) & 0.154 & 58.3 \\
 \small All via leave-one-out cross-validation, strictly prospective, no temporal leakage.
 \end{column}
 \begin{column}{0.48\textwidth}
-\textbf{Head-to-head comparisons:}
+\textbf{Head-to-head (each at its designed horizon):}
 
-\vspace{6pt}
-\begin{tabular}{lcc}
+\vspace{4pt}
+{\small
+\begin{tabular}{lccc}
 \toprule
-\textbf{ASCVD} & \textbf{Score} & \textbf{AUC} \\
+\textbf{ASCVD} & \textbf{Horizon} & \textbf{AUC} \\
 \midrule
-\aladyn{} & 1yr & 0.881 \\
+\aladyn{} (dynamic) & 1yr & \textbf{0.879} \\
+\aladyn{} (enrollment) & 1yr & 0.881 \\
+\aladyn{} (enrollment) & 10yr & 0.733 \\
 PCE & 10yr & 0.683 \\
 PREVENT & 10yr & 0.667 \\
 \bottomrule
 \end{tabular}
+}
 
-\vspace{6pt}
-\begin{tabular}{lcc}
+\vspace{4pt}
+{\small
+\begin{tabular}{lccc}
 \toprule
-\textbf{Breast Ca.} & \textbf{Score} & \textbf{AUC} \\
+\textbf{Breast Ca.} & \textbf{Horizon} & \textbf{AUC} \\
 \midrule
-\aladyn{} & 1yr & 0.782 \\
+\aladyn{} (dynamic) & 1yr & \textbf{0.867} \\
+\aladyn{} (enrollment) & 1yr & 0.782 \\
 GAIL & 1yr & 0.549 \\
 \bottomrule
 \end{tabular}
+}
 
-\vspace{6pt}
+\vspace{4pt}
 \small \textcolor{sigblue}{\textbf{Using only ICD codes}} --- no labs, biomarkers, or questionnaires required.
 \end{column}
 \end{columns}
@@ -621,8 +777,8 @@ GAIL & 1yr & 0.549 \\
 \begin{column}{0.48\textwidth}
 \textbf{Transfer learning:}
 \begin{itemize}
-    \item Fix population parameters ($\phi$, $\psi$, $\gamma$, $\kappa$) from UKB training
-    \item Fit only individual $\lambda$ for new patients
+    \item Fix population parameters ($\phi$, $\psi$, $\gamma$; $\kappa=1$) from UKB training
+    \item Fit only individual $\delta$ (residual trajectories) for new patients
     \item \textbf{0.05 seconds per patient}
     \item 10,000 patients in 8 minutes
     \item No retraining needed for new cohorts
@@ -668,13 +824,13 @@ GAIL & 1yr & 0.549 \\
 
 \begin{enumerate}
     \item \textbf{21 disease signatures} consistent across 3 biobanks, 700K+ patients
+    \item \textbf{Non-centered parameterization} ensures identifiable genetic effects ($\gamma$ recovery $r = 0.95$)
     \item \textbf{Heterogeneity within diagnoses} --- different pathways, different targets
     \item \textbf{151 GWAS loci + 18 rare variant genes} --- enhanced genetic discovery
     \item \textbf{Heritability exceeds component diseases} --- signatures capture shared biology
     \item \textbf{Outperforms PCE, PREVENT, GAIL} across 28 diseases using only ICD codes
     \item \textbf{Calibrated}, robust to washout, reverse causation, and selection bias
-    \item \textbf{Interpretable}: every prediction traceable to biological signatures
-    \item \textbf{Fast transfer learning}: 0.05 sec/patient, no retraining
+    \item \textbf{Fast transfer learning}: 0.05 sec/patient, fix $\phi$/$\psi$/$\gamma$, learn only $\delta$
 \end{enumerate}
 
 \vspace{10pt}
