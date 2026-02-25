@@ -84,7 +84,7 @@ class AladynSurvivalReparamWithSlope(nn.Module):
 
         if signature_references is None:
             raise ValueError("signature_references must be provided")
-        self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+        self.signature_refs = signature_references.clone().detach().to(torch.float32) if torch.is_tensor(signature_references) else torch.tensor(signature_references, dtype=torch.float32)
         self.genetic_scale = genetic_scale
         if healthy_reference is not None:
             self.healthy_ref = torch.tensor(-5.0, dtype=torch.float32)
@@ -304,7 +304,7 @@ class AladynSurvivalReparamWithSlope(nn.Module):
         epsilon = 1e-8
         pi = torch.clamp(pi, epsilon, 1 - epsilon)
         N, D, T = self.Y.shape
-        event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+        event_times_tensor = event_times.clone().detach().long() if torch.is_tensor(event_times) else torch.tensor(event_times, dtype=torch.long)
         event_times_expanded = event_times_tensor.unsqueeze(-1)
         time_grid = torch.arange(T, dtype=torch.long).unsqueeze(0).unsqueeze(0)
         mask_before_event = (time_grid < event_times_expanded).float()
@@ -329,7 +329,7 @@ class AladynSurvivalReparamWithSlope(nn.Module):
         epsilon = 1e-8
         pi = torch.clamp(pi, epsilon, 1 - epsilon)
         N, D, T = self.Y.shape
-        event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+        event_times_tensor = event_times.clone().detach().long() if torch.is_tensor(event_times) else torch.tensor(event_times, dtype=torch.long)
         event_times_expanded = event_times_tensor.unsqueeze(-1)
         time_grid = torch.arange(T, dtype=torch.long).unsqueeze(0).unsqueeze(0)
         mask_before_event = (time_grid < event_times_expanded).float()
@@ -432,6 +432,56 @@ class AladynSurvivalReparamWithSlope(nn.Module):
 
             if epoch % verbose_every == 0 or epoch == num_epochs_phase2 - 1:
                 print(f'  P2 Epoch {epoch:4d}: loss={loss.item():.2f}, '
+                      f'NLL={nll:.2f}, |gamma_slope|={slope_norm:.4f}')
+
+        return history
+
+    def fit_single_phase(self, event_times, num_epochs=300,
+                         learning_rate=0.1, lr_slope=None, verbose_every=10):
+        """
+        Single-phase training: ALL parameters train together from the start.
+        Ablation control for fit_two_phase — tests whether freezing delta
+        is necessary for gamma_slope recovery.
+
+        Same total epochs, same LR structure as phase 2 of two-phase.
+        """
+        if lr_slope is None:
+            lr_slope = learning_rate
+
+        history = {
+            'losses': [],
+            'nll': [],
+            'gamma_slope_norm': [],
+        }
+
+        print(f'{"="*60}')
+        print(f'SINGLE PHASE: all params train together ({num_epochs} epochs)')
+        print(f'{"="*60}')
+
+        param_groups = [
+            {'params': [self.delta], 'lr': learning_rate},
+            {'params': [self.gamma_level], 'lr': learning_rate},
+            {'params': [self.gamma_slope], 'lr': lr_slope},
+            {'params': [self.psi], 'lr': learning_rate * 0.1},
+            {'params': [self.epsilon], 'lr': learning_rate * 0.1},
+        ]
+        optimizer = optim.Adam(param_groups)
+
+        for epoch in range(num_epochs):
+            optimizer.zero_grad()
+            loss = self.compute_loss(event_times)
+            loss.backward()
+            optimizer.step()
+            history['losses'].append(loss.item())
+
+            with torch.no_grad():
+                nll = self.compute_nll_only(event_times).item()
+                history['nll'].append(nll)
+                slope_norm = self.gamma_slope.data.norm().item()
+                history['gamma_slope_norm'].append(slope_norm)
+
+            if epoch % verbose_every == 0 or epoch == num_epochs - 1:
+                print(f'  Epoch {epoch:4d}: loss={loss.item():.2f}, '
                       f'NLL={nll:.2f}, |gamma_slope|={slope_norm:.4f}')
 
         return history

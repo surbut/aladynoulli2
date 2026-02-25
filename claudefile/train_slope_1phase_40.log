@@ -1,0 +1,141 @@
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:87: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:307: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:332: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:87: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+============================================================
+ABLATION: SINGLE-PHASE SLOPE TRAINING
+Batches 0 to 39
+Total epochs: 300 (all params free from start)
+Warm-starting gamma_level from POOLED 40-batch gamma
+============================================================
+Pooled gamma from 40 batches: shape (47, 21), mean|gamma|=0.1091
+Pooled psi from 40 batches: shape (21, 348)
+Data loaded: Y torch.Size([407878, 348, 52]), E torch.Size([407878, 348]), G (407878, 47)
+
+--- Batch 0/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=-0.0000, std=0.0052, range=[-0.0587, 0.0283]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=47.09, NLL=50.63, |gamma_slope|=3.0659
+  Epoch   50: loss=45.41, NLL=43.91, |gamma_slope|=4.4607
+  Epoch  100: loss=43.03, NLL=42.49, |gamma_slope|=6.1778
+  Epoch  150: loss=41.93, NLL=41.34, |gamma_slope|=6.8138
+  Epoch  200: loss=41.05, NLL=40.42, |gamma_slope|=7.7634
+  Epoch  250: loss=40.34, NLL=39.69, |gamma_slope|=8.4962
+  Epoch  299: loss=39.74, NLL=39.03, |gamma_slope|=8.9452
+  Batch 0: done in 850s (14.2min), final_loss=39.74, |gamma_slope|=0.1583
+
+--- Batch 1/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=-0.0000, std=0.0049, range=[-0.0168, 0.0264]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=47.51, NLL=51.56, |gamma_slope|=3.0659
+  Epoch   50: loss=45.70, NLL=44.19, |gamma_slope|=4.1199
+  Epoch  100: loss=43.42, NLL=42.87, |gamma_slope|=5.6308
+  Epoch  150: loss=42.37, NLL=41.77, |gamma_slope|=7.0054
+  Epoch  200: loss=41.50, NLL=40.86, |gamma_slope|=8.1850
+  Epoch  250: loss=40.79, NLL=40.11, |gamma_slope|=9.1233
+  Epoch  299: loss=40.22, NLL=39.50, |gamma_slope|=9.6519
+  Batch 1: done in 887s (14.8min), final_loss=40.22, |gamma_slope|=0.1544
+
+--- Batch 2/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=-0.0000, std=0.0053, range=[-0.0216, 0.0197]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=47.07, NLL=50.54, |gamma_slope|=3.0659
+  Epoch   50: loss=45.20, NLL=43.70, |gamma_slope|=4.4096
+  Epoch  100: loss=42.92, NLL=42.38, |gamma_slope|=5.5961
+  Epoch  150: loss=41.87, NLL=41.29, |gamma_slope|=6.8808
+  Epoch  200: loss=41.00, NLL=40.37, |gamma_slope|=7.9254
+  Epoch  250: loss=40.27, NLL=39.61, |gamma_slope|=8.7970
+  Epoch  299: loss=39.74, NLL=39.01, |gamma_slope|=9.7194
+  Batch 2: done in 956s (15.9min), final_loss=39.74, |gamma_slope|=0.1548
+
+--- Batch 3/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=0.0000, std=0.0043, range=[-0.0265, 0.0205]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=47.95, NLL=52.25, |gamma_slope|=3.0659
+  Epoch   50: loss=46.25, NLL=44.73, |gamma_slope|=4.3548
+  Epoch  100: loss=43.99, NLL=43.44, |gamma_slope|=5.5589
+  Epoch  150: loss=42.95, NLL=42.36, |gamma_slope|=6.9762
+  Epoch  200: loss=42.10, NLL=41.47, |gamma_slope|=8.4300
+  Epoch  250: loss=41.40, NLL=40.72, |gamma_slope|=9.9969
+  Epoch  299: loss=40.82, NLL=40.11, |gamma_slope|=11.1304
+  Batch 3: done in 938s (15.6min), final_loss=40.82, |gamma_slope|=0.1641
+
+--- Batch 4/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=-0.0000, std=0.0046, range=[-0.0233, 0.0297]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=48.47, NLL=52.28, |gamma_slope|=3.0659
+  Epoch   50: loss=46.71, NLL=45.19, |gamma_slope|=4.8129
+  Epoch  100: loss=44.26, NLL=43.70, |gamma_slope|=5.8359
+  Epoch  150: loss=43.12, NLL=42.52, |gamma_slope|=7.1354
+  Epoch  200: loss=42.22, NLL=41.57, |gamma_slope|=8.6068
+  Epoch  250: loss=41.48, NLL=40.78, |gamma_slope|=9.7834
+  Epoch  299: loss=40.85, NLL=40.13, |gamma_slope|=10.3297
+  Batch 4: done in 993s (16.6min), final_loss=40.85, |gamma_slope|=0.1560
+
+--- Batch 5/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=-0.0000, std=0.0040, range=[-0.0348, 0.0143]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=48.25, NLL=52.21, |gamma_slope|=3.0659
+  Epoch   50: loss=46.21, NLL=44.72, |gamma_slope|=4.7455
+  Epoch  100: loss=43.81, NLL=43.27, |gamma_slope|=5.8194
+  Epoch  150: loss=42.67, NLL=42.08, |gamma_slope|=6.8426
+  Epoch  200: loss=41.75, NLL=41.12, |gamma_slope|=7.9423
+  Epoch  250: loss=41.00, NLL=40.33, |gamma_slope|=9.0783
+  Epoch  299: loss=40.40, NLL=39.69, |gamma_slope|=10.0568
+  Batch 5: done in 1066s (17.8min), final_loss=40.40, |gamma_slope|=0.1616
+
+--- Batch 6/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=0.0000, std=0.0060, range=[-0.0251, 0.0229]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+============================================================
+SINGLE PHASE: all params train together (300 epochs)
+============================================================
+  Epoch    0: loss=48.15, NLL=52.47, |gamma_slope|=3.0657
+  Epoch   50: loss=46.37, NLL=44.85, |gamma_slope|=4.7627
+  Epoch  100: loss=44.03, NLL=43.47, |gamma_slope|=6.1769
+  Epoch  150: loss=42.94, NLL=42.34, |gamma_slope|=7.0041
+  Epoch  200: loss=42.06, NLL=41.41, |gamma_slope|=7.8332
+  Epoch  250: loss=41.33, NLL=40.64, |gamma_slope|=8.6724
+  Epoch  299: loss=40.74, NLL=40.02, |gamma_slope|=9.5999
+  Batch 6: done in 1348s (22.5min), final_loss=40.74, |gamma_slope|=0.1573
+
+--- Batch 7/39 ---
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Estimated gamma_health from pretrained delta (health sig mean -> G regression)
+  alpha_i: mean=0.0000, std=0.0036, range=[-0.0129, 0.0155]

@@ -4,3 +4,49 @@ Traceback (most recent call last):
 ModuleNotFoundError: No module named 'numpy'
 nohup: run_aladyn_batch_vectorized_sameE.py: No such file or directory
 nohup: run_aladyn_batch_vectorized_sameE.py: No such file or directory
+======================================================================
+Slope LOO-like evaluation (pool all OTHER batches per test batch)
+======================================================================
+Loading full data...
+  Y: torch.Size([407878, 348, 52]), E: torch.Size([407878, 348]), G: (407878, 47), pce: 400000
+Evaluating first 400000 patients (40 batches of 10000)
+
+----------------------------------------------------------------------
+[Batch 0] patients 0-10000
+  LOO-style train indices (excluding 0): 1..39 (total 39)
+  Slope: pooled 39 checkpoints, |gamma_level|=0.1068, |gamma_slope|=0.0430, |epsilon|=0.1055
+  Fitting delta on this batch (LOO-style pool)...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=0.0000, std=0.0009, range=[-0.0039, 0.0046]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+Traceback (most recent call last):
+  File "/Users/sarahurbut/aladynoulli2/claudefile/slope_loo_like_400k_eval.py", line 227, in <module>
+    main()
+  File "/Users/sarahurbut/aladynoulli2/claudefile/slope_loo_like_400k_eval.py", line 186, in main
+    pi_b, nll_b = fit_slope_delta_and_extract_pi(
+  File "/Users/sarahurbut/aladynoulli2/claudefile/slope_holdout_auc.py", line 189, in fit_slope_delta_and_extract_pi
+    optimizer = torch.optim.Adam([model.delta], lr=0.1)
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/optim/adam.py", line 78, in __init__
+    super().__init__(params, defaults)
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/optim/optimizer.py", line 371, in __init__
+    self.add_param_group(cast(dict, param_group))
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_compile.py", line 27, in inner
+    import torch._dynamo
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_dynamo/__init__.py", line 3, in <module>
+    from . import convert_frame, eval_frame, resume_execution
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_dynamo/convert_frame.py", line 31, in <module>
+    from torch._dynamo.utils import CompileTimeInstructionCounter
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_dynamo/utils.py", line 89, in <module>
+    import torch._numpy as tnp
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_numpy/__init__.py", line 3, in <module>
+    from . import fft, linalg, random
+  File "/opt/miniconda3/envs/new_env_pyro2/lib/python3.9/site-packages/torch/_numpy/fft.py", line 10, in <module>
+    from ._normalizations import ArrayLike, normalizer
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 680, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 846, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 941, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1040, in get_data
+KeyboardInterrupt

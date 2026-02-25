@@ -1,0 +1,1403 @@
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:55: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.prevalence_t = torch.tensor(prevalence_t, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:62: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.register_buffer('phi', torch.tensor(pretrained_phi, dtype=torch.float32))
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:63: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.register_buffer('psi', torch.tensor(pretrained_psi, dtype=torch.float32))
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:99: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:129: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.Y = torch.tensor(Y, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:87: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:307: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+/Users/sarahurbut/aladynoulli2/claudefile/clust_huge_amp_vectorized_reparam_slope.py:332: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  event_times_tensor = torch.tensor(event_times, dtype=torch.long)
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:55: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.prevalence_t = torch.tensor(prevalence_t, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:62: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.register_buffer('phi', torch.tensor(pretrained_phi, dtype=torch.float32))
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:63: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.register_buffer('psi', torch.tensor(pretrained_psi, dtype=torch.float32))
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:99: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.signature_refs = torch.tensor(signature_references, dtype=torch.float32)
+/Users/sarahurbut/aladynoulli2/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py:129: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.Y = torch.tensor(Y, dtype=torch.float32)
+======================================================================
+SLOPE vs NO-SLOPE: HOLDOUT AUC EVALUATION
+  Train batches: 10-39 (30 batches)
+  Test batches:  0-9 (10 batches = 100000 patients)
+  Delta epochs:  200
+  No-slope: proven pathway (baked phi from base checkpoints)
+  Slope:    AladynReparamWithSlope (frozen gamma_slope + epsilon)
+======================================================================
+
+[1/5] Loading data...
+  Y: torch.Size([407878, 348, 52]), G: (407878, 47)
+
+[2/5] Loading and pooling parameters...
+  Base: pooled 30 checkpoints, phi torch.Size([21, 348, 52]), gamma torch.Size([47, 21])
+  Slope: pooled 30 checkpoints, |gamma_level|=0.1069, |gamma_slope|=0.0450, |epsilon|=0.1055
+
+[3/5] Fitting delta on 10 held-out batches...
+
+  Batch 0 (patients 0-10000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.3793, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.2468, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.2041, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.7338, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.8350, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.0774, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.3772, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=15.0316, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.8211, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.6687, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.5481, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.4493, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.3681, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.3026, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.2511, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.2124, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.1847, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.1664, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.1555, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.1499, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=-0.0000, std=0.0010, range=[-0.0054, 0.0051]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.8364, No-slope loss=14.1473
+    Time: slope 386s, no-slope 372s
+
+  Batch 1 (patients 10000-20000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.2601, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=81.9116, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.0176, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.6067, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.7339, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=15.9829, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.2845, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=14.9403, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.7312, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.5800, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.4603, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.3621, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.2815, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.2163, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.1652, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.1266, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.0991, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.0809, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.0701, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.0646, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=0.0000, std=0.0010, range=[-0.0055, 0.0048]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.7584, No-slope loss=14.0620
+    Time: slope 377s, no-slope 382s
+
+  Batch 2 (patients 20000-30000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.1841, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.0821, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.0355, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.5541, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.6616, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=15.9085, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.2114, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=14.8682, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.6595, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.5084, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.3887, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.2905, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.2098, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.1447, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.0935, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.0549, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.0273, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.0091, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=13.9983, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=13.9927, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=0.0000, std=0.0010, range=[-0.0048, 0.0051]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.6893, No-slope loss=13.9901
+    Time: slope 389s, no-slope 383s
+
+  Batch 3 (patients 30000-40000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.6858, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.5613, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.4885, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=23.0345, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=18.1463, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.3914, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.6916, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=15.3466, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=15.1367, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.9849, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.8647, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.7662, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.6853, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.6200, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.5687, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.5301, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.5025, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.4843, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.4734, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.4679, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=0.0000, std=0.0010, range=[-0.0063, 0.0051]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=12.1160, No-slope loss=14.4653
+    Time: slope 388s, no-slope 383s
+
+  Batch 4 (patients 40000-50000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.4090, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.3620, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.2752, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.7807, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.8814, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.1240, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.4263, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=15.0825, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.8733, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.7220, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.6021, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.5039, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.4232, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.3579, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.3067, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.2681, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.2405, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.2223, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.2115, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.2059, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=-0.0000, std=0.0010, range=[-0.0068, 0.0045]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.8551, No-slope loss=14.2033
+    Time: slope 387s, no-slope 387s
+
+  Batch 5 (patients 50000-60000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.2606, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.1098, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.0913, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.6264, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.7340, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=15.9794, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.2838, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=14.9416, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.7339, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.5839, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.4652, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.3680, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.2881, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.2236, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.1730, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.1348, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.1076, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.0896, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.0789, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.0734, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=-0.0000, std=0.0010, range=[-0.0060, 0.0049]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.7604, No-slope loss=14.0708
+    Time: slope 390s, no-slope 390s
+
+  Batch 6 (patients 60000-70000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.3225, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.0379, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.1078, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.6732, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.7857, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.0272, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.3286, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=14.9842, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.7745, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.6229, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.5029, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.4046, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.3238, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.2586, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.2074, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.1688, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.1413, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.1231, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.1123, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.1068, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=0.0000, std=0.0010, range=[-0.0065, 0.0057]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.7971, No-slope loss=14.1042
+    Time: slope 396s, no-slope 413s
+
+  Batch 7 (patients 70000-80000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.4001, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.2474, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.2219, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.7593, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.8606, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.1035, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.4027, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=15.0575, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.8475, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.6955, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.5752, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.4766, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.3956, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.3303, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.2789, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.2403, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.2127, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.1944, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.1836, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.1780, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=-0.0000, std=0.0010, range=[-0.0050, 0.0050]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.8506, No-slope loss=14.1754
+    Time: slope 2781s, no-slope 399s
+
+  Batch 8 (patients 80000-90000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.4405, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.1349, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.2292, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.7812, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.9016, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.1452, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.4446, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=15.0987, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.8875, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.7344, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.6130, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.5134, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.4315, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.3654, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.3134, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.2742, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.2463, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.2278, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.2169, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.2112, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=0.0000, std=0.0010, range=[-0.0049, 0.0058]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.8628, No-slope loss=14.2085
+    Time: slope 410s, no-slope 353s
+
+  Batch 9 (patients 90000-100000):
+    No-slope (baked phi)...
+Pre-calculated phi GP loss: 23.0137
+Using fixed gamma with shape: torch.Size([47, 21])
+Using fixed kappa: 1.000000
+Initializing delta (reparam) with 20 disease + 1 healthy
+  lambda = mean(gamma) + delta (gamma in forward)
+Epoch 0 (REPARAM): Loss=16.4846, LR=1.0e-01
+Epoch 10 (REPARAM): Loss=82.3345, LR=9.9e-02
+Epoch 20 (REPARAM): Loss=36.2823, LR=9.7e-02
+Epoch 30 (REPARAM): Loss=22.8355, LR=9.4e-02
+Epoch 40 (REPARAM): Loss=17.9296, LR=9.0e-02
+Epoch 50 (REPARAM): Loss=16.1748, LR=8.5e-02
+Epoch 60 (REPARAM): Loss=15.4780, LR=7.9e-02
+Epoch 70 (REPARAM): Loss=15.1339, LR=7.2e-02
+Epoch 80 (REPARAM): Loss=14.9248, LR=6.5e-02
+Epoch 90 (REPARAM): Loss=14.7741, LR=5.7e-02
+Epoch 100 (REPARAM): Loss=14.6552, LR=5.0e-02
+Epoch 110 (REPARAM): Loss=14.5578, LR=4.2e-02
+Epoch 120 (REPARAM): Loss=14.4780, LR=3.4e-02
+Epoch 130 (REPARAM): Loss=14.4135, LR=2.7e-02
+Epoch 140 (REPARAM): Loss=14.3630, LR=2.1e-02
+Epoch 150 (REPARAM): Loss=14.3249, LR=1.5e-02
+Epoch 160 (REPARAM): Loss=14.2977, LR=1.0e-02
+Epoch 170 (REPARAM): Loss=14.2798, LR=6.0e-03
+Epoch 180 (REPARAM): Loss=14.2691, LR=3.2e-03
+Epoch 190 (REPARAM): Loss=14.2636, LR=1.5e-03
+    Slope...
+Warm-starting from pretrained gamma (torch.Size([47, 21])), psi (torch.Size([21, 348]))
+Using provided gamma_health for alpha_i
+  alpha_i: mean=-0.0000, std=0.0010, range=[-0.0060, 0.0048]
+Slope model init: gamma_level torch.Size([47, 21]), gamma_slope torch.Size([47, 21]) (zeros), delta torch.Size([10000, 21, 52]), epsilon torch.Size([21, 348, 52])
+    Slope NLL=11.9286, No-slope loss=14.2611
+    Time: slope 415s, no-slope 423s
+
+  Concatenated pi: slope torch.Size([100000, 348, 52]), noslope torch.Size([100000, 348, 52])
+  Eval data: Y_test torch.Size([100000, 348, 52]), E_test torch.Size([100000, 348]), pce_test 100000
+
+  NLL saved: /Users/sarahurbut/aladynoulli2/claudefile/results_holdout_auc/holdout_nll_slope_vs_noslope.csv
+  Saved pi tensors to /Users/sarahurbut/aladynoulli2/claudefile/results_holdout_auc
+
+[4/5] Running AUC evaluation (100 bootstraps)...
+
+  --- slope: static_10yr ---
+
+Evaluating ASCVD (10-Year Outcome, 1-Year Score)...
+AUC: 0.761 (0.754-0.765) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 8678 (8.7%) (from 100000 individuals)
+Excluded 0 prevalent cases for ASCVD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.732, Events = 2917/54366
+   Male: AUC = 0.732, Events = 5761/45634
+
+   ASCVD risk in patients with pre-existing conditions:
+   RA: AUC = 0.770, Events = 75/542
+   Breast_Cancer: AUC = 0.714, Events = 93/1668
+
+Evaluating Diabetes (10-Year Outcome, 1-Year Score)...
+AUC: 0.728 (0.722-0.734) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 5910 (5.9%) (from 100000 individuals)
+Excluded 0 prevalent cases for Diabetes.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.724, Events = 2393/54366
+   Male: AUC = 0.709, Events = 3517/45634
+
+Evaluating Atrial_Fib (10-Year Outcome, 1-Year Score)...
+AUC: 0.738 (0.732-0.747) (calculated on 98720 individuals)
+Events (10-Year in Eval Cohort): 3781 (3.8%) (from 100000 individuals)
+Excluded 1280 prevalent cases for Atrial_Fib.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.744, Events = 2089/53998
+   Male: AUC = 0.740, Events = 1644/44722
+
+Evaluating CKD (10-Year Outcome, 1-Year Score)...
+AUC: 0.753 (0.743-0.762) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 2260 (2.3%) (from 100000 individuals)
+Excluded 0 prevalent cases for CKD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.749, Events = 1086/54366
+   Male: AUC = 0.753, Events = 1174/45634
+
+Evaluating All_Cancers (10-Year Outcome, 1-Year Score)...
+AUC: 0.713 (0.706-0.719) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 5068 (5.1%) (from 100000 individuals)
+Excluded 0 prevalent cases for All_Cancers.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.637, Events = 1598/54366
+   Male: AUC = 0.669, Events = 3470/45634
+
+Evaluating Stroke (10-Year Outcome, 1-Year Score)...
+AUC: 0.709 (0.693-0.724) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 1395 (1.4%) (from 100000 individuals)
+Excluded 0 prevalent cases for Stroke.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.710, Events = 618/54366
+   Male: AUC = 0.699, Events = 777/45634
+
+Evaluating Heart_Failure (10-Year Outcome, 1-Year Score)...
+AUC: 0.773 (0.765-0.783) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 2027 (2.0%) (from 100000 individuals)
+Excluded 0 prevalent cases for Heart_Failure.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.760, Events = 707/54366
+   Male: AUC = 0.748, Events = 1320/45634
+
+Evaluating Pneumonia (10-Year Outcome, 1-Year Score)...
+AUC: 0.697 (0.689-0.705) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 3644 (3.6%) (from 100000 individuals)
+Excluded 0 prevalent cases for Pneumonia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.690, Events = 1597/54366
+   Male: AUC = 0.687, Events = 2047/45634
+
+Evaluating COPD (10-Year Outcome, 1-Year Score)...
+AUC: 0.713 (0.705-0.721) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 4196 (4.2%) (from 100000 individuals)
+Excluded 0 prevalent cases for COPD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.716, Events = 1845/54366
+   Male: AUC = 0.693, Events = 2351/45634
+
+Evaluating Osteoporosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.662 (0.649-0.672) (calculated on 99697 individuals)
+Events (10-Year in Eval Cohort): 2268 (2.3%) (from 100000 individuals)
+Excluded 303 prevalent cases for Osteoporosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.666, Events = 1212/54116
+   Male: AUC = 0.658, Events = 1045/45581
+
+Evaluating Anemia (10-Year Outcome, 1-Year Score)...
+AUC: 0.625 (0.618-0.632) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 5440 (5.4%) (from 100000 individuals)
+Excluded 0 prevalent cases for Anemia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.621, Events = 2965/54366
+   Male: AUC = 0.648, Events = 2475/45634
+
+Evaluating Colorectal_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.615 (0.602-0.626) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 1219 (1.2%) (from 100000 individuals)
+Excluded 0 prevalent cases for Colorectal_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.596, Events = 551/54366
+   Male: AUC = 0.608, Events = 668/45634
+
+Evaluating Breast_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Female: Found 54366 individuals in cohort
+AUC: 0.544 (0.532-0.555) (calculated on 54366 individuals)
+Events (10-Year in Eval Cohort): 2262 (4.2%) (from 54366 individuals)
+Excluded 0 prevalent cases for Breast_Cancer.
+
+Evaluating Prostate_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Male: Found 45634 individuals in cohort
+AUC: 0.673 (0.661-0.683) (calculated on 45162 individuals)
+Events (10-Year in Eval Cohort): 1867 (4.1%) (from 45634 individuals)
+Excluded 472 prevalent cases for Prostate_Cancer.
+
+Evaluating Lung_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.684 (0.667-0.696) (calculated on 99932 individuals)
+Events (10-Year in Eval Cohort): 855 (0.9%) (from 100000 individuals)
+Excluded 68 prevalent cases for Lung_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.702, Events = 451/54332
+   Male: AUC = 0.664, Events = 402/45600
+
+Evaluating Bladder_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.750 (0.729-0.769) (calculated on 99764 individuals)
+Events (10-Year in Eval Cohort): 530 (0.5%) (from 100000 individuals)
+Excluded 236 prevalent cases for Bladder_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.742, Events = 308/54303
+   Male: AUC = 0.763, Events = 222/45461
+
+Evaluating Secondary_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.620 (0.611-0.629) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 3075 (3.1%) (from 100000 individuals)
+Excluded 0 prevalent cases for Secondary_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.603, Events = 1766/54366
+   Male: AUC = 0.644, Events = 1309/45634
+
+Evaluating Depression (10-Year Outcome, 1-Year Score)...
+AUC: 0.572 (0.562-0.581) (calculated on 99029 individuals)
+Events (10-Year in Eval Cohort): 4044 (4.0%) (from 100000 individuals)
+Excluded 971 prevalent cases for Depression.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.576, Events = 2175/53793
+   Male: AUC = 0.578, Events = 1819/45236
+
+Evaluating Anxiety (10-Year Outcome, 1-Year Score)...
+AUC: 0.566 (0.554-0.579) (calculated on 99730 individuals)
+Events (10-Year in Eval Cohort): 2574 (2.6%) (from 100000 individuals)
+Excluded 270 prevalent cases for Anxiety.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.578, Events = 1383/54214
+   Male: AUC = 0.555, Events = 1179/45516
+
+Evaluating Bipolar_Disorder (10-Year Outcome, 1-Year Score)...
+AUC: 0.554 (0.520-0.593) (calculated on 99854 individuals)
+Events (10-Year in Eval Cohort): 245 (0.2%) (from 100000 individuals)
+Excluded 146 prevalent cases for Bipolar_Disorder.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.528, Events = 138/54277
+   Male: AUC = 0.591, Events = 107/45577
+
+Evaluating Rheumatoid_Arthritis (10-Year Outcome, 1-Year Score)...
+AUC: 0.625 (0.612-0.640) (calculated on 99458 individuals)
+Events (10-Year in Eval Cohort): 1193 (1.2%) (from 100000 individuals)
+Excluded 542 prevalent cases for Rheumatoid_Arthritis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.623, Events = 633/53967
+   Male: AUC = 0.630, Events = 551/45491
+
+Evaluating Psoriasis (10-Year Outcome, 1-Year Score)...
+AUC: 0.590 (0.561-0.615) (calculated on 99808 individuals)
+Events (10-Year in Eval Cohort): 512 (0.5%) (from 100000 individuals)
+Excluded 192 prevalent cases for Psoriasis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.598, Events = 275/54295
+   Male: AUC = 0.582, Events = 237/45513
+
+Evaluating Ulcerative_Colitis (10-Year Outcome, 1-Year Score)...
+AUC: 0.629 (0.605-0.656) (calculated on 99493 individuals)
+Events (10-Year in Eval Cohort): 502 (0.5%) (from 100000 individuals)
+Excluded 507 prevalent cases for Ulcerative_Colitis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.653, Events = 289/54112
+   Male: AUC = 0.604, Events = 211/45381
+
+Evaluating Crohns_Disease (10-Year Outcome, 1-Year Score)...
+AUC: 0.626 (0.587-0.659) (calculated on 99687 individuals)
+Events (10-Year in Eval Cohort): 269 (0.3%) (from 100000 individuals)
+Excluded 313 prevalent cases for Crohns_Disease.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.661, Events = 154/54213
+   Male: AUC = 0.583, Events = 115/45474
+
+Evaluating Asthma (10-Year Outcome, 1-Year Score)...
+AUC: 0.550 (0.541-0.559) (calculated on 96790 individuals)
+Events (10-Year in Eval Cohort): 6087 (6.1%) (from 100000 individuals)
+Excluded 3210 prevalent cases for Asthma.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.561, Events = 3165/52361
+   Male: AUC = 0.567, Events = 2740/44429
+
+Evaluating Parkinsons (10-Year Outcome, 1-Year Score)...
+AUC: 0.722 (0.695-0.740) (calculated on 99935 individuals)
+Events (10-Year in Eval Cohort): 457 (0.5%) (from 100000 individuals)
+Excluded 65 prevalent cases for Parkinsons.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.725, Events = 257/54335
+   Male: AUC = 0.718, Events = 200/45600
+
+Evaluating Multiple_Sclerosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.487 (0.441-0.531) (calculated on 99749 individuals)
+Events (10-Year in Eval Cohort): 206 (0.2%) (from 100000 individuals)
+Excluded 251 prevalent cases for Multiple_Sclerosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.496, Events = 122/54176
+   Male: AUC = 0.478, Events = 84/45573
+
+Evaluating Thyroid_Disorders (10-Year Outcome, 1-Year Score)...
+AUC: 0.547 (0.539-0.555) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 4568 (4.6%) (from 100000 individuals)
+Excluded 0 prevalent cases for Thyroid_Disorders.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.581, Events = 3621/54366
+   Male: AUC = 0.602, Events = 947/45634
+
+Summary of Results (Prospective 10-Year Outcome, 1-Year Score, Sex-Adjusted):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)  
+--------------------------------------------------------------------------------
+ASCVD                0.761 (0.754-0.765)       8678       8.7
+Diabetes             0.728 (0.722-0.734)       5910       5.9
+Atrial_Fib           0.738 (0.732-0.747)       3781       3.8
+CKD                  0.753 (0.743-0.762)       2260       2.3
+All_Cancers          0.713 (0.706-0.719)       5068       5.1
+Stroke               0.709 (0.693-0.724)       1395       1.4
+Heart_Failure        0.773 (0.765-0.783)       2027       2.0
+Pneumonia            0.697 (0.689-0.705)       3644       3.6
+COPD                 0.713 (0.705-0.721)       4196       4.2
+Osteoporosis         0.662 (0.649-0.672)       2268       2.3
+Anemia               0.625 (0.618-0.632)       5440       5.4
+Colorectal_Cancer    0.615 (0.602-0.626)       1219       1.2
+Breast_Cancer        0.544 (0.532-0.555)       2262       4.2
+Prostate_Cancer      0.673 (0.661-0.683)       1867       4.1
+Lung_Cancer          0.684 (0.667-0.696)       855        0.9
+Bladder_Cancer       0.750 (0.729-0.769)       530        0.5
+Secondary_Cancer     0.620 (0.611-0.629)       3075       3.1
+Depression           0.572 (0.562-0.581)       4044       4.0
+Anxiety              0.566 (0.554-0.579)       2574       2.6
+Bipolar_Disorder     0.554 (0.520-0.593)       245        0.2
+Rheumatoid_Arthritis 0.625 (0.612-0.640)       1193       1.2
+Psoriasis            0.590 (0.561-0.615)       512        0.5
+Ulcerative_Colitis   0.629 (0.605-0.656)       502        0.5
+Crohns_Disease       0.626 (0.587-0.659)       269        0.3
+Asthma               0.550 (0.541-0.559)       6087       6.1
+Parkinsons           0.722 (0.695-0.740)       457        0.5
+Multiple_Sclerosis   0.487 (0.441-0.531)       206        0.2
+Thyroid_Disorders    0.547 (0.539-0.555)       4568       4.6
+--------------------------------------------------------------------------------
+
+  --- slope: dynamic_10yr ---
+
+Evaluating ASCVD (Dynamic 10-Year Risk)...
+AUC: 0.739 (0.734-0.746) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 8677 (8.7%) (from 99999 individuals)
+Excluded 0 prevalent cases for ASCVD.
+
+Evaluating Diabetes (Dynamic 10-Year Risk)...
+AUC: 0.722 (0.715-0.728) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 5910 (5.9%) (from 99999 individuals)
+Excluded 0 prevalent cases for Diabetes.
+
+Evaluating Atrial_Fib (Dynamic 10-Year Risk)...
+AUC: 0.727 (0.719-0.735) (calculated on 98719 individuals)
+Events (10-Year in Eval Cohort): 3780 (3.8%) (from 98719 individuals)
+Excluded 1280 prevalent cases for Atrial_Fib.
+
+Evaluating CKD (Dynamic 10-Year Risk)...
+AUC: 0.713 (0.703-0.722) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 2260 (2.3%) (from 99999 individuals)
+Excluded 0 prevalent cases for CKD.
+
+Evaluating All_Cancers (Dynamic 10-Year Risk)...
+AUC: 0.709 (0.702-0.716) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 5068 (5.1%) (from 99999 individuals)
+Excluded 0 prevalent cases for All_Cancers.
+
+Evaluating Stroke (Dynamic 10-Year Risk)...
+AUC: 0.693 (0.679-0.704) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 1395 (1.4%) (from 99999 individuals)
+Excluded 0 prevalent cases for Stroke.
+
+Evaluating Heart_Failure (Dynamic 10-Year Risk)...
+AUC: 0.745 (0.736-0.754) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 2027 (2.0%) (from 99999 individuals)
+Excluded 0 prevalent cases for Heart_Failure.
+
+Evaluating Pneumonia (Dynamic 10-Year Risk)...
+AUC: 0.669 (0.660-0.677) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 3644 (3.6%) (from 99999 individuals)
+Excluded 0 prevalent cases for Pneumonia.
+
+Evaluating COPD (Dynamic 10-Year Risk)...
+AUC: 0.681 (0.674-0.690) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 4196 (4.2%) (from 99999 individuals)
+Excluded 0 prevalent cases for COPD.
+
+Evaluating Osteoporosis (Dynamic 10-Year Risk)...
+AUC: 0.590 (0.580-0.599) (calculated on 99696 individuals)
+Events (10-Year in Eval Cohort): 2268 (2.3%) (from 99696 individuals)
+Excluded 303 prevalent cases for Osteoporosis.
+
+Evaluating Anemia (Dynamic 10-Year Risk)...
+AUC: 0.601 (0.592-0.607) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 5440 (5.4%) (from 99999 individuals)
+Excluded 0 prevalent cases for Anemia.
+
+Evaluating Colorectal_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.630 (0.617-0.645) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 1219 (1.2%) (from 99999 individuals)
+Excluded 0 prevalent cases for Colorectal_Cancer.
+
+Evaluating Breast_Cancer (Dynamic 10-Year Risk)...
+Filtering for Female: Found 54366 individuals in cohort
+AUC: 0.585 (0.574-0.595) (calculated on 54366 individuals)
+Events (10-Year in Eval Cohort): 2262 (4.2%) (from 54366 individuals)
+Excluded 0 prevalent cases for Breast_Cancer.
+
+Evaluating Prostate_Cancer (Dynamic 10-Year Risk)...
+Filtering for Male: Found 45634 individuals in cohort
+AUC: 0.680 (0.671-0.691) (calculated on 45161 individuals)
+Events (10-Year in Eval Cohort): 1867 (4.1%) (from 45161 individuals)
+Excluded 472 prevalent cases for Prostate_Cancer.
+
+Evaluating Lung_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.672 (0.655-0.684) (calculated on 99931 individuals)
+Events (10-Year in Eval Cohort): 855 (0.9%) (from 99931 individuals)
+Excluded 68 prevalent cases for Lung_Cancer.
+
+Evaluating Bladder_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.750 (0.730-0.766) (calculated on 99763 individuals)
+Events (10-Year in Eval Cohort): 530 (0.5%) (from 99763 individuals)
+Excluded 236 prevalent cases for Bladder_Cancer.
+
+Evaluating Secondary_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.612 (0.604-0.623) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 3075 (3.1%) (from 99999 individuals)
+Excluded 0 prevalent cases for Secondary_Cancer.
+
+Evaluating Depression (Dynamic 10-Year Risk)...
+AUC: 0.508 (0.499-0.517) (calculated on 99028 individuals)
+Events (10-Year in Eval Cohort): 4044 (4.1%) (from 99028 individuals)
+Excluded 971 prevalent cases for Depression.
+
+Evaluating Anxiety (Dynamic 10-Year Risk)...
+AUC: 0.506 (0.494-0.517) (calculated on 99729 individuals)
+Events (10-Year in Eval Cohort): 2574 (2.6%) (from 99729 individuals)
+Excluded 270 prevalent cases for Anxiety.
+
+Evaluating Bipolar_Disorder (Dynamic 10-Year Risk)...
+AUC: 0.494 (0.457-0.527) (calculated on 99853 individuals)
+Events (10-Year in Eval Cohort): 245 (0.2%) (from 99853 individuals)
+Excluded 146 prevalent cases for Bipolar_Disorder.
+
+Evaluating Rheumatoid_Arthritis (Dynamic 10-Year Risk)...
+AUC: 0.561 (0.545-0.578) (calculated on 99457 individuals)
+Events (10-Year in Eval Cohort): 1193 (1.2%) (from 99457 individuals)
+Excluded 542 prevalent cases for Rheumatoid_Arthritis.
+
+Evaluating Psoriasis (Dynamic 10-Year Risk)...
+AUC: 0.584 (0.552-0.607) (calculated on 99807 individuals)
+Events (10-Year in Eval Cohort): 512 (0.5%) (from 99807 individuals)
+Excluded 192 prevalent cases for Psoriasis.
+
+Evaluating Ulcerative_Colitis (Dynamic 10-Year Risk)...
+AUC: 0.620 (0.597-0.644) (calculated on 99492 individuals)
+Events (10-Year in Eval Cohort): 502 (0.5%) (from 99492 individuals)
+Excluded 507 prevalent cases for Ulcerative_Colitis.
+
+Evaluating Crohns_Disease (Dynamic 10-Year Risk)...
+AUC: 0.591 (0.543-0.629) (calculated on 99686 individuals)
+Events (10-Year in Eval Cohort): 269 (0.3%) (from 99686 individuals)
+Excluded 313 prevalent cases for Crohns_Disease.
+
+Evaluating Asthma (Dynamic 10-Year Risk)...
+AUC: 0.537 (0.531-0.544) (calculated on 96789 individuals)
+Events (10-Year in Eval Cohort): 6087 (6.3%) (from 96789 individuals)
+Excluded 3210 prevalent cases for Asthma.
+
+Evaluating Parkinsons (Dynamic 10-Year Risk)...
+AUC: 0.741 (0.720-0.758) (calculated on 99934 individuals)
+Events (10-Year in Eval Cohort): 457 (0.5%) (from 99934 individuals)
+Excluded 65 prevalent cases for Parkinsons.
+
+Evaluating Multiple_Sclerosis (Dynamic 10-Year Risk)...
+AUC: 0.463 (0.422-0.492) (calculated on 99748 individuals)
+Events (10-Year in Eval Cohort): 206 (0.2%) (from 99748 individuals)
+Excluded 251 prevalent cases for Multiple_Sclerosis.
+
+Evaluating Thyroid_Disorders (Dynamic 10-Year Risk)...
+AUC: 0.492 (0.484-0.499) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 4568 (4.6%) (from 99999 individuals)
+Excluded 0 prevalent cases for Thyroid_Disorders.
+
+Summary of Results (Dynamic 10-Year Risk, Sex-Adjusted):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)  
+--------------------------------------------------------------------------------
+ASCVD                0.739 (0.734-0.746)       8677       8.7
+Diabetes             0.722 (0.715-0.728)       5910       5.9
+Atrial_Fib           0.727 (0.719-0.735)       3780       3.8
+CKD                  0.713 (0.703-0.722)       2260       2.3
+All_Cancers          0.709 (0.702-0.716)       5068       5.1
+Stroke               0.693 (0.679-0.704)       1395       1.4
+Heart_Failure        0.745 (0.736-0.754)       2027       2.0
+Pneumonia            0.669 (0.660-0.677)       3644       3.6
+COPD                 0.681 (0.674-0.690)       4196       4.2
+Osteoporosis         0.590 (0.580-0.599)       2268       2.3
+Anemia               0.601 (0.592-0.607)       5440       5.4
+Colorectal_Cancer    0.630 (0.617-0.645)       1219       1.2
+Breast_Cancer        0.585 (0.574-0.595)       2262       4.2
+Prostate_Cancer      0.680 (0.671-0.691)       1867       4.1
+Lung_Cancer          0.672 (0.655-0.684)       855        0.9
+Bladder_Cancer       0.750 (0.730-0.766)       530        0.5
+Secondary_Cancer     0.612 (0.604-0.623)       3075       3.1
+Depression           0.508 (0.499-0.517)       4044       4.1
+Anxiety              0.506 (0.494-0.517)       2574       2.6
+Bipolar_Disorder     0.494 (0.457-0.527)       245        0.2
+Rheumatoid_Arthritis 0.561 (0.545-0.578)       1193       1.2
+Psoriasis            0.584 (0.552-0.607)       512        0.5
+Ulcerative_Colitis   0.620 (0.597-0.644)       502        0.5
+Crohns_Disease       0.591 (0.543-0.629)       269        0.3
+Asthma               0.537 (0.531-0.544)       6087       6.3
+Parkinsons           0.741 (0.720-0.758)       457        0.5
+Multiple_Sclerosis   0.463 (0.422-0.492)       206        0.2
+Thyroid_Disorders    0.492 (0.484-0.499)       4568       4.6
+--------------------------------------------------------------------------------
+
+  --- noslope: static_10yr ---
+
+Evaluating ASCVD (10-Year Outcome, 1-Year Score)...
+AUC: 0.761 (0.756-0.766) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 8678 (8.7%) (from 100000 individuals)
+Excluded 0 prevalent cases for ASCVD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.737, Events = 2917/54366
+   Male: AUC = 0.737, Events = 5761/45634
+
+   ASCVD risk in patients with pre-existing conditions:
+   RA: AUC = 0.770, Events = 75/542
+   Breast_Cancer: AUC = 0.734, Events = 93/1668
+
+Evaluating Diabetes (10-Year Outcome, 1-Year Score)...
+AUC: 0.731 (0.722-0.736) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 5910 (5.9%) (from 100000 individuals)
+Excluded 0 prevalent cases for Diabetes.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.727, Events = 2393/54366
+   Male: AUC = 0.712, Events = 3517/45634
+
+Evaluating Atrial_Fib (10-Year Outcome, 1-Year Score)...
+AUC: 0.757 (0.750-0.766) (calculated on 98720 individuals)
+Events (10-Year in Eval Cohort): 3781 (3.8%) (from 100000 individuals)
+Excluded 1280 prevalent cases for Atrial_Fib.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.763, Events = 2089/53998
+   Male: AUC = 0.759, Events = 1644/44722
+
+Evaluating CKD (10-Year Outcome, 1-Year Score)...
+AUC: 0.737 (0.726-0.748) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 2260 (2.3%) (from 100000 individuals)
+Excluded 0 prevalent cases for CKD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.739, Events = 1086/54366
+   Male: AUC = 0.730, Events = 1174/45634
+
+Evaluating All_Cancers (10-Year Outcome, 1-Year Score)...
+AUC: 0.712 (0.705-0.721) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 5068 (5.1%) (from 100000 individuals)
+Excluded 0 prevalent cases for All_Cancers.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.641, Events = 1598/54366
+   Male: AUC = 0.669, Events = 3470/45634
+
+Evaluating Stroke (10-Year Outcome, 1-Year Score)...
+AUC: 0.704 (0.689-0.717) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 1395 (1.4%) (from 100000 individuals)
+Excluded 0 prevalent cases for Stroke.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.702, Events = 618/54366
+   Male: AUC = 0.696, Events = 777/45634
+
+Evaluating Heart_Failure (10-Year Outcome, 1-Year Score)...
+AUC: 0.762 (0.754-0.771) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 2027 (2.0%) (from 100000 individuals)
+Excluded 0 prevalent cases for Heart_Failure.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.756, Events = 707/54366
+   Male: AUC = 0.732, Events = 1320/45634
+
+Evaluating Pneumonia (10-Year Outcome, 1-Year Score)...
+AUC: 0.686 (0.677-0.694) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 3644 (3.6%) (from 100000 individuals)
+Excluded 0 prevalent cases for Pneumonia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.681, Events = 1597/54366
+   Male: AUC = 0.673, Events = 2047/45634
+
+Evaluating COPD (10-Year Outcome, 1-Year Score)...
+AUC: 0.697 (0.691-0.705) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 4196 (4.2%) (from 100000 individuals)
+Excluded 0 prevalent cases for COPD.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.699, Events = 1845/54366
+   Male: AUC = 0.681, Events = 2351/45634
+
+Evaluating Osteoporosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.663 (0.654-0.673) (calculated on 99697 individuals)
+Events (10-Year in Eval Cohort): 2268 (2.3%) (from 100000 individuals)
+Excluded 303 prevalent cases for Osteoporosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.666, Events = 1212/54116
+   Male: AUC = 0.661, Events = 1045/45581
+
+Evaluating Anemia (10-Year Outcome, 1-Year Score)...
+AUC: 0.630 (0.623-0.638) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 5440 (5.4%) (from 100000 individuals)
+Excluded 0 prevalent cases for Anemia.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.615, Events = 2965/54366
+   Male: AUC = 0.666, Events = 2475/45634
+
+Evaluating Colorectal_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.633 (0.612-0.647) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 1219 (1.2%) (from 100000 individuals)
+Excluded 0 prevalent cases for Colorectal_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.612, Events = 551/54366
+   Male: AUC = 0.631, Events = 668/45634
+
+Evaluating Breast_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Female: Found 54366 individuals in cohort
+AUC: 0.562 (0.553-0.576) (calculated on 54366 individuals)
+Events (10-Year in Eval Cohort): 2262 (4.2%) (from 54366 individuals)
+Excluded 0 prevalent cases for Breast_Cancer.
+
+Evaluating Prostate_Cancer (10-Year Outcome, 1-Year Score)...
+Filtering for Male: Found 45634 individuals in cohort
+AUC: 0.683 (0.671-0.694) (calculated on 45162 individuals)
+Events (10-Year in Eval Cohort): 1867 (4.1%) (from 45634 individuals)
+Excluded 472 prevalent cases for Prostate_Cancer.
+
+Evaluating Lung_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.679 (0.661-0.694) (calculated on 99932 individuals)
+Events (10-Year in Eval Cohort): 855 (0.9%) (from 100000 individuals)
+Excluded 68 prevalent cases for Lung_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.692, Events = 451/54332
+   Male: AUC = 0.663, Events = 402/45600
+
+Evaluating Bladder_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.750 (0.729-0.766) (calculated on 99764 individuals)
+Events (10-Year in Eval Cohort): 530 (0.5%) (from 100000 individuals)
+Excluded 236 prevalent cases for Bladder_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.743, Events = 308/54303
+   Male: AUC = 0.760, Events = 222/45461
+
+Evaluating Secondary_Cancer (10-Year Outcome, 1-Year Score)...
+AUC: 0.614 (0.607-0.624) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 3075 (3.1%) (from 100000 individuals)
+Excluded 0 prevalent cases for Secondary_Cancer.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.598, Events = 1766/54366
+   Male: AUC = 0.639, Events = 1309/45634
+
+Evaluating Depression (10-Year Outcome, 1-Year Score)...
+AUC: 0.535 (0.525-0.544) (calculated on 99029 individuals)
+Events (10-Year in Eval Cohort): 4044 (4.0%) (from 100000 individuals)
+Excluded 971 prevalent cases for Depression.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.543, Events = 2175/53793
+   Male: AUC = 0.536, Events = 1819/45236
+
+Evaluating Anxiety (10-Year Outcome, 1-Year Score)...
+AUC: 0.539 (0.528-0.552) (calculated on 99730 individuals)
+Events (10-Year in Eval Cohort): 2574 (2.6%) (from 100000 individuals)
+Excluded 270 prevalent cases for Anxiety.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.550, Events = 1383/54214
+   Male: AUC = 0.528, Events = 1179/45516
+
+Evaluating Bipolar_Disorder (10-Year Outcome, 1-Year Score)...
+AUC: 0.519 (0.475-0.556) (calculated on 99854 individuals)
+Events (10-Year in Eval Cohort): 245 (0.2%) (from 100000 individuals)
+Excluded 146 prevalent cases for Bipolar_Disorder.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.511, Events = 138/54277
+   Male: AUC = 0.531, Events = 107/45577
+
+Evaluating Rheumatoid_Arthritis (10-Year Outcome, 1-Year Score)...
+AUC: 0.638 (0.620-0.652) (calculated on 99458 individuals)
+Events (10-Year in Eval Cohort): 1193 (1.2%) (from 100000 individuals)
+Excluded 542 prevalent cases for Rheumatoid_Arthritis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.641, Events = 633/53967
+   Male: AUC = 0.636, Events = 551/45491
+
+Evaluating Psoriasis (10-Year Outcome, 1-Year Score)...
+AUC: 0.594 (0.570-0.616) (calculated on 99808 individuals)
+Events (10-Year in Eval Cohort): 512 (0.5%) (from 100000 individuals)
+Excluded 192 prevalent cases for Psoriasis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.596, Events = 275/54295
+   Male: AUC = 0.593, Events = 237/45513
+
+Evaluating Ulcerative_Colitis (10-Year Outcome, 1-Year Score)...
+AUC: 0.625 (0.591-0.653) (calculated on 99493 individuals)
+Events (10-Year in Eval Cohort): 502 (0.5%) (from 100000 individuals)
+Excluded 507 prevalent cases for Ulcerative_Colitis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.640, Events = 289/54112
+   Male: AUC = 0.611, Events = 211/45381
+
+Evaluating Crohns_Disease (10-Year Outcome, 1-Year Score)...
+AUC: 0.610 (0.569-0.641) (calculated on 99687 individuals)
+Events (10-Year in Eval Cohort): 269 (0.3%) (from 100000 individuals)
+Excluded 313 prevalent cases for Crohns_Disease.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.656, Events = 154/54213
+   Male: AUC = 0.551, Events = 115/45474
+
+Evaluating Asthma (10-Year Outcome, 1-Year Score)...
+AUC: 0.547 (0.537-0.554) (calculated on 96790 individuals)
+Events (10-Year in Eval Cohort): 6087 (6.1%) (from 100000 individuals)
+Excluded 3210 prevalent cases for Asthma.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.559, Events = 3165/52361
+   Male: AUC = 0.563, Events = 2740/44429
+
+Evaluating Parkinsons (10-Year Outcome, 1-Year Score)...
+AUC: 0.743 (0.726-0.764) (calculated on 99935 individuals)
+Events (10-Year in Eval Cohort): 457 (0.5%) (from 100000 individuals)
+Excluded 65 prevalent cases for Parkinsons.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.751, Events = 257/54335
+   Male: AUC = 0.734, Events = 200/45600
+
+Evaluating Multiple_Sclerosis (10-Year Outcome, 1-Year Score)...
+AUC: 0.450 (0.406-0.493) (calculated on 99749 individuals)
+Events (10-Year in Eval Cohort): 206 (0.2%) (from 100000 individuals)
+Excluded 251 prevalent cases for Multiple_Sclerosis.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.464, Events = 122/54176
+   Male: AUC = 0.433, Events = 84/45573
+
+Evaluating Thyroid_Disorders (10-Year Outcome, 1-Year Score)...
+AUC: 0.555 (0.545-0.563) (calculated on 100000 individuals)
+Events (10-Year in Eval Cohort): 4568 (4.6%) (from 100000 individuals)
+Excluded 0 prevalent cases for Thyroid_Disorders.
+
+   Sex-stratified analysis:
+   Female: AUC = 0.585, Events = 3621/54366
+   Male: AUC = 0.605, Events = 947/45634
+
+Summary of Results (Prospective 10-Year Outcome, 1-Year Score, Sex-Adjusted):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)  
+--------------------------------------------------------------------------------
+ASCVD                0.761 (0.756-0.766)       8678       8.7
+Diabetes             0.731 (0.722-0.736)       5910       5.9
+Atrial_Fib           0.757 (0.750-0.766)       3781       3.8
+CKD                  0.737 (0.726-0.748)       2260       2.3
+All_Cancers          0.712 (0.705-0.721)       5068       5.1
+Stroke               0.704 (0.689-0.717)       1395       1.4
+Heart_Failure        0.762 (0.754-0.771)       2027       2.0
+Pneumonia            0.686 (0.677-0.694)       3644       3.6
+COPD                 0.697 (0.691-0.705)       4196       4.2
+Osteoporosis         0.663 (0.654-0.673)       2268       2.3
+Anemia               0.630 (0.623-0.638)       5440       5.4
+Colorectal_Cancer    0.633 (0.612-0.647)       1219       1.2
+Breast_Cancer        0.562 (0.553-0.576)       2262       4.2
+Prostate_Cancer      0.683 (0.671-0.694)       1867       4.1
+Lung_Cancer          0.679 (0.661-0.694)       855        0.9
+Bladder_Cancer       0.750 (0.729-0.766)       530        0.5
+Secondary_Cancer     0.614 (0.607-0.624)       3075       3.1
+Depression           0.535 (0.525-0.544)       4044       4.0
+Anxiety              0.539 (0.528-0.552)       2574       2.6
+Bipolar_Disorder     0.519 (0.475-0.556)       245        0.2
+Rheumatoid_Arthritis 0.638 (0.620-0.652)       1193       1.2
+Psoriasis            0.594 (0.570-0.616)       512        0.5
+Ulcerative_Colitis   0.625 (0.591-0.653)       502        0.5
+Crohns_Disease       0.610 (0.569-0.641)       269        0.3
+Asthma               0.547 (0.537-0.554)       6087       6.1
+Parkinsons           0.743 (0.726-0.764)       457        0.5
+Multiple_Sclerosis   0.450 (0.406-0.493)       206        0.2
+Thyroid_Disorders    0.555 (0.545-0.563)       4568       4.6
+--------------------------------------------------------------------------------
+
+  --- noslope: dynamic_10yr ---
+
+Evaluating ASCVD (Dynamic 10-Year Risk)...
+AUC: 0.735 (0.730-0.739) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 8677 (8.7%) (from 99999 individuals)
+Excluded 0 prevalent cases for ASCVD.
+
+Evaluating Diabetes (Dynamic 10-Year Risk)...
+AUC: 0.727 (0.720-0.734) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 5910 (5.9%) (from 99999 individuals)
+Excluded 0 prevalent cases for Diabetes.
+
+Evaluating Atrial_Fib (Dynamic 10-Year Risk)...
+AUC: 0.726 (0.719-0.734) (calculated on 98719 individuals)
+Events (10-Year in Eval Cohort): 3780 (3.8%) (from 98719 individuals)
+Excluded 1280 prevalent cases for Atrial_Fib.
+
+Evaluating CKD (Dynamic 10-Year Risk)...
+AUC: 0.707 (0.699-0.716) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 2260 (2.3%) (from 99999 individuals)
+Excluded 0 prevalent cases for CKD.
+
+Evaluating All_Cancers (Dynamic 10-Year Risk)...
+AUC: 0.712 (0.705-0.720) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 5068 (5.1%) (from 99999 individuals)
+Excluded 0 prevalent cases for All_Cancers.
+
+Evaluating Stroke (Dynamic 10-Year Risk)...
+AUC: 0.693 (0.682-0.707) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 1395 (1.4%) (from 99999 individuals)
+Excluded 0 prevalent cases for Stroke.
+
+Evaluating Heart_Failure (Dynamic 10-Year Risk)...
+AUC: 0.736 (0.727-0.745) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 2027 (2.0%) (from 99999 individuals)
+Excluded 0 prevalent cases for Heart_Failure.
+
+Evaluating Pneumonia (Dynamic 10-Year Risk)...
+AUC: 0.660 (0.651-0.669) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 3644 (3.6%) (from 99999 individuals)
+Excluded 0 prevalent cases for Pneumonia.
+
+Evaluating COPD (Dynamic 10-Year Risk)...
+AUC: 0.673 (0.668-0.681) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 4196 (4.2%) (from 99999 individuals)
+Excluded 0 prevalent cases for COPD.
+
+Evaluating Osteoporosis (Dynamic 10-Year Risk)...
+AUC: 0.625 (0.617-0.634) (calculated on 99696 individuals)
+Events (10-Year in Eval Cohort): 2268 (2.3%) (from 99696 individuals)
+Excluded 303 prevalent cases for Osteoporosis.
+
+Evaluating Anemia (Dynamic 10-Year Risk)...
+AUC: 0.603 (0.595-0.611) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 5440 (5.4%) (from 99999 individuals)
+Excluded 0 prevalent cases for Anemia.
+
+Evaluating Colorectal_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.636 (0.622-0.652) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 1219 (1.2%) (from 99999 individuals)
+Excluded 0 prevalent cases for Colorectal_Cancer.
+
+Evaluating Breast_Cancer (Dynamic 10-Year Risk)...
+Filtering for Female: Found 54366 individuals in cohort
+AUC: 0.592 (0.575-0.602) (calculated on 54366 individuals)
+Events (10-Year in Eval Cohort): 2262 (4.2%) (from 54366 individuals)
+Excluded 0 prevalent cases for Breast_Cancer.
+
+Evaluating Prostate_Cancer (Dynamic 10-Year Risk)...
+Filtering for Male: Found 45634 individuals in cohort
+AUC: 0.699 (0.687-0.711) (calculated on 45161 individuals)
+Events (10-Year in Eval Cohort): 1867 (4.1%) (from 45161 individuals)
+Excluded 472 prevalent cases for Prostate_Cancer.
+
+Evaluating Lung_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.669 (0.650-0.682) (calculated on 99931 individuals)
+Events (10-Year in Eval Cohort): 855 (0.9%) (from 99931 individuals)
+Excluded 68 prevalent cases for Lung_Cancer.
+
+Evaluating Bladder_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.749 (0.732-0.769) (calculated on 99763 individuals)
+Events (10-Year in Eval Cohort): 530 (0.5%) (from 99763 individuals)
+Excluded 236 prevalent cases for Bladder_Cancer.
+
+Evaluating Secondary_Cancer (Dynamic 10-Year Risk)...
+AUC: 0.609 (0.599-0.620) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 3075 (3.1%) (from 99999 individuals)
+Excluded 0 prevalent cases for Secondary_Cancer.
+
+Evaluating Depression (Dynamic 10-Year Risk)...
+AUC: 0.483 (0.476-0.492) (calculated on 99028 individuals)
+Events (10-Year in Eval Cohort): 4044 (4.1%) (from 99028 individuals)
+Excluded 971 prevalent cases for Depression.
+
+Evaluating Anxiety (Dynamic 10-Year Risk)...
+AUC: 0.497 (0.487-0.510) (calculated on 99729 individuals)
+Events (10-Year in Eval Cohort): 2574 (2.6%) (from 99729 individuals)
+Excluded 270 prevalent cases for Anxiety.
+
+Evaluating Bipolar_Disorder (Dynamic 10-Year Risk)...
+AUC: 0.469 (0.429-0.504) (calculated on 99853 individuals)
+Events (10-Year in Eval Cohort): 245 (0.2%) (from 99853 individuals)
+Excluded 146 prevalent cases for Bipolar_Disorder.
+
+Evaluating Rheumatoid_Arthritis (Dynamic 10-Year Risk)...
+AUC: 0.604 (0.590-0.624) (calculated on 99457 individuals)
+Events (10-Year in Eval Cohort): 1193 (1.2%) (from 99457 individuals)
+Excluded 542 prevalent cases for Rheumatoid_Arthritis.
+
+Evaluating Psoriasis (Dynamic 10-Year Risk)...
+AUC: 0.576 (0.552-0.600) (calculated on 99807 individuals)
+Events (10-Year in Eval Cohort): 512 (0.5%) (from 99807 individuals)
+Excluded 192 prevalent cases for Psoriasis.
+
+Evaluating Ulcerative_Colitis (Dynamic 10-Year Risk)...
+AUC: 0.603 (0.580-0.627) (calculated on 99492 individuals)
+Events (10-Year in Eval Cohort): 502 (0.5%) (from 99492 individuals)
+Excluded 507 prevalent cases for Ulcerative_Colitis.
+
+Evaluating Crohns_Disease (Dynamic 10-Year Risk)...
+AUC: 0.576 (0.535-0.616) (calculated on 99686 individuals)
+Events (10-Year in Eval Cohort): 269 (0.3%) (from 99686 individuals)
+Excluded 313 prevalent cases for Crohns_Disease.
+
+Evaluating Asthma (Dynamic 10-Year Risk)...
+AUC: 0.534 (0.526-0.542) (calculated on 96789 individuals)
+Events (10-Year in Eval Cohort): 6087 (6.3%) (from 96789 individuals)
+Excluded 3210 prevalent cases for Asthma.
+
+Evaluating Parkinsons (Dynamic 10-Year Risk)...
+AUC: 0.745 (0.723-0.764) (calculated on 99934 individuals)
+Events (10-Year in Eval Cohort): 457 (0.5%) (from 99934 individuals)
+Excluded 65 prevalent cases for Parkinsons.
+
+Evaluating Multiple_Sclerosis (Dynamic 10-Year Risk)...
+AUC: 0.455 (0.425-0.486) (calculated on 99748 individuals)
+Events (10-Year in Eval Cohort): 206 (0.2%) (from 99748 individuals)
+Excluded 251 prevalent cases for Multiple_Sclerosis.
+
+Evaluating Thyroid_Disorders (Dynamic 10-Year Risk)...
+AUC: 0.532 (0.523-0.540) (calculated on 99999 individuals)
+Events (10-Year in Eval Cohort): 4568 (4.6%) (from 99999 individuals)
+Excluded 0 prevalent cases for Thyroid_Disorders.
+
+Summary of Results (Dynamic 10-Year Risk, Sex-Adjusted):
+--------------------------------------------------------------------------------
+Disease Group        AUC                       Events     Rate (%)  
+--------------------------------------------------------------------------------
+ASCVD                0.735 (0.730-0.739)       8677       8.7
+Diabetes             0.727 (0.720-0.734)       5910       5.9
+Atrial_Fib           0.726 (0.719-0.734)       3780       3.8
+CKD                  0.707 (0.699-0.716)       2260       2.3
+All_Cancers          0.712 (0.705-0.720)       5068       5.1
+Stroke               0.693 (0.682-0.707)       1395       1.4
+Heart_Failure        0.736 (0.727-0.745)       2027       2.0
+Pneumonia            0.660 (0.651-0.669)       3644       3.6
+COPD                 0.673 (0.668-0.681)       4196       4.2
+Osteoporosis         0.625 (0.617-0.634)       2268       2.3
+Anemia               0.603 (0.595-0.611)       5440       5.4
+Colorectal_Cancer    0.636 (0.622-0.652)       1219       1.2
+Breast_Cancer        0.592 (0.575-0.602)       2262       4.2
+Prostate_Cancer      0.699 (0.687-0.711)       1867       4.1
+Lung_Cancer          0.669 (0.650-0.682)       855        0.9
+Bladder_Cancer       0.749 (0.732-0.769)       530        0.5
+Secondary_Cancer     0.609 (0.599-0.620)       3075       3.1
+Depression           0.483 (0.476-0.492)       4044       4.1
+Anxiety              0.497 (0.487-0.510)       2574       2.6
+Bipolar_Disorder     0.469 (0.429-0.504)       245        0.2
+Rheumatoid_Arthritis 0.604 (0.590-0.624)       1193       1.2
+Psoriasis            0.576 (0.552-0.600)       512        0.5
+Ulcerative_Colitis   0.603 (0.580-0.627)       502        0.5
+Crohns_Disease       0.576 (0.535-0.616)       269        0.3
+Asthma               0.534 (0.526-0.542)       6087       6.3
+Parkinsons           0.745 (0.723-0.764)       457        0.5
+Multiple_Sclerosis   0.455 (0.425-0.486)       206        0.2
+Thyroid_Disorders    0.532 (0.523-0.540)       4568       4.6
+--------------------------------------------------------------------------------
+
+  AUC results saved: /Users/sarahurbut/aladynoulli2/claudefile/results_holdout_auc/holdout_auc_slope_vs_noslope.csv
+
+[5/5] Summary
+======================================================================
+HOLDOUT AUC: SLOPE vs NO-SLOPE
+======================================================================
+
+  static_10yr:
+  Disease                      Slope AUC  NoSlope AUC     Diff
+  ------------------------------------------------------------
+  ASCVD                           0.7609       0.7606  +0.0003
+  Diabetes                        0.7284       0.7307  -0.0024
+  Atrial_Fib                      0.7383       0.7572  -0.0189
+  CKD                             0.7532       0.7370  +0.0161
+  All_Cancers                     0.7126       0.7119  +0.0007
+  Stroke                          0.7094       0.7044  +0.0050
+  Heart_Failure                   0.7727       0.7622  +0.0105
+  Pneumonia                       0.6971       0.6857  +0.0113
+  COPD                            0.7127       0.6974  +0.0153
+  Osteoporosis                    0.6615       0.6625  -0.0010
+  Anemia                          0.6249       0.6298  -0.0050
+  Colorectal_Cancer               0.6149       0.6333  -0.0184
+  Breast_Cancer                   0.5444       0.5619  -0.0175
+  Prostate_Cancer                 0.6727       0.6826  -0.0099
+  Lung_Cancer                     0.6840       0.6786  +0.0054
+  Bladder_Cancer                  0.7500       0.7499  +0.0002
+  Secondary_Cancer                0.6197       0.6145  +0.0052
+  Depression                      0.5723       0.5351  +0.0372
+  Anxiety                         0.5663       0.5385  +0.0278
+  Bipolar_Disorder                0.5545       0.5191  +0.0354
+  Rheumatoid_Arthritis            0.6253       0.6379  -0.0126
+  Psoriasis                       0.5897       0.5939  -0.0042
+  Ulcerative_Colitis              0.6293       0.6252  +0.0041
+  Crohns_Disease                  0.6263       0.6101  +0.0162
+  Asthma                          0.5500       0.5466  +0.0035
+  Parkinsons                      0.7217       0.7431  -0.0213
+  Multiple_Sclerosis              0.4872       0.4499  +0.0373
+  Thyroid_Disorders               0.5469       0.5545  -0.0076
+
+  dynamic_10yr:
+  Disease                      Slope AUC  NoSlope AUC     Diff
+  ------------------------------------------------------------
+  ASCVD                           0.7392       0.7347  +0.0045
+  Diabetes                        0.7218       0.7274  -0.0057
+  Atrial_Fib                      0.7273       0.7264  +0.0009
+  CKD                             0.7134       0.7067  +0.0067
+  All_Cancers                     0.7093       0.7121  -0.0028
+  Stroke                          0.6925       0.6935  -0.0010
+  Heart_Failure                   0.7455       0.7360  +0.0094
+  Pneumonia                       0.6694       0.6600  +0.0093
+  COPD                            0.6812       0.6733  +0.0080
+  Osteoporosis                    0.5902       0.6253  -0.0351
+  Anemia                          0.6007       0.6026  -0.0018
+  Colorectal_Cancer               0.6302       0.6358  -0.0056
+  Breast_Cancer                   0.5848       0.5917  -0.0070
+  Prostate_Cancer                 0.6804       0.6988  -0.0183
+  Lung_Cancer                     0.6722       0.6688  +0.0034
+  Bladder_Cancer                  0.7497       0.7493  +0.0004
+  Secondary_Cancer                0.6123       0.6094  +0.0029
+  Depression                      0.5082       0.4831  +0.0251
+  Anxiety                         0.5058       0.4972  +0.0086
+  Bipolar_Disorder                0.4942       0.4686  +0.0257
+  Rheumatoid_Arthritis            0.5610       0.6038  -0.0428
+  Psoriasis                       0.5842       0.5758  +0.0084
+  Ulcerative_Colitis              0.6197       0.6026  +0.0171
+  Crohns_Disease                  0.5907       0.5763  +0.0143
+  Asthma                          0.5372       0.5337  +0.0034
+  Parkinsons                      0.7411       0.7451  -0.0040
+  Multiple_Sclerosis              0.4626       0.4551  +0.0074
+  Thyroid_Disorders               0.4921       0.5315  -0.0395
+
+All results in: /Users/sarahurbut/aladynoulli2/claudefile/results_holdout_auc
+Done.
