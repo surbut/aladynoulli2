@@ -24,7 +24,6 @@ try:
 except ImportError:
     HAS_PLOTLY = False
 import io
-from datetime import datetime
 
 def load_model():
     """Load the model and return necessary components"""
@@ -1721,7 +1720,7 @@ def main():
     st.session_state.clear()
     
     st.set_page_config(layout="wide")
-    st.title("Patient Timeline Analysis")
+    st.title("Patient Timeline Analysis (Synthetic Demo)")
     
     # Author/Institution information at the top
     st.markdown("""
@@ -1738,11 +1737,12 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Disclaimer about sample patients
-    st.info("""
-    **Sample Patient Visualization:** This app displays pre-selected sample patients for visualization purposes only. 
-    Patient identifiers are not displayed and no personally identifiable information is shown. 
-    These are illustrative examples from the dataset and are not intended to represent any specific individuals.
+    # Strong disclaimer: synthetic/fake data only (UKB privacy)
+    st.warning("""
+    **⚠️ SYNTHETIC / DEMONSTRATION DATA ONLY — NOT REAL UK BIOBANK DATA**  
+    All patients and trajectories shown in this app are **synthetic or simulated** for method demonstration only. 
+    No real UK Biobank (or other) participant data are displayed. This app is for illustration and cannot be used to 
+    identify or infer anything about real individuals.
     """)
     
     # Load model data
@@ -1823,7 +1823,7 @@ def main():
     
     # Sidebar controls
     st.sidebar.header("Sample Patient Selection")
-    st.sidebar.caption("Select from pre-selected sample patients (no identifying information)")
+    st.sidebar.caption("Synthetic patients only — not real data. For method demonstration.")
     
     # Patient search/filter
     search_term = st.sidebar.text_input("🔍 Search by disease name", "", key="patient_search")
@@ -1870,10 +1870,10 @@ def main():
     time_end = st.sidebar.slider("End Time", time_start, visualizer.T-1, visualizer.T-1)
     time_window = range(time_start, time_end + 1)
     
-    # Add tabs for all features
-    tab1, tab2, tab3, tab4, tab5, tab7, tab8 = st.tabs([
-        "Plots", "Tables", "Genetics", "Risk Summary", 
-        "Compare Patients", "Advanced", "Export"
+    # Add tabs (Tables and Export removed for UKB privacy)
+    tab1, tab3, tab4, tab5, tab7 = st.tabs([
+        "Plots", "Genetics", "Risk Summary", 
+        "Compare Patients", "Advanced"
     ])
     with tab1:
         col1, col2 = st.columns(2)
@@ -1906,22 +1906,6 @@ def main():
             - Bottom heatmap shows how each signature contributes to disease risk
             - Diagnosis times are shown in the disease labels
             """)
-    with tab2:
-        st.header("Diagnosis Timeline Table")
-        st.dataframe(visualizer.diagnosis_timeline_table(person_idx))
-
-        st.header("Genetic Risk Table")
-        st.dataframe(visualizer.genetic_risk_table(person_idx))
-
-        st.header("PRS Weights for Signature")
-        sig_idx = st.selectbox("Select Signature for PRS Weights", range(visualizer.K), format_func=lambda x: f"Signature {x}")
-        st.dataframe(visualizer.prs_weights_for_signature(sig_idx))
-
-        print("gamma shape:", visualizer.gamma.shape)
-        print("prs_names length:", len(visualizer.prs_names))
-        print("First 5 PRS names:", visualizer.prs_names[:5])
-        print("First 5 weights for signature 0:", visualizer.gamma[:5, 0])
-
     with tab3:
         #st.header("Box/Strip Plot of PRS Weights Across Signatures")
         #if visualizer.prs_names is not None:
@@ -2162,37 +2146,6 @@ def main():
                         plt.close(compare_fig)
             else:
                 st.warning("No similar patients found.")
-
-    # Tab 8: Export
-    with tab8:
-        st.header("Export Patient Data")
-        
-        export_format = st.radio("Export Format", ["CSV", "PDF Report (coming soon)"], key="export_format")
-        
-        if export_format == "CSV":
-            age_offset_export = st.sidebar.number_input("Age at Baseline (for export)", 
-                                                        min_value=0, max_value=100, 
-                                                        value=30, key="age_export")
-            
-            if st.button("Export to CSV", key="export_csv_btn"):
-                df = visualizer.export_patient_data(person_idx, age_offset_export)
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    label="Download CSV",
-                    data=csv,
-                    file_name=f"patient_{person_idx}_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    key="download_csv"
-                )
-                
-                st.success("Data prepared! Click 'Download CSV' to save.")
-                st.dataframe(df.head(20))
-        
-        st.markdown("---")
-        
-        st.header("Export Current Plot")
-        st.markdown("Right-click on any plot above and select 'Save image as...' to export.")
-        st.info("📊 For high-resolution exports, we recommend using the PDF export (coming soon) or taking screenshots at full resolution.")
 
 if __name__ == "__main__":
     main() 
