@@ -282,7 +282,7 @@ if __name__ == '__main__':
     # Load processed IDs
     processed_ids = np.load('data_for_running/processed_ids.npy')  # Adjust path as needed
     # OR if IDs are in a different format:
-    # processed_ids = np.array([1000015, 1000023, 1000037, ...])  # Your ID array
+    # processed_ids = np.array([...])  # Your ID array
     
     # Load weights
     weights_df = pd.read_csv('UKBSelectionWeights.csv', sep='\s+', engine='python')

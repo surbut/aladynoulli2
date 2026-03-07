@@ -4,6 +4,7 @@ pyScripts/dec_6_revision/misc
 pyScripts/dec_6_revision/archive
 *.pt
 */*.pt
+**/*.pt
 pyScripts/new_oct_revision/misc/
 REVIEWER_RESPONSE_CHECKLIST.md
 playwithretro.ipynb
@@ -19,28 +20,21 @@ pyScripts/new_oct_revision/output_10yr/*.npy
 pyScripts/new_oct_revision/output_10yr/*.pkl
 pyScripts/new_oct_revision/output_5yr/*.pkl
 *.pkl
-pyScripts/new_oct_revision/pathway_analysis_output/complete_analysis_results.pkl
+**/*.pkl
 *.csv
 *.txt
 claudefile/output/*
 rsconnect/*
-pyScripts/new_oct_revision/debug_Bipolar_Disorder.csv
-pyScripts/new_oct_revision/debug_Depression.csv
 ukb.kgp_projected.tsv
-pyScripts/new_oct_revision/*.pt
 pyScripts/suppData
 pyScripts/*.Rhistory
-pyScripts/*.pkl
 pyScripts/.Rhistory
 pyScripts/.Rapp.history
-pyScripts/*.Rhistory
-pyScript/.Rapp
 pyScripts/big_stuff/*
-pyScripts/*.csv
 pyScripts/outputs/*
 output/*
 *.DS*
-pyScripts/*.pdf
+.DS*
 pyScripts/__pycache__/*
 *cache*
 .Rproj.user
@@ -48,40 +42,6 @@ pyScripts/__pycache__/*
 */saved_results
 data/*
 saved_results/*
-.DS*
-pyScripts/*.rds
-pyScripts/*.pdf
-pyScripts/pngs/*
-pyScripts/results/*
-pyScripts/*.pt
-pyScripts/*.pt.zip
-pyScripts/*.png
-pyScripts/pngs/
-pyScripts/*.npy
-pyScripts/*.pt
-pyScripts/*.txt
-pyScripts/png/*
-pyScripts/text/*
-pyScripts/ptdir/*
-pyScripts/npys/*
-pyScripts/ptdir/*
-pyScripts/oldstuff/signature_auc_phenotypes_new.txt
-pyScripts/oldstuff/theta_auc_phenotypes_for_regenie_new.txt
-pyScripts/oldstuff/age_normalized_signature_auc_phenotypes.txt
-pyScripts/oldstuff/regenie_covariates.txt
-pyScripts/oldstuff/signature_auc_phenotypes_new.txt
-pyScripts/oldstuff/theta_auc_phenotypes_for_regenie_new.txt
-pyScripts/oldstuff/age_normalized_signature_auc_phenotypes.txt
-pyScripts/oldstuff/regenie_covariates.txt
-pyScripts/oldstuff/*.png
-pyScripts/oldstuff/*.npy
-pyScripts/oldstuff/*.txt
-pyScripts/nb/*.txt
-pyScripts/oldstuff/*.txt.zip
-pyScripts/oldstuff/*.pt
-pyScripts/oldmarch/with_kappa_train.pt
-*.pkl
-*.pkl
 *.RData
 
 # Large notebooks with outputs
@@ -102,8 +62,9 @@ fromaws_ec2/
 mediation_analysis_figures/
 scripts/
 aou_losses
+.cursor/
 
-# pyScripts (except reviewer_responses)
+# pyScripts (except reviewer_responses notebooks)
 pyScripts/*.py
 pyScripts/*.R
 pyScripts/*.r
@@ -122,25 +83,70 @@ pyScripts/dec_6_revision/new_notebooks/main_paper_figures/
 pyScripts/dec_6_revision/new_notebooks/pythonscripts/
 pyScripts/dec_6_revision/new_notebooks/results/
 
-# Root-level junk
-*.log
-*.npy
-*.png
-*.pdf
-*.aux
-*.toc
-*.nav
-*.out
-*.snm
-*.vrb
-*.tex
-*.rtf
-*.zip
-*.tsv
-*.Rmd
-*.html
+# ===== Binary/output junk in ALL subdirectories =====
+# These patterns use **/ to match in every subdirectory
+**/*.log
+**/*.npy
+**/*.npz
+**/*.png
+**/*.pdf
+**/*.aux
+**/*.toc
+**/*.nav
+**/*.out
+**/*.snm
+**/*.vrb
+**/*.tex
+**/*.rtf
+**/*.zip
+**/*.tsv
+**/*.Rmd
+**/*.html
+**/*.Rhistory
+**/*.R
+**/*.r
+
+# Exceptions: keep docs HTML and README
 !docs/**/*.html
 !README.md
+!DESCRIPTION
+!LICENSE
+!NAMESPACE
+
+# Exceptions: keep streamlit CSV files
+!streamlit_app_deploy/*.csv
+
+# pyScripts_forPublish: only keep .py files
+pyScripts_forPublish/*.ipynb
+pyScripts_forPublish/*.npy
+pyScripts_forPublish/*.csv
+pyScripts_forPublish/*.png
+pyScripts_forPublish/*.pdf
+
+# claudefile: block binary/output artifacts
+claudefile/**/*.log
+claudefile/**/*.pdf
+claudefile/**/*.png
+claudefile/**/*.csv
+claudefile/**/*.npy
+claudefile/**/*.npz
+claudefile/**/*.zip
+claudefile/**/*.html
+claudefile/**/*.aux
+claudefile/**/*.nav
+claudefile/**/*.out
+claudefile/**/*.snm
+claudefile/**/*.toc
+claudefile/**/*.tex
+claudefile/**/*.Rhistory
+claudefile/logs/
+claudefile/grid_results/
+claudefile/results_feb18_old/
+claudefile/results_holdout_auc/
+claudefile/aladyn_project/pyScripts_forPublish/
+claudefile/nohup.out
+
+# Root-level scripts not needed
 R_toSparse.r
 aladyn_slope_models.py
 analyze_mediation_results.py
@@ -181,5 +187,3 @@ NUMBERS_CHECKED.md
 SUPPLEMENTARY_FIGURES_*.md
 ipw_correction_nohup.log
 ldsc_summary_rev.tsv
-.cursor/
-
