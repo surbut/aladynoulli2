@@ -1,57 +1,69 @@
 # Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction
 
+<div align="center">
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-1.9+-red.svg)](https://pytorch.org/)
 
-A comprehensive Bayesian survival model for predicting disease trajectories using genetic and clinical data.
+**A Bayesian Survival Model for Disease Trajectory Prediction**
 
-**Preprint**: [medRxiv](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1)
+[Preprint](https://www.medrxiv.org/content/10.1101/2024.09.29.24314557v1)
 
-**Documentation & Reviewer Analyses**: [https://surbut.github.io/aladynoulli2/](https://surbut.github.io/aladynoulli2/)
+</div>
 
-## 🚀 Quick Start
+---
 
-### Installation
-```bash
-git clone https://github.com/surbut/aladynoulli2.git
-cd aladynoulli2
-pip install -r requirements.txt
-```
+## 📋 How to Use This Documentation
 
-For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md).
+This documentation is organized into **five main sections** for reviewers:
 
-## 📋 Table of Contents
+1. **[Model Architecture](#model-architecture)** - Understand how the model works: core components, mathematical framework, and key concepts
+2. **[Reviewer Response Analyses](#reviewer-response-analyses)** - Interactive analyses addressing all reviewer questions, organized by referee
+3. **[Non-Centered Parameterization](#non-centered-parameterization-reparameterization)** - Reparameterization for identifiable genetic effects, with simulation evidence
+4. **[Complete Workflow](#complete-workflow)** - Step-by-step guide to running the model: preprocessing, training, and prediction
+5. **[Performance & Scalability](#performance-scalability)** - Computational requirements and scaling characteristics
 
+**Full interactive documentation**: [https://surbut.github.io/aladynoulli2/](https://surbut.github.io/aladynoulli2/)
+
+---
+
+## 📖 Table of Contents
+
+- [How to Use This Documentation](#how-to-use-this-documentation)
 - [Overview](#overview)
 - [Model Architecture](#model-architecture)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Documentation](#documentation)
+- [Reviewer Response Analyses](#reviewer-response-analyses)
+- [Non-Centered Parameterization](#non-centered-parameterization-reparameterization)
+- [Complete Workflow](#complete-workflow)
+- [Performance & Scalability](#performance-scalability)
 - [Citation](#citation)
-- [License](#license)
-- [Contact](#contact)
+
+---
 
 ## 🔬 Overview
 
-Aladynoulli is a Bayesian survival model that predicts disease trajectories by modeling:
+**Aladynoulli** is a comprehensive Bayesian survival model that predicts disease trajectories by integrating genetic and clinical data. The model captures:
 
-- **Disease signatures**: Latent disease states that capture shared patterns across diseases
-- **Genetic effects**: Individual-specific genetic contributions to disease risk
-- **Temporal dynamics**: Time-varying disease probabilities using Gaussian processes
+- **Disease Signatures**: Latent disease states that capture shared patterns across diseases
+- **Genetic Effects**: Individual-specific genetic contributions to disease risk
+- **Temporal Dynamics**: Time-varying disease probabilities using Gaussian processes
 - **Censoring**: Proper handling of incomplete follow-up data
 
 ### Key Features
 
-- ✅ **Scalable**: Handles large-scale genetic and clinical datasets
-- ✅ **Flexible**: Supports both discovery and prediction modes
-- ✅ **Robust**: Proper Bayesian uncertainty quantification
-- ✅ **Fast**: GPU-accelerated training and inference
-- ✅ **Reproducible**: Complete code and data processing pipelines
+| Feature | Description |
+|---------|-------------|
+| ✅ **Scalable** | Handles large-scale genetic and clinical datasets (400K+ individuals) |
+| ✅ **Flexible** | Supports both discovery and prediction modes |
+| ✅ **Robust** | Proper Bayesian uncertainty quantification |
+| ✅ **Fast** | GPU-accelerated training and inference |
+| ✅ **Reproducible** | Complete code and data processing pipelines |
+
+---
+
 
 ## 🏗️ Model Architecture
-
-The model consists of several key components:
 
 ### Core Components
 
@@ -63,7 +75,7 @@ The model consists of several key components:
 
 ### Mathematical Framework
 
-The model predicts disease probability at time t as:
+The model predicts disease probability at time `t` as:
 
 ```
 π_i,d,t = κ × Σ_k θ_i,k,t × φ_k,d,t
@@ -72,167 +84,179 @@ The model predicts disease probability at time t as:
 Where:
 - `θ_i,k,t` = softmax(λ_i,k,t) (signature proportions)
 - `λ_i,k,t` ~ GP(μ_k + G_i γ_k, K_λ) (temporal dynamics)
-- `φ_k,d,t` = sigmoid(ψ_k,d + GP(μ_φ, K_φ)) (disease probabilities)
+- `φ_k,d,t` = sigmoid(μ_d+ψ_k,d, K_φ) (disease probabilities)
 
-## 📦 Installation
-
-### System Requirements
-
-- **Python**: 3.8 or higher
-- **RAM**: 8GB minimum, 16GB+ recommended
-- **Storage**: 5GB free space
-- **GPU**: Optional but recommended (NVIDIA CUDA)
-
-### Step-by-Step Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/surbut/aladynoulli2.git
-   cd aladynoulli2
-   ```
-
-2. **Create virtual environment**:
-   ```bash
-   conda create -n aladynoulli python=3.9
-   conda activate aladynoulli
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+---
 
 
+## 📊 Reviewer Response Analyses
 
-For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md) and [Documentation.md](pyScripts_forPublish/DOCUMENTATION.md)
+Comprehensive interactive analyses addressing reviewer questions and model validation.
 
-## 💻 Usage
+### 📚 Navigation Hub
 
-### Complete Workflow
+- **[Reviewer Response README](https://surbut.github.io/aladynoulli2/reviewer_responses/README.html)** - Complete guide to all interactive analyses
+- **[Framework Overview](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html)** - Discovery vs prediction framework (essential reading)
 
-The Aladynoulli workflow consists of 5 main steps:
+### 🔬 Analysis Categories
+
+#### **Referee #1 Analyses**
+
+| Analysis | Description | Link |
+|----------|-------------|------|
+| **Clinical Utility** | Dynamic risk updating and clinical decision-making | [R1_Clinical_Utility_Dynamic_Risk_Updating.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Clinical_Utility_Dynamic_Risk_Updating.html) |
+| **AUC Comparisons** | Performance vs. established clinical risk scores | [R1_Q9_AUC_Comparisons.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Q9_AUC_Comparisons.html) |
+| **Age-Stratified** | Performance across different age groups | [R1_Q10_Age_Specific.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Q10_Age_Specific.html) |
+| **Heritability** | Genetic architecture and heritability estimates | [R1_Q7_Heritability.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Q7_Heritability.html) |
+| **GWAS Validation** | Genome-wide association studies on signatures; identifies 10 novel loci for Signature 5 not found in individual trait GWAS | [R1_Genetic_Validation_GWAS.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Genetic_Validation_GWAS.html) |
+| **Gene-Based RVAS** | Rare variant association studies on signatures | [R1_Genetic_Validation_Gene_Based_RVAS.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Genetic_Validation_Gene_Based_RVAS.html) |
+| **Biological Plausibility** | CHIP analysis and biological validation | [R1_Biological_Plausibility_CHIP.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Biological_Plausibility_CHIP.html) |
+| **LOO Validation** | Leave-one-out cross-validation robustness | [R1_Robustness_LOO_Validation.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Robustness_LOO_Validation.html) |
+| **Selection Bias** | Assessment of selection bias and participation | [R1_Q1_Selection_Bias.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Q1_Selection_Bias.html) |
+| **Clinical Meaning** | Analysis of Familial hypercholesterolemia patients | [R1_Q3_Clinical_Meaning.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Q3_Clinical_Meaning.html) |
+| **ICD vs PheCode** | Detailed comparison of coding systems | [R1_Q3_ICD_vs_PheCode_Comparison.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Q3_ICD_vs_PheCode_Comparison.html) |
+| **Competing Risks** | Multi-disease patterns and competing risks | [R1_Multi_Disease_Patterns_Competing_Risks.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R1/R1_Multi_Disease_Patterns_Competing_Risks.html) |
+
+#### **Referee #2 Analyses**
+
+| Analysis | Description | Link |
+|----------|-------------|------|
+| **Temporal Leakage** | Assessment of temporal leakage and prediction accuracy | [R2_Temporal_Leakage.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R2/R2_Temporal_Leakage.html) |
+| **Washout Comparisons** | Multi-approach washout analysis (time horizon, floating prediction, fixed timepoint) | [R2_Washout_Comparisons.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R2/R2_Washout_Comparisons.html) |
+| **Delphi Phecode Mapping** | Principled Delphi comparison using Phecode-based ICD mapping | [R2_Delphi_Phecode_Mapping.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R2/R2_Delphi_Phecode_Mapping.html) |
+| **Model Validity** | Model learning and validity assessment | [R2_R3_Model_Validity_Learning.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R2/R2_R3_Model_Validity_Learning.html) |
+
+#### **Referee #3 Analyses**
+
+| Analysis | Description | Link |
+|----------|-------------|------|
+| **Avoiding Reverse Causation** | Reverse causation assessment with 0, 1, 3, 6-month washout periods | [R3_AvoidingReverseCausation.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_AvoidingReverseCausation.html) |
+| **Competing Risks** | Detailed competing risks analysis | [R3_Competing_Risks.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Competing_Risks.html) |
+| **Decreasing Hazards (Censoring Bias)** | Analysis of decreasing hazards at older ages due to censoring bias | [R3_Q4_Decreasing_Hazards_Censoring_Bias.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Q4_Decreasing_Hazards_Censoring_Bias.html) |
+| **Verify Corrected Data** | Verification of corrected E matrix and prevalence calculations | [R3_Verify_Corrected_Data.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Verify_Corrected_Data.html) |
+| **Linear vs Nonlinear** | Linear vs nonlinear mixing approaches | [R3_Linear_vs_NonLinear_Mixing.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Linear_vs_NonLinear_Mixing.html) |
+| **Population Stratification** | Ancestry-stratified analysis | [R3_Population_Stratification_Ancestry.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Population_Stratification_Ancestry.html) |
+| **Heterogeneity (Main Paper Method)** | Main paper method with PRS validation (MI and breast cancer) | [R3_Q8_Heterogeneity_MainPaper_Method.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_MainPaper_Method.html) |
+| **Heterogeneity (Continued)** | Complete pathway analysis demonstrating biological heterogeneity | [R3_Q8_Heterogeneity_Continued.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Q8_Heterogeneity_Continued.html) |
+| **Cross-Cohort Similarity** | Cross-cohort signature correspondence analysis | [R3_Cross_Cohort_Similarity.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/R3/R3_Cross_Cohort_Similarity.html) |
+
+
+## 🧬 Non-Centered Parameterization (Reparameterization)
+
+In the standard ("centered") formulation, genetic effects (γ) enter only through the GP prior mean for λ.
+Because λ is a free parameter that directly enters the likelihood, the optimizer fits the data by adjusting λ
+and γ receives weaker gradient signal (only the W = 10⁻⁴ scaled GP prior). This can limit the accuracy
+of γ recovery — the individual-specific genetic effects that are essential for biological interpretation
+and out-of-sample prediction.
+
+The **non-centered** formulation addresses this by decomposing λ into a genetic mean and a residual:
+
+```
+λ_i,k,t = μ_k + G_i γ_k + δ_i,k,t
+```
+
+where δ (not λ) carries the GP prior. Now γ flows through the forward pass into the NLL via the chain rule,
+receiving full gradient signal. Additionally, κ is fixed at 1 rather than learned, since κ and γ are not
+jointly identifiable (only κ·γ enters the likelihood).
+
+| Analysis | Description | Link |
+|----------|-------------|------|
+| **Parameter Recovery Simulation** | Synthetic data simulation (N=1000, D=50, K=5) comparing γ recovery: centered model (r ≈ 0.80) vs non-centered model (r ≈ 0.95). Uses the actual production model classes. | [parameter_recovery_simulation.ipynb](https://github.com/surbut/aladynoulli2/blob/main/claudefile/parameter_recovery_simulation.ipynb) |
+
+### Core Model Files (Non-Centered)
+
+| Component | File | Description |
+|-----------|------|-------------|
+| **Discovery Model (Reparam)** | [clust_huge_amp_vectorized_reparam.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized_reparam.py) | Non-centered model: λ = μ(γ) + δ, κ=1 fixed. γ and ψ receive NLL gradients directly. |
+| **Training Script** | [train_nokappa_v3.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/train_nokappa_v3.py) | Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping |
+
+---
+
+## 💻 Complete Workflow
+
+The Aladynoulli workflow consists of **5 main steps**:
 
 1. **Preprocessing**: Create smoothed prevalence, initial clusters, and reference trajectories
 2. **Batch Training**: Train models on data batches with full E matrix
 3. **Master Checkpoint**: Generate pooled checkpoint (phi and psi)
-4. **Pool Gamma & Kappa**: Pool genetic effects and calibration from training batches
-5. **Prediction**: Run predictions using master checkpoint
+4. **Pool Gamma & Kappa**: Pool gamma (genetic effects) and kappa (calibration) from training batches
+5. **Prediction**: Run predictions using master checkpoint with fixed gamma and kappa (only lambda is learned)
 
-**For detailed step-by-step instructions**, see the [Complete Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md).
+### Essential Resources
 
-### Quick Start
-
-```python
-# Discovery mode (learns phi)
-from pyScripts_forPublish.clust_huge_amp_vectorized import AladynSurvivalFixedKernelsAvgLoss
-
-model = AladynSurvivalFixedKernelsAvgLoss(
-    N=Y.shape[0], D=Y.shape[1], T=Y.shape[2], K=20,
-    P=G.shape[1], G=G, Y=Y,
-    prevalence_t=prevalence_t,
-    signature_references=signature_refs
-)
-history = model.fit(E, num_epochs=200)
-pi, theta, phi = model.forward()
-```
-
-### Interactive Notebooks
-
-**Discovery Mode** (full model training):
-```bash
-jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_understanding_and_discovery_noweights.ipynb
-```
-
-**Prediction Mode** (fixed phi):
-```bash
-jupyter notebook pyScripts_forPublish/aladynoulli_fit_for_prediction.ipynb
-```
-
-
-
-## 📚 Documentation
-
-**Full documentation available at**: [https://surbut.github.io/aladynoulli2/](https://surbut.github.io/aladynoulli2/)
+| Resource | Description | Link |
+|----------|-------------|------|
+| **Framework Overview** | **Discovery vs prediction framework - Essential reading** | [Discovery_Prediction_Framework_Overview.html](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) |
+| **Complete Workflow Guide** | Step-by-step preprocessing → training → prediction | [WORKFLOW.md](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) |
+| **Preprocessing Guide** | Preprocessing file creation guide | [create_preprocessing_files.html](https://surbut.github.io/aladynoulli2/reviewer_responses/preprocessing/create_preprocessing_files.html) |
 
 ### Core Model Files
 
-- **Discovery Model**: [`pyScripts_forPublish/clust_huge_amp_vectorized.py`](pyScripts_forPublish/clust_huge_amp_vectorized.py) - Full model that learns phi and psi
-- **Prediction Model**: [`pyScripts_forPublish/clust_huge_amp_fixedPhi.py`](pyScripts_forPublish/clust_huge_amp_fixedPhi.py) - Fixed-phi model for fast predictions
+| Component | File | Description |
+|-----------|------|-------------|
+| **Discovery Model** | [clust_huge_amp_vectorized.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized.py) | Full model that learns phi and psi |
+| **Prediction Model** | [clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/aws_offsetmaster/clust_huge_amp_fixedPhi_vectorized_fixed_gamma_fixed_kappa.py) | Fixed-phi, fixed-gamma, fixed-kappa model for fast predictions |
 
-### Key Resources
+**Note**: The prediction model uses fixed gamma (genetic effects) and kappa (calibration parameter) from pooled training batches. This ensures complete separation between training and testing data in each validation fold. Only lambda (individual-specific signature loadings) is learned during prediction.
 
-| Resource | Description |
-|----------|-------------|
-| [Framework Overview](https://surbut.github.io/aladynoulli2/reviewer_responses/notebooks/framework/Discovery_Prediction_Framework_Overview.html) | Discovery vs prediction framework |
-| [Reviewer Response Analyses](https://surbut.github.io/aladynoulli2/reviewer_responses/README.html) | Complete guide to all validation analyses |
-| [Workflow Guide](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/WORKFLOW.md) | Step-by-step preprocessing → training → prediction |
+### Workflow Scripts
 
-### Data Requirements
+| Script | Location | Purpose |
+|--------|----------|---------|
+| **Preprocessing** | [preprocessing_utils.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts/dec_6_revision/new_notebooks/reviewer_responses/preprocessing/preprocessing_utils.py) | Preprocessing utilities |
+| **Batch Training** | [run_aladyn_batch_vector_e_censor_nolor.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_batch_vector_e_censor_nolor.py) | Batch model training with corrected E (no LR regularization on gamma) |
+| **Master Checkpoint** | [create_master_checkpoints.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/create_master_checkpoints.py) | Create pooled checkpoints (phi and psi) |
+| **Pool Gamma & Kappa** | [pool_kappa_and_gamma_from_nolr_batches.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/pool_kappa_and_gamma_from_nolr_batches.py) | Pool gamma (genetic effects) and kappa (calibration) from training batch checkpoints |
+| **Prediction** | [run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/run_aladyn_predict_with_master_vector_cenosrE_fixedgk.py) | Run enrollment-based predictions using enrollment E matrix (E_enrollment_full.pt) with master checkpoint from corrected E training, using fixed gamma and kappa from pooled training batches (only lambda is learned per batch)
 
-**Required input files** (created during preprocessing):
-- `Y_tensor.pt`: Disease outcome tensor (N × D × T)
-- `E_matrix.pt`: Censoring matrix (N × D)
-- `G_matrix.pt`: Genetic data matrix (N × P)
-- `model_essentials.pt`: Model configuration (disease names, etc.)
-- `reference_trajectories.pt`: Signature reference trajectories
-- `initial_psi_400k.pt`: Initial psi parameters
-- `initial_clusters_400k.pt`: Initial cluster assignments
+---
 
-## ⏱️ Performance
+## 📈 Performance & Scalability
 
-### Typical Runtime (10,000 individuals, 50 diseases, 50 time points)
+### Computational Requirements
 
-| Configuration | Training Time | Memory Usage |
-|---------------|---------------|--------------|
-| CPU (Apple M4 Max) | ~70 minutes | ~12GB  per 10000 people
+**For 10K individuals, 348 diseases, 52 timepoints:**
+- **Training Time**: ~8-10 minutes per batch (converges after ~200 epochs)
+- **Prediction Time**: ~8 minutes per batch
+- **Memory**: ~8GB RAM (peak usage during training)
+- **CPU**: Multi-core recommended (4+ cores); PyTorch uses BLAS for parallel matrix operations
 
-### Scalability
+**Scaling:**
+- **Full UK Biobank (400K individuals)**: Processed in 39 batches of ~10K each
+- **Total training time**: ~5-7 hours for all batches (can be parallelized)
+- **Memory scales linearly**: ~8GB per 10K batch
 
-- **Individuals**: Tested up to 400,000
-- **Diseases**: Tested 350
-- **Time Points**: Tested 52 (ages 30-81)
-- **Genetic Features**: Tested with 36 PRS and 10 PCs
+**Why it's fast:**
+- Vectorized PyTorch operations (batched matrix decompositions)
+- BLAS Level 3 operations for efficient linear algebra
+- ~100-fold speedup compared to loop-based implementation
 
-## 📊 Results
+---
 
-The model has been validated on:
-- UK Biobank data (500,000+ individuals)
-- Multiple disease categories
-- Cross-validation studies
-- External validation cohorts
+## 📝 Citation
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines for details.
-
-## 📄 Citation
-
-If you use this code in your research, please cite:
+If you use Aladynoulli in your research, please cite:
 
 ```bibtex
-@article{urbut2024aladynoulli,
+@article{aladynoulli2024,
   title={Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction},
-  author={Urbut, Sarah and others},
+  author={Sur, P. and others},
   journal={medRxiv},
   year={2024},
   doi={10.1101/2024.09.29.24314557}
 }
 ```
 
-## 📜 License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📧 Contact
 
-## 📞 Contact
-
-- **Author**: Sarah Urbut
-- **Email**: surbut@mgh.harvard.edu
-- **Institution**: Massachusetts General Hospital
-
-## 🙏 Acknowledgments
-
-We thank the UK Biobank participants and the research community for making this work possible.
+For questions or issues, please open an issue on [GitHub](https://github.com/surbut/aladynoulli2/issues).
 
 ---
 
-**Note**: This software is provided for research purposes. Please ensure you have appropriate data use agreements and ethical approvals before using with real patient data.
+<div align="center">
+
+**Last Updated**: March 2026
+
+</div>
