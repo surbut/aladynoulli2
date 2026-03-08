@@ -237,6 +237,14 @@ The Aladynoulli workflow consists of **5 main steps**:
 
 ---
 
+## Data Privacy & Access
+
+This repository contains **no patient-identifying information**. No individual-level identifiers (EIDs, MRNs, or other participant IDs) from UK Biobank, All of Us, or Mass General Brigham are included in any files or git history. All analyses use de-identified, aggregate-level results only.
+
+Access to the underlying individual-level data from **UK Biobank**, **All of Us**, and **Mass General Brigham** requires separate approval from each institution's data access committee and is available only with PI permission and institutional authorization.
+
+---
+
 ## 📝 Citation
 
 If you use Aladynoulli in your research, please cite:
