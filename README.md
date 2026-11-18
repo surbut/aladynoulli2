@@ -4,7 +4,7 @@
 >
 > - **Train for the stated number of epochs. Do not train until the loss stops falling.** 300 epochs is a validated early stop, chosen on held-out people. The training loss keeps falling long after prediction and the genetic effects have started to get worse.
 > - **The model has a successor,** with a health component, per-person frailty and ancestry-removed polygenic scores.
-> - **Its fit is staged,** so that results do not depend on the random start or the batch.
+> - **It is fitted in stages:** the health component is established first, then the sex effects are learned.
 >
 > **[Read the update: training guidance, and what changed since the paper](https://surbut.github.io/aladynoulli2/updates.html)**
 

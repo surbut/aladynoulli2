@@ -107,7 +107,7 @@ successor model, which is documented on the <a href="https://surbut.github.io/me
 <ol type="1">
 <li><a href="#how-long-to-train">When to stop training</a>: at 300 epochs, chosen on held-out people. Not when the training loss flattens.</li>
 <li><a href="#the-triplet">What was added to the model</a>: a health component, per-person frailty, and polygenic scores with ancestry removed (the "triplet").</li>
-<li><a href="#staged-fit">How fitting changed</a>: the sex coefficient is held for the first 150 epochs, so fits agree across random starts and batches.</li>
+<li><a href="#staged-fit">How fitting changed</a>: a staged fit. The health component is established first, then the sex effects are learned.</li>
 </ol>
 <hr />
 
@@ -194,8 +194,8 @@ reference and get mistaken for disease structure.</p>
 <p>The data paths in the code are hard-coded to the authors' machine, so it is best read as a reference for now.</p>
 <hr />
 
-<h2 id="staged-fit">3. How fitting changed: the sex coefficient is held for the first 150 epochs, so fits agree across random starts and batches</h2>
-<h3>The problem: disease-free people can be placed by sex instead of by health</h3>
+<h2 id="staged-fit">3. How fitting changed: a staged fit that establishes the health component first</h2>
+<h3>Why stage the fit: health and sex can both explain a person with no diagnoses</h3>
 <p>With a health component, a person with no diagnoses can be explained in two ways: by the health component, or by a large sex coefficient that
 places men in one quiet signature and women in another. Both fit the training data about equally. The health component fills late in training and the
 genetic coefficients move early, so small differences decide which explanation is reached.</p>
@@ -206,7 +206,7 @@ others; its sex coefficients, its calibration and each person's composition did 
 0.46 in two of them.</li>
 <li>The polygenic coefficients are not involved. The model on this site, which has no health component, cannot show this: it has only the parked solution.</li>
 </ul>
-<h3>The fix: hold the sex coefficient for the first 150 epochs, then release it</h3>
+<h3>How it is staged: the sex coefficient is held for the first 150 epochs, then released</h3>
 <p>The sex coefficient is held at its starting value for the first 150 epochs, so the health component
 fills first, and is then released. Everything else, including the polygenic coefficients, trains from the first epoch. The model and its likelihood are
 unchanged; only the order in which parameters may move changes. Because the fit is delayed, the stop moves from 300 to about 375 epochs.</p>
@@ -218,6 +218,8 @@ unchanged; only the order in which parameters may move changes. Because the fit 
 <tr><td>men's health share across six batches chosen to span the spread</td><td>0.41 to 0.86</td><td>0.69 to 0.71</td></tr>
 <tr><td>10-year AUC within sex, median over 221 diseases</td><td>0.630</td><td>0.630</td></tr>
 <tr><td>observed / expected near the recipe's own stop</td><td>1.11 at 300</td><td>1.03 at 350, 0.96 at 400</td></tr>
+<tr><td>pooled backbone of four fits, scored on held-out people: observed / expected</td><td>1.13</td><td>1.04</td></tr>
+<tr><td>pooled backbone of four fits: 10-year AUC within sex, median</td><td>0.632</td><td>0.631</td></tr>
 </tbody>
 </table>
 <h3>An alternative: average the genetic effects over batches and hold them fixed</h3>
@@ -235,6 +237,7 @@ have to be re-derived with the same held-out curve.</li>
 <li><strong>Sex coefficients are not comparable between the two recipes.</strong> Under the staged fit they are less than half the size.</li>
 <li><strong>Score sex-specific diseases within sex.</strong> An AUC over both sexes rewards a larger sex coefficient without better discrimination.</li>
 <li><strong>Any covariate that marks a group can open the same kind of sink,</strong> not only sex: ancestry components, or a site or batch indicator.</li>
+<li><strong>Discrimination is close but not identical.</strong> Within sex the average difference was 0.001 to 0.002. Type 2 diabetes was 0.01 to 0.02 lower under the staged fit and prostate cancer 0.02 to 0.03 higher, on one held-out batch.</li>
 <li><strong>It does not repair a bad training run,</strong> and it does not change the fact that the size of <code>γ</code> depends on the stopping epoch.</li>
 </ul>
 <h3>Where to find the command, the checks and the evidence</h3>
