@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aladynoulli: training guidance and what changed since the paper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            font-size: 1.8em;
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #555;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+<h1 id="updates">Training guidance, and what changed since the paper</h1>
+<p><a href="index.html">Back to the documentation index</a>. Added November 2026. Group-level results only.</p>
+<p>This page has three parts. The first applies directly to the model documented on this site. The second and third describe the
+successor model, which is documented on the <a href="https://surbut.github.io/mendelnoulli_paper/">Mendelnoulli site</a>.</p>
+<ol type="1">
+<li><a href="#how-long-to-train">How long to train</a>: why training stops at a fixed number of epochs, and why the training loss is not the stopping rule.</li>
+<li><a href="#the-triplet">The triplet</a>: a health component, per-person frailty, and polygenic scores with ancestry removed.</li>
+<li><a href="#staged-fit">The staged fit</a>: holding the sex coefficient early in training so that fits do not depend on the random start or the batch.</li>
+</ol>
+<hr />
+
+<h2 id="how-long-to-train">1. How long to train</h2>
+<p><strong>The recipe trains each batch for 300 epochs. That is a validated early stop. It is not convergence of the training loss, and the
+training loss should not be used to decide when to stop.</strong></p>
+<p>The non-centered model writes each person's loading as a genetic part plus a person-specific part,
+<code>λ = reference + G·γ + δ</code>. The likelihood sees only <code>λ</code>. The person-specific term <code>δ</code> has about ten million
+free entries per 10,000-person batch and a weak prior, so it keeps fitting the training batch for as long as training runs. The training
+loss therefore falls at 300 epochs, at 2,000, and beyond. That says <code>δ</code> is fitting the batch more closely. It says nothing about
+whether <code>γ</code> has improved or whether the model predicts better.</p>
+<p>What we measured: the backbone trained on one batch of 10,000 people and frozen at each epoch, the person terms refitted on a disjoint
+batch, and scores taken on the years after enrolment.</p>
+<table>
+<thead><tr><th>epochs</th><th>training loss</th><th>held-out NLL</th><th>observed / expected</th><th>10-year AUC (median, 28 groups)</th></tr></thead>
+<tbody>
+<tr><td>50</td><td>61.6</td><td>.00942</td><td>2.83</td><td>.659</td></tr>
+<tr><td>150</td><td>54.5</td><td>.00872</td><td>1.43</td><td>.676</td></tr>
+<tr><td><strong>300</strong></td><td><strong>48.8</strong></td><td><strong>.00869</strong></td><td><strong>1.11</strong></td><td><strong>.679</strong></td></tr>
+<tr><td>600</td><td>40.6</td><td>.00878</td><td>0.80</td><td>.672</td></tr>
+<tr><td>2000</td><td>36.0</td><td>.00979</td><td>0.43</td><td>.660</td></tr>
+</tbody>
+</table>
+<ul>
+<li>Held-out NLL is flat from 150 to 300 and rises afterwards. Calibration is best near 300. By 2,000 the model over-predicts more than twofold.</li>
+<li>In the <a href="index.html#non-centered-parameterization-reparameterization">parameter-recovery simulation</a>, where the true <code>γ</code> is
+known, the non-centered fit recovers it at a correlation of about 0.95 from 100 to 600 epochs and about 0.5 by 2,000 and later. The centered fit
+stays near 0.8 throughout. <strong>The value of about 0.95 quoted on this site is at the early stop. Training to 2,000 or more epochs will not reproduce it.</strong></li>
+<li>The 1-year AUC at enrolment rises with longer training. That year is inside the data the person terms are refitted on, so the number reflects
+how sharply the refit fits. Read it only together with held-out NLL, calibration and the 10-year AUC.</li>
+</ul>
+<p><strong>What to do.</strong></p>
+<ol type="1">
+<li>Use the stated number of epochs for the stated recipe. Do not train until the loss stops falling.</li>
+<li>If you change the model, the dataset or its size, the learning rate or the schedule, re-derive the stop: save checkpoints across a range of epochs, score
+each on held-out people, and stop where calibration is closest to 1 with held-out NLL still on its floor.</li>
+<li>Report <code>γ</code> as the mean over batches, with the epoch stated. Its size changes along the training path, and one batch is noisy.</li>
+<li>The centered and non-centered forms share an objective and its stationary points. They take different paths, and neither is run to that point here.</li>
+</ol>
+<p><strong>Scope.</strong> The table above was measured on the successor model described next. The model on this site shares the parameterisation and the
+same recovery simulation, and its learning-rate, schedule and prior-weight sweeps selected the same 300-epoch constant-rate recipe on held-out AUC. The
+two-sided held-out curve was not run on this exact model. Details: <a href="https://surbut.github.io/mendelnoulli_paper/figstability.html">training length and stability</a>.</p>
+<hr />
+
+<h2 id="the-triplet">2. The triplet</h2>
+<p>In the original model a person's signature weights have to carry two things at once: signature composition, meaning which diseases they have, and rate, meaning how much disease they have.
+These are different things, and mixing them distorts both the signatures and the genetic effects. The three additions below separate them. Together we
+call them the "triplet." All models are wrong, but some are less wrong, as I imagine will be the case as noulli evolves!</p>
+<p><strong>1. A health component.</strong> Next to the K disease signatures, each person also gets a "healthy" component. It's anchored to the population's
+disease-free curve: the log-odds of staying free of disease at each age. We temper that curve toward the average of the disease signatures (factor 0.6)
+and shift it to a mean of 1.5. The result is a healthy reference that is strongest when people are young, fades with age, and stays above the most
+heavily loaded disease signature through mid-life. Someone who stays healthy can load on this component rather than being pushed into whichever disease
+signature fits least badly.</p>
+<p>It also fixes an identifiability problem. Signature weights are a softmax, so adding the same shift to every component changes nothing. We estimate
+the genetic level of the health component once and then hold it fixed, which makes the genetic effects on the other components absolute rather than
+relative. The health component also has no genetic age trend, so the age interactions are measured against it.</p>
+<p><strong>2. Per-person frailty.</strong> Because θ<sub>i</sub> is a composition (that inherently sums to 1), two people with the same mix of diagnoses
+get the same θ<sub>i</sub> even if one has twice as many diagnoses. So each person gets one frailty, f<sub>i</sub>, applied after the sum over components:</p>
+<p style="text-align:center"><code>1 − π̃ = (1 − π)<sup>exp(f<sub>i</sub>)</sup></code></p>
+<p>Here exp(f<sub>i</sub>) multiplies that person's cumulative hazard for every disease at every age. It changes their overall disease rate but not their
+signature composition. The values are centered, and their prior has SD 0.5.</p>
+<p>The frailty is what makes the health component work. A single healthy curve can't fit both sexes, whose overall rates differ, and without frailty it
+ends up calibrated for women. In our ablation, men's weight on the health component went from 0.14 to 0.56 once frailty was added. It's pretty cool
+because if you add more data suggesting someone is more or less healthy, their health signature can slightly rise to account for increasing frailty,
+since health is a short-term marker and frailty captures a larger diagnostic burden.</p>
+<p><strong>3. Excluding the principal components.</strong> We regress the 36 polygenic scores on the first 10 genetic PCs, using one least-squares fit
+across the whole cohort. We keep the residuals, drop the PCs themselves, and add sex (P = 37). If the PCs are left in, ancestry can move the healthy
+reference and get mistaken for disease structure.</p>
+<table>
+<thead><tr><th>where</th><th>what</th></tr></thead>
+<tbody>
+<tr><td><a href="https://surbut.github.io/mendelnoulli_paper/">Site</a></td><td>Each main figure has a page showing its scripts. The <a href="https://surbut.github.io/mendelnoulli_paper/figtriplet.html">"Why the triplet"</a> page has the ablation figure, which shows what each piece changes across ancestry groups.</td></tr>
+<tr><td><a href="https://github.com/surbut/mendelnoulli_paper">Code</a> (repository private at present)</td><td>model: <code>src/clust_huge_amp_vectorized_reparam_slope_3way.py</code>; training: <code>src/train_slope_3way.py</code>; held-out prediction: <code>src/triplet_loo_calibration.py</code>. The header of each file explains why each piece is needed.</td></tr>
+<tr><td>Preprint</td><td>The Methods sections "Health component" and "Frailty" have the full definitions.</td></tr>
+</tbody>
+</table>
+<p>The data paths in the code are hard-coded to the authors' machine, so it is best read as a reference for now.</p>
+<hr />
+
+<h2 id="staged-fit">3. The staged fit</h2>
+<p>With a health component, a person with no diagnoses can be explained in two ways: by the health component, or by a large sex coefficient that
+places men in one quiet signature and women in another. Both fit the training data about equally. The health component fills late in training and the
+genetic coefficients move early, so small differences decide which explanation is reached.</p>
+<ul>
+<li><strong>Across random starts:</strong> on one batch, one start in three reached the "parked" state. Its held-out prediction at 300 epochs matched the
+others; its sex coefficients, its calibration and each person's composition did not.</li>
+<li><strong>Across batches, same start:</strong> men's share of loading on the health component had a median of 0.64 over 40 batches, and was 0.41 and
+0.46 in two of them.</li>
+<li>The polygenic coefficients are not involved. The model on this site, which has no health component, cannot show this: it has only the parked solution.</li>
+</ul>
+<p><strong>The fit is therefore staged.</strong> The sex coefficient is held at its starting value for the first 150 epochs, so the health component
+fills first, and is then released. Everything else, including the polygenic coefficients, trains from the first epoch. The model and its likelihood are
+unchanged; only the order in which parameters may move changes. Because the fit is delayed, the stop moves from 300 to about 375 epochs.</p>
+<table>
+<thead><tr><th></th><th>original recipe</th><th>staged</th></tr></thead>
+<tbody>
+<tr><td>three random starts on one batch</td><td>one in the parked state</td><td>all three agree, in training and held out</td></tr>
+<tr><td>men's health share across six batches chosen to span the spread</td><td>0.41 to 0.86</td><td>0.69 to 0.71</td></tr>
+<tr><td>10-year AUC within sex, median over 221 diseases</td><td>0.630</td><td>0.630</td></tr>
+<tr><td>observed / expected near the recipe's own stop</td><td>1.11 at 300</td><td>1.03 at 350, 0.96 at 400</td></tr>
+</tbody>
+</table>
+<p>A second way to stage it is to average <code>γ</code> over the first-stage batch fits and refit with it held fixed. Two random starts then give the
+same fit, and held-out prediction matches the original recipe. It is only as clean as the fits that were averaged.</p>
+<p><strong>Limits.</strong> Three random starts on one batch; the staged recipe's stop rests on one start and one pair of batches; six of 40 batches were
+refitted. The manuscript's figures use the 300-epoch recipe without the staging; none of its 40 batch fits is fully in the parked state and two are partway.</p>
+<p><strong>Before applying any of this to your own data.</strong></p>
+<ul>
+<li><strong>The reasoning carries over; the numbers do not.</strong> Everything on this page was measured on UK Biobank with 348 diseases and batches of
+10,000 people. The stopping epoch, the length of the hold and how often a fit parks all depend on the cohort, the disease list and the batch size, and
+have to be re-derived with the same held-out curve.</li>
+<li><strong>The stop moves when the fit is staged.</strong> A staged fit stopped at the old 300 epochs is not finished.</li>
+<li><strong>Sex coefficients are not comparable between the two recipes.</strong> Under the staged fit they are less than half the size.</li>
+<li><strong>Score sex-specific diseases within sex.</strong> An AUC over both sexes rewards a larger sex coefficient without better discrimination.</li>
+<li><strong>Any covariate that marks a group can open the same kind of sink,</strong> not only sex: ancestry components, or a site or batch indicator.</li>
+<li><strong>It does not repair a bad training run,</strong> and it does not change the fact that the size of <code>γ</code> depends on the stopping epoch.</li>
+</ul>
+<p>How to apply it, with the command and the checks to run on a fit: <a href="https://surbut.github.io/mendelnoulli_paper/training_notes.html">training notes</a>. Evidence, table by
+table: <a href="https://surbut.github.io/mendelnoulli_paper/figstability.html">training length and stability</a>.</p>
+    </div>
+</body>
+</html>

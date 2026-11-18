@@ -165,7 +165,7 @@ jointly identifiable (only κ·γ enters the likelihood).
 | Component | File | Description |
 |-----------|------|-------------|
 | **Discovery Model (Reparam)** | [clust_huge_amp_vectorized_reparam.py](https://github.com/surbut/aladynoulli2/blob/main/pyScripts_forPublish/clust_huge_amp_vectorized_reparam.py) | Non-centered model: λ = μ(γ) + δ, κ=1 fixed. γ and ψ receive NLL gradients directly. |
-| **Training Script** | [train_nokappa_v3.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/train_nokappa_v3.py) | Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping |
+| **Training Script** | [train_nokappa_v3.py](https://github.com/surbut/aladynoulli2/blob/main/claudefile/train_nokappa_v3.py) | Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping. **300 epochs is a validated early stop, not convergence: do not train until the loss stops falling** (see "Training guidance, and what changed since the paper" on the documentation site) |
 
 ---
 

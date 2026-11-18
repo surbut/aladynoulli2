@@ -117,6 +117,7 @@
 <li><strong><a href="#reparam-results">Reparam Results</a></strong> - AUC, calibration, ROC curves, and Delphi state-of-the-art comparison (same v1 model, improved γ estimation)</li>
 <li><strong><a href="#complete-workflow">Complete Workflow</a></strong> - Step-by-step guide to running the model: preprocessing, training, and prediction</li>
 <li><strong><a href="#performance-scalability">Performance &amp; Scalability</a></strong> - Computational requirements and scaling characteristics</li>
+<li><strong><a href="updates.html">Training guidance, and what changed since the paper</a></strong> - How long to train and why the training loss is not the stopping rule; the health component, frailty and ancestry-removed scores of the successor model; the staged fit</li>
 </ol>
 <p><strong>Note</strong>: Installation instructions are not required for reviewers. A pre-configured environment will be provided for running the code.</p>
 <hr />
@@ -391,6 +392,7 @@
 </table>
 
 <h2 id="non-centered-parameterization-reparameterization">🧬 Non-Centered Parameterization (Reparameterization)</h2>
+<p><strong>Note (November 2026).</strong> The recovery of γ quoted below (r ≈ 0.95) is at the 300-epoch early stop and falls with much longer training. A successor model adds a health component, per-person frailty and ancestry-removed scores; see <a href="updates.html">training guidance and what changed since the paper</a>.</p>
 <p>In the standard (“centered”) formulation, genetic effects (γ) enter only through the GP prior mean for λ. Because λ is a free parameter that directly enters the likelihood, the optimizer fits the data by adjusting λ and γ receives weaker gradient signal (only the W = 10⁻⁴ scaled GP prior). This can limit the accuracy of γ recovery — the individual-specific genetic effects that are essential for biological interpretation and out-of-sample prediction.</p>
 <p>The <strong>non-centered</strong> formulation addresses this by decomposing λ into a genetic mean and a residual:</p>
 <pre><code>λ_i,k,t = μ_k + G_i γ_k + δ_i,k,t</code></pre>
@@ -439,7 +441,7 @@
 <tr>
 <td><strong>Training Script</strong></td>
 <td><a href="https://github.com/surbut/aladynoulli2/blob/main/claudefile/train_nokappa_v3.py">train_nokappa_v3.py</a></td>
-<td>Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping</td>
+<td>Constant LR=0.1, W=10⁻⁴, 300 epochs, no cosine scheduling, no gradient clipping. <strong>300 epochs is a validated early stop, not convergence: do not train until the loss stops falling.</strong> See <a href="updates.html#how-long-to-train">how long to train</a>.</td>
 </tr>
 </tbody>
 </table>
