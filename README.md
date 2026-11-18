@@ -1,5 +1,13 @@
 # Aladynoulli: A Bayesian Survival Model for Disease Trajectory Prediction
 
+> **IMPORTANT: latest updates to fitting and optimization (November 2026)**
+>
+> - **Train for the stated number of epochs. Do not train until the loss stops falling.** 300 epochs is a validated early stop, chosen on held-out people. The training loss keeps falling long after prediction and the genetic effects have started to get worse.
+> - **The model has a successor,** with a health component, per-person frailty and ancestry-removed polygenic scores.
+> - **Its fit is staged,** so that results do not depend on the random start or the batch.
+>
+> **[Read the update: training guidance, and what changed since the paper](https://surbut.github.io/aladynoulli2/updates.html)**
+
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
