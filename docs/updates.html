@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aladynoulli: training guidance and what changed since the paper</title>
+    <title>Aladynoulli: updates to fitting and optimization (November 2026)</title>
     <style>
         * {
             margin: 0;
@@ -100,25 +100,27 @@
 </head>
 <body>
     <div class="container">
-<h1 id="updates">Training guidance, and what changed since the paper</h1>
+<h1 id="updates">Updates to fitting and optimization (November 2026)</h1>
 <p><a href="index.html">Back to the documentation index</a>. Added November 2026. Group-level results only.</p>
 <p>This page has three parts. The first applies directly to the model documented on this site. The second and third describe the
 successor model, which is documented on the <a href="https://surbut.github.io/mendelnoulli_paper/">Mendelnoulli site</a>.</p>
 <ol type="1">
-<li><a href="#how-long-to-train">How long to train</a>: why training stops at a fixed number of epochs, and why the training loss is not the stopping rule.</li>
-<li><a href="#the-triplet">The triplet</a>: a health component, per-person frailty, and polygenic scores with ancestry removed.</li>
-<li><a href="#staged-fit">The staged fit</a>: holding the sex coefficient early in training so that fits do not depend on the random start or the batch.</li>
+<li><a href="#how-long-to-train">When to stop training</a>: at 300 epochs, chosen on held-out people. Not when the training loss flattens.</li>
+<li><a href="#the-triplet">What was added to the model</a>: a health component, per-person frailty, and polygenic scores with ancestry removed (the "triplet").</li>
+<li><a href="#staged-fit">How fitting changed</a>: the sex coefficient is held for the first 150 epochs, so fits agree across random starts and batches.</li>
 </ol>
 <hr />
 
-<h2 id="how-long-to-train">1. How long to train</h2>
+<h2 id="how-long-to-train">1. When to stop training: 300 epochs, chosen on held-out people, not when the loss flattens</h2>
 <p><strong>The recipe trains each batch for 300 epochs. That is a validated early stop. It is not convergence of the training loss, and the
 training loss should not be used to decide when to stop.</strong></p>
+<h3>Why the training loss cannot tell you when to stop</h3>
 <p>The non-centered model writes each person's loading as a genetic part plus a person-specific part,
 <code>λ = reference + G·γ + δ</code>. The likelihood sees only <code>λ</code>. The person-specific term <code>δ</code> has about ten million
 free entries per 10,000-person batch and a weak prior, so it keeps fitting the training batch for as long as training runs. The training
 loss therefore falls at 300 epochs, at 2,000, and beyond. That says <code>δ</code> is fitting the batch more closely. It says nothing about
 whether <code>γ</code> has improved or whether the model predicts better.</p>
+<h3>What happens on held-out people as training continues</h3>
 <p>What we measured: the backbone trained on one batch of 10,000 people and frozen at each epoch, the person terms refitted on a disjoint
 batch, and scores taken on the years after enrolment.</p>
 <table>
@@ -139,7 +141,7 @@ stays near 0.8 throughout. <strong>The value of about 0.95 quoted on this site i
 <li>The 1-year AUC at enrolment rises with longer training. That year is inside the data the person terms are refitted on, so the number reflects
 how sharply the refit fits. Read it only together with held-out NLL, calibration and the 10-year AUC.</li>
 </ul>
-<p><strong>What to do.</strong></p>
+<h3>What to do when you train this model</h3>
 <ol type="1">
 <li>Use the stated number of epochs for the stated recipe. Do not train until the loss stops falling.</li>
 <li>If you change the model, the dataset or its size, the learning rate or the schedule, re-derive the stop: save checkpoints across a range of epochs, score
@@ -147,16 +149,18 @@ each on held-out people, and stop where calibration is closest to 1 with held-ou
 <li>Report <code>γ</code> as the mean over batches, with the epoch stated. Its size changes along the training path, and one batch is noisy.</li>
 <li>The centered and non-centered forms share an objective and its stationary points. They take different paths, and neither is run to that point here.</li>
 </ol>
-<p><strong>Scope.</strong> The table above was measured on the successor model described next. The model on this site shares the parameterisation and the
+<h3>Which model these numbers come from</h3>
+<p>The table above was measured on the successor model described next. The model on this site shares the parameterisation and the
 same recovery simulation, and its learning-rate, schedule and prior-weight sweeps selected the same 300-epoch constant-rate recipe on held-out AUC. The
 two-sided held-out curve was not run on this exact model. Details: <a href="https://surbut.github.io/mendelnoulli_paper/figstability.html">training length and stability</a>.</p>
 <hr />
 
-<h2 id="the-triplet">2. The triplet</h2>
+<h2 id="the-triplet">2. What was added to the model: a health component, per-person frailty, and ancestry-removed scores</h2>
 <p>In the original model a person's signature weights have to carry two things at once: signature composition, meaning which diseases they have, and rate, meaning how much disease they have.
 These are different things, and mixing them distorts both the signatures and the genetic effects. The three additions below separate them. Together we
 call them the "triplet." All models are wrong, but some are less wrong, as I imagine will be the case as noulli evolves!</p>
-<p><strong>1. A health component.</strong> Next to the K disease signatures, each person also gets a "healthy" component. It's anchored to the population's
+<h3>A health component: somewhere for healthy years to go</h3>
+<p>Next to the K disease signatures, each person also gets a "healthy" component. It's anchored to the population's
 disease-free curve: the log-odds of staying free of disease at each age. We temper that curve toward the average of the disease signatures (factor 0.6)
 and shift it to a mean of 1.5. The result is a healthy reference that is strongest when people are young, fades with age, and stays above the most
 heavily loaded disease signature through mid-life. Someone who stays healthy can load on this component rather than being pushed into whichever disease
@@ -164,7 +168,8 @@ signature fits least badly.</p>
 <p>It also fixes an identifiability problem. Signature weights are a softmax, so adding the same shift to every component changes nothing. We estimate
 the genetic level of the health component once and then hold it fixed, which makes the genetic effects on the other components absolute rather than
 relative. The health component also has no genetic age trend, so the age interactions are measured against it.</p>
-<p><strong>2. Per-person frailty.</strong> Because θ<sub>i</sub> is a composition (that inherently sums to 1), two people with the same mix of diagnoses
+<h3>Per-person frailty: how much disease, kept separate from which diseases</h3>
+<p>Because θ<sub>i</sub> is a composition (that inherently sums to 1), two people with the same mix of diagnoses
 get the same θ<sub>i</sub> even if one has twice as many diagnoses. So each person gets one frailty, f<sub>i</sub>, applied after the sum over components:</p>
 <p style="text-align:center"><code>1 − π̃ = (1 − π)<sup>exp(f<sub>i</sub>)</sup></code></p>
 <p>Here exp(f<sub>i</sub>) multiplies that person's cumulative hazard for every disease at every age. It changes their overall disease rate but not their
@@ -173,9 +178,11 @@ signature composition. The values are centered, and their prior has SD 0.5.</p>
 ends up calibrated for women. In our ablation, men's weight on the health component went from 0.14 to 0.56 once frailty was added. It's pretty cool
 because if you add more data suggesting someone is more or less healthy, their health signature can slightly rise to account for increasing frailty,
 since health is a short-term marker and frailty captures a larger diagnostic burden.</p>
-<p><strong>3. Excluding the principal components.</strong> We regress the 36 polygenic scores on the first 10 genetic PCs, using one least-squares fit
+<h3>Ancestry removed from the polygenic scores</h3>
+<p>We regress the 36 polygenic scores on the first 10 genetic PCs, using one least-squares fit
 across the whole cohort. We keep the residuals, drop the PCs themselves, and add sex (P = 37). If the PCs are left in, ancestry can move the healthy
 reference and get mistaken for disease structure.</p>
+<h3>Where to find the figures, code and definitions</h3>
 <table>
 <thead><tr><th>where</th><th>what</th></tr></thead>
 <tbody>
@@ -187,7 +194,8 @@ reference and get mistaken for disease structure.</p>
 <p>The data paths in the code are hard-coded to the authors' machine, so it is best read as a reference for now.</p>
 <hr />
 
-<h2 id="staged-fit">3. The staged fit</h2>
+<h2 id="staged-fit">3. How fitting changed: the sex coefficient is held for the first 150 epochs, so fits agree across random starts and batches</h2>
+<h3>The problem: disease-free people can be placed by sex instead of by health</h3>
 <p>With a health component, a person with no diagnoses can be explained in two ways: by the health component, or by a large sex coefficient that
 places men in one quiet signature and women in another. Both fit the training data about equally. The health component fills late in training and the
 genetic coefficients move early, so small differences decide which explanation is reached.</p>
@@ -198,9 +206,11 @@ others; its sex coefficients, its calibration and each person's composition did 
 0.46 in two of them.</li>
 <li>The polygenic coefficients are not involved. The model on this site, which has no health component, cannot show this: it has only the parked solution.</li>
 </ul>
-<p><strong>The fit is therefore staged.</strong> The sex coefficient is held at its starting value for the first 150 epochs, so the health component
+<h3>The fix: hold the sex coefficient for the first 150 epochs, then release it</h3>
+<p>The sex coefficient is held at its starting value for the first 150 epochs, so the health component
 fills first, and is then released. Everything else, including the polygenic coefficients, trains from the first epoch. The model and its likelihood are
 unchanged; only the order in which parameters may move changes. Because the fit is delayed, the stop moves from 300 to about 375 epochs.</p>
+<h3>What changed when the fit was staged</h3>
 <table>
 <thead><tr><th></th><th>original recipe</th><th>staged</th></tr></thead>
 <tbody>
@@ -210,11 +220,13 @@ unchanged; only the order in which parameters may move changes. Because the fit 
 <tr><td>observed / expected near the recipe's own stop</td><td>1.11 at 300</td><td>1.03 at 350, 0.96 at 400</td></tr>
 </tbody>
 </table>
+<h3>An alternative: average the genetic effects over batches and hold them fixed</h3>
 <p>A second way to stage it is to average <code>γ</code> over the first-stage batch fits and refit with it held fixed. Two random starts then give the
 same fit, and held-out prediction matches the original recipe. It is only as clean as the fits that were averaged.</p>
-<p><strong>Limits.</strong> Three random starts on one batch; the staged recipe's stop rests on one start and one pair of batches; six of 40 batches were
+<h3>How much evidence there is so far</h3>
+<p>Three random starts on one batch; the staged recipe's stop rests on one start and one pair of batches; six of 40 batches were
 refitted. The manuscript's figures use the 300-epoch recipe without the staging; none of its 40 batch fits is fully in the parked state and two are partway.</p>
-<p><strong>Before applying any of this to your own data.</strong></p>
+<h3>Before applying any of this to your own data</h3>
 <ul>
 <li><strong>The reasoning carries over; the numbers do not.</strong> Everything on this page was measured on UK Biobank with 348 diseases and batches of
 10,000 people. The stopping epoch, the length of the hold and how often a fit parks all depend on the cohort, the disease list and the batch size, and
@@ -225,6 +237,7 @@ have to be re-derived with the same held-out curve.</li>
 <li><strong>Any covariate that marks a group can open the same kind of sink,</strong> not only sex: ancestry components, or a site or batch indicator.</li>
 <li><strong>It does not repair a bad training run,</strong> and it does not change the fact that the size of <code>γ</code> depends on the stopping epoch.</li>
 </ul>
+<h3>Where to find the command, the checks and the evidence</h3>
 <p>How to apply it, with the command and the checks to run on a fit: <a href="https://surbut.github.io/mendelnoulli_paper/training_notes.html">training notes</a>. Evidence, table by
 table: <a href="https://surbut.github.io/mendelnoulli_paper/figstability.html">training length and stability</a>.</p>
     </div>
