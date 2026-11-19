@@ -134,7 +134,8 @@ batch, and scores taken on the years after enrolment.</p>
 </tbody>
 </table>
 <ul>
-<li>Held-out NLL is flat from 150 to 300 and rises afterwards. Calibration is best near 300. By 2,000 the model over-predicts more than twofold.</li>
+<li>Held-out NLL is flat from 150 to about 500 epochs. The 10-year AUC is highest near 300 and declines slowly after. Calibration passes through 1 near 400: 1.12 at 300, 1.05 at 350, 0.99 at 400, 0.94 at 450. By 2,000 the model over-predicts more than twofold.</li>
+<li>So the stop is a choice inside a plateau of about 300 to 400 epochs. At 300 discrimination is highest and calibration is still 12 percent off. Near 375 to 400 calibration is right, at about 0.005 less AUC.</li>
 <li>In the <a href="index.html#non-centered-parameterization-reparameterization">parameter-recovery simulation</a>, where the true <code>γ</code> is
 known, the non-centered fit recovers it at a correlation of about 0.95 from 100 to 600 epochs and about 0.5 by 2,000 and later. The centered fit
 stays near 0.8 throughout. <strong>The value of about 0.95 quoted on this site is at the early stop. Training to 2,000 or more epochs will not reproduce it.</strong></li>
@@ -209,7 +210,7 @@ others; its sex coefficients, its calibration and each person's composition did 
 <h3>How it is staged: the sex coefficient is held for the first 150 epochs, then released</h3>
 <p>The sex coefficient is held at its starting value for the first 150 epochs, so the health component
 fills first, and is then released. Everything else, including the polygenic coefficients, trains from the first epoch. The model and its likelihood are
-unchanged; only the order in which parameters may move changes. Because the fit is delayed, the stop moves from 300 to about 375 epochs.</p>
+unchanged; only the order in which parameters may move changes. It is stopped at about 375 epochs, where calibration on held-out people is right (0.99 on each of three random starts).</p>
 <h3>What changed when the fit was staged</h3>
 <table>
 <thead><tr><th></th><th>original recipe</th><th>staged</th></tr></thead>
@@ -217,27 +218,30 @@ unchanged; only the order in which parameters may move changes. Because the fit 
 <tr><td>three random starts on one batch</td><td>one in the parked state</td><td>all three agree, in training and held out</td></tr>
 <tr><td>men's health share across six batches chosen to span the spread</td><td>0.41 to 0.86</td><td>0.69 to 0.71</td></tr>
 <tr><td>10-year AUC within sex, median over 221 diseases</td><td>0.630</td><td>0.630</td></tr>
-<tr><td>observed / expected near the recipe's own stop</td><td>1.11 at 300</td><td>1.03 at 350, 0.96 at 400</td></tr>
+<tr><td>observed / expected by epoch, one batch scored on another</td><td>1.12 at 300, 1.05 at 350, 0.99 at 400</td><td>1.16 at 300, 1.03 at 350, 0.99 at 375, 0.96 at 400</td></tr>
+<tr><td>three random starts at the stop: observed / expected on held-out people</td><td>1.11, 1.10, 1.30 at 300</td><td>0.99, 0.99, 0.99 at 375</td></tr>
 <tr><td>pooled backbone of four fits, scored on held-out people: observed / expected</td><td>1.13</td><td>1.04</td></tr>
 <tr><td>pooled backbone of four fits: 10-year AUC within sex, median</td><td>0.632</td><td>0.631</td></tr>
+<tr><td>pooled backbone of four fits: 1-year AUC, the manuscript's 28 groups</td><td>0.928</td><td>0.950</td></tr>
+<tr><td>pooled backbone of four fits: 10-year AUC, the manuscript's 28 groups</td><td>0.684</td><td>0.679</td></tr>
 </tbody>
 </table>
 <h3>An alternative: average the genetic effects over batches and hold them fixed</h3>
 <p>A second way to stage it is to average <code>γ</code> over the first-stage batch fits and refit with it held fixed. Two random starts then give the
 same fit, and held-out prediction matches the original recipe. It is only as clean as the fits that were averaged.</p>
 <h3>How much evidence there is so far</h3>
-<p>Three random starts on one batch; the staged recipe's stop rests on one start and one pair of batches; six of 40 batches were
+<p>Three random starts on one batch; the stop rests on one training batch scored on one group of held-out people; six of 40 batches were
 refitted. The manuscript's figures use the 300-epoch recipe without the staging; none of its 40 batch fits is fully in the parked state and two are partway.</p>
 <h3>Before applying any of this to your own data</h3>
 <ul>
 <li><strong>The reasoning carries over; the numbers do not.</strong> Everything on this page was measured on UK Biobank with 348 diseases and batches of
 10,000 people. The stopping epoch, the length of the hold and how often a fit parks all depend on the cohort, the disease list and the batch size, and
 have to be re-derived with the same held-out curve.</li>
-<li><strong>The stop moves when the fit is staged.</strong> A staged fit stopped at the old 300 epochs is not finished.</li>
+<li><strong>Re-derive the stop on held-out people.</strong> Here both recipes are calibrated near 375 to 400 epochs; 300 is where the 10-year AUC is highest, with calibration still about 12 percent off.</li>
 <li><strong>Sex coefficients are not comparable between the two recipes.</strong> Under the staged fit they are less than half the size.</li>
 <li><strong>Score sex-specific diseases within sex.</strong> An AUC over both sexes rewards a larger sex coefficient without better discrimination.</li>
 <li><strong>Any covariate that marks a group can open the same kind of sink,</strong> not only sex: ancestry components, or a site or batch indicator.</li>
-<li><strong>Discrimination is close but not identical.</strong> Within sex the average difference was 0.001 to 0.002. Type 2 diabetes was 0.01 to 0.02 lower under the staged fit and prostate cancer 0.02 to 0.03 higher, on one held-out batch.</li>
+<li><strong>Prediction is essentially unchanged.</strong> The forward score and the 1-year AUC are the same, calibration is better, and the 10-year AUC is within 0.005. A few diseases move slightly in both directions, the same way on two separate groups of held-out people: type 2 diabetes about 0.01 lower, prostate cancer about 0.02 higher.</li>
 <li><strong>It does not repair a bad training run,</strong> and it does not change the fact that the size of <code>γ</code> depends on the stopping epoch.</li>
 </ul>
 <h3>Where to find the command, the checks and the evidence</h3>
