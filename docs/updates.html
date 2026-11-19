@@ -102,17 +102,18 @@
     <div class="container">
 <h1 id="updates">Updates to fitting and optimization (November 2026)</h1>
 <p><a href="index.html">Back to the documentation index</a>. Added November 2026. Group-level results only.</p>
-<p>This page has three parts. The first applies directly to the model documented on this site. The second and third describe the
+<p>Every setting below, from the number of epochs to the order in which parameters are learned, is tuned to the dataset, the way a learning rate
+or a penalty is. This page records how we tune them on UK Biobank and how to tune them on new data. It has three parts. The first applies directly to the model documented on this site. The second and third describe the
 successor model, which is documented on the <a href="https://surbut.github.io/mendelnoulli_paper/">Mendelnoulli site</a>.</p>
 <ol type="1">
-<li><a href="#how-long-to-train">When to stop training</a>: at 300 epochs, chosen on held-out people. Not when the training loss flattens.</li>
+<li><a href="#how-long-to-train">When to stop training</a>: in a plateau of about 300 to 400 epochs, chosen on held-out people. Not when the training loss flattens.</li>
 <li><a href="#the-triplet">What was added to the model</a>: a health component, per-person frailty, and polygenic scores with ancestry removed (the "triplet").</li>
 <li><a href="#staged-fit">How fitting changed</a>: a staged fit. The health component is established first, then the sex effects are learned.</li>
 </ol>
 <hr />
 
-<h2 id="how-long-to-train">1. When to stop training: 300 epochs, chosen on held-out people, not when the loss flattens</h2>
-<p><strong>The recipe trains each batch for 300 epochs. That is a validated early stop. It is not convergence of the training loss, and the
+<h2 id="how-long-to-train">1. When to stop training: a plateau of about 300 to 400 epochs, chosen on held-out people</h2>
+<p><strong>The manuscript recipe trains each batch for 300 epochs, inside the held-out plateau shown below. That is an early stop by design. It is not convergence of the training loss, and the
 training loss should not be used to decide when to stop.</strong></p>
 <h3>Why the training loss cannot tell you when to stop</h3>
 <p>The non-centered model writes each person's loading as a genetic part plus a person-specific part,
@@ -153,7 +154,7 @@ each on held-out people, and stop where calibration is closest to 1 with held-ou
 <h3>Which model these numbers come from</h3>
 <p>The table above was measured on the successor model described next. The model on this site shares the parameterisation and the
 same recovery simulation, and its learning-rate, schedule and prior-weight sweeps selected the same 300-epoch constant-rate recipe on held-out AUC. The
-two-sided held-out curve was not run on this exact model. Details: <a href="https://surbut.github.io/mendelnoulli_paper/figstability.html">training length and stability</a>.</p>
+full held-out curve was measured on the successor model. Details: <a href="https://surbut.github.io/mendelnoulli_paper/figstability.html">training length and stability</a>.</p>
 <hr />
 
 <h2 id="the-triplet">2. What was added to the model: a health component, per-person frailty, and ancestry-removed scores</h2>
@@ -228,8 +229,8 @@ unchanged; only the order in which parameters may move changes. It is stopped at
 </table>
 <h3>An alternative: average the genetic effects over batches and hold them fixed</h3>
 <p>A second way to stage it is to average <code>γ</code> over the first-stage batch fits and refit with it held fixed. Two random starts then give the
-same fit, and held-out prediction matches the original recipe. It is only as clean as the fits that were averaged.</p>
-<h3>How much evidence there is so far</h3>
+same fit, and held-out prediction matches the original recipe. It takes on the quality of the fits that are averaged, so those are checked first.</p>
+<h3>Scope of the evidence</h3>
 <p>Three random starts on one batch; the stop rests on one training batch scored on one group of held-out people; six of 40 batches were
 refitted. The manuscript's figures use the 300-epoch recipe without the staging; none of its 40 batch fits is fully in the parked state and two are partway.</p>
 <h3>Before applying any of this to your own data</h3>
@@ -242,7 +243,7 @@ have to be re-derived with the same held-out curve.</li>
 <li><strong>Score sex-specific diseases within sex.</strong> An AUC over both sexes rewards a larger sex coefficient without better discrimination.</li>
 <li><strong>Any covariate that marks a group can open the same kind of sink,</strong> not only sex: ancestry components, or a site or batch indicator.</li>
 <li><strong>Prediction is essentially unchanged.</strong> The forward score and the 1-year AUC are the same, calibration is better, and the 10-year AUC is within 0.005. A few diseases move slightly in both directions, the same way on two separate groups of held-out people: type 2 diabetes about 0.01 lower, prostate cancer about 0.02 higher.</li>
-<li><strong>It does not repair a bad training run,</strong> and it does not change the fact that the size of <code>γ</code> depends on the stopping epoch.</li>
+<li><strong>Check each batch fit against the others.</strong> The staging sets the order of learning and is not a substitute for that check. It also does not change the fact that the size of <code>γ</code> depends on the stopping epoch.</li>
 </ul>
 <h3>Where to find the command, the checks and the evidence</h3>
 <p>How to apply it, with the command and the checks to run on a fit: <a href="https://surbut.github.io/mendelnoulli_paper/training_notes.html">training notes</a>. Evidence, table by
